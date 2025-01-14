@@ -178,6 +178,7 @@ UserAccount.TYPE.updateProperties([
     (new NodeProperty('_roles')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_type')).type(DbDataType.STRING).def(UserAccountType.LOCAL),
     (new NodeProperty('_orgs')).type(DbDataType.BLOB).def([]),
+    (new NodeProperty('_extra')).type(DbDataType.BLOB).def({}).addValidationRule(UserAccount.VALIDATE._extra as any),
     (new NodeProperty('_authorized_ips')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_person')).type(DbDataType.BLOB)
         .sleep( (x:NodePropertyState) => {

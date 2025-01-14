@@ -106,155 +106,155 @@ export class Device implements INode
         uuid: ValidationRule.uuid()
     }
 
-    static TYPE:NodeType = new NodeType(
-        'device',
-        NodeInternalType.DEVICE,
-        [
-            (new NodeProperty("uid"))
-                .type(DbDataType.STRING)
-                .key(DbKeyType.PRIMARY),
-            (new NodeProperty("id")).type(DbDataType.STRING),
-            (new NodeProperty("type")).type(DbDataType.STRING).def(OperatingSystem.NONE),
-            (new NodeProperty("model")).type(DbDataType.STRING).def(""),
-            (new NodeProperty("product")).type(DbDataType.STRING).def(""),
-            (new NodeProperty("platform"))
-                .type(DbDataType.BLOB)
-                .sleep( (x:NodePropertyState)=>{
-                    if(x.p != null && x.p.toJsonObject!=null){
-                        return (x.p as Platform).toJsonObject();
-                    }else{
-                        return null;
-                    }
-                })
-                .wakeUp( (x:NodePropertyState)=>{
-                    if(x.p != null){
-                        return new Platform(x.p);
-                    }else{
-                        return null;
-                    }
-                })
-                .def(null),
-            (new NodeProperty("profile"))
-                .sleep( (x:NodePropertyState)=>{
-                    if(x.p != null && x.p.toJsonObject!=null){
-                        return (x.p as DeviceProfile).toJsonObject();
-                    }else{
-                        return null;
-                    }
-                })
-                .wakeUp( (x:NodePropertyState)=>{
-                    if(x.p != null){
-                        return DeviceProfileFactory.fromJsonObject(x.p);
-                    }else{
-                        return null;
-                    }
-                })
-                .type(DbDataType.BLOB).def(null),
-            (new NodeProperty("transportId")).type(DbDataType.STRING).def(null),
-            (new NodeProperty("usbQualifier")).type(DbDataType.STRING).def(null),
-            (new NodeProperty("emulatorOpts")).type(DbDataType.BLOB).def({}),
-            (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty("frida")).type(DbDataType.BLOB),
-            (new NodeProperty("uidfp")).type(DbDataType.BLOB).def({}),
-            (new NodeProperty("tpl")).type(DbDataType.BLOB)
-                .sleep( (x:NodePropertyState)=>{
-                    if(x.p!=null){
-                        return (x.p as DeviceTemplate).toJsonObject();
-                    }else{
-                        return null;
-                    }
-                })
-                .wakeUp( (x:NodePropertyState)=>{
-                    if(x.p!=null){
-                        return new DeviceTemplate(x.p);
-                    }else{
-                        return null;
-                    }
-                }).def(null),
-            (new NodeProperty("syscalls")).type(DbDataType.BLOB)
-                .sleep( (x:NodePropertyState)=>{
-                    const syscalls:any[] = [];
-                    if(x.p!=null && Array.isArray(x.p)){
-                        x.p.map( (sc:ModelSyscall) => {
-                            syscalls.push(sc.toJsonObject());
-                        });
-                    }
-
-                    return syscalls;
-                })
-                .wakeUp( (x:NodePropertyState)=>{
-                    const apps:AppPackage[] = [];
-                    if(x.p!=null && Array.isArray(x.p)){
-                        x.p.map( app => {
-                            apps.push(new AppPackage(app));
-                        });
-                    }
-
-                    return apps;
-                }),
-            (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty("os")).type(DbDataType.STRING).def(OperatingSystem.NONE),
-            (new NodeProperty("arch")).type(DbDataType.STRING).def(Architecture.AARCH64),
-            (new NodeProperty("apps")).type(DbDataType.BLOB)
-                .sleep( (x:NodePropertyState)=>{
-                    const apps:any[] = [];
-                    if(x.p!=null){
-                        x.p.map( app => {
-                            apps.push(app.toJsonObject());
-                        });
-                    }
-
-                    return apps;
-                })
-                .wakeUp( (x:NodePropertyState)=>{
-                    const apps:AppPackage[] = [];
-                    if(x.p!=null){
-                        x.p.map( app => {
-                            apps.push(new AppPackage(app));
-                        });
-                    }
-
-                    return apps;
-                }),
-            (new NodeProperty("bridges"))
-                .type(DbDataType.BLOB)
-                .sleep( (x:NodePropertyState)=>{
-                    const bridges:any = {};
-                    if(x.p!=null){
-                        for(let k in x.p){
-                            bridges[k] = (x.p[k] as IBridge).toJsonObject({});
+        static TYPE:NodeType = new NodeType(
+            'device',
+            NodeInternalType.DEVICE,
+            [
+                (new NodeProperty("uid"))
+                    .type(DbDataType.STRING)
+                    .key(DbKeyType.PRIMARY),
+                (new NodeProperty("id")).type(DbDataType.STRING),
+                (new NodeProperty("type")).type(DbDataType.STRING).def(OperatingSystem.NONE),
+                (new NodeProperty("model")).type(DbDataType.STRING).def(""),
+                (new NodeProperty("product")).type(DbDataType.STRING).def(""),
+                (new NodeProperty("platform"))
+                    .type(DbDataType.BLOB)
+                    .sleep( (x:NodePropertyState)=>{
+                        if(x.p != null && x.p.toJsonObject!=null){
+                            return (x.p as Platform).toJsonObject();
+                        }else{
+                            return null;
                         }
-                    }
+                    })
+                    .wakeUp( (x:NodePropertyState)=>{
+                        if(x.p != null){
+                            return new Platform(x.p);
+                        }else{
+                            return null;
+                        }
+                    })
+                    .def(null),
+                (new NodeProperty("profile"))
+                    .sleep( (x:NodePropertyState)=>{
+                        if(x.p != null && x.p.toJsonObject!=null){
+                            return (x.p as DeviceProfile).toJsonObject();
+                        }else{
+                            return null;
+                        }
+                    })
+                    .wakeUp( (x:NodePropertyState)=>{
+                        if(x.p != null){
+                            return DeviceProfileFactory.fromJsonObject(x.p);
+                        }else{
+                            return null;
+                        }
+                    })
+                    .type(DbDataType.BLOB).def(null),
+                (new NodeProperty("transportId")).type(DbDataType.STRING).def(null),
+                (new NodeProperty("usbQualifier")).type(DbDataType.STRING).def(null),
+                (new NodeProperty("emulatorOpts")).type(DbDataType.BLOB).def({}),
+                (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("frida")).type(DbDataType.BLOB),
+                (new NodeProperty("uidfp")).type(DbDataType.BLOB).def({}),
+                (new NodeProperty("tpl")).type(DbDataType.BLOB)
+                    .sleep( (x:NodePropertyState)=>{
+                        if(x.p!=null){
+                            return (x.p as DeviceTemplate).toJsonObject();
+                        }else{
+                            return null;
+                        }
+                    })
+                    .wakeUp( (x:NodePropertyState)=>{
+                        if(x.p!=null){
+                            return new DeviceTemplate(x.p);
+                        }else{
+                            return null;
+                        }
+                    }).def(null),
+                (new NodeProperty("syscalls")).type(DbDataType.BLOB)
+                    .sleep( (x:NodePropertyState)=>{
+                        const syscalls:any[] = [];
+                        if(x.p!=null && Array.isArray(x.p)){
+                            x.p.map( (sc:ModelSyscall) => {
+                                syscalls.push(sc.toJsonObject());
+                            });
+                        }
 
-                    return bridges;
-                })
-                .wakeUp( (x:NodePropertyState)=>{
-                    const bridges:any = {};
-                    let fact:IBridgeFactory;
-                    if(x.p!=null){
-                        for(let k in x.p){
-                            fact = DeviceManager.getInstance().getBridgeFactory(x.p[k].name);
-                            if(fact!=null){
-                                bridges[k] = fact.fromJsonObject(x.p[k]);
+                        return syscalls;
+                    })
+                    .wakeUp( (x:NodePropertyState)=>{
+                        const apps:AppPackage[] = [];
+                        if(x.p!=null && Array.isArray(x.p)){
+                            x.p.map( app => {
+                                apps.push(new AppPackage(app));
+                            });
+                        }
+
+                        return apps;
+                    }),
+                (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("os")).type(DbDataType.STRING).def(OperatingSystem.NONE),
+                (new NodeProperty("arch")).type(DbDataType.STRING).def(Architecture.AARCH64),
+                (new NodeProperty("apps")).type(DbDataType.BLOB)
+                    .sleep( (x:NodePropertyState)=>{
+                        const apps:any[] = [];
+                        if(x.p!=null){
+                            x.p.map( app => {
+                                apps.push(app.toJsonObject());
+                            });
+                        }
+
+                        return apps;
+                    })
+                    .wakeUp( (x:NodePropertyState)=>{
+                        const apps:AppPackage[] = [];
+                        if(x.p!=null){
+                            x.p.map( app => {
+                                apps.push(new AppPackage(app));
+                            });
+                        }
+
+                        return apps;
+                    }),
+                (new NodeProperty("bridges"))
+                    .type(DbDataType.BLOB)
+                    .sleep( (x:NodePropertyState)=>{
+                        const bridges:any = {};
+                        if(x.p!=null){
+                            for(let k in x.p){
+                                bridges[k] = (x.p[k] as IBridge).toJsonObject({});
                             }
                         }
-                    }
 
-                    return bridges;
-                }),
+                        return bridges;
+                    })
+                    .wakeUp( (x:NodePropertyState)=>{
+                        const bridges:any = {};
+                        let fact:IBridgeFactory;
+                        if(x.p!=null){
+                            for(let k in x.p){
+                                fact = DeviceManager.getInstance().getBridgeFactory(x.p[k].name);
+                                if(fact!=null){
+                                    bridges[k] = fact.fromJsonObject(x.p[k]);
+                                }
+                            }
+                        }
+
+                        return bridges;
+                    }),
 
 
-            // volatile states
-            (new NodeProperty("authorized")).volatile().type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty("connected")).volatile().type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty("bridge")).volatile().type(DbDataType.STRING).def(null),
-            (new NodeProperty("selected")).volatile().type(DbDataType.STRING).def(null),
-            (new NodeProperty("isEmulated")).volatile().type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty("rooted")).type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty("offline")).volatile().type(DbDataType.BOOLEAN).def(true)
-        ]
-    ).dataSource("ENGINE_DB");
-    __:NodeInternalType = NodeInternalType.DEVICE;
+                // volatile states
+                (new NodeProperty("authorized")).volatile().type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("connected")).volatile().type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("bridge")).volatile().type(DbDataType.STRING).def(null),
+                (new NodeProperty("selected")).volatile().type(DbDataType.STRING).def(null),
+                (new NodeProperty("isEmulated")).volatile().type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("rooted")).type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("offline")).volatile().type(DbDataType.BOOLEAN).def(true)
+            ]
+        ).dataSource("ENGINE_DB");
+        __:NodeInternalType = NodeInternalType.DEVICE;
 
 
     /**

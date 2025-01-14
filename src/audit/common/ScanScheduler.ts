@@ -1,8 +1,8 @@
 import {ScanFlow} from "./ScanFlow.js";
-import DexcaliburEngine, {DexcaliburEngineMode} from "../../DexcaliburEngine.js";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {ScanOrder} from "./ScanOrder.js";
 import {Subject} from "rxjs";
-import {EngineNode, NodePurpose, ScanState} from "../../core/EngineNode.js";
+import {EngineNode, NodePurpose, OperationType, ScanState} from "../../core/EngineNode.js";
 import {AuditManager} from "../AuditManager.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
@@ -138,7 +138,7 @@ export class ScanScheduler {
         // check ressources quotas
         if(node == null){
             // start a new node
-            node = this._ctx.nodeManager.createNode(pOrder.settings.projectUID); //, pOrder.settings.targetOS);
+            node = this._ctx.nodeManager.createNode(pOrder.settings.projectUID, null); //, pOrder.settings.targetOS);
             node.start("New scan ordered");
         }
 
@@ -147,7 +147,7 @@ export class ScanScheduler {
             node.startScan(pOrder);
         }else{
             // add scan to queue
-            node.appendToQueue(pOrder);
+            node.appendToQueue(pOrder, OperationType.SCAN_ORDER);
         }
     }
 

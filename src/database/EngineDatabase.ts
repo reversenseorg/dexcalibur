@@ -17,9 +17,8 @@ import BusEvent from "../BusEvent.js";
 import {ProjectDatabase} from "./ProjectDatabase.js";
 import {LogMessage} from "../log/Log.js";
 import {UserSession} from "../user/session/UserSession.js";
-import DatabaseSettings = Settings.DatabaseSettings;
 import AssuranceReport from "../audit/common/AssuranceReport.js";
-import { Connection, Credential } from "@dexcalibur/dxc-orgs";
+import {Connection, Credential} from "@dexcalibur/dxc-orgs";
 import Inspector from "../Inspector.js";
 import Role from "../user/acl/common/Role.js";
 import AccessControl from "../user/acl/AccessControl.js";
@@ -28,8 +27,11 @@ import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {DeviceTemplate} from "../device/template/DeviceTemplate.js";
 import {DeviceInstance} from "../device/maker/DeviceInstance.js";
-
-
+import {randomUUID} from "crypto";
+import {InternalState} from "../core/InternalState.js";
+import {ProjectOrder} from "../project/ProjectOrder.js";
+import DatabaseSettings = Settings.DatabaseSettings;
+import {UploadedResource} from "../common/UploadedResource.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -136,7 +138,11 @@ export class EngineDatabase {
         Role.TYPE,
         UserAccount.TYPE,
         DeviceTemplate.TYPE,
-        DeviceInstance.TYPE
+        DeviceInstance.TYPE,
+        InternalState.TYPE,
+        DexcaliburProject.TYPE,
+        ProjectOrder.TYPE,
+        UploadedResource.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
@@ -388,9 +394,15 @@ export class EngineDatabase {
         return project[0];
     }
 
-    async createProject(pProject:DexcaliburProject):Promise<any> {
-        const coll = this.getCollectionOf(pProject);
-        return coll.asyncAddEntry( pProject.getUID(), pProject );
+    /**
+     * To add a new project to database
+     *
+     * @param {DexcaliburProject} pProject
+     * @method
+     */
+    async createProject(pProject:DexcaliburProject):Promise<DexcaliburProject> {
+        return this.getCollectionOf(DexcaliburProject.TYPE.getType())
+            .asyncAddEntry( pProject.getUID(), pProject );
     }
 
 
@@ -785,19 +797,105 @@ export class EngineDatabase {
     }
 
     /**
-     * To create a new scan order
+     * To update an order
      *
-     * @param {ScanOrder} pOrder Fresh scan order
+     * This operation support atomic update as well as upsert
      *
+     * @param {ScanOrder|ProjectOrder} pOrder Order instance to persist
+     * @param {string[]} pAtomicFields Options. Default is an empty array. The list of proprerties to update
+     * @returns {Promise<boolean>}
+     * @method
+     * @async
      */
-    async updateScanOrder(pOrder:ScanOrder):Promise<boolean> {
-        console.log("updateScanOrder > ",pOrder.getUID());
-        return await (this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection)
-            .asyncUpdateEntry(pOrder);
+    async updateOrder(pOrder:ScanOrder|ProjectOrder, pAtomicFields:string[] = []):Promise<boolean> {
+        let coll:MongodbDbCollection;
+        switch (pOrder.__){
+            case NodeInternalType.PROJECT_ORDER:
+                coll = this.getCollectionOf(ProjectOrder.TYPE.getType()) as MongodbDbCollection;
+                break;
+            case NodeInternalType.SCAN_ORDER:
+                coll = this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection;
+                break;
+            default:
+                throw EngineDatabaseException.ORDER_TYPE_NOT_SUPPORTED(pOrder.__,"update");
+        }
+
+        if(pAtomicFields.length>0){
+            return coll.asyncUpdateEntry(pOrder, { replace:false, $set:pAtomicFields });
+        }else{
+            return coll.asyncUpdateEntry(pOrder);
+        }
     }
+
 
     async searchUsers(pUUIDs: UserAccountUUID[]):Promise<UserAccount[]> {
         return await (this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection)
             .search({ filter: { _uid: { $in: pUUIDs } } }, {raw:true});
+    }
+
+    /**
+     * To check if the UUID in `pUUID` is free for the collection of object of type `pType` in Engine DB
+     *
+     * @param pType
+     * @param pUUID
+     * @param pPpt
+     */
+    async isUuidFree(pType:NodeInternalType, pUUID:string, pPpt:string = 'uuid'):Promise<boolean> {
+
+        if(!this._isSupported(pType)){
+            throw EngineDatabaseException.CANNOT_CHECK_UUID();
+        }
+
+        const res = await (this.getCollectionOf(pType) as MongodbDbCollection)
+            .asyncGetEntry({ [pPpt]:pUUID });
+
+        return (res == null);
+    }
+
+
+    /**
+     * To generate a free UUID for a type of node
+     *
+     * @param {NodeInternalType} pType The type of node
+     * @param {string} pPpt The name of the property holding the UUID
+     * @method
+     * @async
+     */
+    async generateFreeUuid(pType:NodeInternalType, pPpt:string = 'uuid'):Promise<string> {
+        let uuid:string;
+        do {
+            uuid = randomUUID();
+        }while((await this.isUuidFree(pType,uuid,pPpt))==false);
+
+        return uuid;
+    }
+
+    /**
+     *
+     * @param pInternStateName
+     */
+    async createState(pInternStateName:string):Promise<InternalState>{
+        let state = new InternalState({
+            uuid: await this.generateFreeUuid(InternalState.TYPE.getType()),
+            name: pInternStateName
+        });
+
+        return await this.getCollectionOf(InternalState.TYPE.getType())
+            .asyncAddEntry({ uuid: state.getUID()}, state);
+    }
+
+    /**
+     *
+     * @param pInternStateName
+     */
+    async getStateByName(pInternStateName:string):Promise<InternalState>{
+        let state = await (this.getCollectionOf(InternalState.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry({ name: pInternStateName });
+
+        if(state==null){
+            state = await this.createState(pInternStateName);
+        }
+
+        return state;
     }
 }

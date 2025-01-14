@@ -92,6 +92,8 @@ export class SessionStore extends expressSession.Store {
         //Logger.debug(`[SESSION STORE] Read session : [sid=${pSID}] : `)
         this._coll.asyncGetEntry({ _uid: pSID })
             .then((pSession:UserSession)=>{
+
+                console.log(pSession);
                 if(pSession==null){
                     //Logger.error(`[SESSION STORE] Read session : failure [sid=${pSID}] : session not found`);
                     pCallback.apply(null, [ null, null ]);

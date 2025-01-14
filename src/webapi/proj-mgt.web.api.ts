@@ -23,7 +23,11 @@ import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputTyp
 import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import {Connection} from "../organization/conn/Connection.js";
 import {ORG_WEB_API} from "./organization.web.api.js";
-import {NewProjectFlowType} from "../project/ProjectManager.js";
+import {InputTemplate, NewProjectFlowType} from "../project/ProjectManager.js";
+import {SecurityZone} from "../security/SecurityZone.js";
+import {ValidationRule} from "../Validator.js";
+import Uploader from "../Uploader.js";
+import {UploadedResource} from "../common/UploadedResource.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -169,11 +173,11 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         wf.pushStatus(new StatusMessage(5, "Set target platform"));
                         platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                         wf.pushStatus(new StatusMessage(10, "Select previously uploaded application"));
-//                        path = $.uploader.getPathOf(req.body['uploadid']);
+
                         if(req.body['file']!=null){
-                            path = $.uploader.getPathOf(req.body['file']);
+                            path = await $.uploader.getPathOf(req.body['file']);
                         }else{
-                            path = $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
+                            path = await $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
                         }
 
                         projInputs.push(new ProjectInput({
@@ -449,9 +453,9 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         wf.pushStatus(new StatusMessage(10, "Select previously uploaded application"));
 //                        path = $.uploader.getPathOf(req.body['uploadid']);
                         if(req.body['file']!=null){
-                            path = $.uploader.getPathOf(req.body['file']);
+                            path = await $.uploader.getPathOf(req.body['file']);
                         }else{
-                            path = $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
+                            path = await $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
                         }
 
                         projInputs.push(new ProjectInput({
@@ -613,22 +617,26 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
  * Upload a file into target workspace
  *
  */
-PROJECT_MGT_WEB_API.addAuthenticatedRoute(
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/upload',
     {
-        'post':  (req:DelegateRequest, res:DelegateResponse)=>{
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<void> =>{
 
 
             let $:WebServer = req.dxc.$;
             let user:UserAccount;
             try {
-                $.uploader.newUpload( req, res,function( vId:string):any {
-                    // save upload UID into user session
-                    req.dxc.sess.addData('proj_upload_id', vId);
+                await $.uploader.newUpload(
+                    (req.user as UserAccount),
+                    req,
+                    res,
+                    function( vUpl:UploadedResource):any {
+                        // save upload UID into user session
+                        req.dxc.sess.addData('proj_upload_id', vUpl.getUID());
 
-                    $.sendSuccess( res, { upload:vId });
-                    res.end();
-                });
+                        $.sendSuccess( res, { upload:vUpl.getUID() });
+                        res.end();
+                    });
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Project upload failed : "+err.message+"\n"+err.stack);
@@ -881,8 +889,14 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     pReq.params.aid
                 );
 
-                $.sendSuccess(pRes, await $.context.getProjectManager().newProjectWorkflow(
+                const org = await $.context.getOrgManager().getOrganization(
                     (pReq as any).user,
+                    app.orgUnit
+                );
+
+                $.sendSuccess(pRes, (await $.context.getProjectManager().newProjectOrder(
+                    (pReq as any).user,
+                    org,
                     app,
                     {
                         projectName: pReq.body['name'],
@@ -893,7 +907,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         flowType: NewProjectFlowType.SELECT,
                         remotePath: pReq.body['path'] as string,
                     }
-                ));
+                )).toJsonObject(SecurityZone.PUBLIC));
 
             } catch (err) {
 
@@ -921,8 +935,29 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     pReq.params.aid
                 );
 
-                $.sendSuccess(pRes, await $.context.getProjectManager().newProjectWorkflow(
+                const org = await $.context.getOrgManager().getOrganization(
                     (pReq as any).user,
+                    app.orgUnit
+                );
+
+                const inputTplRule = ValidationRule.structure({
+                    uploadID: UploadedResource.VALIDATE.uuid,
+                    purpose: ProjectInput.VALIDATE.purpose
+                })
+
+
+                let checkedTpl:InputTemplate[];
+                if(pReq.body['inputs']!=null){
+                    if(ValidationRule.asArrayOf([inputTplRule]).test(pReq.body['inputs'])){
+                        checkedTpl = pReq.body['inputs'];
+                    }else{
+                        throw new Error("Project inputs have not a valid format.");
+                    }
+                }
+
+                $.sendSuccess(pRes, (await $.context.getProjectManager().newProjectOrder(
+                    (pReq as any).user,
+                    org,
                     app,
                     {
                         projectName: pReq.body['name'],
@@ -932,8 +967,11 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                         flowType: NewProjectFlowType.UPLOAD,
                         uploadUID: [pReq.body['file'] as string],
-                    }
-                ));
+                        inputTpls: checkedTpl
+                    },{
+                        cookie: pReq.cookies
+                    })).toJsonObject(SecurityZone.PUBLIC));
+
 
             } catch (err) {
 
@@ -962,8 +1000,14 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     pReq.params.aid
                 );
 
-                $.sendSuccess(pRes, await $.context.getProjectManager().newProjectWorkflow(
+                const org = await $.context.getOrgManager().getOrganization(
                     (pReq as any).user,
+                    app.orgUnit
+                );
+
+                $.sendSuccess(pRes, (await $.context.getProjectManager().newProjectOrder(
+                    (pReq as any).user,
+                    org,
                     app,
                     {
                         projectName: pReq.body['name'],
@@ -973,14 +1017,48 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                         flowType: NewProjectFlowType.DOWNLOAD,
                         url: pReq.body['url'] as string,
+                    },{
+                        cookie: pReq.cookies
                     }
-                ));
+                )).toJsonObject(SecurityZone.PUBLIC));
 
             } catch (err) {
 
                 $.sendErrorAfterException(
                     pRes, PROJECT_MGT_WEB_API.name,
                     "Project has not been created and attached to application unit. (upload type)",
+                    err, {cause: err.message});
+            }
+        }
+    }
+);
+
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/order/:pid/start',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse)=> {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+
+                // target org
+                const po = await $.context.getProjectManager().getProjectOrder(
+                    (pReq as any).user,
+                    pReq.params.pid
+                );
+
+                $.sendSuccess(pRes, (await $.context.getProjectManager().executeProjectOrder(
+                    (pReq as any).user,
+                    po
+                )).toJsonObject());
+
+            } catch (err) {
+
+                $.sendErrorAfterException(
+                    pRes, PROJECT_MGT_WEB_API.name,
+                    "failed to execute project order",
                     err, {cause: err.message});
             }
         }

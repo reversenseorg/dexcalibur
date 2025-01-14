@@ -196,6 +196,8 @@ export default class DeviceManager extends ValidationCapable
             throw new Error("No compatible device found");
         }
 
+        // TODO : sort device list by affinity
+
         return result;
     }
 

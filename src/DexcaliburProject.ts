@@ -196,7 +196,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 if(x.p!=null){
                     return DeviceManager.getInstance().getDevice(x.p)
                 }else{
-                    return new AnalyzerConfiguration();
+                    return null;
                 }
             }),
         (new NodeProperty("meta")).type(DbDataType.BLOB),
@@ -303,49 +303,11 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     return null;
                 }
             }),
-        /*(new NodeProperty("owner")).type(DbDataType.BLOB)
-            .sleep( (x:NodePropertyState)=>{
-                if(x.p!=null){
-                    return (x.p as UserAccount).getUID();
-                }else{
-                    return null;
-                }
-            })
-            .wakeUp( (x:NodePropertyState)=>{
-                if(x.p!=null){
-                    return UserService.findUserByUID(x.p, DexcaliburEngine.getInstance().UID);
-                }else{
-                    return [];
-                }
-            }),
-        (new NodeProperty("testers")).type(DbDataType.BLOB)
-            .sleep( (x:NodePropertyState)=>{
-                if(x.p!=null){
-                    const uuids:string[] = [];
-                    x.p.map( usr => uuids.push((usr as UserAccount).getUID()));
-                    return uuids;
-                }else{
-                    return [];
-                }
-            })
-            .wakeUp( (x:NodePropertyState)=>{
-                if(x.p!=null){
-                    const users:UserAccount[] = [];
-                    x.p.map( uuid => {
-                        users.push(UserService.findUserByUID(uuid, DexcaliburEngine.getInstance().UID))
-                    });
-                    return users;
-                }else{
-                    return [];
-                }
-            })*/
     ]);
 
     __:NodeInternalType = NodeInternalType.PROJECT;
 
     private _dirty = false;
-
-    //state:ProjectState = ProjectState.IDLE;
 
     private _state:ProjectState = ProjectState.IDLE;
 
@@ -656,6 +618,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this.setAccessAttribute(ProjectAccessControl.attr.OWNER);
         this.setAccessAttribute(ProjectAccessControl.attr.TESTER);
     }
+
 
     getScanScheduler():ScanSchedulerProject {
         return this._scanScheduler;
@@ -1519,6 +1482,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      */
     async useApp( pInputs:ProjectInput[]):Promise<TargetApp>{
 
+        console.log(pInputs);
+
         // attach inputs
         for(let i=0; i<pInputs.length; i++){
             await this.attachInput(pInputs[i]);
@@ -2073,7 +2038,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     break;
                 case "engine":
                 case "_analysis$":
-                case "_scanScheduler":
+                //case "_scanScheduler":
                 case "packageAnalyzer":
                 case "_wf":
                 case "webserver":
@@ -3101,6 +3066,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      */
     attachToAppUnit(pAppUnit: ApplicationUnit):void {
         this.appUnit = pAppUnit.getUID();
+        this.pkg = pAppUnit.packageID;
 
         if(this.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER)==null){
             this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);

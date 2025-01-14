@@ -11,7 +11,7 @@ import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 
 import * as Log from './Logger.js';
 import StatusMessage from "./StatusMessage.js";
-import DexcaliburProject from "./DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "./DexcaliburProject.js";
 import WebServer from "./WebServer.js";
 import DeviceManager from "./DeviceManager.js";
 import InspectorManager from "./InspectorManager.js";
@@ -75,6 +75,8 @@ import {InternalSecretManager} from "./core/InternalSecretManager.js";
 import {ApplicationUnit} from "./organization/ApplicationUnit.js";
 import {Device} from "./Device.js";
 import AvdHelper from "./device/maker/AvdHelper.js";
+import {EngineNodeUUID} from "./core/EngineNode.js";
+import {ProjectScheduler} from "./project/ProjectScheduler.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -115,7 +117,7 @@ export interface SignatureServerOptions {
 
 export interface DexcaliburEngineOptions {
     engine_mode?: DexcaliburEngineMode;
-    node_uid?: Nullable<string>;
+    node_uid?: Nullable<EngineNodeUUID>;
     master_pub_key?:Nullable<string>;
     master_opts?:MasterNodeOptions;
     signature_server?: SignatureServerOptions;
@@ -289,9 +291,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     version = DexcaliburEngine.VERSION;
 
     /**
-     *
+     * engine node
      */
-    UID:string = DexcaliburEngine.DEFAULT_UID;
+    UID:EngineNodeUUID = DexcaliburEngine.DEFAULT_UID;
 
     /*
      * Configuration file path
@@ -445,6 +447,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     workflows: Workflow[] = [];
 
+    wfPrj:Record<DexcaliburProjectUUID, Workflow[]> = {};
+
     /**
      * Hold workflow's callbacks to execute when the WF is created
      */
@@ -503,6 +507,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     private _repairOpts: Nullable<RepairOptions> = null;
 
+
+    projectScheduler: ProjectScheduler;
     /**
      * To instanciate DexcaliburEngine.
      *
@@ -547,6 +553,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }
 
         this.scanScheduler = new ScanScheduler(this);
+        this.projectScheduler = new ProjectScheduler(this);
 
         this.projMgr = new ProjectManager(this);
 
@@ -642,6 +649,19 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     getScanScheduler():ScanScheduler {
         return this.scanScheduler;
+    }
+
+    /**
+     * To get the project scheduler
+     *
+     * The purpose of project scheduler is to distribute ProjectOrder (request of new project)
+     * to the right slave node, queue it and to instanciate new slave node if possible
+     * 
+     * @
+     * @method
+     */
+    getProjectScheduler():ProjectScheduler {
+        return this.projectScheduler;
     }
 
 
@@ -824,6 +844,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         await this.initServerSettings();
         this.initExternalSettings();
         this.initConnectionsSettings();
+        await this.nodeManager.loadInternalState();
 
 
         if(process.env.DXC_SAVE_SETTINGS=="1"){
@@ -1437,18 +1458,20 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     async newProject( pUID:string,  pInputs:ProjectInput[], /*pAppPath:string, pFileType:string,*/
                       pDevice:Nullable<Device>=null, pUserAccount:UserAccount = null,
                       pPlatform:Nullable<Platform> = null, pAnalyzersOpts:any = {},
-                      pAppUnit:Nullable<ApplicationUnit> = null):Promise<DexcaliburProject>{
+                      pAppUnit:Nullable<ApplicationUnit> = null, pWorkflowUID:Nullable<string> = null):Promise<DexcaliburProject>{
 
-        // pAppPath:string, pFileType:string,
 
-        let project:DexcaliburProject = null;
+
         /**
          * @deprecated
          */
         let apkFile:ApkPackage = null;
         let appFile:Nullable<TargetApp> = null;
 
-        const wf:Workflow = this.getWorkflow( pUID);
+
+        let project:DexcaliburProject = null;
+
+        const wf:Workflow = this.getWorkflow((pWorkflowUID!=null? pWorkflowUID : pUID), true);
         if(wf===null){
             throw EngineNodeException.PROJECT_HAS_NOT_WORKFLOW(pUID);
         }
@@ -1463,10 +1486,18 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             pUID = DexcaliburProject.suggests(pUID);
         }
 
-        project = new DexcaliburProject({
-            engine: this,
-            uid: pUID
-        });
+        //  retrieve project from DB or create it
+        try{
+            project = await this.getProjectManager().getProject(pUserAccount,pUID);
+            project.setEngine(this);
+        }catch(err){
+            project = new DexcaliburProject({
+                engine: this,
+                uid: pUID
+            });
+            project.state = ProjectState.ORDERED;
+            project = await this.getEngineDB().createProject(project);
+        }
 
 
         // init analyzers configure
@@ -1549,10 +1580,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // set targeted binary file, optionnaly parse it according to device type
         // this steps triggers package analysis such as linked resources (not the package content)
 
+        console.log("PROJECT INPUTS > ",pInputs);
+
         // inputs must be attached sequentially
         appFile = await project.useApp(pInputs);
 
-        console.log(appFile);
         //apkFile = await project.useAPK(pAppPath);
 
         // useApp
@@ -1626,17 +1658,27 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * To create a new workflow and to attach it to engine
      * @param pName
      */
-    newWorkflow(pName:string):Workflow {
-        const wf:Workflow = new Workflow({ uid:'de:'+pName });
-        this.workflows.push(wf);
+    newWorkflow(pName:string, pExternal = false):Workflow {
+        const wf:Workflow = new Workflow({ uid:(pExternal?'':'de:')+pName });
+        this.registerWorkflow(wf);
+        return wf;
+    }
+
+    /**
+     * To create a new workflow and to attach it to engine
+     * @param pName
+     */
+    registerWorkflow(pWf:Workflow):void {
+
+        this.workflows.push(pWf);
+
         // execute scheduled job
-        if(this.wfCbs[wf.getUID()]!=null){
-            Logger.info("[newWorkflow] Execute scheduled jobs ["+this.wfCbs[wf.getUID()].length+"]");
-            this.wfCbs[wf.getUID()].map( vFn => {
-                vFn(wf);
+        if(this.wfCbs[pWf.getUID()]!=null){
+            Logger.info("[ENGINE][registerWorkflow] Execute scheduled jobs ["+this.wfCbs[pWf.getUID()].length+"]");
+            this.wfCbs[pWf.getUID()].map( vFn => {
+                vFn(pWf);
             })
         }
-        return wf;
     }
 
     /**
@@ -1647,6 +1689,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         let f:Workflow = null;
         const name = (pExternal? '' : 'de:')+pUID;
 
+        console.log(this.workflows);
         this.workflows.map( (pWF:Workflow)=>{
             if(pWF.getUID()===name){
                 f = pWF;

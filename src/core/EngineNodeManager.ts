@@ -4,49 +4,24 @@ import {randomUUID} from "crypto";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
-import {EngineNode, NodePurpose, Operation, OperationType, StateChangeEvent} from "./EngineNode.js";
+import {EngineNode, EngineNodeUUID, NodePurpose, Operation, OperationType, StateChangeEvent} from "./EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import got from "got";
 import * as Log from "../Logger.js";
 import WebServer from "../WebServer.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {InternalState} from "./InternalState.js";
+import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
+import {ResourceThresholds} from "../billing/BusinessPlan.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const GOT = got.default;
-
-export interface RemoteEngineMapping {
-    [nodeUID:string] :EngineNode
-}
-
-
-export interface ProjectNodeMapping {
-    [projectUID:string] :EngineNode[]
-}
-
-export interface SlaveStates {
-    [engineUID:string] :NodeState
-}
-
-export interface SlaveCallback {
-    uri: string;
-    engine: IDexcaliburEngine;
-}
 
 
 export interface MasterNodeOptions {
     uri: string;
     ssl?: boolean;
 }
-
-
-/**
- * A map where every active project are mapped to
- * sessionIDs of users who opened the project
- *
- */
-export interface SessionProjectMapping {
-    [projectUID:string] :string[];
-}
-
 
 
 export enum NodeState {
@@ -79,7 +54,7 @@ export class EngineNodeManager {
 
     static readonly HEADER_NODE_UUID = 'x-dxc-nodeuid';
     /**
-     * UUID of this instance into reversense pod
+     * UUID of this instance (engine node) into reversense pod
      *
      * @field
      */
@@ -91,13 +66,15 @@ export class EngineNodeManager {
 
     engine:DexcaliburEngine;
 
-    slaves:RemoteEngineMapping = {};
+    slaves:Record<EngineNodeUUID, EngineNode> = {};
 
-    projectMapping:ProjectNodeMapping = {};
+    projectMapping:Record<DexcaliburProjectUUID, EngineNode[]> = {};
 
-    sessionMapping:SessionProjectMapping = {}
+    orgMapping:Record<OrganizationUnitUUID, EngineNode[]> = {};
 
-    states:SlaveStates = {};
+    states:Record<EngineNodeUUID, NodeState> = {};
+
+    private _state:InternalState;
 
     /**
      * Base URI of the master node, used to build API URI
@@ -107,12 +84,53 @@ export class EngineNodeManager {
     masterURI:Nullable<string> = null;
 
 
-    constructor(pMasterEngine:DexcaliburEngine, pCurrentUID:string) {
+    constructor(pMasterEngine:DexcaliburEngine, pCurrentUID:EngineNodeUUID) {
+        // UUID of this engine node
         this.uuid = pCurrentUID;
         this.engine = pMasterEngine;
         this.setPortRange(10200,10300);
     }
 
+
+    async loadInternalState():Promise<void>{
+        this._state = await this.engine.getEngineDB().getStateByName(`engine-node-mgr-${this.uuid}`);
+
+
+        /*this.states = this._state.getProperty('portRange');
+        this.states = this._state.getProperty('portCounter');
+        this.states = this._state.getProperty('slaves');
+        this.states = this._state.getProperty('projectMapping');
+        this.states = this._state.getProperty('states');
+        this.states = this._state.getProperty('masterURI');*/
+    }
+
+
+    async saveInternalState():Promise<any>{
+
+        let prjMapping:Record<DexcaliburProjectUUID, EngineNodeUUID[]> = {};
+        let orgMapping:Record<OrganizationUnitUUID, EngineNodeUUID[]> = {};
+
+        for(let prj in this.projectMapping){
+            prjMapping[prj] = this.projectMapping[prj].map(x => {
+                return x.UUID
+            });
+        }
+        for(let o in this.orgMapping){
+            orgMapping[o] = this.orgMapping[o].map(x => {
+                return x.UUID
+            });
+        }
+
+        this._state.setProperty('portRange', this.portRange);
+        this._state.setProperty('portCounter', this.portCounter);
+        this._state.setProperty('projectMapping', prjMapping);
+        this._state.setProperty('orgMapping', orgMapping);
+        //this._state.setProperty('slaves', this.slaves);
+        this._state.setProperty('states', this.states);
+        this._state.setProperty('masterURI', this.masterURI);
+
+        return await this.engine.getEngineDB().save(this._state);
+    }
 
     /**
      * To retrieve the HTTP(S) URI of local instance
@@ -159,7 +177,7 @@ export class EngineNodeManager {
      *
      * @param pProject
      */
-    hasReadySlave(pProjectUID:string, pPurpose:NodePurpose):boolean{
+    hasReadySlave(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose):boolean{
         const engines = this.projectMapping[pProjectUID];
         if(engines.length==0){
             return false;
@@ -180,7 +198,7 @@ export class EngineNodeManager {
      *
      * @param pProject
      */
-    getReadySlave(pProjectUID:string, pPurpose:NodePurpose):Nullable<EngineNode>{
+    getReadySlave(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose, pOrg:Nullable<OrganizationUnitUUID> = null):Nullable<EngineNode>{
         const engines = this.projectMapping[pProjectUID];
         if(engines==null || engines.length==0){
             return null;
@@ -218,45 +236,31 @@ export class EngineNodeManager {
          */
     }
 
-    /*
-    spawn(pProject:DexcaliburProject, pSettings:any):void {
-
-    }*/
-
-
     /**
      *
      * @param pNodeUID
      * @param pState
      */
-    async updateState(pNodeUID:string, pState:NodeState):Promise<void> {
+    async updateState(pNodeUID:EngineNodeUUID, pState:NodeState):Promise<void> {
         const node = this.getNodeByUUID(pNodeUID);
 
+        Logger.info("[NODE MANAGER] Update state of [node="+pNodeUID+"][state="+pState+"]");
 
         node.setState(pState);
-
-        /*
-        switch (pState){
-            case NodeState.IDDLE:
-                // update state & start queued scans
-                await node.afterStart({});
-                break;
-            default:
-                node.setState(pState);
-                break;
-        }*/
     }
 
     /**
-     * Create a new node
+     * Create a new node mapped to a project
      *
      * @param pProjectUID
      * @param pTargetOs
      */
-    createNode(pProjectUID:string):EngineNode {
+    createNode(pProjectUID:DexcaliburProjectUUID, pOUID:Nullable<OrganizationUnitUUID> = null):EngineNode {
         const uuid = randomUUID();
+
         const node = new EngineNode(uuid, this.uuid, pProjectUID);
 
+        node.setEngine(this.engine);
         node.setMasterUri(this.getLocalURI());
         node.setState(NodeState.NEW)
         node.setHttpPort(this.getNextPort());
@@ -266,6 +270,14 @@ export class EngineNodeManager {
             this.projectMapping[pProjectUID] = [];
         }
 
+        if(pOUID!=null){
+            if(this.orgMapping[pOUID]==null){
+                this.orgMapping[pOUID] = [];
+            }
+
+            this.orgMapping[pOUID].push(node);
+        }
+
         this.slaves[uuid] = node;
         this.projectMapping[pProjectUID].push(node);
 
@@ -273,6 +285,9 @@ export class EngineNodeManager {
         node.nodeState$.subscribe((vEvent:StateChangeEvent    )=>{
            this.onNodeStateChanged(vEvent);
         });
+
+        // save state
+        this.saveInternalState();
 
 
         return this.slaves[uuid];
@@ -284,7 +299,7 @@ export class EngineNodeManager {
      *
      * @param pNodeUUID
      */
-    getNodeByUUID(pNodeUUID:string):EngineNode {
+    getNodeByUUID(pNodeUUID:EngineNodeUUID):EngineNode {
         return this.slaves[pNodeUUID];
     }
 
@@ -296,8 +311,24 @@ export class EngineNodeManager {
      * @returns {EngineNode[]} The list of node linked to a project by its UID. If there is not node, the list is empty.
      * @method
      */
-    getNodeByProject(pProjectUID:string):EngineNode[] {
+    getNodeByProject(pProjectUID:DexcaliburProjectUUID):EngineNode[] {
         const nodes = this.projectMapping[pProjectUID];
+        if(nodes==null || !Array.isArray(nodes)){
+            return []
+        }else{
+            return nodes;
+        }
+    }
+
+    /**
+     * To get the list of nodes linked to a specific organization
+     *
+     * @param {OrganizationUnitUUID} pOUID The project UID
+     * @returns {EngineNode[]} The list of node linked to a project by its UID. If there is not node, the list is empty.
+     * @method
+     */
+    getNodeByOrganizationUUID(pOUID:OrganizationUnitUUID):EngineNode[] {
+        const nodes = this.orgMapping[pOUID];
         if(nodes==null || !Array.isArray(nodes)){
             return []
         }else{
@@ -312,7 +343,7 @@ export class EngineNodeManager {
      * @returns {boolean} TRUE if there are nodes, else FALSE
      * @method
      */
-    hasNode(pProjectUID):boolean {
+    hasNode(pProjectUID:DexcaliburProjectUUID):boolean {
         return (this.projectMapping[pProjectUID]!=null && this.projectMapping[pProjectUID].length>0);
     }
 
@@ -338,7 +369,6 @@ export class EngineNodeManager {
         });
 
         const raw = JSON.parse(response.body);
-        console.log(raw);
         return raw;
     }
 
@@ -400,10 +430,13 @@ export class EngineNodeManager {
 
         Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
         let node:EngineNode;
+
         if(vEvent.new==NodeState.IDDLE){
 
             // add affinity
             node = this.getNodeByUUID(vEvent.nodeUUID);
+
+            console.log(node);
 
             const ope:Nullable<Operation> = node.opeQueue.shift();
 
@@ -411,6 +444,7 @@ export class EngineNodeManager {
 
                 node.execOperation(ope).then(()=>{
                     console.log('onNodeStateChanged > OPE SUCCESS > ', ope.type);
+                    //
                 });
             // next, check the queue of scan orders
             /*if (node.waitingQueue.length > 0) {
@@ -452,5 +486,23 @@ export class EngineNodeManager {
                 // don't kill child
                 break;
         }
+    }
+
+    /**
+     * To check if organization thresholds allows engine node manager to allocate more node
+     *
+     * @param {OrganizationUnitUUID} pOrgUUID
+     */
+    async canCreateNode(pOrgUUID:OrganizationUnitUUID):Promise<boolean> {
+
+        // gather thresholds
+        const thr:ResourceThresholds = await this.engine.getOrgManager().getOrganizationThresholds(
+            this.engine.getInternalAcc(),
+            pOrgUUID
+        );
+
+        const nodes = this.getNodeByOrganizationUUID(pOrgUUID);
+
+        return (nodes.length<thr.concurrentNodes);
     }
 }

@@ -12,10 +12,13 @@ import {NodeState} from "./EngineNodeManager.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import * as Log from "../Logger.js";
 import * as http from "node:http";
-import DexcaliburEngine from "../DexcaliburEngine.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {UserSession} from "../user/session/UserSession.js";
 import WebServer from "../WebServer.js";
+import {ProjectOrder} from "../project/ProjectOrder.js";
+import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
+import {InternalState} from "./InternalState.js";
+import DexcaliburEngine from "../DexcaliburEngine.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const GOT = got.default;
@@ -28,7 +31,8 @@ export interface EngineNodeEvent {
 export enum NodePurpose {
     REVIEW='review',
     SCAN='scan',
-    HOOK='hook'
+    HOOK='hook',
+    NEW_PRJ='newprj'
 }
 
 export enum ScanState {
@@ -62,7 +66,8 @@ export enum OperationType {
     NONE,
     USER_WEB_REQUEST,
     APP_WEB_REQUEST,
-    SCAN_ORDER
+    SCAN_ORDER,
+    NEW_PROJ
 }
 
 export interface Operation {
@@ -75,8 +80,22 @@ export interface Operation {
      * Time stamp
      */
     time: number,
-    data: any
+    data: any;
+
+    extra?:any;
 }
+
+export type EngineNodeUUID = string;
+
+export type Order = {
+    type:OperationType.SCAN_ORDER
+    order: ScanOrder
+} | {
+    type:OperationType.NEW_PROJ
+    order: ProjectOrder
+};
+
+
 
 /**
  * Represent a running instance of DexcaliburEngine.
@@ -98,7 +117,7 @@ export class EngineNode {
      * @readonly
      * @field
      */
-    readonly UUID:string;
+    readonly UUID:EngineNodeUUID;
 
     /**
      * Instance of the engine
@@ -111,7 +130,7 @@ export class EngineNode {
      * Linked project
      * @private
      */
-    private _projectUID:string;
+    private _projectUID:DexcaliburProjectUUID;
 
     /**
      * Buffer where STDOUT is written
@@ -138,7 +157,9 @@ export class EngineNode {
     nodeState$:Subject<StateChangeEvent> = new Subject<StateChangeEvent>();
 
     purpose:NodePurpose = NodePurpose.REVIEW;
+
     state:NodeState = NodeState.UNKNOW;
+
     masterURI:Nullable<string> = null;
 
     private _hostname:string = "127.0.0.1";
@@ -151,14 +172,11 @@ export class EngineNode {
 
     // errPipe:Nullable<string>;
     // outPipe:Nullable<string>;
-
-
-
     activeScanSession:Nullable<ScanOrder> = null;
 
     history:ScanOrder[] = [];
 
-    waitingQueue: ScanOrder[] = [];
+    waitingQueue: Order[] = [];
 
     opeQueue: Operation[] = [];
     opeTerminated: Operation[] = [];
@@ -174,9 +192,22 @@ export class EngineNode {
      */
     scanStateUpdate$:Subject<ScanOrder> = new Subject<ScanOrder>();
 
-    parentUUID:string;
+    parentUUID:EngineNodeUUID;
 
-    constructor(pUUID:string, pParentUUID:string, pProjectUID:string) {
+    spawnCmd:string;
+
+    stdout$:Subject<string> = new Subject();
+    stderr$:Subject<string> = new Subject();
+
+    /**
+     * An object to track and save changes of EngineNode state
+     *
+     * @private
+     */
+    private _state:InternalState;
+
+
+    constructor(pUUID:EngineNodeUUID, pParentUUID:EngineNodeUUID, pProjectUID:DexcaliburProjectUUID) {
         this.UUID = pUUID;
         this.parentUUID = pParentUUID;
         this._projectUID = pProjectUID;
@@ -203,7 +234,38 @@ export class EngineNode {
             }else{
                 this.opeQueue.push(pOperation);
             }
-        })
+        });
+
+        this.stderr$.subscribe((vMsg)=>{
+            this._errBuffer.push(vMsg);
+            Logger.error(`[ENGINE NODE][${this.UUID}][STDERR] ${vMsg}`);
+        });
+
+        this.stdout$.subscribe((vMsg)=>{
+            this._outputBuffer.push(vMsg);
+            Logger.info(`[ENGINE NODE][${this.UUID}][STDOUT] ${vMsg}`);
+        });
+    }
+
+    getUID():EngineNodeUUID {
+        return this.UUID;
+    }
+
+    async loadInternalState():Promise<void>{
+        this._state = await this._engine.getEngineDB().getStateByName(`engine-node-${this.UUID}`);
+
+
+        /*this.states = this._state.getProperty('portRange');
+        this.states = this._state.getProperty('portCounter');
+        this.states = this._state.getProperty('slaves');
+        this.states = this._state.getProperty('projectMapping');
+        this.states = this._state.getProperty('states');
+        this.states = this._state.getProperty('masterURI');*/
+    }
+
+
+    async saveInternalState():Promise<any>{
+
     }
 
     /**
@@ -227,9 +289,28 @@ export class EngineNode {
         return this._hostname;
     }
 
+
+    /**
+     * To get HTTP schema + hostname + port string
+     *
+     * @returns {string} HTTP schema and host string
+     */
     getHost():string {
         // TODO : add enforce SSL
-        return this.getHostname()+":"+this.httpPort;
+        const ssl = this._engine.getSettings().getServerSettings().getSslSettings();
+        if(ssl==null){
+            // HTTP only comm mode ( port can change)
+            return `http://${this.getHostname()}:${this.httpPort}`;
+        }else{
+            // HTTPS ( port can change)
+            return `https://${this.getHostname()}:${this.httpPort}`;
+        }
+    }
+
+
+    async setEngine(pEngine:IDexcaliburEngine):Promise<void> {
+        this._engine = pEngine;
+        await this.loadInternalState();
     }
 
     setMasterUri(pUri:string) {
@@ -243,6 +324,8 @@ export class EngineNode {
         if(this.state!==NodeState.NEW){
             throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node');
         }
+
+
 
         return await this.spawn(pCause, false);
     }
@@ -263,6 +346,17 @@ export class EngineNode {
                         console.log("Next scan order has been launched");
                     });
                 break;
+            case OperationType.NEW_PROJ:
+                (this.startProject(
+                    (this._engine as DexcaliburEngine).getInternalAcc(),
+                    pOpe.data as ProjectOrder,
+                    pOpe.extra
+                    ))
+                    .then(() => {
+                        //node.opeTerminated.push(ope);
+                        console.log("Next scan order has been launched");
+                    });
+                break;
             case OperationType.USER_WEB_REQUEST:
             case OperationType.APP_WEB_REQUEST:
                 // TODO : add quota, FW, etc ..
@@ -278,7 +372,7 @@ export class EngineNode {
 
 
     async isBusy():Promise<boolean> {
-        return false;
+        return (this.state!=NodeState.IDDLE);
     }
 
     async startScan(pOrder:ScanOrder):Promise<any> {
@@ -303,7 +397,10 @@ export class EngineNode {
                 case NodeState.STARTING:
                     pOrder.dates.start = (new Date()).getTime();
                     this.activeScanSession.setState(ScanState.WAITING);
-                    this.waitingQueue.push(pOrder);
+                    this.waitingQueue.push({
+                        type: OperationType.SCAN_ORDER,
+                        order: pOrder
+                    } );
                     this.scanStateUpdate$.next(pOrder);
                     break;
                 case NodeState.NEW:
@@ -321,6 +418,7 @@ export class EngineNode {
         // save order, to make it accessible from slave Node
         this._engine.getEngineDB().save(pOrder);
 
+        Logger.info("[ENGINE NODE] Send command to slave node : "+this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start")
         //GOT()
         return GOT(
             this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start",{
@@ -339,6 +437,99 @@ export class EngineNode {
         // method: 'POST', url:'/audit/project/:uid/scan/start'
         // { uid: pProjectUID, project:pProjectUID, models: pModelIds  }
 
+    }
+
+
+    /**
+     * To start a project on this engine
+     *
+     * @param pOrder
+     */
+    async startProject(pAccount:UserAccount, pOrder:ProjectOrder, pExtraOpts:any = {}):Promise<any> {
+
+        let uuidUpdated = false;
+        if(pOrder.getUID()==null){
+            pOrder.uuid = await this._engine.getEngineDB()
+                .generateFreeUuid(ProjectOrder.TYPE.getType());
+            await this._engine.getEngineDB().updateOrder(pOrder,['uuid']);
+        }
+
+        Logger.info(`[ENGINE NODE][${this.UUID}][startProject] State : ${this.state} `);
+
+        // check if server is starting and queue is empty
+        // else check if node is busy
+        switch (this.state){
+            case NodeState.IDDLE:
+                // save order, to make it accessible from slave Node
+                // await this._engine.getEngineDB().save(pOrder);
+
+                // webhook
+                const wh = this.getHost()+"/api/workspace/order/"+pOrder.getUID()+"/start";
+
+                pOrder.setWebHook(wh);
+
+                // update
+                await this._engine.getEngineDB().updateOrder(pOrder,['webhook','dates']);
+
+                Logger.info("[ENGINE NODE] Send command to slave node : "+wh)
+
+                let cookie="";
+                if(pExtraOpts.cookie !=null){
+                    for(let k in pExtraOpts.cookie){
+                        cookie += `${k}=${Util.encodeURI(pExtraOpts.cookie[k])};`
+                    }
+                }
+                if(cookie.length>0){
+                    cookie = cookie.slice(0,-1);
+                }
+
+                const sess="";
+                //GOT()
+                return GOT(
+                    wh,{
+                        method: 'POST',
+                        headers: {
+                            'Cookie':cookie
+                        },
+                        body: JSON.stringify({})
+                    }
+                ).then(()=>{
+                    console.log("Scan ordered successfully");
+                });
+                break;
+            case NodeState.STARTING:
+                pOrder.dates.start = (new Date()).getTime();
+                await this._engine.getEngineDB().updateOrder(pOrder,['dates']);
+                // waiting
+                //this.activeScanSession.setState(ScanState.WAITING);
+                //this.waitingQueue.push(pOrder);
+                //this.scanStateUpdate$.next(pOrder);
+                break;
+            case NodeState.NEW:
+                throw EngineNodeException.BUSY_NODE(this.UUID,"startScan");
+                break;
+            case NodeState.BUSY:
+                throw EngineNodeException.BUSY_NODE(this.UUID,"startScan");
+                break;
+            case NodeState.STOPPED:
+                throw EngineNodeException.DOWN_NODE(this.UUID,"startScan");
+                break;
+        }
+
+        // save order, to make it accessible from slave Node
+       /* await this._engine.getEngineDB().save(pOrder);
+
+        Logger.info("[ENGINE NODE] Send command to slave node : "+this.getHost()+"/api/project/order/"+pOrder.getUID()+"/start")
+
+        //GOT()
+        return GOT(
+            this.getHost()+"/api/project/order/"+pOrder.getUID()+"/start",{
+                method: 'POST',
+                body: JSON.stringify({})
+            }
+        ).then(()=>{
+            console.log("Scan ordered successfully");
+        });*/
     }
 
     setPurpose(pPurpose:NodePurpose):void {
@@ -429,37 +620,41 @@ export class EngineNode {
                 args.push("--debug");
             }
 
-            console.log('node '+args.join(' '));
+            Logger.info('[NODE] Spawn command : node '+args.join(' '));
             //console.log('OUT FILE : '+this.outPipe);
             //console.log('ERR FILE : '+this.errPipe);
+
+            // TODO : remove ? secret leak ?
+            this.spawnCmd = args.join(' ');
 
             this.setState(NodeState.STARTING);
 
             //child = _child_process_.spawn('node', args, { detached: true, stdio: [ 'ignore', out, err ] });
-            child = _child_process_.spawn('node', args, { env: {
-                ... process.env,
-                DXC_DEBUG: (pDebug? "1" : "0")
-            }});
+            child = _child_process_.spawn('node', args, {
+                detached: true,
+                env: {
+                    ... process.env,
+                    DXC_DEBUG: (pDebug? "1" : "0")
+                }
+            });
 
             // save Process ID
             this._pid = child.pid;
             // write stdout to buffer
             child.stdout.on('data', (data) => {
-                console.log(`[NODE=${this.UUID}] stdout: ${data}`);
-                this._outputBuffer.push(data);
+                this.stdout$.next(data);
             });
             // write stderr to buffer
             child.stderr.on('data', (data) => {
-                console.log(`[NODE=${this.UUID}] stderr: ${data}`);
-                this._errBuffer.push(data);
+                this.stderr$.next(data);
             });
 
             child.on('close', (code) => {
+                console.log("Stopped slave ...")
                 this.setState(NodeState.STOPPED);
             });
 
-            child.unref();
-            console.log( `[ENGINE NODE] node spawned [PID=${this._pid}]:   ${args}  (opts)`);
+            console.log( `[ENGINE NODE] node spawned [PID=${this._pid}]:   ${args.join(' ')}  (opts)`);
         }catch(err){
             console.error('[ENGINE NODE] Detached node error :'+err.message);
         }
@@ -476,16 +671,29 @@ export class EngineNode {
      * @param {ScanOrder} pOrder Scan order
      * @method
      */
-    appendToQueue(pOrder:ScanOrder, pUserAccount:any = null):void {
+    async appendToQueue(pOrder:ScanOrder|ProjectOrder, pOpeType:OperationType,
+                        pUserAccount:Nullable<UserAccount> = null, pExtra:any = null):Promise<void> {
+
         pOrder.dates.waiting = (new Date()).getTime();
-        this.waitingQueue.push(pOrder);
-        this.scanStateUpdate$.next(pOrder);
+
+        // update
+        await this._engine.getEngineDB().updateOrder(pOrder,['dates']);
+
+        this.waitingQueue.push({
+            type: pOpeType,
+            order:pOrder
+        } as any);
+
+        if(pOpeType==OperationType.SCAN_ORDER){
+            this.scanStateUpdate$.next(pOrder as ScanOrder);
+        }
 
         this.operation$.next({
-            type: OperationType.SCAN_ORDER,
+            type: pOpeType,
             owner: (pUserAccount!=null ? (pUserAccount as UserAccount).getUID() : null),
             data: pOrder,
-            time: Util.time()
+            time: Util.time(),
+            extra: pExtra
         });
     }
 
@@ -528,54 +736,25 @@ export class EngineNode {
      *
      * @method
      */
-    async afterStart(pEvent:any):Promise<void> {
-
-        this.setState(NodeState.IDDLE);
-
-        // checks if there is queued scan
-        if(this.waitingQueue.length>0){
-            let order = this.waitingQueue.shift()
-            await this.startScan(order);
-        }
-    }
-
-    /**
-     * A method called when the node manager receive the startup confirmation
-     * using EngineNode dedicated webhook
-     *
-     * Turn EngineNode state from `NodeState.STARTING` to `NodeState.IDDLE`
-     *
-     * @method
-     */
-    async startNextQueuedScans():Promise<void> {
-        // checks if there is queued scan
-        if(this.waitingQueue.length>0){
-            let order = this.waitingQueue.shift()
-            await this.startScan(order);
-        }
-    }
-
-
-    /**
-     * A method called when the node manager receive the startup confirmation
-     * using EngineNode dedicated webhook
-     *
-     * Turn EngineNode state from `NodeState.STARTING` to `NodeState.IDDLE`
-     *
-     * @method
-     */
     async afterScanTerminated(pEvent:PostScanEvent):Promise<void> {
 
         // save report, ....
-
-        
         this.setState(NodeState.IDDLE);
 
         // checks if there is queued scan, if TRUE, consume it
+        /*
         if(this.waitingQueue.length>0){
             let order = this.waitingQueue.shift()
-            await this.startScan(order);
-        }
+
+            switch (order.type){
+                case OperationType.NEW_PROJ:
+                    await this.startProject(order.order);
+                    break;
+                case OperationType.SCAN_ORDER:
+                    await this.startScan(order.order);
+                    break;
+            }
+        }*/
     }
 
     /**
@@ -598,7 +777,7 @@ export class EngineNode {
     toJsonObject():any {
         return {
             UUID: this.UUID,
-            projectUIS: this._projectUID,
+            _projectUID: this._projectUID,
             httpPort: this.httpPort,
             httpsPort: this.httpsPort,
             running: this.running,
@@ -607,6 +786,7 @@ export class EngineNode {
             purpose: this.purpose,
             history: this.history,
             waitingQueue: this.waitingQueue,
+            spawnCmd: this.spawnCmd
             //errPipe: (this.errPipe!=null),
             //outPipe: (this.outPipe!=null)
         };

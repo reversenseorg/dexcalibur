@@ -1,7 +1,12 @@
 /**
  * @enum
  */
+
 export enum ProjectState {
+    NONE='none',
+
+    // first state in lifecycle
+    ORDERED='ordered',
     IDLE='idle',
 
     OPEN='open',
@@ -19,5 +24,5 @@ export enum ProjectState {
     SYNC_PLATFORM='platform:sync',
     FULLSCAN_START='fullscan:start',
     FULLSCAN_END='fullscan:end',
-    READY='ready'
+    READY='ready',
 }
