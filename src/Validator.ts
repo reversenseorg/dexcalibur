@@ -1,6 +1,9 @@
 import * as NodeBuffer from "node:buffer"
 import {OperatingSystem} from "./platform/OperatingSystem.js";
 
+type StructureValidator = Record<string, ValidationRule> | ValidationRule;
+
+type StructureValidatorTree = Record<string, StructureValidator>
 
 export enum ValidationType {
     EQUAL,
@@ -58,6 +61,13 @@ export class ValidationRule {
         return this._o.f;
     }
 
+    static isRule(pObject:any):boolean {
+        return  (pObject._o!=null)
+            && (pObject._o.t!=null)
+            && (pObject._o.r!=null)
+            && (pObject._o.f!=null);
+    }
+
 
     static asArrayOf(vRules:ValidationRule[]):ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
@@ -68,7 +78,7 @@ export class ValidationRule {
             let ctr=0;
             for (let i = 0; i < vValue.length; i++) {
                 vRules.map(r => {
-                    if(r.test(vValue)){
+                    if(r.test(vValue[i])){
                         ctr++;
                     }
                 });
@@ -93,6 +103,11 @@ export class ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, pFunc);
     }
 
+    static bool():ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return (vValue===true)||(vValue===false);
+        });
+    }
 
 
     static utf8String():ValidationRule {
@@ -137,6 +152,13 @@ export class ValidationRule {
         });
     }
 
+
+    static hexColor():ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return /^[0-9A-Fa-f]{6}$/.test(vValue);
+        });
+    }
+
     static email():ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
             return EMAIL_REGEXP.test(vValue);
@@ -147,6 +169,18 @@ export class ValidationRule {
     static uuidList():ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
             return ValidationRule.asArrayOf([ ValidationRule.uuid() ]).test(vValue);
+        });
+    }
+
+    static nullableObj():ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            if(vValue===null || vValue===undefined){
+                return true;
+            }
+            if(typeof vValue==='object'){
+                return true;
+            }
+            return false;
         });
     }
 
@@ -170,6 +204,38 @@ export class ValidationRule {
             OperatingSystem.WINNT,
             OperatingSystem.NONE,
         ]);
+    }
+
+    static structure(pDefinition:StructureValidatorTree):ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+
+            function isObj(v):boolean{
+                //console.log(v,"isObj > ",(v==null) || (typeof v != 'object'));
+                return (v!=null) && (typeof v === 'object');
+            }
+
+            function validate(s:Record<any, any>, d:StructureValidatorTree){
+                for(let k in d){
+                    if(s[k]==null){
+                        return false
+                    }
+
+                    if(ValidationRule.isRule(d[k])){
+                        if((d[k] as ValidationRule).test(s[k])===false){
+                            return false;
+                        }
+                    }else{
+                        validate(s[k],d[k] as StructureValidatorTree);
+                    }
+                }
+
+                return true;
+            }
+
+            if(!isObj(vValue)) return false;
+
+            return validate(vValue, pDefinition);
+        });
     }
 
     test(pData:any):boolean {
