@@ -1,4 +1,5 @@
 import {Nullable} from "../core/IStringIndex.js";
+import {ValidationRule} from "../Validator.js";
 
 
 export enum ProjectInputType {
@@ -55,6 +56,12 @@ export class ProjectInputViewer {
 
 export class ProjectInput implements IProjectInput{
 
+    static VALIDATE = {
+        purpose: ValidationRule.newPinklistAssert([
+            ProjectInputPurpose.MAIN,
+            ProjectInputPurpose.EXTRA
+        ])
+    };
 
     data: ProjectInputData;
     location: ProjectInputLocation;
