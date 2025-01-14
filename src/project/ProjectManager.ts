@@ -1,11 +1,10 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {UserAccount} from "../user/UserAccount.js";
-import DexcaliburProject from "../DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
-import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
 import {Device, DeviceUUID} from "../Device.js";
 import Platform from "../platform/Platform.js";
@@ -15,10 +14,15 @@ import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.j
 import StatusMessage from "../StatusMessage.js";
 import PlatformManager from "../platform/PlatformManager.js";
 import Downloader from "../Downloader.js";
-import {UserSession} from "../user/session/UserSession.js";
 import {AnalyzerConfiguration} from "../AnalyzerConfiguration.js";
 import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import * as Log from "../Logger.js";
+import {EngineNode, NodePurpose, OperationType} from "../core/EngineNode.js";
+import {ProjectOrder, ProjectOrderUUID} from "./ProjectOrder.js";
+import {ProjectState} from "../ProjectState.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {ProjectManagerException} from "../errors/ProjectManagerException.js";
+import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -45,9 +49,15 @@ export interface NewProjectSelectWfOptions extends NewProjectCommonWfOpts{
     remotePath: string
 }
 
+export interface InputTemplate {
+    uploadID: string,
+    purpose: ProjectInputPurpose
+}
+
 export interface NewProjectUploadWfOptions extends NewProjectCommonWfOpts{
     flowType: NewProjectFlowType.UPLOAD,
-    uploadUID: string[]
+    uploadUID: string[],
+    inputTpls: InputTemplate[]
 }
 
 export interface NewProjectDownloadWfOptions extends NewProjectCommonWfOpts{
@@ -78,17 +88,151 @@ export class ProjectManager {
         this._ctx = pCtx;
     }
 
+
+
     async listProjectByUser( pAccount:UserAccount):Promise<DexcaliburProject[]> {
         const all = this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()).getAsList();
+        const filtered:DexcaliburProject[] = [];
 
-        return [];
+        all.map(vProj => {
+            try{
+                AccessControl.isAuthorized(
+                    AccessControl.access.PROJ_META_READ,
+                    pAccount,
+                    vProj,
+                    [
+                        ProjectAccessControl.attr.OWNER,
+                        ProjectAccessControl.attr.TESTER
+                    ]
+                );
+
+                filtered.push(vProj);
+            }catch (e){ /* skip */ }
+        })
+
+        return filtered;
     }
 
     async listProjectByOrgUnit( pAccount:UserAccount, pOrg:OrganizationUnit):Promise<DexcaliburProject[]> {
-        return [];
+        const all = this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()).getAsList();
+        const filtered:DexcaliburProject[] = [];
+        const apps:ApplicationUnit[] = await this._ctx.getEngineDB()
+            .getCollectionOf(ApplicationUnit.TYPE.getType())
+            .search({
+                orgUnit: pOrg.getUID()
+            });
+
+        let authorized:DexcaliburProjectUUID[] = [];
+
+        apps.map(vApp => {
+            authorized = authorized.concat(vApp.projects);
+        });
+
+        all.map(vProj => {
+            try{
+                if(authorized.indexOf(vProj)>-1){
+                    filtered.push(vProj);
+                }
+            }catch (e){ /* skip */ }
+        })
+
+        return filtered;
     }
 
+    async listProjectByAppUnit( pAccount:UserAccount, pApp:ApplicationUnit):Promise<DexcaliburProject[]> {
+        const all = this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()).getAsList();
+        const filtered:DexcaliburProject[] = [];
 
+
+        all.map(vProj => {
+            try{
+                if(pApp.getReleases().indexOf(vProj)>-1){
+                    filtered.push(vProj);
+                }
+            }catch (e){ /* skip */ }
+        })
+
+        return filtered;
+    }
+
+    /**
+     * To create and push a new project order and return associated WF
+     *
+     * @param {UserAccount} pAccount User issueing order
+     * @param pAppUnit
+     * @param pOptions
+     */
+    async newProjectOrder(pAccount:UserAccount, pOrg:OrganizationUnit,
+                          pAppUnit:ApplicationUnit, pOptions:NewProjectWorkflowOptions, pExtraOwnerOpts:any = null):Promise<Workflow> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_NEW_PROJ,
+            pAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        let existingNodes:EngineNode[];
+
+        // create empty placeholder project
+        let proj = new DexcaliburProject({
+            uid: await this._ctx.getEngineDB().generateFreeUuid(
+                DexcaliburProject.TYPE.getType(),
+                'uid'
+            ),
+            engine: this._ctx
+        });
+        proj.state = ProjectState.ORDERED;
+
+        // save project in DB
+        proj = await this._ctx.getEngineDB().createProject(proj);
+
+        // search slave ready
+        let node:EngineNode = this._ctx.nodeManager.getReadySlave(
+            proj.getUID(),
+            NodePurpose.NEW_PRJ
+        );
+
+        // start a new node
+        if(node == null){
+            // check ressources quotas
+            node = this._ctx.nodeManager.createNode(proj.getUID(),pOrg.getUID()); //, pOrder.settings.targetOS);
+            node.start("New project created");
+        }
+
+        // build project order
+        let newPrjOrder= new ProjectOrder({
+            // org unit, app unit
+            orgUnit: pOrg.getUID(),
+            appUnit: pAppUnit.getUID(),
+            owner: pAccount.getUID(),
+            slaveUID: node.getUID(),
+            settings: {
+                projectUID: proj.getUID(),
+                options: pOptions
+            },
+            wf: new Workflow({
+                uid: pOrg.getUID()+":exec"
+            })
+        });
+
+
+        // save (create) project
+        newPrjOrder = (await this._ctx.getEngineDB().save(newPrjOrder) as ProjectOrder);
+
+        if(!await node.isBusy()){
+            // send a request to order a scan to the node
+            node.startProject(pAccount,newPrjOrder,pExtraOwnerOpts);
+        }else{
+            // add scan to queue
+            node.appendToQueue(newPrjOrder, OperationType.NEW_PROJ, pAccount,pExtraOwnerOpts);
+        }
+
+        return newPrjOrder.getWorflow();
+    }
 
     async newProjectWorkflow(pAccount:UserAccount, pAppUnit:ApplicationUnit, pOptions:NewProjectWorkflowOptions):Promise<DexcaliburProject>  {
 
@@ -130,6 +274,7 @@ export class ProjectManager {
             // set project name
             let projectUID:string;
             if(pOptions.projectName == null){
+
                 throw DexcaliburProjectException.INVALID_NAME();
             }else{
                 projectUID = DexcaliburProject.sanitizeUID(pOptions.projectName);
@@ -203,7 +348,7 @@ export class ProjectManager {
                         do{
                             try{
                                 projInputs.push(new ProjectInput({
-                                    data: this._ctx.getWebserver().uploader.getPathOf(pOptions.uploadUID[i]),
+                                    data: await this._ctx.getWebserver().uploader.getPathOf(pOptions.uploadUID[i]),
                                     location: ProjectInputLocation.LOCAL,
                                     type: ProjectInputType.REGULAR_FILE,
                                     extractOpts: {type:'bin'},
@@ -217,15 +362,6 @@ export class ProjectManager {
                         }while(i<pOptions.uploadUID.length);
                     }else{
                         throw new Error("uploadUIDs cannot be retrieved from user session.")
-
-                        /*path = this._ctx.getWebserver().uploader.getPathOf((pOptions.dxc.sess as UserSession).getData('proj_upload_id'));
-                        projInputs.push(new ProjectInput({
-                            data: path,
-                            location: ProjectInputLocation.LOCAL,
-                            type: ProjectInputType.REGULAR_FILE,
-                            extractOpts: {type:'bin'},
-                            purpose: ProjectInputPurpose.MAIN
-                        }));*/
                     }
 
 
@@ -373,6 +509,335 @@ export class ProjectManager {
         }
 
         return ;
+
+    }
+
+
+    /**
+     * To execute a  project order
+     *
+     * In Master/Slave mode, this method should be always called by SLAVE nodes
+     *
+     * @param {UserAccount} pAccount User account
+     * @param {ProjectOrder} pOrder The project order
+     * @method
+     */
+    async executeProjectOrder(pAccount:UserAccount, pOrder:ProjectOrder):Promise<DexcaliburProject>  {
+
+        // retrieve app from order
+        const app = await this._ctx.getOrgManager()
+            .getDirectApplication(pAccount,pOrder.getApplicationUnit());
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_NEW_PROJ,
+            pAccount,
+            app,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.APP_MEMBER,
+            ]
+        );
+
+        const orderOpts = pOrder.settings.options;
+        const PLATFORM_MODE = ['dev','min','max'];
+        let dm:DeviceManager = null;
+        let device:Nullable<Device> = null;
+
+
+        let project:DexcaliburProject = null;
+        let path:string = null;
+        let platform:Platform = null;
+        let success:boolean = true;
+        let workflow:Workflow = null;
+        let anal:any = {};
+        let projInputs:ProjectInput[] = [];
+
+        try{
+
+            // retrieve workflow from order (WF has been created on master node)
+            workflow = pOrder.getWorflow();
+
+            // register workflow on current instance (probably a slave node)
+            this._ctx.registerWorkflow(workflow);
+
+            // refresh device list and select target device
+            dm = DeviceManager.getInstance();
+            await dm.scan();
+
+            if(orderOpts.deviceUID != null){
+                device = dm.getDevice( orderOpts.deviceUID );
+            }
+
+            // set project name
+            let projectUID:string;
+            if(orderOpts.projectName == null){
+                projectUID = orderOpts.projectName = pOrder.getUID();
+            }else{
+                projectUID = DexcaliburProject.sanitizeUID(orderOpts.projectName);
+            }
+
+            if(orderOpts.analyzerOpts != null){
+                anal = orderOpts.analyzerOpts;
+            }
+
+            if(anal==null){
+                anal = {};
+            }
+
+            // guess device and platform from app unit
+            if(device==null){
+                let compatDev = dm.searchCompatibleDevice(app.os, app);
+                if(compatDev.length>0){
+                    device = compatDev[0];
+                }
+            }
+
+            // TODO : retrieve platform from special value of req.body['platform'] : target, from target device, target API version from manifest , ...
+
+            // first download remote application
+            // on error : ne‹ project will not create.
+            switch(orderOpts.flowType)
+            {
+                /**
+                 * Create a project by pulling a file from a device
+                 */
+                case NewProjectFlowType.SELECT:
+                    if(device == null){
+                        throw DexcaliburProjectException.TARGET_DEVICE_NOT_FOUND();
+                    }
+                    workflow.pushStatus(new StatusMessage(5, "Get target platform"));
+                    platform = device.getPlatform();
+
+                    workflow.pushStatus(new StatusMessage(10, "Pull application from device"));
+
+                    projInputs.push(new ProjectInput({
+                        data: orderOpts.remotePath,
+                        location: ProjectInputLocation.DEVICE,
+                        type: ProjectInputType.REGULAR_FILE,
+                        extractOpts: {type:'bin'},
+                        purpose: ProjectInputPurpose.MAIN
+                    }));
+
+                    break;
+                case NewProjectFlowType.DOWNLOAD:
+                    if(PLATFORM_MODE.indexOf(orderOpts.platformUID)==-1){
+                        workflow.pushStatus(new StatusMessage(5, "Set target platform"));
+                        platform = PlatformManager.getInstance().getPlatform(orderOpts.platformUID);
+                    }
+                    workflow.pushStatus(new StatusMessage(10, "Download target application from remote location"));
+                    path = await Downloader.downloadTemp( orderOpts.url , { mode:0o666, encoding:'binary', force:true });
+
+                    projInputs.push(new ProjectInput({
+                        data: path,
+                        location: ProjectInputLocation.LOCAL,
+                        type: ProjectInputType.REGULAR_FILE,
+                        extractOpts: {type:'bin'},
+                        purpose: ProjectInputPurpose.MAIN
+                    }));
+                    break;
+                case NewProjectFlowType.UPLOAD:
+                    workflow.pushStatus(new StatusMessage(5, "Set target platform"));
+                    platform = PlatformManager.getInstance().getPlatform( orderOpts.platformUID);
+
+                    if(platform==null && device!=null){
+                        platform = device.getPlatform();
+                    }
+
+                    workflow.pushStatus(new StatusMessage(10, "Select previously uploaded application"));
+
+                    if(orderOpts.inputTpls!=null){
+                        // ignore uploadUID
+                        let i=0;
+                        do{
+                            try{
+                                projInputs.push(new ProjectInput({
+                                    data: await this._ctx.getWebserver().uploader.getPathOf(orderOpts.inputTpls[i].uploadID),
+                                    location: ProjectInputLocation.LOCAL,
+                                    type: ProjectInputType.REGULAR_FILE,
+                                    extractOpts: {type:'bin'},
+                                    purpose: orderOpts.inputTpls[i].purpose
+                                }));
+                            }catch (err){
+                                console.log(err);
+                            }finally {
+                                i++;
+                            }
+                        }while(i<orderOpts.inputTpls.length);
+                    }else{
+                        throw ProjectManagerException.INPUTS_ARE_MANDATORY(pOrder.getUID());
+                    }
+
+                    break;
+                case NewProjectFlowType.FROMFS:
+
+                    AccessControl.isAuthorized(
+                        AccessControl.access.PROJ_NEW_FROMFS,
+                        pAccount,
+                        app,
+                        [
+                            OrganizationAccessControl.attr.OWNER,
+                            OrganizationAccessControl.attr.APP_MEMBER,
+                        ]
+                    )
+
+                    workflow.pushStatus(new StatusMessage(5, "Set target platform"));
+                    platform = PlatformManager.getInstance().getPlatform(orderOpts.platformUID);
+
+                    projInputs.push(new ProjectInput({
+                        data: orderOpts.localPath,
+                        location: ProjectInputLocation.LOCAL,
+                        type: ProjectInputType.REGULAR_FILE,
+                        extractOpts: {type:'bin'},
+                        purpose: ProjectInputPurpose.MAIN
+                    }));
+                    break;
+                default:
+                    throw new Error("Project type is invalid")
+                    break;
+            }
+
+            // chcek if file exists an it is not empty
+            /*if( (!_fs_.existsSync(path)) || (false)){
+                throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+            }*/
+
+            if(device==null && orderOpts.targetOS!=null){
+                // try to find compatible device already enrolled
+                const compDevs = dm.searchCompatibleDevice(orderOpts.targetOS, app);
+                if(compDevs.length>0 && platform==null){
+                    device = compDevs[0];
+                    platform = device.getPlatform();
+                }
+            }
+
+            Logger.info(
+                '[PROJECT][STEP 2] Detecting device  ... ',
+                device!==null?'[OK]':'[KO]',
+                ' Platform ... ',
+                platform!==null? '[OK]':'[KO]');
+
+            workflow.stepUp(15);
+
+            Logger.info('[PROJECT][STEP 2] Input file : '+(projInputs[0].data as string));
+
+            // save project inputs in PO
+            pOrder.setInputs(projInputs);
+            this._ctx.getEngineDB().updateOrder(pOrder, ['inputs']);
+
+            // start to init the project
+            project = await this._ctx.newProject(
+                pOrder.settings.projectUID,
+                projInputs,
+                device,
+                pAccount,
+                platform,
+                anal,
+                app,
+                pOrder.getWorflow().getUID()
+            );
+
+            if(project == null){
+                throw DexcaliburProjectException.STEP2_FAILURE();
+            }
+
+            project.setWorkflow(workflow);
+
+            // to set connector
+            Logger.info('[PROJECT][STEP 3] Setting connectors ...');
+
+            /*if(req.body['connector'] != null && req.body['connector'].length > 0){
+                project.setConnector(req.body['connector']);
+            }else*/
+
+            project.setConnector(this._ctx.getWorkspace().getSettings().getDefaultConnector());
+
+
+            if(project != null){
+                Logger.info('[PROJECT][STEP 3.1] Configuring platform ...');
+                workflow.pushStatus(new StatusMessage(10, "Synchronizing target platform with project"));
+                //platform = PlatformManager.getInstance().getDefaultPlatformFor();
+                // sync project platform with target platform or APK
+
+                if(platform!=null){
+                    success = await project.synchronizePlatform( platform.getUID());
+                }else{
+                    throw  new Error("Project cannot be updated with selected platform : platform is not defined");
+                }
+
+            }
+
+
+
+            Logger.info('[PROJECT][STEP 4] Analyzing application ...');
+            if(success){
+                workflow.stepUp(15);
+                project = await project.fullscan();
+                success = project.isReady();
+                workflow.pushStatus(StatusMessage.newSuccess("Project has been created successfully."))
+            }
+
+            if(!success){
+                throw DexcaliburProjectException.NEW_PROJECT_FAIL();
+            }
+
+
+            return project;
+        }catch(err){
+
+            if(workflow!=null){
+                workflow.pushStatus(StatusMessage.newError(err.message))
+            }
+
+            Logger.error("[API][PROJECT MGT] "+err.message+"\n\t"+err.stack);
+
+            throw ProjectManagerException.ORDER_EXEC_FAILED(pOrder.getUID())
+        }
+    }
+
+
+    /**
+     * To retrieve project order from database
+     *
+     * @param {UserAccount} pAccount Account
+     * @param {ProjectOrderUUID} pOrderID Order UUID
+     */
+    async getProjectOrder(pAccount:UserAccount, pOrderID:ProjectOrderUUID):Promise<ProjectOrder>{
+        AccessControl.isAuthorized(
+            AccessControl.access.PROJ_ORDER_MGT,
+            pAccount
+        );
+
+        try{
+            return await (this._ctx.getEngineDB()
+                .getCollectionOf(ProjectOrder.TYPE.getType()) as MongodbDbCollection)
+                .asyncGetEntry({ uuid: pOrderID });
+        }catch (err){
+            console.log(err);
+            throw ProjectManagerException.ORDER_NOT_FOUND(pOrderID);
+        }
+
+    }
+
+
+    /**
+     * To retrieve project order from database
+     *
+     * @param {UserAccount} pAccount Account
+     * @param {ProjectOrderUUID} pOrderID Order UUID
+     */
+    async getProject(pAccount:UserAccount, pProjectUID:DexcaliburProjectUUID):Promise<DexcaliburProject>{
+        AccessControl.isAuthorized(
+            AccessControl.access.PROJ_OPEN_ANY,
+            pAccount
+        );
+
+        try{
+            return await (this._ctx.getEngineDB()
+                .getCollectionOf(DexcaliburProject.TYPE.getType()) as MongodbDbCollection)
+                .asyncGetEntry({ uid: pProjectUID });
+        }catch (err){
+            throw ProjectManagerException.PROJECT_NOT_FOUND(pProjectUID);
+        }
 
     }
 }
