@@ -61,6 +61,31 @@ USER_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+USER_WEB_API.addAsyncAuthenticatedRoute(
+    '/account/profile/:uuid',
+    {
+        'put': async (req:DelegateRequest, res:DelegateResponse):Promise<void> => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                if(req.params.uuid==null || (typeof req.params.uuid !== 'string') || !UserAccount.VALIDATE._uid.test(req.params.uuid)){
+                    throw new Error("Invalid UUID format");
+                }
+
+                $.sendSuccess( res,
+                    (await $.context.getUserService().updateAccountWithUnsafe(req.user, req.params.uuid, req.body))
+                        .toJsonObject()
+                );
+
+            }catch(err){
+                Logger.error("[API][USER] Ac account cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "User account cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
 
 USER_WEB_API.addAuthenticatedRoute(
     '/account',

@@ -70,6 +70,8 @@ export default class AccessControl {
         PROJ_NEW_OWN_WF: new Access( AccessType.WRITE, 'PROJ_NEW_OWN_WF', 'Create new project workflow'),
         PROJ_APPDATA_READ: new Access( AccessType.READ, 'PROJ_APPDATA_READ', 'Read app data content on the device'),
         PROJ_NEW_FROMFS: new Access( AccessType.EXE, 'PROJ_NEW_FROMFS', 'Create a project from a local file'),
+        PROJ_ORDER_READ: new Access( AccessType.READ, 'PROJ_ORDER_READ', 'Read a project order'),
+        PROJ_ORDER_MGT: new Access( AccessType.WRITE, 'PROJ_ORDER_MGT', 'Manage project orders'),
 
         // global
         GLOBAL_SETTINGS_EDIT: new Access( AccessType.WRITE, 'GLOBAL_SETTINGS_EDIT', 'Edit global settings'),

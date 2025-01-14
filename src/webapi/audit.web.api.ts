@@ -690,6 +690,21 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     targetOS =
                 }*/
 
+                for(let i=0; i<req.body.modelUID.length; i++){
+                    const order = ScanOrder.fromScanOptions({
+                        modelUID: req.body.modelUID[i],
+                        projectUID: req.body.projectUID,
+                    });
+
+                    // file upload
+                    if(req.body.fileUploadID!=null){
+                        order.setTargetFile(await $.uploader.getPathOf(req.body.fileUploadID));
+                    }
+
+                    scheduler.newScan(order);
+                }
+
+                /*
                 req.body.modelUID.map( vModelUID => {
                     const order = ScanOrder.fromScanOptions({
                         modelUID: vModelUID,
@@ -698,11 +713,11 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                     // file upload
                     if(req.body.fileUploadID!=null){
-                        order.setTargetFile($.uploader.getPathOf(req.body.fileUploadID));
+                        order.setTargetFile(await $.uploader.getPathOf(req.body.fileUploadID));
                     }
 
                     scheduler.newScan(order);
-                });
+                });*/
 
 
                 $.sendSuccess(res,{ });

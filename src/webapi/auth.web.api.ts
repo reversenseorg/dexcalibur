@@ -24,7 +24,7 @@ AUTH_WEB_API.addAuthenticatedRoute(
             let $:WebServer = req.dxc.$;
 
             try {
-                if ($.context.getUserService().verifySession(req.dxc.sess)) {
+                if ($.context.getUserService().verifySession(req.dxc.sess,'logout')) {
 
 
                         //console.log("SSO : logout requested")

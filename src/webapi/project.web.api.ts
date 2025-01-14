@@ -23,6 +23,9 @@ import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.j
 import {TagManager} from "../tags/TagManager.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {UserAccount} from "../user/UserAccount.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -93,29 +96,55 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/list',
     {
-        'get':  async (req:DelegateRequest, res:DelegateResponse):Promise<void>=>{
+        'get':  async (req:DelegateRequest, res:DelegateResponse):Promise<void>=>{''
 
             const $:WebServer = req.dxc.$;
 
             try{
 
+                let org:Nullable<OrganizationUnit> = null;
+                let app:Nullable<ApplicationUnit> = null;
 
-               /* $.context.listProjectsOf(req.session?.passport?.user as UserAccount)
-                const projs:DexcaliburProject[] = await (req.session?.passport?.user as UserAccount)
-                                                        .listProjects($.context);
+                if(req.query.oid!=null){
+                    if(OrganizationUnit.VALIDATE.uuid.test(req.query.oid)){
+                        org = await $.context.getOrgManager().getOrganization(
+                            req.user as UserAccount,
+                            req.query.oid as string
+                        )
+                    }
+                }
 
-                const list:any[] = [];
+                if(req.query.aid!=null){
+                    if(ApplicationUnit.VALIDATE.uuid.test(req.query.aid)){
+                        app = await $.context.getOrgManager().getApplication(
+                            req.user as UserAccount,
+                            org,
+                            req.query.oid as string
+                        )
+                    }
+                }
 
-                projs.map(x => {
-                    list.push( x.toJsonObject());
-                });
+                let projColl:DexcaliburProject[];
+                if(app!=null){
+                    projColl = await $.context.getProjectManager().listProjectByAppUnit(
+                        req.user as UserAccount,
+                        app
+                    );
+                }else if(org!=null){
+                    projColl = await $.context.getProjectManager().listProjectByOrgUnit(
+                        req.user as UserAccount,
+                        org
+                    );
+                }else {
+                    projColl = await $.context.getProjectManager().listProjectByUser(
+                        req.user as UserAccount
+                    );
+                }
 
-                */
+
                 const data:any[] = [];
-                const projColl = ($.context.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()));
-                const proj = await (projColl as MongodbDbCollection).getAsList();
 
-                proj.map(x =>{
+                projColl.map(x =>{
                     data.push( x.toJsonObject());
                 });
                 $.sendSuccess( res, data);
