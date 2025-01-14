@@ -1,10 +1,5 @@
-
-
-// ===== INIT =====
-
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
-import DexcaliburProject from "../../src/DexcaliburProject.js";
 import BusEvent from "../../src/BusEvent.js";
 import ModelMethod from "../../src/ModelMethod.js";
 

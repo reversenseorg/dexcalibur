@@ -6,16 +6,11 @@ import * as _path_ from 'path';
 
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
-import DexcaliburProject from "../../src/DexcaliburProject.js";
 import BusEvent from "../../src/BusEvent.js";
 import {HookVariableArray} from "../../src/HookVariable.js";
-import Util from "../../src/Utils.js";
 import ModelMethod from "../../src/ModelMethod.js";
-import DexHelper from "../../src/DexHelper.js";
-import * as Log from "../../src/Logger.js";
 import HookStrategy from "../../src/hook/HookStrategy.js";
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default new InspectorFactory({
 
@@ -465,7 +460,6 @@ export default new InspectorFactory({
                 //pEvent.getContext().LOG.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
                 console.log('Search class loader');
                 const pCtx = pEvent.getContext();
-                const hm = pCtx.getHookManager();
                 const startName = "Custom_ClassLoaders";
                 const selfHS = pCtx.getInspector("DynamicLoader").getHookSet();
                 let strat:HookStrategy = selfHS.getStrategyByName(startName);
@@ -795,7 +789,7 @@ export default new InspectorFactory({
             pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
             
             if (pEvent == null || pEvent.getData().data == null) return false;
-            let data = pEvent.getData().data;
+            //let data = pEvent.getData().data;
 
             // let meth = ctx.find.get.method(data.s);
             /*
@@ -814,7 +808,6 @@ export default new InspectorFactory({
         "dxc.fullscan.post_deploy": function ( pEvent:BusEvent<any>):void {
             const ctx = pEvent.getContext();
             ctx.LOG.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
-            const hm = ctx.getHookManager();
             const startName = "Custom_ClassLoaders";
             const selfHS = ctx.getInspector("DynamicLoader").getHookSet();
             let strat:HookStrategy = selfHS.getStrategyByName(startName);

@@ -1,11 +1,8 @@
 
 // ===== INIT =====
-import InspectorFactory, {FlattenTagCategoryOptions} from "../../src/InspectorFactory.js";
+import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
-import * as Log from "../../src/Logger.js";
 import ModelMethod from "../../src/ModelMethod.js";
-
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
 
@@ -314,8 +311,6 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
             lang: "ts",
             source: `
                 //<ts>={
-                //Objects.requireNonNull(rawResponse, "rawResponse == null"); 
-                let ctx: Record<string,any> = pEvent.getContext();
                 if (pEvent.getData().data?.arg1_message != null) {
                     const MESSAGE_RAW_RESPONSE = "rawResponse == null";
                     const MESSAGE_BASE_URL = "baseUrl == null";
@@ -334,7 +329,7 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                             "baseUrl" + ", similar to those used in Retrofit.Response");
                         let eventData: Record<string, any> = {};
                         let arg0_obj = pEvent.getData().data.arg0_obj;
-                        if (typeof (arg0_obj, 'string')) {
+                        if (typeof arg0_obj === 'string') {
                             eventData['baseUrl'] = arg0_obj.value ? arg0_obj.value : arg0_obj.toString();
                         }
                         else if (DXC.utils.isInstanceOf(arg0_obj, 'java.net.URL')) {

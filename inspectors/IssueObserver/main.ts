@@ -1,6 +1,5 @@
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import InspectorFactory from "../../src/InspectorFactory.js";
-import DexcaliburProject from "../../src/DexcaliburProject.js";
 import BusEvent from "../../src/BusEvent.js";
 import * as Log from "../../src/Logger.js";
 import ModelMethod from "../../src/ModelMethod.js";

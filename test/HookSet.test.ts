@@ -2,8 +2,6 @@ import {expect} from 'chai';
 import ModelMethod from "../src/ModelMethod.js";
 import HookSet from "../src/HookSet.js";
 import {UPGRADE_MODE} from "../src/inspector/common.js";
-import {HookSetOptions} from "../src/InspectorFactory.js";
-
 
 
 describe('HookSet', function() {
