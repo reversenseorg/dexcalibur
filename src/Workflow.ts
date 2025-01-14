@@ -6,17 +6,40 @@ import * as Log from "./Logger.js";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
 import {UserAccount} from "./user/UserAccount.js";
 import {Auditable} from "./Auditable.js";
+import {SecurityZone} from "./security/SecurityZone.js";
+import {Access} from "./user/acl/Access.js";
+import AccessControl from "./user/acl/AccessControl.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import {INode} from "@dexcalibur/dexcalibur-orm";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export interface WorkflowFollower {
-    user: User;
+    user: UserAccount;
     socket: any;
+    opts?:any;
 }
 
+
+export interface WorkflowOptions {
+    uid?: string;
+    _parent?: Nullable<INode>;
+    followers?:WorkflowFollower[];
+    msg?:StatusMessage[];
+    activeStep?: number;
+}
+
+
+
+/**
+ * Represent a workflow
+ *
+ * Workflow are attached to a subject, and help to follow progression
+ * of an action on this subject
+ *
+ * @class
+ */
 export class Workflow extends Auditable {
-
-
 
     /**
      * Workflow uid
@@ -30,14 +53,18 @@ export class Workflow extends Auditable {
      * @field
      * @type {StatusMessage[]}
      */
-    private _s: StatusMessage[] = [];
+    private msgs: StatusMessage[] = [];
 
     /**
      * Step
      */
-    private _st:number = 0;
+    private activeStep:number = 0;
 
-    private followers:any = []
+    /**
+     *
+     * @private
+     */
+    private followers:WorkflowFollower[] = []
 
     /**
      * Max bound for progress of the current step
@@ -53,17 +80,27 @@ export class Workflow extends Auditable {
 
     private _t:number =0;
 
+    /**
+     * Active step
+     * @private
+     */
     private _m:string = "";
 
-    constructor( pConfig:any = {}) {
+    private _parent:Nullable<INode> = null;
+
+    constructor( pConfig:WorkflowOptions = {}) {
         super(null);
 
         for(let i in pConfig) this[i] = pConfig[i];
     }
 
-
-    setStep(pStr:string, pProgressBound:number ){
-        this._m = pStr;
+    /**
+     *
+     * @param pStr
+     * @param pProgressBound
+     */
+    setStep(pStepName:string, pProgressBound:number ){
+        this._m = pStepName;
         if(this._b>0){
             this._d = pProgressBound - this._b;
             this._b = pProgressBound;
@@ -73,7 +110,7 @@ export class Workflow extends Auditable {
     }
 
     computeStepUp(pEntries:number){
-        this._st = this._d / pEntries;
+        this.activeStep = this._d / pEntries;
     }
 
     /**
@@ -89,7 +126,7 @@ export class Workflow extends Auditable {
     }
 
     stepUp(pStep:number):void {
-        this._st += pStep;
+        this.activeStep += pStep;
     }
 
     getUID():string {
@@ -98,7 +135,7 @@ export class Workflow extends Auditable {
 
     pushStatus(pMsg:StatusMessage):void {
         pMsg.msg = (this._m.length>0? this._m+' : ':'')+pMsg.msg;
-        this._s.push(pMsg.addProgress(this._st));
+        this.msgs.push(pMsg.addProgress(this.activeStep));
         this._t = pMsg.progress;
         this.sendStatusToFollowers();
     }
@@ -110,8 +147,8 @@ export class Workflow extends Auditable {
      */
     pushDirectStatus(pMsg:string):void {
         const m:StatusMessage = StatusMessage.newDirect((this._m.length>0? this._m+' : ':'')+pMsg);
-        if(this._st>-1){
-            this._t = m.progress = this._t + this._st;
+        if(this.activeStep>-1){
+            this._t = m.progress = this._t + this.activeStep;
         }else{
             m.progress = this._t;
         }
@@ -119,20 +156,35 @@ export class Workflow extends Auditable {
     }
 
 
+    /**
+     * To retrieve the list of status message
+     */
     getStatus():StatusMessage[] {
-        return this._s;
+        return this.msgs;
     }
 
+    /**
+     * To get the first message issued
+     *
+     * @returns {StatusMessage}
+     * @method
+     */
     getFirstStatus():StatusMessage {
-        if(this._s.length>0)
-            return this._s[0];
+        if(this.msgs.length>0)
+            return this.msgs[0];
         else
             return null;
     }
 
+    /**
+     * To get the last message issued
+     *
+     * @returns {StatusMessage}
+     * @method
+     */
     getLastStatus():StatusMessage {
-        if(this._s.length>0)
-            return this._s[this._s.length-1];
+        if(this.msgs.length>0)
+            return this.msgs[this.msgs.length-1];
         else
             return null;
     }
@@ -170,8 +222,15 @@ export class Workflow extends Auditable {
      * @param pSocket
      * @param pOpts
      */
-    addFollower( pUser:any, pSocket:any, pOpts:any={}):void {
-        // TODO : check is pUser has sufficient permission to follow this workflow
+    addFollower( pUser:UserAccount, pSocket:any, pOpts:any={}):void {
+
+        // TODO : implement custom-control for add follower access attr
+        /*AccessControl.isAuthorizedByAttr(
+            GlobalAccessControl.attr.OWNER,
+            this,
+            pUser
+        );*/
+
         // TODO : implement custom-control for add follower access attr
         //Logger.debug("[WORKFLOW] addFollower : "+(pUser==null? 'null' :'<user>')+" - "+(pSocket==null? 'null' :'<socket>'));
         this.followers.push({ user:pUser, socket:pSocket, opts:pOpts  });
@@ -196,10 +255,16 @@ export class Workflow extends Auditable {
             }
         }
     }
+
+    setParent(pParent:INode):void {
+        this._parent = pParent;
+    }
+
     /**
      * Send latest status over websocket
+     *
      * @param pUser
-     * @param pSocket
+     * @param {any} pSocket A socket where progress will be wrote
      */
     sendStatus( pUser:any, pSocket:any, pOptions:any={}, pDirectOpts:any=null):void {
         try{
@@ -219,5 +284,26 @@ export class Workflow extends Auditable {
                     sessid: ''
                 }}));
         }
+    }
+
+
+    toJsonObject(pSecurityZone:SecurityZone):any {
+        let o={
+            uid: this.uid,
+            _parent: null,
+            msg: this.msgs,
+            followers:[],
+            activeStep: this.activeStep
+        };
+
+        this.followers.map(x => {
+            o.followers.push({
+                user: x.user.getUID(),
+                socket: null,
+                opts: x.opts
+            })
+        });
+
+        return o;
     }
 }
