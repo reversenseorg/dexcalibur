@@ -122,7 +122,7 @@ export class DelegateWebApi
 
         Logger.debug("[AUTH ROUTE] doProjectSecurityChecks : check session, project & authorizations ");
 
-        if (pRequest.dxc == null || !pWebServer.context.getUserService().verifySession(pRequest.dxc.sess)) {
+        if (pRequest.dxc == null || !pWebServer.context.getUserService().verifySession(pRequest.dxc.sess,'doProjectSecurityChecks')) {
             throw AuthenticationException.AUTHENTICATION_FAILED();
         }
 
@@ -351,9 +351,12 @@ export class DelegateWebApi
                         let nodes:EngineNode[] = [];
                         try {
 
+                            //console.log(req);
+                            //console.log(req.session);
+
                             Logger.debug("[AUTH ROUTE | ASYNC] Process request : verify session ");
                             // verify if user is authenticated, and user session has been successfully retrieved
-                            if (self.srv.context.getUserService().verifySession(req.dxc.sess)) {
+                            if (self.srv.context.getUserService().verifySession(req.dxc.sess,'asyncAuthenticatedRoute')) {
 
                                 Logger.debug("[AUTH ROUTE | ASYNC] Process request : check project & authorizations ");
 
@@ -365,7 +368,7 @@ export class DelegateWebApi
 
                                     // node are linked to a project, so
                                     if(req.dxc.project==null){
-                                        throw new Error("[ERROR] Project cannot be restored for user [user="+req.dxc.sess.getUserAccount().getUID()+"]")
+                                        throw new Error("[ERROR] Project cannot be restored for user [user="+req.user.getUID() /* dxc.sess.getUserAccount().getUID()*/+"]")
                                         //nodes = self.srv.context.nodeManager.getNodeByProject(req.dxc.project.getUID());
 
                                     }
@@ -434,7 +437,7 @@ export class DelegateWebApi
                             //}*/
 
                             Logger.debug("[AUTH ROUTE | SYNC] Process request : verify session ");
-                            if(self.srv.context.getUserService().verifySession(req.dxc.sess)){
+                            if(self.srv.context.getUserService().verifySession(req.dxc.sess,'syncAuthenticatedRoute')){
 
                                 Logger.debug("[AUTH ROUTE | SYNC] Process request : check project & authorizations ");
 

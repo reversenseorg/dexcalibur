@@ -4,8 +4,8 @@ import {AuthCode, AuthenticationException} from "./auth/AuthTypes.js";
 import {ProjectURI} from "../project/ProjectGlobalUID.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {IPersistent} from "../persist/orm/IPersistent.js";
-import {INode, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {INode, NodeProperty, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import Util from "../Utils.js";
 import {IStringIndex} from "../core/IStringIndex.js";
 import {AclAttributeTree} from "./acl/Access.js";
@@ -15,6 +15,8 @@ import {OrganizationUnit, OrganizationUnitUUID} from "../organization/Organizati
 import {CryptoUtils} from "../CryptoUtils.js";
 import {ValidationRule} from "../Validator.js";
 import {UserAccountAction, UserAccountEvent, UserAccountHelper} from "./UserAccountEvent.js";
+import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
+import {User} from "../User.js";
 
 
 export enum UserAccountType {
@@ -40,7 +42,8 @@ export interface UserAccountOptions extends IStringIndex<any> {
     _authorized_ips?:string[],
     _projects?:ProjectURI[],
     _history?:UserAccountEvent[],
-    _orgs?:OrganizationUnitUUID[]
+    _orgs?:OrganizationUnitUUID[],
+    _extra?:Record<string, any>
 }
 
 export const UA_UUID_SEP = ':';
@@ -55,6 +58,12 @@ export class UserAccount implements IPersistent, INode {
         _username: ValidationRule.utf8String(),
         _orgs: ValidationRule.uuid(),
         _email:ValidationRule.email(),
+        _extra:ValidationRule.structure({
+            avatar: {
+                color1: ValidationRule.hexColor(),
+                color2: ValidationRule.hexColor()
+            }
+        }),
     }
 
     static TYPE:NodeType = new NodeType(
@@ -80,6 +89,7 @@ export class UserAccount implements IPersistent, INode {
     private _orgs:OrganizationUnitUUID[] = [];
     private _activated:number = -1;
     private _history:UserAccountEvent[] =[];
+    private _extra:Record<string, any> = {};
     private _attrs:any = {};
 
     tags:number[] = [];
@@ -354,6 +364,51 @@ export class UserAccount implements IPersistent, INode {
         this._orgs.push(pOrg.getUID());
     }
 
+    /**
+     * To update an account with unsafe data
+     * It enforces validation of updatable property and values
+     *
+     * @param {Record<string, any>} pUnsafeData
+     */
+    updateUnsafe(pUnsafeData:Record<string, any>):string[] {
+        const authorized:Record<string, ValidationRule|boolean> = {};
+        const changes:string[] = [];
+
+        // prepare validation
+        [
+            UserAccount.TYPE.getProperty('_extra')
+        ].map(x => {
+            if(x._val.length>0){
+                authorized[ x.getName() ] = (x._val[0] as any);
+            }else{
+                authorized[ x.getName() ] = true;
+            }
+        });
+
+
+        for(let k in pUnsafeData){
+            if(authorized[k] === undefined){
+                throw RuntimeSecurityException.SAFETY_CHECK_FAILED("[field="+k+"] unauthorized field");
+            }
+
+            if(authorized[k]===true){
+                // TODO :no validation check  DANGER !!!
+                this[k] = pUnsafeData[k];
+                changes.push(k);
+            }else{
+
+                if((authorized[k] as ValidationRule).test(pUnsafeData[k])){
+                    this[k] = pUnsafeData[k];
+                    changes.push(k)
+                }else{
+                    throw RuntimeSecurityException.SAFETY_CHECK_FAILED("[field="+k+"] invalid value");
+                }
+            }
+        }
+
+        return changes;
+    }
+
     toJsonObject(pOption?: SerializeOptions, pZone?:SecurityZone): any {
         let o:any = {};
 
@@ -367,6 +422,7 @@ export class UserAccount implements IPersistent, INode {
         o._orgs = this._orgs;
         o._history = this._history;
         o._activated = this._activated;
+        o._extra = this._extra;
 
         //if(pZone==SecurityZone.PRIVATE){
             o._authorized_ips = this._authorized_ips;

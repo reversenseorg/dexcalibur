@@ -157,6 +157,7 @@ export class UserService {
                 // TODO : later add API Key auth check and more
                 // continue
             }else{
+                console.log(err);
                 // there is not alternative, engine cannot start
                 throw UserServiceException.AUTH_IS_NOT_READY();
             }
@@ -260,11 +261,12 @@ export class UserService {
      *
      * @param pSession
      */
-    verifySession( pSession:UserSession):boolean {
+    verifySession( pSession:UserSession, pLocation = "unknown"):boolean {
         try{
 
             //Logger.debug("Verify session is not null : "+JSON.stringify(pSession));
             //Logger.debug("All session : "+JSON.stringify( Object.keys(this.sessSvc.listAllSession())));
+
             if( pSession != null && pSession.isActive()){
                 return true;
             }else{
@@ -422,6 +424,10 @@ export class UserService {
     }
 
     /**
+     * To retrieve an UserAccount from its UUID
+     * It includes several permissions check to verify :
+     * - requester has succifient permissions to read info about other account
+     * - requested account is a part of one org of requester
      *
      * Part of Public API
      *
@@ -434,7 +440,7 @@ export class UserService {
         }else{
             // check basic perm
             AccessControl.isAuthorized(
-                AccessControl.access.ORG_USER_READ,
+                AccessControl.access.ORG_USR_READ,
                 pUserAccount
             );
 
@@ -457,7 +463,7 @@ export class UserService {
                 // he must be a part of target user organization and be a part of OWNER or ORG_MEMBER
                 // org attribute
                 AccessControl.isAuthorized(
-                    AccessControl.access.ORG_USER_READ,
+                    AccessControl.access.ORG_USR_READ,
                     pUserAccount,
                     await this._ctx.getOrgManager().getOrganization(pUserAccount, sameOrgs[0]),
                     [
@@ -475,5 +481,45 @@ export class UserService {
             throw UserServiceException.ACCESS_DENIED_USER_PROFILE();
         }
 
+    }
+
+
+    /**
+     *
+     * Part of Public API
+     *
+     * @param pUserAccount
+     * @param pUUID
+     */
+    async updateAccountWithUnsafe(pUserAccount:UserAccount, pTargetAccount:UserAccountUUID, pUnsafeData:any):Promise<UserAccount> {
+
+
+        if(!pUserAccount.uuidEquals(pTargetAccount)){
+            // check basic perm
+            AccessControl.isAuthorized(
+                AccessControl.access.ORG_USR_MGT,
+                pUserAccount
+            );
+        }
+
+        // retrieve target account (include permission check and org check)
+        const targetAcc = await this.getAccount(pUserAccount, pTargetAccount);
+
+        // validate every data and update account instance, this method returns
+        // the list of updated fields
+        const changes = targetAcc.updateUnsafe(pUnsafeData);
+
+        if(changes.length==0){
+            throw new Error("No changes");
+        }
+
+
+        if(await (this._ctx.getEngineDB().getCollectionOf(UserAccount.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry( targetAcc, {replace:false, $set:changes })){
+
+            return targetAcc;
+        }else{
+            throw UserServiceException.CANNOT_UPDATE_ACCOUNT(pTargetAccount);
+        }
     }
 }
