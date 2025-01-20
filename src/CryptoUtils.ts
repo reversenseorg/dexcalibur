@@ -109,4 +109,8 @@ export class CryptoUtils {
         decipher.final();
         return out;
     }
+
+    static randomUUID(pLength: number):string {
+        return "";
+    }
 }

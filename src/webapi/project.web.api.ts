@@ -26,6 +26,7 @@ import {UserAccount} from "../user/UserAccount.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -105,12 +106,17 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 let org:Nullable<OrganizationUnit> = null;
                 let app:Nullable<ApplicationUnit> = null;
 
+
+                console.log(req.query);
+
                 if(req.query.oid!=null){
                     if(OrganizationUnit.VALIDATE.uuid.test(req.query.oid)){
                         org = await $.context.getOrgManager().getOrganization(
                             req.user as UserAccount,
                             req.query.oid as string
                         )
+                    }else{
+                        throw OrganizationManagerException.INVALID_ORG_UUID_FMT(req.query.oid as string);
                     }
                 }
 
@@ -119,8 +125,10 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                         app = await $.context.getOrgManager().getApplication(
                             req.user as UserAccount,
                             org,
-                            req.query.oid as string
+                            req.query.aid as string
                         )
+                    }else{
+                        throw OrganizationManagerException.INVALID_APP_UUID_FMT(req.query.aid as string);
                     }
                 }
 

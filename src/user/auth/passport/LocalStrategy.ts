@@ -4,6 +4,8 @@ import {RuntimeSecurityException} from "../../../errors/RuntimeSecurityException
 import {PasswordFormContext} from "../AuthenticationService.js";
 import * as Log from "../../../Logger.js";
 import {UserAccount} from "../../UserAccount.js";
+import {SessionException} from "../../session/SessionException.js";
+import {UserSession} from "../../session/UserSession.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -63,19 +65,25 @@ export class LocalStrategy extends passport.Strategy {
         Logger.info(` [AUTH SERVICE][Passport][strategy=${this.name}][path=${vReq.path}][ip=${vReq.ip}] Authenticate `);
 
         try{
-            if((vReq as any).session==null || (vReq as any).session.forms==null){
+            if((vReq as any).session==null){
+                throw SessionException.INVALID_SESSION();
+            }
+
+            const sessForms = ((vReq as any).session as UserSession).getData('forms');
+
+            if(sessForms==null){
                 throw RuntimeSecurityException.BROKEN_LOGIN_WORKFLOW();
             }
 
-            const formCtx = (vReq as any).session.forms[vReq.params['antiReplayID']] as PasswordFormContext;
+            const formCtx = sessForms[vReq.params['antiReplayID']] as PasswordFormContext;
 
-            delete (vReq as any).session.forms[vReq.params['antiReplayID']];
+            delete sessForms[vReq.params['antiReplayID']];
+            ((vReq as any).session as UserSession).addData('forms', sessForms);
 
             // check anti-replay token
             if(formCtx==null){
                 throw RuntimeSecurityException.AUTH_REPLAY_DETECTED(/^[a-f0-9-]+$/.test(vReq.params['antiReplayID'])?vReq.params['antiReplayID']:"...");
             }
-
 
             // check CSRF token
             const csrfToken = (vReq as any).body[formCtx.csrfField];
@@ -88,8 +96,17 @@ export class LocalStrategy extends passport.Strategy {
 
             let verifiedFn = (vErr:any, vUser:UserAccount, vAuthRes:any)=>{
                 if(vUser!=null){
-                    // @ts-ignore
-                    this.success(vUser);
+                    ((vReq as any).session as UserSession).setUserAccount(vUser);
+                    ((vReq as any).session as UserSession).passport.user = vUser;
+                    ((vReq as any).session as UserSession).save((err)=>{
+                        if(err==null){
+                            // @ts-ignore
+                            this.success(vUser);
+                        }else{
+                            // @ts-ignore
+                            this.error(vErr);
+                        }
+                    })
                 }else{
                     // @ts-ignore
                     this.error(vErr);

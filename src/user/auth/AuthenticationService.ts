@@ -31,6 +31,10 @@ import {AuthModule, AuthModuleType} from "./AuthModule.js";
 import {LocalAuthModule} from "./modules/LocalAuthModule.js";
 import {AuthenticationModuleException} from "./error/AuthenticationModuleException.js";
 import {AuthStrategyUUID, LoadedAuthModule} from "./modules/LoadedAuthModule.js";
+import {SessionMiddleware, UnsetMode} from "../session/SessionMiddleware.js";
+import {SameSite} from "../session/Cookie.js";
+import {MemoryStore} from "../session/MemoryStore.js";
+import {UserSession} from "../session/UserSession.js";
 
 const GOT = got.default;
 const BodyParser = (_bodyparser_ as any).default;
@@ -293,7 +297,7 @@ export class AuthenticationService {
 
         const basePath = '/login';
         // session middleware
-        pApp.use(
+        /*pApp.use(
             expressSession({
                 secret: 'another_long_secret',
                 resave: false,
@@ -304,6 +308,29 @@ export class AuthenticationService {
                 store: this._ctx.getUserService().getSessionService().createSessionStore()
                 // new expressSession.MemoryStore() // TODO : replace by remote store
             })
+        );*/
+        const sessSvc = this.getUserService().getSessionService();
+
+        pApp.use(
+            SessionMiddleware.make({
+                name: "connect.sid",
+                secret: ["another_long_secret"],
+                cookie: {
+                    path: '/',
+                    //domain: '127.0.0.1',
+                    httpOnly: true,
+                    sameSite: SameSite.LAX,
+                    secure: false,
+                    maxAge: sessSvc.getSettings().getMaxDuration() * 1000
+                },
+                store: sessSvc.createSessionStore(),
+                trustProxy: false,
+                rolling: false,
+                resave: false,
+                saveUninitialized: true,
+                unset: UnsetMode.DESTROY,
+                enforceSecure: false
+            })
         );
 
         // passport init + session binding
@@ -311,14 +338,15 @@ export class AuthenticationService {
         pApp.use(passport.session());
 
         passport.serializeUser(function(vUser:UserAccount, done:any) {
-            Logger.debug("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
+            Logger.info("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
             console.log("serializeUser > ",vUser);
-            done(null, vUser.toJsonObject());
+            done(null, vUser);//.getUID());
+            //done(null, vUser.toJsonObject());
         });
 
         passport.deserializeUser(function(vUser:any, done:any) {
             const user = new UserAccount(vUser);
-            Logger.debug("[AUTH SERVICE][PASSPORT] Passport : deserialize user ");
+            Logger.info("[AUTH SERVICE][PASSPORT] Passport : deserialize user ");
             done(null, user);
         });
 
@@ -480,7 +508,7 @@ export class AuthenticationService {
             passport.use(state.getUUID(),
                 new PassportOIDC(
                     cfg,
-                    (req, issuer, profile, verified) => {
+                    (vReq, issuer, profile, verified) => {
 
                         Logger.info(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Start OIDC verifying ...`);
 
@@ -512,7 +540,13 @@ export class AuthenticationService {
 
 
                             if (vAccount != null) {
-                                verified(null, vAccount);
+                                (vReq.session as UserSession).setUserAccount(vAccount);
+                                (vReq.session as UserSession).passport.user = vAccount;
+                                (vReq.session as UserSession).addData('org',pOrg.getUID());
+                                (vReq.session as UserSession).save(()=>{
+                                    verified(null, vAccount);
+                                });
+                                //verified(null, vAccount);
                             } else {
                                 Logger.error(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] User account cannot be found and or created.`);
                                 verified("OIDC : User account cannot be created.", null);
@@ -667,11 +701,17 @@ export class AuthenticationService {
             (vReq, vUsername:string, vPasswd:string, vVerifiedCB:any)=> {
                 ((this.newPasswordAuthenticator()
                     .doAuthentication(vUsername,vPasswd,pOrg.getUID()))  as Promise<AuthenticationResult>)
-                    .then((vRes)=>{
-                        if(vRes._success){
-                            vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
+                    .then((vAuthRes)=>{
+                        if(vAuthRes._success){
+                            (vReq.session as UserSession).setUserAccount(vAuthRes.getAccount());
+                            (vReq.session as UserSession).passport.user = vAuthRes.getAccount();
+                            (vReq.session as UserSession).addData('org',pOrg.getUID());
+                            (vReq.session as UserSession).save(()=>{
+                                vVerifiedCB.apply(null, [null, vAuthRes.getAccount(), vAuthRes]);
+                            });
+                            //vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
                         }else{
-                            vVerifiedCB.apply(null, [null, null, vRes]);
+                            vVerifiedCB.apply(null, [null, null, vAuthRes]);
                         }
                     },(err)=>{
                         vVerifiedCB.apply(null, [err, null, null]);
@@ -717,7 +757,14 @@ export class AuthenticationService {
                     .doAuthentication(vUsername,vPasswd))  as Promise<AuthenticationResult>)
                     .then((vRes)=>{
                         if(vRes._success){
-                            vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
+                            (vReq.session as UserSession).setUserAccount(vRes.getAccount());
+                            (vReq.session as UserSession).save((err)=>{
+                                if(!err){
+                                    vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
+                                }else{
+                                    vVerifiedCB.apply(null, [err, null, null]);
+                                }
+                            })
                         }else{
                             vVerifiedCB.apply(null, [null, null, vRes]);
                         }
@@ -760,6 +807,16 @@ export class AuthenticationService {
 
         Logger.info(`[AUTH SERVICE][org=${pOrg.getUID()}] Serve login page over ${pRoute}`);
         (pApp as Application).get(pRoute,
+            (kReq:any,kRes:any,kNext:any)=>{
+                if(kReq.session !=null){
+                    const o = (kReq.session as UserSession).getData('org');
+                    if(o != null && OrganizationUnit.VALIDATE.uuid.test(o)){
+                        kRes.status(200).redirect(`/home/?org=${o}`);
+                    }
+                }
+
+                kNext.apply(null);
+            },
             (req, res, next) => {
 
                 // TODO : make CORS parameter as env var
@@ -902,11 +959,16 @@ export class AuthenticationService {
             csrfToken: randomUUID(),
         };
 
-        if((vReq as any).session.forms==null){
-            (vReq as any).session.forms = {};
+        const sess:UserSession = (vReq as any).session;
+        let forms:Record<string, any> = sess.getData('forms');
+        
+        if(forms==null){
+            forms = {};
         }
 
-        (vReq as any).session.forms[context.replayUID] = context;
+        forms[context.replayUID] = context;
+
+        ((vReq as any).session as UserSession).addData('forms',forms);
 
         // replace tokens in page chunk
         page = page.replaceAll('@@_ANTI_REPLAY_ENDPOINT_@@',context.replayUID);

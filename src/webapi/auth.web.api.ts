@@ -11,6 +11,7 @@ import {Settings} from "../Settings.js";
 import ConnectionSettings = Settings.ConnectionSettings;
 import {Nullable} from "../core/IStringIndex.js";
 import {UserSession} from "../user/session/UserSession.js";
+import {UserAccount} from "../user/UserAccount.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -24,6 +25,8 @@ AUTH_WEB_API.addAuthenticatedRoute(
             let $:WebServer = req.dxc.$;
 
             try {
+
+
                 if ($.context.getUserService().verifySession(req.dxc.sess,'logout')) {
 
 
@@ -69,6 +72,47 @@ AUTH_WEB_API.addAuthenticatedRoute(
             }catch(err){
                 Logger.error("[API][REMOTE CONNECTION LOGOUT] Session logout : "+err.message+"\n"+err.stack);
                 $.sendError( res, "Session not found : "+err.message );
+            }
+
+        }
+    }
+);
+
+
+AUTH_WEB_API.addAuthenticatedRoute(
+    '/logout/:oid',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
+
+            let $:WebServer = req.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(
+                    (req.user as UserAccount),
+                    req.params.oid
+                );
+
+                // redirect to login page of organization associated to users
+                // $.context.getUserService().closeSession(req.dxc.sess);
+                (req.session as UserSession).destroy((vErr:any)=>{
+                    res.status(200).redirect(`/login/${org.name}`);
+                });
+
+
+
+            }catch(err){
+                try{
+                    Logger.error("[API][LOGOUT] Session logout failed : "+err.message+"\n"+err.stack);
+                    const o = (req.session as UserSession).getData('org');
+                    if(o!=null){
+                        res.status(200).redirect(`/home/?org=${o}`);
+                    }else{
+                        res.status(200).redirect('https://www.reversense.com');
+                    }
+                }catch(err2){
+                    Logger.error("[API][LOGOUT] Session logout : "+err2.message+"\n"+err2.stack);
+                    res.status(200).redirect('https://www.reversense.com');
+                }
             }
 
         }

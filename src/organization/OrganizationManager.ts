@@ -278,11 +278,11 @@ export class OrganizationManager {
 
         const app = await (this._ctx.getEngineDB()
             .getCollectionOf(ApplicationUnit.TYPE.getType())as MongodbDbCollection)
-            .asyncGetEntry({ uuid: pUID, orgUUID:pOrg.getUID() });
+            .asyncGetEntry({ uuid: pUID, orgUnit:pOrg.getUID() });
 
 
         if(app==null){
-            throw OrganizationManagerException.UNKNOWN_ORG(pUID);
+            throw OrganizationManagerException.UNKNOWN_APP(pUID);
         }
 
         AccessControl.isAuthorized(

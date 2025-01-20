@@ -869,7 +869,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     throw new Error("Emails format is invalid")
                 }
 
-                if(pReq.body.grp!=null && !UserGroup.VALIDATE.uuid.test(pReq.body.grp)){
+                if(!UserGroup.VALIDATE.uuid.test(pReq.body.grp)){
                     throw new Error("UserGroupUUID format is invalid")
                 }
 

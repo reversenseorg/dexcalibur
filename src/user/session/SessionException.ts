@@ -1,4 +1,5 @@
 import {ErrorCode, MonitoredError} from "../../errors/MonitoredError.js";
+import {SecurityZone} from "../../security/SecurityZone.js";
 
 
 export enum SessionCode {
@@ -25,6 +26,9 @@ export class SessionException extends MonitoredError {
     static NO_ACTIVE_PROJECT = ()=>{ return new SessionException("This session has not active project", ErrorCode.AUTH + 103) };
     static MULTIPLE_ACTIVE_PROJECT = ()=>{ return new SessionException("This session has multiple active project, please specify.", ErrorCode.AUTH + 104) };
     static INVALID_ACTIVE_PROJECT_UID = (vUID:string = 'unknow')=>{ return new SessionException("This session has not active project with the given UID : "+vUID, ErrorCode.AUTH + 105) };
+    static INVALID_COOKIE_VALUE_FMT = (pValue:string)=>{ return new SessionException(`Cookie value contains some forbidden char [value=${pValue}]`, ErrorCode.AUTH + 106).zone(SecurityZone.PRIVATE) };
+
+
 
     constructor(pMsg, pCode:SessionCode = SessionCode.NONE) {
         super('SESSION',pMsg,pCode);

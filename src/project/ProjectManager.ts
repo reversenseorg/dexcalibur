@@ -139,20 +139,16 @@ export class ProjectManager {
         return filtered;
     }
 
+    /**
+     * To get project by app unit
+     *
+     * @param pAccount
+     * @param pApp
+     */
     async listProjectByAppUnit( pAccount:UserAccount, pApp:ApplicationUnit):Promise<DexcaliburProject[]> {
-        const all = this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()).getAsList();
-        const filtered:DexcaliburProject[] = [];
 
-
-        all.map(vProj => {
-            try{
-                if(pApp.getReleases().indexOf(vProj)>-1){
-                    filtered.push(vProj);
-                }
-            }catch (e){ /* skip */ }
-        })
-
-        return filtered;
+       return await (this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()))
+            .search({ filter: { uid: { $in: pApp.getReleases() } } }, {raw:true});
     }
 
     /**

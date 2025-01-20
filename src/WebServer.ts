@@ -1341,12 +1341,24 @@ export default class WebServer
                 return next();
             }
 
+            console.log(req,req.session);
+
             Logger.error(`[WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Not authenticated, redirecting ...`);
             if(usr_svc.getAuthenticationService().hasHubLoginPage()){
                 res.redirect('/login');
             }else{
-                res.status(200);
-                res.send("Access denied");
+                /*if(req.session !=null){
+
+                    const oid = (req.session as UserSession).getData('org');
+                    if(oid != null){
+                        if(req.user !=null){
+                            const org = self.context.getOrgManager().getOrganization(req.user)
+                        }
+
+                    }
+                }
+                res.status(200);*/
+                res.redirect("/login");
             }
         }
 

@@ -48,6 +48,7 @@ import {HookVariableArray, HookVariableObject} from "./HookVariable.js";
 import {HookVariableMap} from "./hook/common.js";
 import {Person} from "./user/Person.js";
 import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
+import {Cookie} from "./user/session/Cookie.js";
 
 
 
@@ -196,7 +197,24 @@ UserSession.TYPE.updateProperties([
     (new NodeProperty('_acc')).single(UserAccount.TYPE).notnull(),
     (new NodeProperty('_created')).type(DbDataType.INTEGER),
     (new NodeProperty('_destroyed')).type(DbDataType.INTEGER),
+    (new NodeProperty('savedHash')).type(DbDataType.STRING).def(null),
     (new NodeProperty('_project')).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
+    (new NodeProperty('trustProxy')).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty('passport')).type(DbDataType.BLOB).def({}),
+    (new NodeProperty('cookie'))
+        .type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState)=>{
+            if(x.p !=null){
+                return (x.p as Cookie).toJSON()
+            }
+            return null;
+        })
+        .wakeUp( (x:NodePropertyState) =>  {
+            if(x.p !=null){
+                return new Cookie(x.p);
+            }
+            return null;
+        }).def(null),
     (new NodeProperty('_data'))
         .type(DbDataType.BLOB)
         .sleep( (x:NodePropertyState)=>{

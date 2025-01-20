@@ -13,9 +13,13 @@ from "@dexcalibur/dxc-core-api";;
 import {IPersistent} from "../../persist/orm/IPersistent.js";
 import {SessionData} from "./SessionData.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
-import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../../core/IStringIndex.js";
 import * as Log from "../../Logger.js";
+import {Cookie, CookieOptions} from "./Cookie.js";
+import {SessionMiddlewareOptions} from "./SessionMiddleware.js";
+import {CryptoUtils} from "../../CryptoUtils.js";
+import {SecurityZone} from "../../security/SecurityZone.js";
 
 
 
@@ -29,9 +33,24 @@ export interface UserSessionOptions {
     _project?:Record<string, DexcaliburProject>;
     _defaultProject?:DexcaliburProject;
     _data?:Record<string, SessionData>;
+    _data_hash?:string;
     _must_set_cookie?:boolean;
+    expires?:number;
+    cookie?:Cookie;
+    savedHash?:string;
+    trustProxy?:boolean;
+    passport?:any;
+
+    req?:any;
+    id?:any;
 }
 
+
+export interface SessionEnvelopeOptions {
+    request: any,
+    cookie?: CookieOptions,
+    trustProxy: boolean
+}
 export class UserSession implements IPersistent, INode {
 
     static TYPE:NodeType = new NodeType(
@@ -49,7 +68,7 @@ export class UserSession implements IPersistent, INode {
     /**
      * unix timestamp
      */
-    _created: number;
+    _created: number = -1;
 
     /**
      * unix timestamp
@@ -63,6 +82,7 @@ export class UserSession implements IPersistent, INode {
 
     _data:Record<string, SessionData> = {};
 
+    _data_hash:string = null;
 
     _conn:ConnectionHandlerMap = {};
 
@@ -70,16 +90,80 @@ export class UserSession implements IPersistent, INode {
 
     tags:number[] = [];
 
+    expires:number;
+
+    forms:Record<string, any> = {};
+
+    _cookie:Nullable<Cookie> = null;
+
+    // Legacy API for Express
+    req: any;
+
+    savedHash:string;
+    /**
+     * Flag. If true reverse proxy is trusted and
+     * can't threat cookie
+     * @field
+     */
+    trustProxy = false;
+
+    /**
+     * !! IMPORTANT
+     * Mandatory field expected by Passport to store authenticated user
+     * @field
+     */
+    passport:any = {};
+
     constructor( pConfig:Nullable<UserSessionOptions> = null) {
 
         if(pConfig !=null){
             for(const i in pConfig){
                 this[i] = pConfig[i];
-
             }
         }
 
+        if(this._created === -1){
+            this._created = Date.now();
+        }
     }
+
+    get id():string {
+        return this._uid;
+    }
+
+    set cookie(pCookie:Cookie) {
+        this._cookie = pCookie;
+        this.resetMaxAge();
+    }
+
+    get cookie():Cookie {
+        return this._cookie;
+    }
+
+    /**
+     * To create a new empty user session from incoming request
+     *
+     * @param {SessionEnvelopeOptions} pOptions
+     */
+    static fromIncomingRequest(pOptions:SessionEnvelopeOptions):UserSession{
+
+        const sess = new UserSession({
+            _uid: pOptions.request.sessionID,
+            _acc: (pOptions.request.session!=null)?pOptions.request.session._acc : null,
+            _data: (pOptions.request.session!=null)?pOptions.request.session._data : {},
+            _created:  Date.now()
+        });
+        sess.req = pOptions.request;
+
+        sess.trustProxy = pOptions.trustProxy!=null?pOptions.trustProxy:false;
+
+        if(pOptions.cookie!=null){
+            sess.updateCookie(pOptions.cookie, (pOptions.trustProxy!=null?pOptions.trustProxy:false));
+        }
+
+        return sess;
+    }
+
 
     static create( pSessUID:string, pAccount: UserAccount):UserSession {
 
@@ -109,11 +193,6 @@ export class UserSession implements IPersistent, INode {
     isOwnedBy( pAccount:UserAccount):boolean {
         return this._acc.is(pAccount);
     }
-
-    destroy():void {
-        this._destroyed = Date.now();
-    }
-
     getUserAccount():UserAccount {
         return this._acc;
     }
@@ -129,6 +208,7 @@ export class UserSession implements IPersistent, INode {
         return (this._destroyed <= 0);
     }
 
+
     /**
      * To get session UID
      *
@@ -140,6 +220,10 @@ export class UserSession implements IPersistent, INode {
 
     getUID(): any {
         return this._uid;
+    }
+
+    setUID(pSessid:string):void {
+        this._uid = pSessid;
     }
 
     /**
@@ -268,6 +352,7 @@ export class UserSession implements IPersistent, INode {
             throw new SessionException("Data cannot be read : Session has been destroyed.", SessionCode.DESTROYED);
 
         this._data[pName] = new SessionData({  _sess:this, _name:pName, _value:pValue });
+        //this._data_hash = this.hash();
         //UserSession.TYPE.trigger('save_data', this._data[pName]);
     }
 
@@ -286,7 +371,23 @@ export class UserSession implements IPersistent, INode {
         }
     }
 
-    toJsonObject():any {
+    /**
+     * To compute a checksum of session data to detect
+     * modifying
+     *
+     * @returns {string}
+     * @method
+     */
+    hash(pOptions:Nullable<SessionMiddlewareOptions>=null):string {
+        let o = {};
+        for(let k in this._data){
+            o[k] = (this._data[k] as SessionData).toJsonObject();
+        }
+
+        return CryptoUtils.sha256(JSON.stringify(o),'hex',true);
+    }
+
+    toJsonObject(pOtions?:SerializeOptions, pSecurityZone = SecurityZone.PUBLIC):any {
         const o:any = {};
         o._uid = this._uid;
         o._created = this._created;
@@ -296,6 +397,11 @@ export class UserSession implements IPersistent, INode {
         o._acc = this._acc.getUID();
         //o._data = this._uid;
         o._conn = Object.keys(this._conn);
+
+        if(pSecurityZone===SecurityZone.PRIVATE){
+            o.forms = this.forms;
+        }
+
         CoreDebug.checkJsonSerialize(o,"UserSession");
         return o;
     }
@@ -309,6 +415,155 @@ export class UserSession implements IPersistent, INode {
     setUserAccount(pAccount: UserAccount) {
         this._acc = pAccount;
     }
+
+
+
+    // Session api
+
+    /**
+     * To create cookie options related to this incoming request
+     *
+     * @param pOptions
+     * @param pTrustProxy
+     */
+    updateCookie(pOptions:CookieOptions, pTrustProxy:boolean){
+        this.cookie = new Cookie(pOptions);
+
+        if (pOptions.secure === 'auto') {
+            this.cookie.secure = this.isSecure(pTrustProxy);
+        }
+    }
+
+    // check if session has been saved
+    isSaved(pOriginalID:string) {
+        return (pOriginalID === this.getUID()) && (this.savedHash === this.hash());
+    }
+
+
+    /**
+     * To check is the session has been modified
+     * @param sess
+     */
+    isModified(pOriginalID:string, pOriginalHash:Nullable<string> = null):boolean {
+        const originalHash = (pOriginalHash==null)? this.savedHash : pOriginalHash;
+        return (pOriginalID !== this.getUID()) || (originalHash !== this.hash());
+    }
+
+    // determine if session should be touched
+    shouldTouch(pRequest:any, pOriginalID:string, pOriginalHash:string, pOptions:SessionMiddlewareOptions):boolean {
+        // cannot set cookie without a session ID
+        if (typeof pRequest.sessionID !== 'string') {
+            Logger.debug('[SESSION MIDDLEWARE] session ignored because of bogus vReq.sessionID %o', pRequest.sessionID);
+            return false;
+        }
+
+        return (pOriginalID === pRequest.sessionID) && !this.shouldSave(pRequest,pOriginalID,pOriginalHash,pOptions);
+    }
+
+    shouldSave(pRequest:any, pOriginalID:string, pOriginalHash:string, pOptions:SessionMiddlewareOptions ) {
+        // cannot set cookie without a session ID
+        if (typeof pRequest.sessionID !== 'string') {
+            Logger.debug('[SESSION MIDDLEWARE] session ignored because of bogus vReq.sessionID %o', pRequest.sessionID);
+            return false;
+        }
+
+        return (!pOptions.saveUninitialized && (this.savedHash==null) && (pOriginalID !== pRequest.sessionID))
+            ? this.isModified(pOriginalID, pOriginalHash)
+            : !this.isSaved(pOriginalID)
+    }
+
+    /**
+     * To detect
+     * @param pTrustProxy
+     */
+    isSecure(pTrustProxy:boolean):boolean{
+        // socket is https server
+        if (this.req.connection && this.req.connection.encrypted) {
+            return true;
+        }
+
+        // don't trust proxy
+        if (pTrustProxy === false) {
+            return false;
+        }
+
+        // no explicit trust; try req.secure from express
+        if (pTrustProxy !== true) {
+            return (this.req.secure === true)
+        }
+
+        // read the proto from x-forwarded-proto (XFP) header
+        const header = this.req.headers['x-forwarded-proto'] || '';
+        const index = header.indexOf(',');
+        const proto = (index !== -1)
+            ? header.slice(0, index).toLowerCase().trim()
+            : header.toLowerCase().trim()
+
+        return (proto === 'https');
+    }
+
+    touch():UserSession {
+        return this.resetMaxAge();
+    }
+
+    resetMaxAge():UserSession {
+        this.cookie.maxAge = this.cookie.originalMaxAge;
+        return this;
+    }
+
+    /**
+     * To store the session
+     *
+     * @param pCallback
+     */
+    save(pCallback:any = null):UserSession {
+        Logger.debug('[SESSION MIDDLEWARE] saving %s', this.id);
+        this.savedHash = this.hash();
+        this.req.sessionStore.set(this.getUID(), this, pCallback || function(){});
+        return this;
+    }
+
+    /**
+     * Re-loads the session data _without_ altering
+     * the maxAge properties. Invokes the callback `fn(err)`,
+     * after which time if no exception has occurred the
+     * `req.session` property will be a new `Session` object,
+     * although representing the same session.
+     *
+     * @param {Function} fn
+     * @return {Session} for chaining
+     * @api public
+     */
+    reload(pCallback:any) {
+        const req = this.req
+        const store = this.req.sessionStore
+
+        store.get(this.getUID(), function(err, sess){
+            if (err) return pCallback(err);
+            if (!sess) return pCallback(new Error('failed to load session'));
+
+            store.createSession(req, sess);
+            pCallback();
+        });
+        return this;
+    }
+
+    destroy(pCallback:any) {
+
+        Logger.info("[SESSION][destroy] Destroy user session");
+        delete this.req.session;
+        this.req.sessionStore.destroy(this.getUID(), pCallback);
+
+        this._destroyed = Date.now();
+
+        return this;
+    }
+
+    regenerate(pCallback:any) {
+        this.req.sessionStore.regenerate(this.req, pCallback);
+        return this;
+    }
+
 }
 
 UserSession.TYPE.builder(UserSession);

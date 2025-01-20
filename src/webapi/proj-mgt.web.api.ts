@@ -943,7 +943,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 const inputTplRule = ValidationRule.structure({
                     uploadID: UploadedResource.VALIDATE.uuid,
                     purpose: ProjectInput.VALIDATE.purpose
-                })
+                });
 
 
                 let checkedTpl:InputTemplate[];

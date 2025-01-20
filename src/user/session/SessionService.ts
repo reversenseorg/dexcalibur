@@ -176,8 +176,7 @@ export class SessionService {
      * @method
      */
     isSessionExpired(pSession:UserSession):boolean {
-        //Logger.info("isSessionExpired : ("+((new Date()).getTime())+" - "+(pSession._created)+") > "+this.getSettings().getMaxDuration());
-        return (((new Date()).getTime())-pSession._created) > (this.getSettings().getMaxDuration() * 1000);
+        return pSession.cookie.expires.getTime() <  (new Date()).getTime();
     }
 
 
@@ -191,7 +190,9 @@ export class SessionService {
         console.log("Destroy session (cause="+pCause+"): ",pSession);
 
         // remove data associated to the session such as temporary files
-        pSession.destroy();
+        pSession.destroy(()=>{
+            console.log('Session Service : destroySession : session destroyed');
+        });
 
         // remove session from active sessions list
         this._ctx.getEngineDB()
@@ -306,13 +307,20 @@ export class SessionService {
     }
 
     flush(): void {
+
+        Logger.debug("[SESSION SERVICE][flush] Flush all sessions ");
         this._s.map( (o:number, sess:UserSession)=> {
             // destroy
-            sess.destroy();
-            // remove from cache
-            delete this._sess[sess.getSessUID()];
-            // remove from DB
-            this._s.removeEntry(sess.getSessUID())
+            if(sess!=null){
+                sess.destroy(()=>{
+                    console.log('Session Service : flush : session destroyed');
+                    Logger.debug(`[SESSION SERVICE][flush][${sess.getUID()}] Session destroyed `);
+                });
+                // remove from cache
+                delete this._sess[sess.getSessUID()];
+                // remove from DB
+                this._s.removeEntry(sess.getSessUID())
+            }
         });
 
         this._sess = {};

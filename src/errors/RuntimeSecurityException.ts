@@ -32,6 +32,11 @@ export class RuntimeSecurityException extends MonitoredError {
         return new RuntimeSecurityException("An authentication request replay has been detected. Request aborted [replayUID="+pUID+"]",ErrorCode.SECURITY_RUNTIME + 114) };
     static BROKEN_LOGIN_WORKFLOW = ()=>{
         return new RuntimeSecurityException("The authentication workflow is broken, session not intialized.",ErrorCode.SECURITY_RUNTIME + 115) };
+    static COOKIE_SIGN_FAILURE = ()=>{
+        return new RuntimeSecurityException("Signature of cookie value failed : secret not provided",ErrorCode.SECURITY_RUNTIME + 116) };
+    static COOKIE_UNSIGN_FAILURE = ()=>{
+        return new RuntimeSecurityException("Signature of cookie cannot be verified : secret not provided",ErrorCode.SECURITY_RUNTIME + 117) };
+
 
 
 
