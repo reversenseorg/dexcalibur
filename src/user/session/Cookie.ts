@@ -65,7 +65,7 @@ export class Cookie {
      * Secure flag (send only over HTTPS)
      * @field
      */
-    secure = false;
+    secure:boolean|"auto" = false;
 
     /**
      * Domain or subdomains of the cookie
@@ -85,7 +85,8 @@ export class Cookie {
 
 
     constructor(pOptions:CookieOptions) {
-        if(pOptions.secure) this._expires = pOptions.expires;
+        if(pOptions.expires) this._expires = pOptions.expires;
+        if(pOptions.secure) this.secure = pOptions.secure;
         if(pOptions.httpOnly) this.httpOnly = pOptions.httpOnly;
         if(pOptions.domain) this.domain = pOptions.domain;
         if(pOptions.path) this.path = pOptions.path;

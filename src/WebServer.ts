@@ -1341,7 +1341,6 @@ export default class WebServer
                 return next();
             }
 
-            console.log(req,req.session);
 
             Logger.error(`[WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Not authenticated, redirecting ...`);
             if(usr_svc.getAuthenticationService().hasHubLoginPage()){

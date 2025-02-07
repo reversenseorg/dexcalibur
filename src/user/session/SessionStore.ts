@@ -152,27 +152,27 @@ export class SessionStore /*extends expressSession.Store*/ {
 
         this._coll.asyncGetEntry({ _uid: pSID }).then((vSess:UserSession)=>{
             if(vSess==null){
-                Logger.info(`[SESSION STORE][set] Start to create session `);
+                //Logger.info(`[SESSION STORE][set] Start to create session `);
                 this._coll.asyncAddEntry( { _uid: pSID }, pSession).then(()=>{
-                    Logger.info(`[SESSION STORE][set] Create session : success [sid=${pSID}]`);
+                    //Logger.info(`[SESSION STORE][set] Create session : success [sid=${pSID}]`);
                     pCallback.apply(null, [ null,  pSession  ]);
                 }).catch((e)=>{
                     Logger.error(`[SESSION STORE][set] Create session : failure [sid=${pSID}]`);
                     pCallback.apply(null, [ e, null ]);
                 });
             }else{
-                Logger.info(`[SESSION STORE][set] Start to update session `);
+                //Logger.info(`[SESSION STORE][set] Start to update session `);
                 this._coll.asyncUpdateEntry(  pSession, {
                     filter:{ _uid:pSID},
                     replace:false,
                     $set:['_acc','_uid','savedHash','cookie','_data','passport','trustProxy','_destroyed']
                 }).then((vSuccess)=>{
 
-                    Logger.info(`[SESSION STORE][set] Update session : success [sid=${pSID}][success=${vSuccess}]`);
+                    //Logger.info(`[SESSION STORE][set] Update session : success [sid=${pSID}][success=${vSuccess}]`);
                     this._coll.asyncGetEntry({ _uid: pSID }).then((vSess2:UserSession)=>{
 
 
-                       Logger.info(`[SESSION STORE][set] Update session : success : read fresh session [sid=${pSID}]`);
+                       //Logger.debug(`[SESSION STORE][set] Update session : success : read fresh session [sid=${pSID}]`);
 
                         // todo : update data to re-sync session over server ?
                         pCallback.apply(null, [ null, pSession  ]);
@@ -207,7 +207,7 @@ export class SessionStore /*extends expressSession.Store*/ {
     clear(pCallback: ((err:any,sessions:any[])=>any) = noOp ){
         try{
             this._coll.removeAll().then((vCount:number)=>{
-                Logger.info("[SESSION STORE] Clear all : "+vCount+" sessions removed");
+                //Logger.info("[SESSION STORE] Clear all : "+vCount+" sessions removed");
                 pCallback.apply(null,[null]);
             }).catch((err)=>{
                 Logger.error("[SESSION STORE][clear] Clear all : failure : "+err);
@@ -268,7 +268,7 @@ export class SessionStore /*extends expressSession.Store*/ {
         const expires = pExistingSess.cookie.expires
         const originalMaxAge = pExistingSess.cookie.originalMaxAge
 
-        Logger.info(`[SESSION STORE][restoreSession] Restore session [existingSID=${pExistingSess.getUID()}]`);
+        //Logger.info(`[SESSION STORE][restoreSession] Restore session [existingSID=${pExistingSess.getUID()}]`);
 
         pExistingSess.cookie = new Cookie(pExistingSess.cookie);
 
@@ -312,7 +312,7 @@ export class SessionStore /*extends expressSession.Store*/ {
         });
 
 
-        Logger.info("[SESSION STORE][generate] New session generated and injected in request : "+ pRequest.sessionID);
+        //Logger.info("[SESSION STORE][generate] New session generated and injected in request : "+ pRequest.sessionID);
         return pRequest.session;
     }
 
@@ -337,7 +337,7 @@ export class SessionStore /*extends expressSession.Store*/ {
 
     load(pSID:string, pCallback:(err:any)=>any){
 
-        Logger.info("[SESSION STORE][load] Load session from SID:"+ pSID);
+        //Logger.info("[SESSION STORE][load] Load session from SID:"+ pSID);
         this.get(pSID, (vErr, vSess)=>{
             if (vErr) return pCallback.apply(null,[vErr,null]);
             if (!vSess) return pCallback.apply(null,[null,vSess]);

@@ -32,6 +32,8 @@ import {InternalState} from "../core/InternalState.js";
 import {ProjectOrder} from "../project/ProjectOrder.js";
 import DatabaseSettings = Settings.DatabaseSettings;
 import {UploadedResource} from "../common/UploadedResource.js";
+import {EngineNode} from "../core/EngineNode.js";
+import AssuranceModel, {AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -142,7 +144,10 @@ export class EngineDatabase {
         InternalState.TYPE,
         DexcaliburProject.TYPE,
         ProjectOrder.TYPE,
-        UploadedResource.TYPE
+        UploadedResource.TYPE,
+        EngineNode.TYPE,
+        AssuranceModel.TYPE,
+        AssuranceReport.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
@@ -889,13 +894,32 @@ export class EngineDatabase {
      * @param pInternStateName
      */
     async getStateByName(pInternStateName:string):Promise<InternalState>{
-        let state = await (this.getCollectionOf(InternalState.TYPE.getType()) as MongodbDbCollection)
+        let state:Nullable<InternalState> = await (this.getCollectionOf(InternalState.TYPE.getType()) as MongodbDbCollection)
             .asyncGetEntry({ name: pInternStateName });
 
         if(state==null){
             state = await this.createState(pInternStateName);
         }
 
+        state.setDB(this);
+
         return state;
+    }
+
+    async updateWorkflow(pNode:DexcaliburProject, pAtomicFields:string[] = []):Promise<boolean> {
+        let coll:MongodbDbCollection;
+        switch (pNode.__){
+            case NodeInternalType.PROJECT:
+                coll = this.getCollectionOf(DexcaliburProject.TYPE.getType()) as MongodbDbCollection;
+                break;
+            default:
+                throw EngineDatabaseException.ORDER_TYPE_NOT_SUPPORTED(pNode.__,"updateWorkflow");
+        }
+
+        if(pAtomicFields.length>0){
+            return coll.asyncUpdateEntry(pNode, { replace:false, $set:pAtomicFields });
+        }else{
+            return coll.asyncUpdateEntry(pNode);
+        }
     }
 }

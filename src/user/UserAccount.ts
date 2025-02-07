@@ -53,7 +53,7 @@ export class UserAccount implements IPersistent, INode {
 
     static VALIDATE:Record<string, ValidationRule> = {
         _type: ValidationRule.newPinklistAssert([ UserAccountType.LOCAL, UserAccountType.FEDERATED ]),
-        _uid: ValidationRule.uuidComposite(UA_UUID_SEP),
+        _uid: ValidationRule.prefixedUuid("([0-9]"+UA_UUID_SEP+")?"),
         _roles: ValidationRule.asArrayOf([ValidationRule.uuid()]),
         _username: ValidationRule.utf8String(),
         _orgs: ValidationRule.uuid(),

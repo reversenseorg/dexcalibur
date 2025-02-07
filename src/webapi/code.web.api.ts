@@ -27,10 +27,10 @@ export const CODE_WEB_API: DelegateWebApi = new DelegateWebApi();
 /**
  * /api/application/cmp?type=[dex|ks|libs|strings] ...
  */
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/package',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
             let $: WebServer = req.dxc.$;
@@ -95,10 +95,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 );
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/method/simplify/:id',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
             let $: WebServer = req.dxc.$;
@@ -149,10 +149,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/method/disass/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
             let $: WebServer = req.dxc.$;
@@ -197,10 +197,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 /*
 Useless. Too much results
  */
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/method',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
             let $: WebServer = req.dxc.$;
@@ -232,10 +232,10 @@ CODE_WEB_API.addAuthenticatedRoute(
     }
 );
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/android/xref/:type/:uid',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -283,10 +283,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 );
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/method/xref/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
             const $: WebServer = req.dxc.$;
@@ -404,10 +404,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 );
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/method/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
             const $: WebServer = req.dxc.$;
@@ -447,7 +447,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Method cannot be retrieved. Cause : " + err.message);
             }
         },
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
             const $: WebServer = req.dxc.$;
@@ -514,10 +514,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/field/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -550,7 +550,7 @@ CODE_WEB_API.addAuthenticatedRoute(
             }
         },
 
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -622,10 +622,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 );
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/field/xref/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -686,10 +686,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/class',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -734,10 +734,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/class/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -784,7 +784,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Class cannot be retrieved. Cause : " + err.message);
             }
         },
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -859,10 +859,10 @@ CODE_WEB_API.addAuthenticatedRoute(
 );
 
 
-CODE_WEB_API.addAuthenticatedRoute(
+CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/finder',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 

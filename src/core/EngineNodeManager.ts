@@ -13,6 +13,8 @@ import {OrganizationUnit, OrganizationUnitUUID} from "../organization/Organizati
 import {InternalState} from "./InternalState.js";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {ResourceThresholds} from "../billing/BusinessPlan.js";
+import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const GOT = got.default;
@@ -23,11 +25,16 @@ export interface MasterNodeOptions {
     ssl?: boolean;
 }
 
+export interface NodeLockTimeout {
+    user: number,
+    node: number
+}
+
 
 export enum NodeState {
     UNKNOW="unknow",
     // nothing to do, ready
-    IDDLE="iddle",
+    IDLE="idle",
     // busy
     BUSY="busy",
     // stopped (crash or manual stop)
@@ -95,13 +102,56 @@ export class EngineNodeManager {
     async loadInternalState():Promise<void>{
         this._state = await this.engine.getEngineDB().getStateByName(`engine-node-mgr-${this.uuid}`);
 
+        let portRange = this._state.getProperty('portRange');
+        if(portRange!=null) this.portRange = portRange;
 
-        /*this.states = this._state.getProperty('portRange');
-        this.states = this._state.getProperty('portCounter');
-        this.states = this._state.getProperty('slaves');
-        this.states = this._state.getProperty('projectMapping');
-        this.states = this._state.getProperty('states');
-        this.states = this._state.getProperty('masterURI');*/
+        let portCounter = this._state.getProperty('portCounter');
+        if(portCounter!=null) this.portCounter = portCounter;
+
+        let masterURI = this._state.getProperty('masterURI');
+        if(masterURI!=null) this.masterURI = masterURI;
+
+        let states = this._state.getProperty('states');
+        if(states!=null) this.states = states;
+
+        // restore EngineNodes
+        const slaves:Record<EngineNodeUUID, EngineNode> = {};
+        const slavesUuids = this._state.getProperty('slaves');
+        let tmpNode:Nullable<EngineNode> = null;
+        if(slavesUuids!=null){
+            for(let i=0;i<slavesUuids.length;i++){
+                tmpNode = await (this.engine
+                    .getEngineDB()
+                    .getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+                    .asyncGetEntry({ UUID: slavesUuids[i] as string });
+                if(tmpNode!=null){
+                    slaves[slavesUuids[i]] = tmpNode;
+                }
+            }
+        }
+        this.slaves = slaves;
+
+        let projectMapping = this._state.getProperty('projectMapping');
+        for(let puid in projectMapping){
+            this.projectMapping[puid] = [];
+            for(let i=0; i<projectMapping[puid].length; i++){
+                tmpNode = this.slaves[projectMapping[puid][i]];
+                if(tmpNode!=null){
+                    this.projectMapping[puid].push(tmpNode);
+                }
+            }
+        }
+
+        let orgMapping = this._state.getProperty('orgMapping');
+        for(let ouid in orgMapping){
+            this.orgMapping[ouid] = [];
+            for(let i=0; i<orgMapping[ouid].length; i++){
+                tmpNode = this.slaves[orgMapping[ouid][i]];
+                if(tmpNode!=null){
+                    this.orgMapping[ouid].push(tmpNode);
+                }
+            }
+        }
     }
 
 
@@ -109,15 +159,16 @@ export class EngineNodeManager {
 
         let prjMapping:Record<DexcaliburProjectUUID, EngineNodeUUID[]> = {};
         let orgMapping:Record<OrganizationUnitUUID, EngineNodeUUID[]> = {};
+        let slaves:Record<EngineNodeUUID, EngineNodeUUID[]> = {};
 
         for(let prj in this.projectMapping){
             prjMapping[prj] = this.projectMapping[prj].map(x => {
-                return x.UUID
+                return x.getUID()
             });
         }
         for(let o in this.orgMapping){
             orgMapping[o] = this.orgMapping[o].map(x => {
-                return x.UUID
+                return x.getUID()
             });
         }
 
@@ -125,7 +176,7 @@ export class EngineNodeManager {
         this._state.setProperty('portCounter', this.portCounter);
         this._state.setProperty('projectMapping', prjMapping);
         this._state.setProperty('orgMapping', orgMapping);
-        //this._state.setProperty('slaves', this.slaves);
+        this._state.setProperty('slaves', Object.keys(this.slaves));
         this._state.setProperty('states', this.states);
         this._state.setProperty('masterURI', this.masterURI);
 
@@ -255,10 +306,10 @@ export class EngineNodeManager {
      * @param pProjectUID
      * @param pTargetOs
      */
-    createNode(pProjectUID:DexcaliburProjectUUID, pOUID:Nullable<OrganizationUnitUUID> = null):EngineNode {
+    async createNode(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose, pOUID:Nullable<OrganizationUnitUUID> = null):Promise<EngineNode> {
         const uuid = randomUUID();
 
-        const node = new EngineNode(uuid, this.uuid, pProjectUID);
+        const node =  EngineNode.newNode(uuid, this.uuid, pProjectUID);
 
         node.setEngine(this.engine);
         node.setMasterUri(this.getLocalURI());
@@ -286,8 +337,12 @@ export class EngineNodeManager {
            this.onNodeStateChanged(vEvent);
         });
 
+        await node.saveInternalState();
+        // save node
+        await this.engine.getEngineDB().save(node);
+
         // save state
-        this.saveInternalState();
+        await this.saveInternalState();
 
 
         return this.slaves[uuid];
@@ -303,6 +358,40 @@ export class EngineNodeManager {
         return this.slaves[pNodeUUID];
     }
 
+    /**
+     *
+     * @param pNodeUUID
+     */
+   async getEngineNodeByUUID(pNodeUUID:EngineNodeUUID):Promise<Nullable<EngineNode>> {
+
+       if(pNodeUUID==DexcaliburEngine.DEFAULT_UID){
+           this.slaves[pNodeUUID] = new EngineNode({ parentUUID:null, UUID:DexcaliburEngine.DEFAULT_UID });
+           if(this.slaves[pNodeUUID]!=null){
+               return this.slaves[pNodeUUID];
+           }else{
+               return new EngineNode({ parentUUID:null, UUID:DexcaliburEngine.DEFAULT_UID });
+           }
+       }
+        return await (this.engine.getEngineDB()
+            .getCollectionOf(EngineNode.TYPE.getType())as MongodbDbCollection)
+            .asyncGetEntry({ UUID: pNodeUUID });
+   }
+
+    static filterNodesByPurpose(pNode:EngineNode[], pPurpose:NodePurpose):EngineNode[] {
+        return pNode.filter(e => {
+            if(pPurpose==NodePurpose.ANY){
+                return true;
+            }
+
+            return (e.purpose===pPurpose);
+        });
+    }
+
+    static filterNodesByState(pNode:EngineNode[], pState:NodeState):EngineNode[] {
+        return pNode.filter(e => {
+            return (e.state===pState);
+        });
+    }
 
     /**
      * To get the list of nodes linked to a specific project
@@ -311,13 +400,17 @@ export class EngineNodeManager {
      * @returns {EngineNode[]} The list of node linked to a project by its UID. If there is not node, the list is empty.
      * @method
      */
-    getNodeByProject(pProjectUID:DexcaliburProjectUUID):EngineNode[] {
-        const nodes = this.projectMapping[pProjectUID];
+    getNodeByProject(pProjectUID:DexcaliburProjectUUID,pPurpose:Nullable<NodePurpose> = null):EngineNode[] {
+        let nodes = this.projectMapping[pProjectUID];
         if(nodes==null || !Array.isArray(nodes)){
-            return []
-        }else{
-            return nodes;
+            return [];
         }
+
+        if(pPurpose!=null){
+            nodes = EngineNodeManager.filterNodesByPurpose(nodes, pPurpose);
+        }
+
+        return nodes;
     }
 
     /**
@@ -385,7 +478,7 @@ export class EngineNodeManager {
             NodeState.NEW,
             NodeState.STARTING,
             NodeState.STOPPED,
-            NodeState.IDDLE,
+            NodeState.IDLE,
             NodeState.BUSY,
             NodeState.UNKNOW,
         ].indexOf(pState as NodeState)>-1);
@@ -431,7 +524,7 @@ export class EngineNodeManager {
         Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
         let node:EngineNode;
 
-        if(vEvent.new==NodeState.IDDLE){
+        if(vEvent.new==NodeState.IDLE){
 
             // add affinity
             node = this.getNodeByUUID(vEvent.nodeUUID);
@@ -442,7 +535,7 @@ export class EngineNodeManager {
 
             if(ope==null){ return; }
 
-                node.execOperation(ope).then(()=>{
+                node.execOperation2(ope).then(()=>{
                     console.log('onNodeStateChanged > OPE SUCCESS > ', ope.type);
                     //
                 });
@@ -480,6 +573,8 @@ export class EngineNodeManager {
                 // controlled kill => kill children
                 nodes.map(x => {
                     x.kill();
+                    // save state
+                    this.engine.getEngineDB().save(x).then(()=>{});
                 });
                 break;
             case 'SIGKILL':
@@ -504,5 +599,38 @@ export class EngineNodeManager {
         const nodes = this.getNodeByOrganizationUUID(pOrgUUID);
 
         return (nodes.length<thr.concurrentNodes);
+    }
+
+
+    isCurrentNode(pNode:EngineNode):boolean{
+        return (this.uuid === pNode.getUID());
+    }
+
+    /**
+     * To allocate a node with user account
+     *
+     * The node is pull from a pool of NodeEngine. We assume the pool contains
+     *  nodes already filtered NodeState.IDLE + ProjectUID, purpose, ...
+     *
+     * @param pNodePool
+     * @param pUser
+     */
+    async allocateNode( pNodePool:EngineNode[], pUser:UserAccount, pThreshold:Nullable<NodeLockTimeout> = null):Promise<Nullable<EngineNode>>{
+        let free:Nullable<EngineNode> = null;
+        const timeouts = (pThreshold==null? { user:3600*100, node:3600*200 }:pThreshold );
+
+        for(let i=0; i<pNodePool.length; i++){
+            if(!pNodePool[i].isOwnershipExpired(timeouts.user))  {
+                continue;
+            }
+            free = pNodePool[i];
+        }
+
+        if(free!=null){
+            await free.setOwner(pUser.getUID());
+            return free;
+        }else{
+            return null;
+        }
     }
 }

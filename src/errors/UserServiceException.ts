@@ -2,10 +2,13 @@ import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue.js";
 import {A} from "@reversense/interruptor/src/syscalls/LinuxX64Syscalls.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
+import {SecurityZone} from "../security/SecurityZone.js";
 
 
 
 export class UserServiceException extends MonitoredError {
+
+    _zone = SecurityZone.PRIVATE;
 
     static ERR = {
         WRONG_DB_FORMAT: ErrorCode.USER_SERVICE + 101,
@@ -20,7 +23,8 @@ export class UserServiceException extends MonitoredError {
         USER_NOT_FOUND: ErrorCode.USER_SERVICE + 110,
         USERS_NOT_SAME_ORG: ErrorCode.USER_SERVICE + 111,
         ACCESS_DENIED_USER_PROFILE: ErrorCode.USER_SERVICE + 112,
-        CANNOT_UPDATE_ACCOUNT: ErrorCode.USER_SERVICE + 112
+        CANNOT_UPDATE_ACCOUNT: ErrorCode.USER_SERVICE + 113,
+        INVALID_USER_UUID_FMT: ErrorCode.USER_SERVICE + 114,
     };
 
     static WRONG_DB_FORMAT = ()=>{ return new UserServiceException(" User DB format is invalid",UserServiceException.ERR.WRONG_DB_FORMAT) };
@@ -41,6 +45,7 @@ export class UserServiceException extends MonitoredError {
     static ACCESS_DENIED_USER_PROFILE = ()=>{ return new UserServiceException(" Access denied to user profile : insufficient permissions",UserServiceException.ERR.ACCESS_DENIED_USER_PROFILE) };
     static CANNOT_UPDATE_ACCOUNT = (pAcc:UserAccountUUID)=>{ return new UserServiceException("Cannot update user account [uuid="+pAcc+"]",UserServiceException.ERR.CANNOT_UPDATE_ACCOUNT) };
 
+    static INVALID_USER_UUID_FMT = (pAcc:UserAccountUUID)=>{ return new UserServiceException(`Invalid user account UUID format [uuid=${pAcc}]`,UserServiceException.ERR.CANNOT_UPDATE_ACCOUNT).zone(SecurityZone.PRIVATE) };
 
 
 

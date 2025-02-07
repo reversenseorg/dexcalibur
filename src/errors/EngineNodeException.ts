@@ -1,4 +1,5 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {OperationType} from "../core/EngineNode.js";
 
 
 export class EngineNodeException extends MonitoredError {
@@ -34,6 +35,18 @@ export class EngineNodeException extends MonitoredError {
     static ENGINE_DB_NOT_READY = (pUuid:string)=>{
         return new EngineNodeException("Engine DB is not ready [node="+pUuid+"]",
             ErrorCode.REMOTE_DEXCALIBUR + 410) };
+    static INVALID_PURPOSE = (pPurpose:any)=>{
+        return new EngineNodeException("Invalid purpose [purpose="+pPurpose+"]",
+            ErrorCode.REMOTE_DEXCALIBUR + 411) };
+    static NOT_SUPPORTED_OPE = (pOpe:OperationType)=>{
+        return new EngineNodeException("Operation not supported [operation="+pOpe+"]",
+            ErrorCode.REMOTE_DEXCALIBUR + 412) };
+    static NEW_NODE = (pUuid:string, pAction="")=>{
+        return new EngineNodeException("Node ["+pUuid+"] is creating [action="+pAction+"]",
+            ErrorCode.REMOTE_DEXCALIBUR + 413) };
+    static MISSING_NODE = (pUuid:string, pAction="")=>{
+        return new EngineNodeException("Node ["+pUuid+"] is missing [action="+pAction+"]",
+            ErrorCode.REMOTE_DEXCALIBUR + 414) };
 
 
 

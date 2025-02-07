@@ -1,9 +1,9 @@
-import {IDexcaliburEngine, IDexcaliburProjectMap} from "../IDexcaliburEngine.js";
+import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import Configuration from "../Configuration.js";
 import DeviceManager from "../DeviceManager.js";
 import InspectorManager from "../InspectorManager.js";
 import PlatformManager from "../platform/PlatformManager.js";
-import DexcaliburProject from "../DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import DexcaliburRegistry from "../DexcaliburRegistry.js";
 import {Settings} from "../Settings.js";
 import {TerminalServer} from "../TerminalServer.js";
@@ -14,9 +14,9 @@ import {Workflow} from "../Workflow.js";
 import DexcaliburWorkspace from "../DexcaliburWorkspace.js";
 import {IpcMode} from "../DexcaliburServerChildProcess.js";
 import {UserAccount} from "../user/UserAccount.js";
-import {DexcaliburProjectMap} from "../DexcaliburEngine.js";
 import {EngineDatabase} from "../database/EngineDatabase.js";
 import {ProjectInput} from "../analyzer/ProjectInput.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
 
 export class DexcaliburRemoteInstance implements IDexcaliburEngine {
 
@@ -39,8 +39,8 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
     enableIPC(pMode: IpcMode): void {
     }
 
-    getActiveProjects( pUserAccount:UserAccount): IDexcaliburProjectMap {
-        return undefined;
+    getActiveProjects( pUserAccount:Nullable<UserAccount>): Record<DexcaliburProjectUUID, DexcaliburProject> {
+        return {};
     }
 
     getConfiguration(): Configuration {

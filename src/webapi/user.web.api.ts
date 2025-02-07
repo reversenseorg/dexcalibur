@@ -10,10 +10,10 @@ export const USER_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
 
-USER_WEB_API.addAuthenticatedRoute(
+USER_WEB_API.addAsyncAuthenticatedRoute(
     '/account/current',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -87,10 +87,10 @@ USER_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
-USER_WEB_API.addAuthenticatedRoute(
+USER_WEB_API.addAsyncAuthenticatedRoute(
     '/account',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -118,10 +118,10 @@ USER_WEB_API.addAuthenticatedRoute(
 );
 
 
-USER_WEB_API.addAuthenticatedRoute(
+USER_WEB_API.addAsyncAuthenticatedRoute(
     '/account/passwd',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{

@@ -19,6 +19,10 @@ export interface IAppAnalyzer {
 
     getPackageName():string;
 
+    importMeta():Promise<boolean>;
+
+    hasMissingMeta():boolean;
+
     restoreState(pState:AnalyzerState):boolean;
 
     postScan():void;

@@ -338,15 +338,15 @@ export class AuthenticationService {
         pApp.use(passport.session());
 
         passport.serializeUser(function(vUser:UserAccount, done:any) {
-            Logger.info("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
-            console.log("serializeUser > ",vUser);
+            //Logger.info("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
+            //console.log("serializeUser > ",vUser);
             done(null, vUser);//.getUID());
             //done(null, vUser.toJsonObject());
         });
 
         passport.deserializeUser(function(vUser:any, done:any) {
             const user = new UserAccount(vUser);
-            Logger.info("[AUTH SERVICE][PASSPORT] Passport : deserialize user ");
+            //Logger.info("[AUTH SERVICE][PASSPORT] Passport : deserialize user ");
             done(null, user);
         });
 

@@ -31,6 +31,7 @@ export interface AssuranceScannerOptions extends ProductOptions {
 }
 
 
+export type AssuranceScannerUID = string;
 
 
 /**
@@ -38,10 +39,13 @@ export interface AssuranceScannerOptions extends ProductOptions {
  */
 export class AssuranceScanner extends Product {
 
+
+    static DEFAULT_NAME = "scanner.base";
+
     /**
      * Unique ID for Scanners
      */
-    name:string;
+    name:AssuranceScannerUID
 
     project:DexcaliburProject|null;
 
@@ -68,6 +72,10 @@ export class AssuranceScanner extends Product {
         }
     }
 
+    getUID():AssuranceScannerUID {
+        return this.name;
+    }
+
     setModel(pModel:AssuranceModel):void {
         this.model = pModel;
         this.dashboards = {};
@@ -87,6 +95,7 @@ export class AssuranceScanner extends Product {
     staticScan(pContext:DexcaliburProject, pOptions:any):void {
         this.report = new AssuranceReport({
             time:(new Date()).getTime(),
+            started:(new Date()).getTime(),
             project: pContext
         });
 
@@ -209,6 +218,10 @@ export class AssuranceScanner extends Product {
         return {};
     }
 
+
+    free():void{
+        // nothing to do
+    }
 
     public _prepareTestPlan():TestPlan {
         return new TestPlan();

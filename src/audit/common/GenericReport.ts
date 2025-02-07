@@ -19,6 +19,10 @@ export interface GenericReportOptions extends AssuranceReportOptions {
 export interface Index<T> {
     [absoluteID:string] :T
 }
+
+/**
+ * Deprecated ?
+ */
 export default class GenericReport extends AssuranceReport {
 
     indexControls:Index<Control> = {}
@@ -42,10 +46,11 @@ export default class GenericReport extends AssuranceReport {
     }
 
     setModel(pModel:AssuranceModel):void {
-        this.model = pModel;
+        this._model = pModel;
+        this.model = this._model.getUID();
 
-        this.model.controls.map( x => {
-            this._indexModel(this.model.id, x);
+        this._model.controls.map( x => {
+            this._indexModel(this._model.getID(), x);
         });
     }
 
@@ -57,19 +62,6 @@ export default class GenericReport extends AssuranceReport {
         return this.indexAssessments[pControlName];
     }
 
-    /**
-     * To export the report to JSON file
-     *
-     * @param pPath
-     */
-    save( pPath:string){
-        if(_fs_.existsSync(pPath)){
-            _fs_.unlinkSync(pPath);
-        }
-
-        _fs_.writeFileSync(pPath, JSON.stringify(this.toJsonObject()));
-    }
-
     exportAsJson():any {
         const o:any = this.toJsonObject();
         delete o.primaryAssets;
@@ -77,7 +69,10 @@ export default class GenericReport extends AssuranceReport {
         delete o.globalThreats;
         delete o.assets;
 
-        o.name = this.model.name;
+        if(this._model != null){
+            o.name = this._model.name;
+        }
+
 
         return o;
     }

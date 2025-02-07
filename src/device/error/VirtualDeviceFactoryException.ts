@@ -80,6 +80,10 @@ export class VirtualDeviceFactoryException extends MonitoredError {
         return new VirtualDeviceFactoryException("There is not enough free port to map to device console and ADB to start connect a device",
             ErrorCode.DEVICE_VDEV + 15) };
 
+    static WRONG_ANDROID_HOME = (pHome:string)=>{
+        return new VirtualDeviceFactoryException(`The Android Home is wrong [home=${pHome}]`,
+            ErrorCode.DEVICE_VDEV + 16) };
+
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

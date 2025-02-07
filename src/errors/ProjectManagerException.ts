@@ -32,6 +32,19 @@ export class ProjectManagerException extends MonitoredError {
         return new ProjectManagerException("Input files to analyse are mandatory to create a project  [order="+pPOUID+"]",
             ErrorCode.PROJ_MGT + 4) };
 
+    static NO_MORE_RESOURCES = (pPOUID:ProjectOrderUUID)=>{
+        return new ProjectManagerException("Cannot open the project because there are no more resources available [project="+pPOUID+"]",
+            ErrorCode.PROJ_MGT + 5) };
+
+    static PROJECT_NOT_LOADED = (pPOUID:DexcaliburProjectUUID, pSource = "none")=>{
+        return new ProjectManagerException("Project not loaded  [uuid="+pPOUID+`][src=${pSource}]`,
+            ErrorCode.PROJ_MGT + 6) };
+
+    static PROJECT_IS_MANDATORY = (pSource = "none")=>{
+        return new ProjectManagerException(`Project is mandatory [src=${pSource}]`,
+            ErrorCode.PROJ_MGT + 7) };
+
+
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('PROJECT MGT', pMsg, pCode, pExtra);

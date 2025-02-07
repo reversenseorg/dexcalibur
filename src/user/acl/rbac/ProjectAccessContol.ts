@@ -7,6 +7,7 @@ import {UserAccount, UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
 import {Nullable} from "../../../core/IStringIndex.js";
 import {AccessZone} from "../Zones.js";
+import {UserServiceException} from "../../../errors/UserServiceException.js";
 
 
 export class ProjectAccessControl extends DelegateAccessControl {
@@ -22,6 +23,30 @@ export class ProjectAccessControl extends DelegateAccessControl {
 
     constructor() {
         super();
+    }
+
+    static getOwnerFilter(pUserAccountUID:UserAccountUUID):any {
+
+        if(!UserAccount.VALIDATE._uid.test(pUserAccountUID)){
+            throw UserServiceException.INVALID_USER_UUID_FMT(pUserAccountUID);
+        }
+
+        const filter:any = {
+            '$or':[]
+        };
+
+        filter['$or']['_attr.'+ProjectAccessControl.attr.OWNER.name+'._v'] = { $all: [ pUserAccountUID ] };
+
+        return filter;
+    }
+
+    static getAppMembersFilter(pUserAccountUID:UserAccountUUID):any {
+
+        const filter:any = ProjectAccessControl.getOwnerFilter(pUserAccountUID);
+
+        filter['$or']['_attr.'+ProjectAccessControl.attr.TESTER.name+'._v'] = { $all: [ pUserAccountUID ] };
+
+        return filter;
     }
 
     boot():void{

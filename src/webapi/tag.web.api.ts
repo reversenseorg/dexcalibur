@@ -12,7 +12,7 @@ import UT from "../Utils.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const TAG_MGT_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-TAG_MGT_WEB_API.addAuthenticatedRoute(
+TAG_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/categories',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse)=>{
@@ -98,12 +98,10 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, err.message);
             }
         }
-    },{
-        readProject: true
     }
 );
 
-TAG_MGT_WEB_API.addAuthenticatedRoute(
+TAG_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/tags',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse)=>{
@@ -176,8 +174,6 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, err.message);
             }
         }
-    },{
-        readProject: true
     }
 );
 

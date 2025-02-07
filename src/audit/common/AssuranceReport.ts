@@ -4,7 +4,7 @@ import Threat from "./Threat.js";
 import {ConstraintMatch} from "./ConstraintMatch.js";
 import CodeConstraint from "./CodeConstraint.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
-import AssuranceModel, {ControlNode} from "./AssuranceModel.js";
+import AssuranceModel, {AssuranceModelUUID, ControlNode, ControlNodeCanonicalUID} from "./AssuranceModel.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 
@@ -25,10 +25,12 @@ import {Nullable} from "../../core/IStringIndex.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
 import {randomUUID} from "crypto";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
+import {DeviceUUID} from "../../Device.js";
 
 
 export interface Match {
-    assessment: ControlNode;
+    assessment?: ControlNode;
     ruleIdx?: number;
     match: any;
 }
@@ -36,11 +38,20 @@ export interface Match {
 
 export interface AssuranceReportOptions {
     time?:number;
+    /**
+     * @since 1.3.10
+     */
+    started?:number;
+    /**
+     * @since 1.3.10
+     */
+    terminated?:number;
 
     application?:any;
-    device?:any;
+    device?:DeviceUUID;
 
-    model?:AssuranceModel;
+    _model?:Nullable<AssuranceModel>;
+    model?:AssuranceModelUUID;
 
     project?:DexcaliburProject;
 
@@ -49,6 +60,8 @@ export interface AssuranceReportOptions {
     globalThreats?:ConstraintMatch<Threat>[];
     matches?:Record<string, Match>;
 }
+
+export type AssuranceReportUUID = string;
 
 /**
  * Represent a scan report
@@ -60,40 +73,55 @@ export default class AssuranceReport implements INode {
     static TYPE:NodeType = new NodeType("reports", NodeInternalType.ASSURANCE_REPORT,[]);
     __:NodeInternalType = NodeInternalType.ASSURANCE_REPORT;
 
-    uid:Nullable<string> = null;
+    uid:Nullable<AssuranceReportUUID> = null;
 
     time:number;
 
+    /**
+     Start time
+     * @since 1.3.10
+     */
+    started:number = -1;
+
+    /**
+     * Terminated / Aborted time
+     * @since 1.3.10
+     */
+    terminated:number = -1;
+
+
+
     application:string;
 
-    device:string;
+    device:Nullable<DeviceUUID> = null;
 
     project:DexcaliburProject;
 
     _dirty = false;
 
-    model:AssuranceModel;
+    _model:Nullable<AssuranceModel> = null;
+
+    model:AssuranceModelUUID;
 
     primaryAssets:ConstraintMatch<Asset>[] = [];
     secondaryAssets:ConstraintMatch<Asset>[] = [];
     globalThreats:ConstraintMatch<Threat>[] = [];
     assets:ConstraintMatch<Asset>[] = [];
 
-    matches:Record<string, Match> = {};
+    matches:Record<ControlNodeCanonicalUID, Match> = {};
 
     tags:TagUUID[] = [];
 
 
     constructor( pConfig:AssuranceReportOptions = {}) {
-        if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
-
-        this.uid = randomUUID();
+        if(pConfig!=null) for(const i in pConfig)
+            this[i]=pConfig[i];
     }
 
     /**
      * To get
      */
-    getUID(): string | null {
+    getUID(): AssuranceReportUUID | null {
         return this.uid;
     }
 
@@ -109,7 +137,7 @@ export default class AssuranceReport implements INode {
         if(this.model==null){
             throw AuditManagerException.REPORT_UID_CANNOT_BE_GENERATED("assurance model is missing");
         }
-        this.uid = CryptoUtils.sha256(this.project.getUID()+":"+this.model.getUID()+":"+this.time);
+        this.uid = CryptoUtils.sha256(this.project.getUID()+":"+this.model+":"+this.time);
     }
 
     getAssets():ConstraintMatch<Asset>[] {
@@ -163,7 +191,7 @@ export default class AssuranceReport implements INode {
      * @return {AssuranceModel} Assurance model used to produce this report
      * @method
      */
-    getModel():AssuranceModel {
+    getModel():AssuranceModelUUID {
         return this.model;
     }
 
@@ -191,18 +219,6 @@ export default class AssuranceReport implements INode {
             node: pNode,
             ruleIdx: pRuleOffset
         });
-    }
-    /**
-     * To export the report to JSON file
-     *
-     * @param pPath
-     */
-    save( pPath:string){
-        if(_fs_.existsSync(pPath)){
-            _fs_.unlinkSync(pPath);
-        }
-
-        _fs_.writeFileSync(pPath, JSON.stringify(this.toJsonObject()));
     }
 
     /**
@@ -254,6 +270,43 @@ export default class AssuranceReport implements INode {
 
         return project;
     }
+
+
+    asPreview():any {
+        const o:any = {};
+        let match:Match;
+
+        for(let i in this){
+            if(this[i]==null){
+                o[i] = null;
+                continue;
+            }
+
+            switch (i){
+                case "project":
+                    if(this.project.toJsonObject==null){
+                        o.project = (this.project as any)
+                    }else{
+                        o.project = this._projectToJsonObject();
+                    }
+                    break;
+                case "uid":
+                case "time":
+                case "started":
+                case "terminated":
+                case "application":
+                case "device":
+                case "tags":
+                case "model":
+                    o[i] = this[i];
+                    break;
+            }
+        }
+
+        o.__matchesLen = Object.keys(this.matches).length;
+
+        return o;
+    }
     /**
      *
      */
@@ -262,31 +315,27 @@ export default class AssuranceReport implements INode {
         let match:Match;
 
         for(let i in this){
-            switch (i){
-                /*case "primaryAssets":
-                case "secondaryAssets":
-                case "globalThreats":
-                case "assets":
-                    o[i] = [];
-                    (this[i] as any).map(x => {
-                        o[i].push((x as ConstraintMatch<any>).toJsonObject());
-                    })
-                    break;*/
-                case "project":
+            if(this[i]==null){
+                o[i] = null;
+                continue;
+            }
 
+            switch (i){
+                case "project":
                     if(this.project.toJsonObject==null){
                         o.project = (this.project as any)
                     }else{
                         o.project = this._projectToJsonObject();
                     }
-
-
                     break;
-
-
+                case "uid":
                 case "time":
+                case "started":
+                case "terminated":
                 case "application":
                 case "device":
+                case "tags":
+                case "model":
                     o[i] = this[i];
                     break;
                 case "matches":
@@ -294,17 +343,22 @@ export default class AssuranceReport implements INode {
                     for(let canonicalUID in this.matches){
                         match = this.matches[canonicalUID];
 
+                        o.matches[canonicalUID] = {
+                            //assessment: null,
+                            match: [] //
+                        };
+                        /*
                         if(match==null){
                             o.matches[canonicalUID] = {
-                                assessment: null,
+                                //assessment: null,
                                 match: [] //
                             };
                         }else{
                             o.matches[canonicalUID] = {
-                                assessment: (typeof match.assessment==='string')? match.assessment : match.assessment.canonicalID,
+                                //assessment: (typeof match.assessment==='string')? match.assessment : match.assessment.canonicalID,
                                 match: [] //
                             };
-                        }
+                        }*/
 
                         this.matches[canonicalUID].match.map((x)=>{
 
@@ -342,25 +396,22 @@ export default class AssuranceReport implements INode {
                                 
 
 
-                                o.matches[canonicalUID].match.push({
-                                    ruleIdx: x.ruleIdx,
-                                    node: node
-                                });
+                                if(node!=null){
+                                    o.matches[canonicalUID].match.push({
+                                        ruleIdx: x.ruleIdx,
+                                        node: node
+                                    });
+                                }
+
                             }
 
                         })
                     }
-
-                    break;
-                case "model":
-                    if(typeof this.model!=='string'){
-                        o.model = this.model.getID(); //toJsonObject();
-                    }else{
-                        o.model = this.model;
-                    }
                     break;
             }
         }
+
+        console.log(o);
 
         CoreDebug.checkJsonSerialize(o, "AssuranceReport");
         return o;
@@ -375,12 +426,12 @@ export default class AssuranceReport implements INode {
     }
 
     setModel(pModel:AssuranceModel){
-        this.model = pModel;
+        this.model = pModel.getUID();
         if(this._dirty){
             // restore matches
             for(let canonicalUID in this.matches){
                 if(typeof this.matches[canonicalUID].assessment==='string'){
-                    this.matches[canonicalUID].assessment = this.model.getControlNode(this.matches[canonicalUID].assessment as any);
+                    this.matches[canonicalUID].assessment = pModel.getControlNode(this.matches[canonicalUID].assessment as any);
                 }
             }
         }
@@ -422,5 +473,87 @@ export default class AssuranceReport implements INode {
 
         return a;
     }
+
+    /**
+     *
+     * @param pMatches
+     */
+    static serializeMatch( pMatch:Match, pSerializeControlNode = false):any {
+        const s:any = {
+            match: []
+        };
+
+        if(pMatch.assessment!=null && pSerializeControlNode){
+            s.assessment = pMatch.assessment.canonicalID;
+        }
+
+        pMatch.match.map((v:any)=>{
+            s.match.push({
+                node: {
+                    __:  v.node.__,
+                    uid: (v.node.getUID!=null)? v.node.getUID() : v.node.uid
+                },
+                ruleIdx: pMatch.ruleIdx
+            })
+        });
+
+        return s;
+    }
+
+    static unserializeMatch( pMatch:any):Match {
+        const s:any = {
+            // assessment: (pModel!=null ? pModel.getControlNode(pMatch.assessment) : null),
+            match: []
+        };
+
+        pMatch.match.map((v:any)=>{
+            s.match.push({
+                node: {
+                    __:  v.node.__,
+                    uid: (v.node.getUID!=null)? v.node.getUID() : v.node.uid
+                },
+                ruleIdx: pMatch.ruleIdx
+            })
+        });
+
+        return s as Match;
+    }
+
+    /*
+    static unserializeMatches( pMatches:Record<string, Match>, pModel:AssuranceModel|string, pContext:DexcaliburEngine):Match {
+
+        if(pModel==null){
+            throw AuditManagerException.MODEL_NOT_FOUND();
+        }
+
+        const model:AssuranceModel;
+        // get model
+        if(typeof pModel==='object'){
+            model = pModel as AssuranceModel;
+        }else{
+            model = await pContext.getAuditManager().getModelByUID(
+                pContext.getInternalAcc(),
+                pModel as string
+            );
+        }
+
+        const s:any = {
+            assessment: (pModel!=null ? pModel.getControlNode(pMatch.assessment) : null),
+            match: []
+        };
+
+
+        pMatch.match.map((v:any)=>{
+            s.match.push({
+                node: {
+                    __:  v.node.__,
+                    uid: (v.node.getUID!=null)? v.node.getUID() : v.node.uid
+                },
+                ruleIdx: pMatch.ruleIdx
+            })
+        });
+
+        return s as Match;
+    }*/
 }
 AssuranceReport.TYPE.builder(AssuranceReport);

@@ -23,7 +23,7 @@ export const NATIVE_WEB_API: DelegateWebApi = new DelegateWebApi();
 NATIVE_WEB_API.addAsyncAuthenticatedRoute(
     '/func',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -92,10 +92,10 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
-NATIVE_WEB_API.addAuthenticatedRoute(
+NATIVE_WEB_API.addAsyncAuthenticatedRoute(
     '/func/:b64_uid',
     {
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async  (req:DelegateRequest, res:DelegateResponse)=> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -164,10 +164,10 @@ NATIVE_WEB_API.addAuthenticatedRoute(
 );
 
 
-NATIVE_WEB_API.addAuthenticatedRoute(
+NATIVE_WEB_API.addAsyncAuthenticatedRoute(
     '/analysis',
     {
-        'get':  async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get':  async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -219,7 +219,7 @@ NATIVE_WEB_API.addAuthenticatedRoute(
 NATIVE_WEB_API.addAsyncAuthenticatedRoute(
     '/disass/func',
     {
-        'get':  async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get':  async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -294,7 +294,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 NATIVE_WEB_API.addAsyncAuthenticatedRoute(
     '/analyze/:type',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -357,7 +357,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 NATIVE_WEB_API.addPublicRoute(
     '/public/settings/abi',
     {
-        'get':  async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get':  async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{

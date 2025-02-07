@@ -14,6 +14,7 @@ import Project = ts.server.Project;
 import {ProjectOrder} from "./ProjectOrder.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ProjectSchedulerException} from "../errors/ProjectSchedulerException.js";
+import {UserAccount} from "../user/UserAccount.js";
 
 
 export class ProjectScheduler {
@@ -146,7 +147,7 @@ export class ProjectScheduler {
         // check ressources quotas
         if(await this._ctx.nodeManager.canCreateNode(pOrder.getOrganizationUnit())){
             // start a new node
-            node = this._ctx.nodeManager.createNode(pOrder.settings.projectUID, pOrder.getOrganizationUnit());
+            node = await this._ctx.nodeManager.createNode(pOrder.settings.projectUID, NodePurpose.NEW_PRJ, pOrder.getOrganizationUnit());
             node.start("New project ordered");
         }
 
@@ -181,7 +182,7 @@ export class ProjectScheduler {
      *
      * @param pProject
      */
-    async listAllOrders():Promise<ScanOrder[]> {
+    async listAllOrders(pUser:UserAccount):Promise<ScanOrder[]> {
         return await (this._ctx.getEngineDB().getCollectionOf(new ScanOrder()).getAsList());
     }
 

@@ -8,7 +8,9 @@ import {ScanFlow} from "./ScanFlow.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 
-
+/**
+ * Local to node
+ */
 export class ScanSchedulerProject {
 
 
@@ -39,6 +41,10 @@ export class ScanSchedulerProject {
         return this._ctx;
     }
 
+    /**
+     * Called from standalone or slave  node
+     * @param pScanner
+     */
     newScan(pScanner:AssuranceScanner):ScanFlow {
         const flow = new ScanFlow(this);
         flow.setScanner(pScanner);
@@ -51,6 +57,10 @@ export class ScanSchedulerProject {
         return flow;
     }
 
+    /**
+     *
+     * @param pDelay
+     */
     start(pDelay = 0):ScanFlow[] {
         const moved:ScanFlow[] = [];
         // prevent race condition

@@ -12,7 +12,7 @@ export const NODE_MGR_WEB_API: DelegateWebApi = new DelegateWebApi();
 NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
     '/scheduler/info',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -30,7 +30,7 @@ NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
 NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
     '/monitor/nodes',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             // TODO : check if user as PlateformAdministrator role
@@ -55,7 +55,7 @@ NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
 NODE_MGR_WEB_API.addAsyncPublicRoute(
     '/webhook/state/:state',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -86,12 +86,12 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
 NODE_MGR_WEB_API.addPublicRoute(
     '/scan/:node_uuid/:state',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
                 let safeState:NodeState
-                if([NodeState.IDDLE,NodeState.BUSY,NodeState.STOPPED].indexOf(req.params['state'] as NodeState)==-1){
+                if([NodeState.IDLE,NodeState.BUSY,NodeState.STOPPED].indexOf(req.params['state'] as NodeState)==-1){
                     throw new Error("Status not supported");
                 }else{
                     safeState = req.params['state'] as NodeState;
@@ -104,12 +104,12 @@ NODE_MGR_WEB_API.addPublicRoute(
                 $.sendError(res, "");
             }
         },
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
                 let safeState:NodeState
-                if([NodeState.IDDLE,NodeState.BUSY,NodeState.STOPPED].indexOf(req.params['state'] as NodeState)==-1){
+                if([NodeState.IDLE,NodeState.BUSY,NodeState.STOPPED].indexOf(req.params['state'] as NodeState)==-1){
                     throw new Error("Status not supported");
                 }else{
                     safeState = req.params['state'] as NodeState;

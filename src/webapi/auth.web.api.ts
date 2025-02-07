@@ -17,7 +17,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export const AUTH_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-AUTH_WEB_API.addAuthenticatedRoute(
+AUTH_WEB_API.addAsyncAuthenticatedRoute(
     '/logout',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -79,7 +79,7 @@ AUTH_WEB_API.addAuthenticatedRoute(
 );
 
 
-AUTH_WEB_API.addAuthenticatedRoute(
+AUTH_WEB_API.addAsyncAuthenticatedRoute(
     '/logout/:oid',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {

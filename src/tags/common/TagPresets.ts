@@ -20,6 +20,7 @@ export function newTagPresets(){
     const DISCOVER = new TagCategory({ name: "discover" });
 //const AUDIT_THREAT = new TagCategory({ name: "audit.threat" });
     const AUDIT_TYPE = new TagCategory({ name: "audit.type" });
+    const AUDIT_POLICY = new TagCategory({ name: "audit.policy" });
 //const AUDIT_THREAT = new TagCategory({ name: "audit.threat" });
     const NETWORK_DATA = new TagCategory({ name: "network.data" });
     const NETWORK_PROTOCOL = new TagCategory({ name: "network.protocol" });
@@ -207,6 +208,19 @@ export function newTagPresets(){
         new Tag({ name:"js" })
     ];
 
+    const AUDIT_POLICY_TAGS = [
+        new Tag({ name:"privacy" }),
+        new Tag({ name:"data" }),
+        new Tag({ name:"thirdparty" }),
+        new Tag({ name:"sbom" }),
+        new Tag({ name:"cbom" }),
+        new Tag({ name:"security" }),
+        new Tag({ name:"obfuscation" }),
+        new Tag({ name:"integrity" }),
+        new Tag({ name:"auth" }),
+        new Tag({ name:"network" })
+    ];
+
     /*
     Discover: {
         Statically: "ds",
@@ -221,6 +235,8 @@ export function newTagPresets(){
     Load: {
         ExternalDyn: "led"
     }*/
+
+    AUDIT_POLICY_TAGS.map( x => { AUDIT_POLICY.addTag(x); });
 
     CODE_NATIVE_TAGS.map( x => { CODE_NATIVE.addTag(x); });
     CODE_GLOBAL_TAGS.map( x => { CODE_GLOBAL.addTag(x); });
@@ -272,6 +288,7 @@ export function newTagPresets(){
 
         RUNTIME_MSG,
         AUDIT_TYPE,
+        AUDIT_POLICY,
 
         NETWORK_DATA,
         NETWORK_HOST,

@@ -580,7 +580,7 @@ export class SessionMiddleware {
                 originalHash = sess.hash();
 
                 sess.save((e,d)=>{
-                    console.log(sess,e,d);
+
                 });
 
                 next();
@@ -621,7 +621,7 @@ export class SessionMiddleware {
                         }
                     }
                     s.save((e,d)=>{
-                        console.log(s);
+                       // todo : handle error,   console.log(s);
                     });
                 } catch (e) {
                     next(e)

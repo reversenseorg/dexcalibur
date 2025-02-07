@@ -20,10 +20,10 @@ export const APP_WEB_API: DelegateWebApi = new DelegateWebApi("APP");
 /**
  * /api/application/cmp?type=[dex|ks|libs|strings] ...
  */
-APP_WEB_API.addAuthenticatedRoute(
+APP_WEB_API.addAsyncAuthenticatedRoute(
     '/cmp',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
             try{
@@ -52,7 +52,7 @@ APP_WEB_API.addAuthenticatedRoute(
 
 );
 
-APP_WEB_API.addAuthenticatedRoute(
+APP_WEB_API.addAsyncAuthenticatedRoute(
     '/package/content',
     {
         'get': async function(req:DelegateRequest, res:DelegateResponse):Promise<any> {
@@ -114,7 +114,7 @@ APP_WEB_API.addAuthenticatedRoute(
 
 
 
-APP_WEB_API.addAuthenticatedRoute(
+APP_WEB_API.addAsyncAuthenticatedRoute(
     '/au/:aid/info',
     {
         'get': async function(pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {

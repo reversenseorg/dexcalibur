@@ -22,7 +22,9 @@ import {
     ValidationRule
 } from "@dexcalibur/dexcalibur-orm";
 import {AccessAttribute, AccessAttributeMap} from "../../user/acl/AccessAttribute.js";
+import {Indicator, IndicatorUUID} from "./Indicator.js";
 
+export type AssuranceModelUUID = string;
 export enum AssuranceModelType {
     SECURITY="sec",
     PRIVACY="pri",
@@ -33,15 +35,18 @@ export enum AssuranceModelType {
 export const CANONICALIZED_ROOT = "*";
 export const CANONICAL_ID_SEPARATOR = ".";
 
+export type ControlNodeCanonicalUID = string;
+
 export interface  ControlNode {
     parent?:ControlNode;
     ctrl?: IControl; //Control | ControlAssessment;
-    canonicalID: string;
+    canonicalID: ControlNodeCanonicalUID;
     children?:ControlTree;
 }
 export interface ControlTree {
-    [canonicalUID:string]: ControlNode;
+    [canonicalUID:ControlNodeCanonicalUID]: ControlNode;
 }
+
 
 
 
@@ -53,7 +58,7 @@ export default class AssuranceModel extends Auditable implements INode {
     static TYPE:NodeType = (new NodeType( "assurance_model", NodeInternalType.ASSURANCE_MODEL, [
         (new NodeProperty("_uid")).type(DbDataType.STRING)
             .key(DbKeyType.PRIMARY)
-            .addValidationRule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_]+$/)),
+            .rule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_\\.]+$/)),
         (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         //(new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
         (new NodeProperty("scannerID")).type(DbDataType.STRING).def(""),
@@ -66,6 +71,18 @@ export default class AssuranceModel extends Auditable implements INode {
         (new NodeProperty("globalThreats")).type(DbDataType.STRING).def([]),
         (new NodeProperty("controls")).type(DbDataType.STRING).def([]),
         (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("kpis"))
+            .type(DbDataType.STRING)
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p!=null){
+                    const m:any[] = [];
+                    x.p.map(x => m.push(x.toJsonObject()));
+                    return m;
+                }else{
+                    return [];
+                }
+            })
+            .def([]),
         (new NodeProperty("_attr"))
             .type(DbDataType.STRING)
             .wakeUp( (x:NodePropertyState) => {
@@ -89,7 +106,7 @@ export default class AssuranceModel extends Auditable implements INode {
     /**
      * Unique identifier for the model
      */
-    id:string;
+    id:AssuranceModelUUID;
 
     /**
      * ID of the scanner able to verify this model
@@ -124,8 +141,9 @@ export default class AssuranceModel extends Auditable implements INode {
 
     metadata:Metadata[] = [];
 
-    _beforeLoad:Nullable<(server:any, self:AssuranceModel)=>void> = null;
+    indicators:Indicator[] = [];
 
+    _beforeLoad:Nullable<(server:any, self:AssuranceModel)=>void> = null;
 
     protected _ready = false;
 
@@ -138,14 +156,14 @@ export default class AssuranceModel extends Auditable implements INode {
         this.update(pConfig, true);
     }
 
-    getUID(): string {
+    getUID(): AssuranceModelUUID {
         return this.id;
     }
 
     /**
      * @method
      */
-    getID():string {
+    getID():AssuranceModelUUID {
         return this.id;
     }
 
@@ -319,6 +337,19 @@ export default class AssuranceModel extends Auditable implements INode {
         return o;
     }
 
+    asPreview():any {
+        const o:any ={};
+
+        o.id = this.id;
+        o.name = this.name;
+        o.description = this.description;
+        o.scannerID = this.scannerID;
+        o.generic = this.generic;
+        o.links = this.links;
+        o.metadata = this.metadata;
+
+        return o;
+    }
     isGeneric():boolean {
         return this.generic;
     }

@@ -53,16 +53,19 @@ export interface PrivacyScannerOpts {
  */
 export class GenericScanner extends AssuranceScanner {
 
-    private _mainDB = 'global';
+    static DEFAULT_NAME = "scanner.generic";
+    static PRODUCT_CODE = "GEN_CLD_SSCAN";
+    static VERSION = "1.0";
 
+    private _mainDB = 'global';
 
     private _searchContext:MerlinSearchAPI|null = null;
 
     constructor(pConfig:PrivacyScannerOpts) {
         super({
-            name: "scanner.generic",
-            __pCode:'GEN_CLD_SSCAN',
-            __pVersion: '1.0',
+            name: GenericScanner.DEFAULT_NAME,
+            __pCode: GenericScanner.PRODUCT_CODE,
+            __pVersion: GenericScanner.VERSION,
             __pSerial: pConfig.project.getLicenseNo(),
             __pKey: pConfig.project.getLicenseKey()
         });
@@ -196,7 +199,7 @@ export class GenericScanner extends AssuranceScanner {
 
     generateReport():AssuranceReport {
         const report = new AssuranceReport({
-            model: this.model
+            model: this.model.getID()
         });
 
         return report;
@@ -319,6 +322,10 @@ export class GenericScanner extends AssuranceScanner {
      * @private
      */
     private async _firstScan(pContext:DexcaliburProject, pOptions:GenericScanOptions):Promise<void>{
+
+
+        console.log("FIRST SCAN");
+
         // 0. Create dashboard
         this.createMainDashboard(pOptions.dashboard);
 
@@ -336,8 +343,9 @@ export class GenericScanner extends AssuranceScanner {
         // 2. perform basis static scan
         this.report = new AssuranceReport({
             time:(new Date()).getTime(),
+            started:(new Date()).getTime(),
             project: pContext,
-            model: this.model
+            model: this.model.getID()
         });
 
         await plan.executeAsync(async (vStep:TestStep)=>{
@@ -370,6 +378,7 @@ export class GenericScanner extends AssuranceScanner {
         console.log(this.report);
 
         // 6. result
+        this.report.terminated = (new Date()).getTime();
         this.reports.push(this.report);
 
         // 7. Save
@@ -426,6 +435,10 @@ export class GenericScanner extends AssuranceScanner {
         if(this.project == null){
             this.project = pContext
         }
+
+        Logger.info(`[SCANNER][${this.name}] Start scan of model [model=${this.model.getUID()}][existingReports=${this.reports.length}]`);
+
+
         if(this.reports.length==0){
             await this._firstScan( this.project, pOptions);
         }else{
@@ -433,13 +446,14 @@ export class GenericScanner extends AssuranceScanner {
             this.report = new AssuranceReport({
                 time:(new Date()).getTime(),
                 project: pContext,
-                model: this.model
+                model: this.model.getUID()
             });
 
             //this._reScan( this.report, pOptions);
 
             //this.reports.push(this.report);
         }
+
     }
 
     async runModel(pContext:DexcaliburProject):Promise<AssuranceReport>{

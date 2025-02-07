@@ -51,6 +51,7 @@ import InMemoryDbCollection from "../../connectors/inmemory/InMemoryDbCollection
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
 import {FinderResult} from "../search/FinderResult.js";
 import InMemoryDbIndex from "../../connectors/inmemory/InMemoryDbIndex.js";
+import AssuranceModel from "../audit/common/AssuranceModel.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -138,7 +139,9 @@ export class ProjectDatabase {
         ModelUiComponent.TYPE,
         ModelUiRole.TYPE,
 
-        ModelResource.TYPE
+        ModelResource.TYPE,
+
+        AssuranceModel.TYPE
         //ModelStringValue.TYPE
     ];
 

@@ -9,30 +9,28 @@ import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {SafetyCheck} from "../security/SafetyCheck.js";
 import {SecurityCheck} from "../security/SecurityCheck.js";
+import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const FS_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
 
-FS_WEB_API.addAuthenticatedRoute(
+FS_WEB_API.addAsyncAuthenticatedRoute(
     '/view',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
 
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
                 }
 
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
                 }
 
                 // ========== LOGIC
@@ -44,12 +42,12 @@ FS_WEB_API.addAuthenticatedRoute(
 
                 let file:ModelFile;
                 if(req.query['scope']!=null
-                    && Object.keys(project.dataAnalyzer.scopes).indexOf(req.query.scope as string)>-1){
+                    && Object.keys(req.project.dataAnalyzer.scopes).indexOf(req.query.scope as string)>-1){
 
-                    const scope = project.dataAnalyzer.getScope(req.query['scope'] as string);
+                    const scope = req.project.dataAnalyzer.getScope(req.query['scope'] as string);
 
                     //const res = (await project.dataAnalyzer.getIndex(scope));
-                    file = await project.dataAnalyzer.getFile(req.query['path'] as string, scope); // res.getEntry(req.query['path']  as string);
+                    file = await req.project.dataAnalyzer.getFile(req.query['path'] as string, scope); // res.getEntry(req.query['path']  as string);
 
                     //project.dataAnalyzer.free(res);
                 }else{
@@ -123,23 +121,22 @@ FS_WEB_API.addAuthenticatedRoute(
 
 
 
-FS_WEB_API.addAuthenticatedRoute(
+FS_WEB_API.addAsyncAuthenticatedRoute(
     '/search',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
 
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
                 }
 
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
                 }
 
 
@@ -148,7 +145,7 @@ FS_WEB_API.addAuthenticatedRoute(
                 let files:ModelFile[];
 
                 // check scope
-                const scope = project.dataAnalyzer.getScope(req.query['scope'] as string);
+                const scope = req.project.dataAnalyzer.getScope(req.query['scope'] as string);
 
                 SafetyCheck.assertNotNull(scope);
                 SecurityCheck.allowedInPublicZone(scope);
@@ -160,7 +157,7 @@ FS_WEB_API.addAuthenticatedRoute(
                 SafetyCheck.assertIsString(unsafeType);
 
                 // perform search
-                files = await project.getDataAnalyzer().getFilesFromScope(scope, { type:unsafeType})
+                files = await req.project.getDataAnalyzer().getFilesFromScope(scope, { type:unsafeType})
 
 
                 /*

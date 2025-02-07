@@ -10,8 +10,7 @@ import DataScope from "../DataScope.js";
 import * as _path_ from "path";
 import ModelFile from "../ModelFile.js";
 import {UserSession} from "../user/session/UserSession.js";
-import DexcaliburProject from "../DexcaliburProject.js";
-import {DexcaliburProjectMap} from "../DexcaliburEngine.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import Util from "../Utils.js";
 import Platform from "../platform/Platform.js";
 import AccessControl from "../user/acl/AccessControl.js";
@@ -33,10 +32,10 @@ export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
 
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/active',
     {
-        'get':  (req:DelegateRequest, res:DelegateResponse)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
 
@@ -59,7 +58,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             // [EE] : On enterprise server, for multiple users, store active project into user session
             // [PE] : On professional, add auth but keep global active project
             // [CE] : On community ed, just change global active project
-            let proj:DexcaliburProjectMap;
+            let proj:Record<DexcaliburProjectUUID, DexcaliburProject>;
             let success = false;
 
             try{
@@ -94,7 +93,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 )
 
 
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/list',
     {
         'get':  async (req:DelegateRequest, res:DelegateResponse):Promise<void>=>{''
@@ -166,17 +165,17 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 )
 
 
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/close',
     {
-        'post':  (req:DelegateRequest, res:DelegateResponse)=>{
+        'post': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
 
             try{
 
                 if(req.body.hasOwnProperty('uid')){
-                    const proj:DexcaliburProjectMap = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
+                    const proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
                     if(proj.hasOwnProperty(req.body.uid)){
                         if($.context.closeProject( req.dxc.sess.getUserAccount(), proj[req.body.uid])){
                             req.dxc.sess.refreshActiveProject($.context);
@@ -207,7 +206,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 )
 
 const IGNORE_UIDS = "-";
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/info/:uid',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse):Promise<void> => {
@@ -230,10 +229,10 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 
 
 
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/device',
     {
-        'get': (req:DelegateRequest, res:DelegateResponse) => {
+        'get':async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
 
@@ -283,10 +282,10 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 );
 
 
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/settings',
     {
-        'post': (req:DelegateRequest, res:DelegateResponse) => {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -335,10 +334,10 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 );
 
 
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/ws',
     {
-        'post': (req:DelegateRequest, res:DelegateResponse) => {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -403,10 +402,10 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 /**
  * To enumerate exisiting categories and tags
  */
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/tags',
     {
-        'get': (req:DelegateRequest, res:DelegateResponse) => {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -448,10 +447,10 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 /**
  * To get some statistics
  */
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/runtime/events',
     {
-        'get': (req:DelegateRequest, res:DelegateResponse) => {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -479,10 +478,10 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 /**
  * To get some statistics
  */
-PROJECT_WEB_API.addAuthenticatedRoute(
+PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/stats',
     {
-        'get': (req:DelegateRequest, res:DelegateResponse) => {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;

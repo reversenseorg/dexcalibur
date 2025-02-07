@@ -172,6 +172,22 @@ export default class AndroidApplication extends ApplicationBinary
     }
 
     /**
+     * @returns {string} Application label
+      */
+    getName():string{
+        return this.getAttribute('label');
+    }
+
+    /**
+     * To get the fqcn of class implementing the application
+     *
+     * @returns {string} Application class name
+     */
+    getAppClassname():string{
+        return this.getAttribute('name');
+    }
+
+    /**
      * To serialize to XML
      * @returns {String} The activity data ready to be writen into an XML file
      * @function

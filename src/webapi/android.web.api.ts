@@ -23,21 +23,21 @@ export const ANDROID_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/content',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
-                $.sendSuccess( res, (project.getAppAnalyzer() as AndroidAppAnalyzer).dumpManifest());
+                $.sendSuccess( res, (req.project.getAppAnalyzer() as AndroidAppAnalyzer).dumpManifest());
             }catch(err){
                 Logger.error("[API][CODE] Search query failed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Search query failed. Cause : " + err.message);
             }
         },
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async (req:DelegateRequest, res:DelegateResponse)=> {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -45,7 +45,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
                 const newCode:string = req.body['code[]'].join("\n");
                 //hook.script = newCode;
-                (project.getAppAnalyzer() as AndroidAppAnalyzer).updateManifest(newCode);
+                (req.project.getAppAnalyzer() as AndroidAppAnalyzer).updateManifest(newCode);
 
                 $.sendSuccess( res, {});
             }catch(err){
@@ -57,10 +57,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 );
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/activities',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse)=> {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -68,9 +68,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -92,12 +92,12 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/component/:uid',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
-                project = req.dxc.project;
+                project = req.project;
 
                 let depth:number;
                 if(req.query.depth != null){
@@ -145,10 +145,10 @@ ANDROID_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/receivers',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -156,10 +156,11 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 // ========== SECURITY CHECKS
 
 
+
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -167,7 +168,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC + RESPONSE
-                $.sendSuccess( res, project.find.receiver('name:/.*/').toJsonObject({}));
+                $.sendSuccess( res, req.project.find.receiver('name:/.*/').toJsonObject({}));
             }catch(err){
                 Logger.error("[API][ANDROID ANALYZER] Receivers not found. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Receivers not found. Cause : " + err.message);
@@ -178,10 +179,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/providers',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -190,9 +191,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -210,10 +211,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 );
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/services',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -222,9 +223,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -243,10 +244,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/permissions',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -255,9 +256,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -277,10 +278,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 // receivers
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/activity/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -289,9 +290,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -316,10 +317,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 );
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/receiver/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -328,9 +329,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -356,10 +357,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/provider/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse)=> {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -368,9 +369,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -396,10 +397,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/service/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -407,9 +408,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 // ========== SECURITY CHECKS
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {
@@ -435,10 +436,10 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
 
-ANDROID_WEB_API.addAuthenticatedRoute(
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/permission/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -447,9 +448,9 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                    project = $.context.getActiveProjects(req.user)[req.body['project']];
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {

@@ -103,8 +103,8 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 if (req.query.uid != null) {
                     dev = $.context.getDeviceManager().getDevice(req.query.uid as string);
                 } else {
-                    req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $, {readProject:true, readProjectStrict:true });
-                    dev = req.dxc.project.getDevice();
+                    //req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $, {readProject:true, readProjectStrict:true });
+                    dev = req.project.getDevice();
                 }
 
                 switch (req.query.type) {
@@ -995,7 +995,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/models/search',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -1022,7 +1022,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/models/list',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -1045,7 +1045,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/brands/list',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -1069,7 +1069,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/applications/:uid',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const dm = DeviceManager.getInstance();
             let dev:Device = null, success = false, app:AppPackage = null;
             const $:WebServer = req.dxc.$;

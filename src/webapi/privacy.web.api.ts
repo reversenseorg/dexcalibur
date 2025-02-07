@@ -9,10 +9,10 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PRIVACY_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
-PRIVACY_WEB_API.addAuthenticatedRoute(
+PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
     '/dashboard',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
             const $: WebServer = req.dxc.$;
 
             try{
@@ -42,10 +42,10 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
     }
 );
 
-PRIVACY_WEB_API.addAuthenticatedRoute(
+PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
     '/scan',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async (req:DelegateRequest, res:DelegateResponse) =>{
             const $: WebServer = req.dxc.$;
 
             try{
@@ -85,7 +85,7 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
     '/scanModel',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -98,7 +98,7 @@ PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
                 const report = await scanner.runModel(req.dxc.project);
 
                 // save report
-                req.dxc.project
+                //req.dxc.project
 
                 // get hook instance by ID
                 const data = {
@@ -116,10 +116,10 @@ PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
-PRIVACY_WEB_API.addAuthenticatedRoute(
+PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
     '/reports',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
             const $: WebServer = req.dxc.$;
 
             try{
@@ -149,10 +149,10 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 );
 
 
-PRIVACY_WEB_API.addAuthenticatedRoute(
+PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
     '/model',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
             const $: WebServer = req.dxc.$;
 
             try{

@@ -1449,7 +1449,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
                     if(projectArgs.mInfo){
 
-                        const am = AuditManager.getInstance();
+                        const am = dxcInstance.getAuditManager();
                         const mock = new DexcaliburProject({
                             engine: dxcInstance,
                             uid:"."
@@ -1461,7 +1461,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                             console.log(` - ${i} `);
 
                         console.log(`[AUDIT] All models available`);
-                        const models = await am.listModels();
+                        const models = await am.listModels(dxcInstance.getInternalAcc());
 
                         models.map(x => {
                             console.log(`=====================\n ${x.id} \n=====================\n`);
@@ -1599,11 +1599,11 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                         if(dxcProject.isReady()){
                             if(projectArgs.mScan){
 
-                                const am = AuditManager.getInstance();
+                                const am = dxcInstance.getAuditManager();
 
                                 projectArgs.mScanType.split(',').map( async (vModelName) => {
                                     console.log(`[AUDIT] Get model [${vModelName}] ...`);
-                                    const model = await am.getModelFor(dxcProject, vModelName);
+                                    const model = await am.getModelFor(dxcInstance.getInternalAcc(), dxcProject, vModelName);
 
                                     console.log(`[AUDIT] Search scanner for model [${vModelName}] ...`);
                                     const scanner:AssuranceScanner = LicenceManager.getProduct(dxcProject,model.getScannerID()) as AssuranceScanner;

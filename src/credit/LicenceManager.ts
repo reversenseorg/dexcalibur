@@ -4,14 +4,13 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {Product} from "./Product.js";
 import {GenericScanner} from "../audit/common/GenericScanner.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
+import {LicenseManagerException} from "./errors/LicenseManagerException.js";
 
 interface ActivatedServices {
     [ productCode:string] :any
 }
 
-interface ServiceWallet {
-    [ projectSerial:string] :ActivatedServices
-}
+export type LicenseNo = string;
 
 
 export interface ProductInfo {
@@ -28,7 +27,7 @@ export interface CompositeProductInfo {
 
 export class LicenceManager {
 
-    static wallet: ServiceWallet = {};
+    static wallet: Record<LicenseNo, ActivatedServices> = {};
 
     /**
      *
@@ -37,8 +36,12 @@ export class LicenceManager {
      */
     static activateProduct( pProject:DexcaliburProject, pProductCode:string):Product {
 
+        if(pProject==null){
+            throw LicenseManagerException.MISSING_PROJECT();
+        }
+
         if(LicenceManager.wallet[pProject.getLicenseNo()]==null){
-            throw new Error("[LICENCE] License not recognized.");
+            throw LicenseManagerException.LICENSE_NOT_RECOGNIZED(pProject.getLicenseNo());
         }
 
         const svc = LicenceManager.wallet[pProject.getLicenseNo()];
@@ -67,8 +70,12 @@ export class LicenceManager {
      */
     static getProduct( pProject:DexcaliburProject, pProductCode:string):Product {
 
+        if(pProject==null){
+            throw LicenseManagerException.MISSING_PROJECT();
+        }
+
         if(LicenceManager.wallet[pProject.getLicenseNo()]==null){
-            throw new Error("[LICENCE] License not recognized.");
+            throw LicenseManagerException.LICENSE_NOT_RECOGNIZED(pProject.getLicenseNo());
         }
 
         const svc = LicenceManager.wallet[pProject.getLicenseNo()];

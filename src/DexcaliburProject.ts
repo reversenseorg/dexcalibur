@@ -159,6 +159,10 @@ const DexcaliburProjectValidator = new Validator({
  */
 export default class DexcaliburProject extends Auditable implements INode, IAppContext
 {
+    static VALIDATE = {
+        uid: ValidationRule.utf8String()
+    }
+
     _type = AppContextType.WEB_SERVER;
 
     LOG = Logger;
@@ -303,7 +307,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     return null;
                 }
             }),
-    ]);
+    ]).dataSource("ENGINE_DB");
 
     __:NodeInternalType = NodeInternalType.PROJECT;
 
@@ -548,7 +552,15 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     meta:any = {
         creationDate: null,
         lastOpenDate: null,
-        lastExecDate: null
+        lastExecDate: null,
+
+        version: null,
+        versionName: null,
+        tag: null,
+        branch: null,
+        commit: null,
+        hash: null,
+        label: null
     };
 
     _createMode = false;
@@ -825,6 +837,14 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this._wf = pWorkflow;
         if(this.analyze!=null) this.analyze.setWorkflow(pWorkflow);
         if(this.dataAnalyzer!=null) this.dataAnalyzer.setWorkflow(pWorkflow);
+
+        if(!this._wf.isStarted()){
+            this._wf.start();
+        }
+
+        this._wf.msg$.subscribe(()=>{
+            this.getContext().getEngineDB().updateWorkflow(this, ['_wf']);
+        })
     }
 
     /**
@@ -835,6 +855,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     getWorkflow():Workflow {
         if(this._wf==null){
             this._wf = new Workflow({ uid: this.getUID() });
+            this._wf.start();
         }
         return this._wf;
     }
@@ -1018,7 +1039,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      *
      * @method
      */
-    async init():Promise<void>{
+    async init(pWorkflow:Nullable<Workflow> = null):Promise<Workflow>{
         const im:InspectorManager = InspectorManager.getInstance();
 
 
@@ -1036,13 +1057,24 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // workspace settings provide defaults value when value are not yet
         // configured at project level
         const wsSettings:Settings.WorkspaceSettings = this.engine.workspace.getSettings();
-        const wf:Workflow = this.engine.getWorkflow(this.uid);
+        let wf:Workflow;
 
-        this.tagManager = new TagManager();
+        if(pWorkflow!=null){
+            wf = pWorkflow;
+        }else{
+            wf = this.engine.getWorkflow(this.uid);
+        }
 
-        this.typeManager = new TypeManager();
+        if(wf==null){
+            throw DexcaliburProjectException.CANNOT_INIT_NO_WF(this.getUID());
+        }
 
         this.setWorkflow(wf);
+
+        this.tagManager = new TagManager();
+        this.typeManager = new TypeManager();
+
+
 
         // init project workspace
         if(this.workspace === null){
@@ -1157,6 +1189,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
 
         Logger.debug("[PROJECT] Initializing done ");
+
+        return wf;
     }
 
     getPackageAnalyzer():IPackageAnalyzer {
@@ -1812,7 +1846,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @param {*} pProjectUID 
      * @param {*} pConfigPath 
      */
-    static async load( pEngine:DexcaliburEngine, pProjectUID:DexcaliburProjectUUID, pAcc:UserAccount, pConfig:Nullable<any> = null):Promise<DexcaliburProject>{
+    static async load( pEngine:DexcaliburEngine, pProjectUID:DexcaliburProjectUUID, pAcc:UserAccount, pConfig:Nullable<any> = null, pWorkflow:Nullable<Workflow> = null):Promise<DexcaliburProject>{
 
         let project:Nullable<DexcaliburProject>;
         let notPersisted = true;
@@ -1969,7 +2003,11 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         Logger.info("[PROJECT] [LOADING] Platform retrieved : "+(project.platform!=null));
 
         // init other properties
-        await project.init();
+        if(pWorkflow!=null)
+            await project.init(pWorkflow);
+        else
+            await project.init();
+
 
         // if not exists in DB, create it
         /*if(notPersisted){
@@ -2421,9 +2459,13 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
          ====== [SCAN CODE OF TARGET APP] ======
          */
 
-
         this.getWorkflow().setStep('Application code', 40);
         this.getWorkflow().pushStatus(new StatusMessage(15, "Start analysis of application byte code"));
+
+        // extract pk version, app label, app main class, target SDK version, min SDK version and more
+        if(this.appAnalyzer.hasMissingMeta()){
+            await this.appAnalyzer.importMeta();
+        }
 
         // scan files  
        /* if(pPath != undefined){

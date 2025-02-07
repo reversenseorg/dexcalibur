@@ -12,13 +12,17 @@ import {NodeState} from "./EngineNodeManager.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import * as Log from "../Logger.js";
 import * as http from "node:http";
-import {UserAccount} from "../user/UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {UserSession} from "../user/session/UserSession.js";
 import WebServer from "../WebServer.js";
 import {ProjectOrder} from "../project/ProjectOrder.js";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {InternalState} from "./InternalState.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "../Validator.js";
+import {User} from "../User.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const GOT = got.default;
@@ -32,7 +36,8 @@ export enum NodePurpose {
     REVIEW='review',
     SCAN='scan',
     HOOK='hook',
-    NEW_PRJ='newprj'
+    NEW_PRJ='newprj',
+    ANY='any'
 }
 
 export enum ScanState {
@@ -67,7 +72,8 @@ export enum OperationType {
     USER_WEB_REQUEST,
     APP_WEB_REQUEST,
     SCAN_ORDER,
-    NEW_PROJ
+    NEW_PROJ,
+    OPEN_PROJ
 }
 
 export interface Operation {
@@ -96,6 +102,35 @@ export type Order = {
 };
 
 
+export interface EngineNodeOptions {
+    UUID?:EngineNodeUUID;
+    _engine?:Nullable<IDexcaliburEngine>;
+    _projectUID?:DexcaliburProjectUUID;
+    _outputBuffer?:any[];
+    _errBuffer?:any[];
+    _pid?:number;
+    nodeState$?:Subject<StateChangeEvent>;
+    purpose?:NodePurpose;
+    state?:NodeState;
+    masterURI?:Nullable<string>;
+    _hostname?:string;
+    httpPort?:number;
+    httpsPort?:number;
+    running?:boolean;
+    activeScanSession?:Nullable<ScanOrder>;
+    history?:ScanOrder[];
+    waitingQueue?: Order[];
+    opeQueue?: Operation[];
+    opeTerminated?: Operation[];
+    operation$?: Subject<Operation>;
+    scanStateUpdate$?:Subject<ScanOrder>;
+    parentUUID?:EngineNodeUUID;
+    spawnCmd?:string;
+    stdout$?:Subject<string>;
+    stderr$?:Subject<string>;
+    _state?:InternalState;
+}
+
 
 /**
  * Represent a running instance of DexcaliburEngine.
@@ -107,7 +142,47 @@ export type Order = {
  *
  * @class
  */
-export class EngineNode {
+export class EngineNode implements INode {
+
+
+    static VALIDATE = {
+        uuid: ValidationRule.uuid(),
+        purpose: ValidationRule.newPinklistAssert([
+            NodePurpose.ANY,
+            NodePurpose.SCAN,
+            NodePurpose.NEW_PRJ,
+            NodePurpose.REVIEW,
+            NodePurpose.HOOK
+        ])
+
+    }
+    static TYPE:NodeType = new NodeType(
+        "engine_node",
+        NodeInternalType.ENGINE_NODE,
+        [
+            (new NodeProperty("UUID")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("_projectUID")).type(DbDataType.STRING),
+            (new NodeProperty("_outputBuffer")).type(DbDataType.STRING).def([]),
+            (new NodeProperty("_errBuffer")).type(DbDataType.STRING).def([]),
+            (new NodeProperty("pid")).type(DbDataType.NUMERIC).def(-1),
+            (new NodeProperty("purpose")).type(DbDataType.STRING).def(NodePurpose.REVIEW),
+            (new NodeProperty("state")).type(DbDataType.STRING).def(NodeState.UNKNOW),
+            (new NodeProperty("masterURI")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("_hostname")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("httpPort")).type(DbDataType.STRING).def(-1),
+            (new NodeProperty("httpsPort")).type(DbDataType.STRING).def(-1),
+            (new NodeProperty("running")).type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("activeScanSession")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("history")).volatile().type(DbDataType.STRING).def([]),
+            (new NodeProperty("waitingQueue")).volatile().type(DbDataType.STRING).def([]),
+            (new NodeProperty("opeQueue")).volatile().type(DbDataType.STRING).def([]),
+            (new NodeProperty("opeTerminated")).volatile().type(DbDataType.STRING).def([]),
+            (new NodeProperty("parentUUID")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("spawnCmd")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("_state")).volatile().type(DbDataType.BLOB).def(null)
+        ]).dataSource("ENGINE_DB");
+
+    __ = NodeInternalType.ENGINE_NODE;
 
     /**
      * The UUID of the Engine instance.
@@ -206,11 +281,36 @@ export class EngineNode {
      */
     private _state:InternalState;
 
+    tags:TagUUID[] = [];
 
-    constructor(pUUID:EngineNodeUUID, pParentUUID:EngineNodeUUID, pProjectUID:DexcaliburProjectUUID) {
-        this.UUID = pUUID;
-        this.parentUUID = pParentUUID;
-        this._projectUID = pProjectUID;
+    constructor(pOptions:EngineNodeOptions) {
+
+        if(pOptions.UUID != null) this.UUID = pOptions.UUID;
+        if(pOptions._engine != null) this._engine = pOptions._engine;
+        if(pOptions._projectUID != null) this._projectUID = pOptions._projectUID;
+        if(pOptions._outputBuffer != null) this._outputBuffer = pOptions._outputBuffer;
+        if(pOptions._errBuffer != null) this._errBuffer = pOptions._errBuffer;
+        if(pOptions._pid != null) this._pid = pOptions._pid;
+        if(pOptions.nodeState$ != null) this.nodeState$ = pOptions.nodeState$;
+        if(pOptions.purpose != null) this.purpose = pOptions.purpose;
+        if(pOptions.state != null) this.state = pOptions.state;
+        if(pOptions.masterURI != null) this.masterURI = pOptions.masterURI;
+        if(pOptions._hostname != null) this._hostname = pOptions._hostname;
+        if(pOptions.httpPort != null) this.httpPort = pOptions.httpPort;
+        if(pOptions.httpsPort != null) this.httpsPort = pOptions.httpsPort;
+        if(pOptions.running != null) this.running = pOptions.running;
+        if(pOptions.activeScanSession != null) this.activeScanSession = pOptions.activeScanSession;
+        if(pOptions.history != null) this.history = pOptions.history;
+        if(pOptions.waitingQueue != null) this.waitingQueue = pOptions.waitingQueue;
+        if(pOptions.opeQueue != null) this.opeQueue = pOptions.opeQueue;
+        if(pOptions.opeTerminated != null) this.opeTerminated = pOptions.opeTerminated;
+        if(pOptions.operation$ != null) this.operation$ = pOptions.operation$;
+        if(pOptions.scanStateUpdate$ != null) this.scanStateUpdate$ = pOptions.scanStateUpdate$;
+        if(pOptions.parentUUID != null) this.parentUUID = pOptions.parentUUID;
+        if(pOptions.spawnCmd != null) this.spawnCmd = pOptions.spawnCmd;
+        if(pOptions.stdout$ != null) this.stdout$ = pOptions.stdout$;
+        if(pOptions.stderr$ != null) this.stderr$ = pOptions.stderr$;
+        if(pOptions._state != null) this._state = pOptions._state;
 
         this.operation$.subscribe((pOperation:Operation)=>{
             if(this.isReady()){
@@ -223,9 +323,10 @@ export class EngineNode {
 
                 // execute, state will changed,
                 // when node will finished to process request, it will notifiy
-                // master of state changes and it will come back to IDDLE, then the queue will be consumed again
-                this.execOperation(oldest)
+                // master of state changes and it will come back to IDLE, then the queue will be consumed again
+                this.execOperation2(oldest)
                     .then((vRes)=>{
+                        console.log(vRes);
                         this.opeTerminated.push(oldest);
                     },(err)=>{
                         Logger.error("[ENGINE NODE] Operation execution failed : ",err);
@@ -244,6 +345,17 @@ export class EngineNode {
         this.stdout$.subscribe((vMsg)=>{
             this._outputBuffer.push(vMsg);
             Logger.info(`[ENGINE NODE][${this.UUID}][STDOUT] ${vMsg}`);
+        });
+    }
+
+    /**
+     *
+     */
+    static newNode(pUUID:EngineNodeUUID, pParentUUID:EngineNodeUUID, pProjectUID:DexcaliburProjectUUID):EngineNode{
+        return new EngineNode({
+            UUID: pUUID,
+            parentUUID: pParentUUID,
+            _projectUID: pProjectUID
         });
     }
 
@@ -325,9 +437,29 @@ export class EngineNode {
             throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node');
         }
 
-
-
         return await this.spawn(pCause, false);
+    }
+
+    /**
+     * To open the project associated to this node.
+     *
+     * It assumes this node is a remote node, and NodeState is IDLE
+     *
+     * @async
+     */
+    async open():Promise<any> {
+
+        if(this.state!==NodeState.IDLE){
+            throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node');
+        }
+
+        return GOT(
+            this.getHost()+"/api/workspace/open?=",{
+                searchParams: {
+                    uid: this._projectUID
+                }
+            }
+        );
     }
 
 
@@ -370,11 +502,41 @@ export class EngineNode {
     }
 
 
-
-    async isBusy():Promise<boolean> {
-        return (this.state!=NodeState.IDDLE);
+    /**
+     * To perform the operation
+     *
+     * @param {Operation} pOpe
+     * @method
+     */
+    async execOperation2( pOpe:Operation):Promise<any> {
+        switch (pOpe.type){
+            case OperationType.SCAN_ORDER:
+                return (this.startScan(pOpe.data as ScanOrder));
+            case OperationType.NEW_PROJ:
+                return (this.startProject(
+                    (this._engine as DexcaliburEngine).getInternalAcc(),
+                    pOpe.data as ProjectOrder,
+                    pOpe.extra
+                ));
+            case OperationType.USER_WEB_REQUEST:
+            case OperationType.APP_WEB_REQUEST:
+                // TODO : add quota, FW, etc ..
+                return (this.forwardWebRequest(pOpe.data.server, pOpe.data.req, pOpe.data.res));
+            default:
+                throw EngineNodeException.NOT_SUPPORTED_OPE(pOpe.type);
+        }
     }
 
+    async isBusy():Promise<boolean> {
+        return (this.state!=NodeState.IDLE);
+    }
+
+
+    /**
+     * To start scan on current (slave or standalone) node
+     *
+     * @param pOrder
+     */
     async startScan(pOrder:ScanOrder):Promise<any> {
 
         // check if server is iddle
@@ -404,10 +566,18 @@ export class EngineNode {
                     this.scanStateUpdate$.next(pOrder);
                     break;
                 case NodeState.NEW:
-                    throw EngineNodeException.BUSY_NODE(this.UUID,"startScan");
+                    this.waitingQueue.push({
+                        type: OperationType.SCAN_ORDER,
+                        order: pOrder
+                    } );
+                    //throw EngineNodeException.NEW_NODE(this.UUID,"startScan");
                     break;
                 case NodeState.BUSY:
-                    throw EngineNodeException.BUSY_NODE(this.UUID,"startScan");
+                    this.waitingQueue.push({
+                        type: OperationType.SCAN_ORDER,
+                        order: pOrder
+                    } );
+                    //throw EngineNodeException.BUSY_NODE(this.UUID,"startScan");
                     break;
                 case NodeState.STOPPED:
                     throw EngineNodeException.DOWN_NODE(this.UUID,"startScan");
@@ -420,17 +590,24 @@ export class EngineNode {
 
         Logger.info("[ENGINE NODE] Send command to slave node : "+this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start")
         //GOT()
-        return GOT(
-            this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start",{
-                body: JSON.stringify({
-                    order: this.activeScanSession.getUID(),
-                    project: this._projectUID,
-                    models: [this.activeScanSession.getModelUID()]
-                })
-            }
-        ).then(()=>{
-            console.log("Scan ordered successfully");
-        })
+
+        if(this.activeScanSession.hasModel()){
+            return GOT(
+                this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start",{
+                    body: JSON.stringify({
+                        order: this.activeScanSession.getUID(),
+                        project: this._projectUID,
+                        models: [this.activeScanSession.getModelUID()]
+                    })
+                }
+            ).then(()=>{
+                console.log("Scan ordered successfully");
+            })
+        }else{
+            // done
+            return true;
+        }
+
 
 
 
@@ -459,7 +636,7 @@ export class EngineNode {
         // check if server is starting and queue is empty
         // else check if node is busy
         switch (this.state){
-            case NodeState.IDDLE:
+            case NodeState.IDLE:
                 // save order, to make it accessible from slave Node
                 // await this._engine.getEngineDB().save(pOrder);
 
@@ -541,13 +718,14 @@ export class EngineNode {
      * @param pState
      */
     setState(pState:NodeState):void {
+        const old = this.state;
+        this.state = pState;
         this.nodeState$.next({
-            before: this.state,
-            new: pState,
+            before: old,
+            new: this.state,
             time: Util.time(),
             nodeUUID: this.UUID
         });
-        this.state = pState;
     }
 
     setHttpPort(pPort:number):void {
@@ -568,7 +746,7 @@ export class EngineNode {
     }
 
     isStarted():boolean {
-        return (this.state==NodeState.IDDLE||this.state==NodeState.BUSY);
+        return (this.state==NodeState.IDLE||this.state==NodeState.BUSY);
     }
 
     /**
@@ -576,7 +754,7 @@ export class EngineNode {
      *
      */
     isReady():boolean {
-        return (this.state===NodeState.IDDLE);
+        return (this.state===NodeState.IDLE);
     }
 
 
@@ -705,11 +883,9 @@ export class EngineNode {
      */
     appendRequestToQueue( pServer:WebServer, pReq:any, pRes:any):void {
 
-        let ua:UserAccount = (pReq.dxc.sess as UserSession).getUserAccount();
-
         this.operation$.next({
             type: OperationType.USER_WEB_REQUEST,
-            owner: (ua!=null ? (ua as UserAccount).getUID() : null),
+            owner: (pReq.user!=null ? (pReq.user as UserAccount).getUID() : null),
             data: {
                 server: pServer,
                 req: pReq,
@@ -732,14 +908,14 @@ export class EngineNode {
      * A method called when the node manager receive the startup confirmation
      * using EngineNode dedicated webhook
      *
-     * Turn EngineNode state from `NodeState.STARTING` to `NodeState.IDDLE`
+     * Turn EngineNode state from `NodeState.STARTING` to `NodeState.IDLE`
      *
      * @method
      */
     async afterScanTerminated(pEvent:PostScanEvent):Promise<void> {
 
         // save report, ....
-        this.setState(NodeState.IDDLE);
+        this.setState(NodeState.IDLE);
 
         // checks if there is queued scan, if TRUE, consume it
         /*
@@ -773,6 +949,45 @@ export class EngineNode {
         }
     }
 
+    getProjectUID():Nullable<DexcaliburProjectUUID> {
+        return this._projectUID;
+    }
+
+    /**
+     * To retrieve the owner of the node
+     *
+     * @returns {Nullable<UserAccountUUID>} User account UUID
+     * @method
+     */
+    getOwner():Nullable<UserAccountUUID> {
+        return this._state.getProperty('owner');
+    }
+
+    /**
+     * To retrieve the owner of the node
+     *
+     * @returns {Nullable<UserAccountUUID>} User account UUID
+     * @method
+     */
+    async setOwner(pUser:UserAccountUUID):Promise<void> {
+        this._state.setProperty('owner', pUser);
+        this._state.setProperty('ownership_time', (new Date()).getTime());
+        await this.saveInternalState()
+    }
+
+    /**
+     * To check if the ownership has expired according to specified timeout
+     *
+     * @param {number} pTimeout
+     * @method
+     */
+    isOwnershipExpired(pTimeout:number){
+        const time = this._state.getProperty('ownership_time');
+        //const idletime = this._state.getProperty('idle_time');
+        if(time==null) return true;
+
+        return (time+pTimeout) < (new Date().getTime());
+    }
 
     toJsonObject():any {
         return {
@@ -799,14 +1014,14 @@ export class EngineNode {
      * @param pOptions
      */
     async forwardWebRequest(pServer:WebServer, pRequest:any, pResponse?:any ):Promise<any> {
-        console.log(`[ASYNC] Forward request from [node=${this.parentUUID}] to [node=${this.UUID}][uri=${this.getHost()}]`)
-       console.log({
+        console.log(`[ASYNC] Forward request from [node=${this.parentUUID}] to [node=${this.UUID}][uri=${this.getHost()}][url=${pRequest.url}]`)
+       /*console.log({
            hostname: this.getHostname(),
            port: this.httpPort,
            path: pRequest.url,
            method: pRequest.method,
            headers: pRequest.headers
-       });
+       });*/
 
         const proxyReq = http.request({
             hostname: this.getHostname(),
@@ -866,3 +1081,4 @@ export class EngineNode {
         pResponse.pipe(proxyReq);
     }
 }
+EngineNode.TYPE.builder(EngineNode);

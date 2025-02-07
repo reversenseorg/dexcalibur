@@ -38,7 +38,7 @@ import {CustomCode} from "./actionnable/CustomCode.js";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
-import AssuranceReport from "./audit/common/AssuranceReport.js";
+import AssuranceReport, {Match} from "./audit/common/AssuranceReport.js";
 import AssuranceModel from "./audit/common/AssuranceModel.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
@@ -145,8 +145,30 @@ DataSourceHelper.addAsyncSource("SIGNATURE_DB", new DataSource("SIGNATURE_DB",{
             filter._uid = pUID;
         }
 
+
         if(pContext._type===AppContextType.WEB_SERVER){
-            throw new Error("Operation not supported");
+            switch (pNodeType.getType()){
+                case NodeInternalType.ASSURANCE_MODEL:
+                    return await ((pContext as DexcaliburEngine)
+                        .getAuditManager()
+                        .getModelByUID(
+                            (pContext as DexcaliburEngine).getInternalAcc(),
+                            pUID
+                        ))
+                    break;
+                default:
+                    throw new Error("Operation not supported");
+            }
+            /*return await ((pContext as DexcaliburEngine)
+                .getEngineDB()
+                .getCollectionOf(pNodeType.getType()) as MongodbDbCollection)
+                .asyncGetEntry({ _uid: pUID});
+
+            throw new Error("Operation not supported");*/
+
+            return await ((pContext as DexcaliburEngine)
+                .getSignatureServer()
+                .find(pNodeType.getType(),  filter));
         }else{
             return await ((pContext as DexcaliburProject)
                 .getContext()
@@ -1004,11 +1026,15 @@ AssuranceReport.TYPE.updateProperties([
     (new NodeProperty("device")).type(DbDataType.STRING).def(null),
     (new NodeProperty("values")).type(DbDataType.BLOB).def(null),
     (new NodeProperty("time")).type(DbDataType.NUMERIC).def(null),
-    (new NodeProperty("primaryAssets")).type(DbDataType.NUMERIC).def(null),
-    (new NodeProperty("secondaryAssets")).type(DbDataType.NUMERIC).def(null),
-    (new NodeProperty("globalThreats")).type(DbDataType.NUMERIC).def(null),
-    (new NodeProperty("primaryAssets")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("started")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("terminated")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("primaryAssets")).type(DbDataType.BLOB).def(null),
+    (new NodeProperty("secondaryAssets")).type(DbDataType.BLOB).def(null),
+    (new NodeProperty("globalThreats")).type(DbDataType.BLOB).def(null),
+    (new NodeProperty("primaryAssets")).type(DbDataType.BLOB).def(null),
     (new NodeProperty("tags")).type(DbDataType.STRING),
+    (new NodeProperty("project")).single(DexcaliburProject.TYPE),
+    /*
     (new NodeProperty("project"))
         .type(DbDataType.BLOB)
         .sleep( (x:NodePropertyState) => {
@@ -1021,6 +1047,7 @@ AssuranceReport.TYPE.updateProperties([
         .wakeUp( (x:NodePropertyState) => {
 
             if(x.p!=null){
+                (x.ctx as DexcaliburEngine).getProjectManager().getProject()
                 const o = [];
                 x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
@@ -1030,19 +1057,24 @@ AssuranceReport.TYPE.updateProperties([
                 return null;
             }
         })
-        .def(null),
-    (new NodeProperty("model")).single(AssuranceModel.TYPE),
+        .def(null),*/
+    (new NodeProperty("model")).type(DbDataType.STRING).def(null),
     (new NodeProperty("matches"))
         .type(DbDataType.BLOB)
         .sleep( (x:NodePropertyState) => {
             if(x.p!=null){
-                const o:any = [];
+                const o:any = {};
+                let match:Match;
                 for(let k in x.p){
-                    o[k] = {
+                    match = (x.p)[k] as Match;
+
+                    /*entry = {
                         assessment: x.p[k].assessment.canonicalID,
                         ruleIdx: x.p[k].ruleIdx,
                         match: x.p[k].match,
-                    }
+                    }*/
+
+                    o[k] = AssuranceReport.serializeMatch(match);
                 }
                 return  o;
             }else{
@@ -1051,16 +1083,14 @@ AssuranceReport.TYPE.updateProperties([
         })
         .wakeUp( (x:NodePropertyState) => {
             if(x.p!=null){
-                const o:any = [];
-                const m:AssuranceModel = x.self.model;
+                /*const o:any = {};
+
                 for(let k in x.p){
-                    o[k] = {
-                        assessment: (m!=null ? m.getControlNode(x.p[k].assessment) : null),
-                        ruleIdx: x.p[k].ruleIdx,
-                        match: x.p[k].match,
-                    }
-                }
-                return  o;
+                    o[k] = AssuranceReport.unserializeMatch(
+                        (x.p)[k]
+                    );
+                }*/
+                return x.p;
             }else{
                 return {};
             }

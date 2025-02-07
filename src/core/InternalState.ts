@@ -115,7 +115,12 @@ export class InternalState implements INode{
             throw EngineDatabaseException.CANNOT_SAVE_INTERNAL_STATE(this.getUID())
         }
 
-        return await this._edb.save(this); //  this._coll.updateEntry(this);
+        if((this as any)._id!=null){
+            return this._edb.getCollectionOf(InternalState.TYPE.getType())
+                .asyncUpdateEntry(this, {replace:false, $set:['state','modified']});
+        }else{
+            return await this._edb.save(this);
+        }
     }
 
     toJsonObject(pOption?: SerializeOptions): any {

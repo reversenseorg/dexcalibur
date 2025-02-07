@@ -79,12 +79,12 @@ export class OrganizationUnit extends Auditable implements INode {
             .wakeUp( (x:NodePropertyState) => {
                 if(x.p==null) return null;
 
-                const bp = new BusinessPlan(x.p);
+                /*const bp = BusinessPlan.fromJsonObject(x.p);
                 bp.setWallet(x.p.wallet.map(p => {
                     return new Purchase(p);
-                }));
+                }));*/
 
-                return bp;
+                return BusinessPlan.fromJsonObject(x.p);
             })
             .def([]),
         (new NodeProperty("secrets"))

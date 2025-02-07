@@ -13,6 +13,11 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {AuditManagerException} from "../audit/errors/AuditManagerException.js";
+import {ProjectManagerException} from "../errors/ProjectManagerException.js";
+import {OrganizationUnit} from "../organization/OrganizationUnit.js";
+import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import {ValidationRule} from "../Validator.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -21,7 +26,7 @@ export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/trackers/all',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -38,12 +43,14 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, " Trackers cannot be listed. Cause : " + err.message);
             }
         }
+    },{
+        lazyProject: true
     }
 );
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/trackers/:id',
     {
-        'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'put': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -56,12 +63,14 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Tracker cannot be updated. Cause : " + err.message);
             }
         }
+    },{
+        lazyProject: true
     }
 );
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/trackers/new',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -72,13 +81,15 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Tracker cannot be created. Cause : " + err.message);
             }
         }
+    },{
+        lazyProject: true
     }
 );
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/trackers/:id',
     {
-        'delete': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'delete': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -89,6 +100,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Tracker cannot be deleted . Cause : " + err.message);
             }
         }
+    },{
+        lazyProject: true
     }
 );
 
@@ -98,7 +111,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/tracker/purpose/list',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -108,6 +121,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Tracker purposes cannot be listed . Cause : " + err.message);
             }
         }
+    },{
+        lazyProject: true
     }
 );
 
@@ -116,15 +131,18 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/dashboard/:modelID',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
+                }
 
                 // ========== LOGIC
-                const am = AuditManager.getInstance();
-                const model = await am.getModelFor(req.dxc.project, req.params.modelID as string);
-                const scanner:AssuranceScanner = LicenceManager.getProduct(req.dxc.project, model.getScannerID()) as AssuranceScanner;
+                const am = $.context.getAuditManager();
+                const model = await am.getModelFor(req.user, req.project, req.params.modelID as string);
+                const scanner:AssuranceScanner = LicenceManager.getProduct(req.project, model.getScannerID()) as AssuranceScanner;
 
                 const data = {
                     db_names: [],
@@ -143,6 +161,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Audit Dashboards are not accessible. Cause : " + err.message);
             }
         }
+    },{
+        lazyProject: true
     }
 );
 
@@ -151,27 +171,30 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/scan/:modelID',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
 
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
+                }
                 // ========== LOGIC
 
-                const am = AuditManager.getInstance();
-                const model = await am.getModelFor(req.dxc.project, req.params.modelID as string);
-                const scanner:AssuranceScanner = LicenceManager.getProduct(req.dxc.project,model.scannerID) as AssuranceScanner;
+                const am = $.context.getAuditManager();
+                const model = await am.getModelFor(req.user, req.project, req.params.modelID as string);
+                const scanner:AssuranceScanner = LicenceManager.getProduct(req.project,model.scannerID) as AssuranceScanner;
 
                 const opts = scanner.validateOptions(req.body);
 
                 // check credit
                 //scanner.hasCredit()
-                await scanner.run(req.dxc.project, opts);
+                await scanner.run(req.project, opts);
 
                 const report = scanner.getReport();
 
                 // save report
-                am.saveReport(req.dxc.project, report);
+                am.saveReport(req.project, report);
 
                 // get hook instance by ID
                 const data = {
@@ -184,16 +207,19 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Project cannot be scanned. Cause : " + err.message);
             }
         },
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
 
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
+                }
                 // ========== LOGIC
 
-                const am = AuditManager.getInstance();
-                const model = await am.getModelFor(req.dxc.project, req.params.modelID as string);
-                const scanner:AssuranceScanner = LicenceManager.getProduct(req.dxc.project,model.scannerID) as AssuranceScanner;
+                const am = $.context.getAuditManager();
+                const model = await am.getModelFor(req.user, req.project, req.params.modelID as string);
+                const scanner:AssuranceScanner = LicenceManager.getProduct(req.project,model.scannerID) as AssuranceScanner;
 
                 // get hook instance by ID
                 const data = {
@@ -207,7 +233,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: true
+        lazyProject: true
     }
 );
 
@@ -218,27 +244,29 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/scanInfo',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
-
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
+                }
                 // ========== LOGIC
 
-                const am = AuditManager.getInstance();
+                const am = $.context.getAuditManager();
                 const models:AssuranceModel[] = [];
                 const errs:string[] = [];
                 if(Array.isArray(req.body.refs)){
                     req.body.refs.map(async (x:string) => {
                         try{
-                            models.push(await am.getModelFor(req.dxc.project, req.params.modelID as string));
+                            models.push(await am.getModelFor(req.user, req.project, req.params.modelID as string));
                         }catch(err){
                             errs.push("Model not found ["+x+"]");
                         }
                     });
                 }
 
-                const scanners:ProductInfo[] = LicenceManager.getProductByModels(req.dxc.project,models) as any;
+                const scanners:ProductInfo[] = LicenceManager.getProductByModels(req.project,models) as any;
 
                 scanners.map(x => { x.product = x.product.toJsonObject(); })
 
@@ -249,80 +277,110 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: true
+        lazyProject: true
     }
 );
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/reports',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
+
                 // ========== LOGIC
-                const am = AuditManager.getInstance();
+                const am = $.context.getAuditManager();
                 let project:string;
                 let projectAlive:Nullable<DexcaliburProject> = null;
                 let reports:AssuranceReport[] = [];
 
-                if(req.dxc.project == null){
-                   project = req.query.puid as string;
+                if(req.query.aid !=null){
+                    const app = await $.context.getOrgManager().getDirectApplication(
+                        req.user,
+                        req.query.aid as string
+                    );
+
+                    reports = await am.listReportsByApp(req.user, app);
                 }else{
-                   project = req.dxc.project.getUID();
+                    if(req.project == null){
+                        project = req.query.puid as string;
+                    }else{
+                        project = req.project.getUID();
+                    }
+
+                    projectAlive = $.context.getProject(project);
+                    if(projectAlive != null){
+                        reports = await am.listReports(req.user, projectAlive);
+                    }else{
+                        reports = await am.listReportsFromDB(req.user, null);
+                    }
                 }
 
-                projectAlive = $.context.getProject(project);
-                if(projectAlive != null){
-                    reports = await am.listReports(projectAlive);
-                }else{
-                    reports = await am.listReportsFromDB(null);
-                    /*
-                    reports = am.listReportsFromPath(
-                        AuditManager.getReportsFolderFromPUID($.context.workspace.getLocation(), project)
-                    );*/
-                }
-
-
-                $.sendSuccess(res, reports.map(x => x.toJsonObject()) );
+                $.sendSuccess(res, reports.map(x => x.asPreview()) );
             }catch(err){
                 Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
             }
         }
+    },{
+        lazyProject: true
     }
 );
 
 
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
-    '/report/:modelID',
+    '/report/:unsafeReportUUID/:aid',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
-
                 // ========== LOGIC
                 let models:string[] = [];
                 models = [req.params.modelID as string]
-                /*
-                if(typeof (req.params.modelID)==="string"){
-                    models = [req.params.modelID as string];
-                }else if(Array.isArray(req.params.modelID)){
-                    models = req.params.modelID as string[];
-                }else{
-                    throw new Error("Invalid model ID");
-                }*/
 
-                const am = AuditManager.getInstance();
-                const reports = await am.listReports(req.dxc.project);
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                $.sendSuccess(res, await am.getReport(
+                    req.user, req.params.unsafeReportUUID, app));
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+/*
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/report/:modelID',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
+                }
+                // ========== LOGIC
+                let models:string[] = [];
+                models = [req.params.modelID as string]
+                const am = $.context.getAuditManager();
+                const reports = await am.listReports(req.user, req.project);
                 const rep:AssuranceReport[] = [];
                 let report:AssuranceReport;
 
                 for(let i=0; i<reports.length;i++) {
                     report = reports[i];
-                    if(models.indexOf(report.getModel().getID())>-1){
+                    if(models.indexOf(report.getModel())>-1){
                         rep.push(report.toJsonObject());
                     }
                 }
@@ -333,10 +391,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
             }
         }
-    },{
-        readProject: true
     }
-);
+);*/
 
 
 
@@ -345,32 +401,39 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/model/:modelID',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
                 // ========== LOGIC
-                const am = AuditManager.getInstance();
-//                const models = await am.getModelFor(req.dxc.project, req.params.modelID);
-                const models = await am.getModel(req.params.modelID);
+                const am = $.context.getAuditManager();
+//                const models = await am.getModelFor(req.project, req.params.modelID);
+                const models = await am.getModelByUID(req.user, req.params.modelID);
 
                 $.sendSuccess(res, models.toJsonObject());
             }catch(err){
                 Logger.error("[API][AUDIT] Model cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
             }
-        }});
+        }
+    },{
+        lazyProject: true
+    });
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/model/:modelID',
     {
-        'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'put': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
+                }
+
                 // ========== LOGIC
-                const am = AuditManager.getInstance();
-                const model = await am.getModelFor(req.dxc.project, req.params.modelID);
+                const am = $.context.getAuditManager();
+                const model = await am.getModelFor(req.user, req.project, req.params.modelID);
 
                 if(req.body.data.offset!=null && req.body.data.ctrl!=null){
                     model.controls[req.body.data.offset].update(req.body.data.ctrl);
@@ -378,14 +441,14 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     model.update(req.body.data);
                 }
 
-                if(req.dxc.project==null){
+                if(req.project==null){
                     // TODO : global edit, check ACL
                     // the model UID must change
                     am.saveModel(model);
                 }else{
                     // TODO : project edit, check ACL
                     // replace by backup in DB
-                    am.saveModel(model,req.dxc.project);
+                    am.saveModel(model,req.project);
                 }
                 //new AssuranceModel(req.body);
 
@@ -396,8 +459,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: true,
-        readProjectStrict: false
+        lazyProject: true
     }
 );
 
@@ -407,36 +469,45 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/models',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
+
                 // ========== LOGIC
-                const am = AuditManager.getInstance();
+                const am = $.context.getAuditManager();
+                let models:AssuranceModel[];
+                let previewMode = false;
 
-                const models = await am.listModels(req.dxc.project);
+                if(req.project!=null){
+                    models =  await am.listModels(req.user, req.project);
+                }else{
+                    const org = await $.context.getOrgManager().getOrganization(
+                        req.user,
+                        req.query.oid as string
+                    )
+                    models =  await am.listAllModelsByOrg(req.user, org);
+                }
+
+                if(ValidationRule.newPinklistAssert(['0','1']).test(req.query.preview)){
+                    previewMode = (req.query.preview==='1'? true : false);
+                }
 
 
-                const data = models.map(x => {
-                    const m= new AssuranceModel({
-                        id: x.getID(),
-                        name: x.name,
-                        description: x.description,
-                        links: x.links,
-                        metadata: x.metadata,
-                        generic: x.generic
-                    });
-                    return m.toJsonObject();
-                });
-
-                $.sendSuccess(res, data);
+                $.sendSuccess(res, models.map(x => {
+                    if(previewMode){
+                        return x.asPreview();
+                    }else{
+                        return x.toJsonObject();
+                    }
+                }));
             }catch(err){
                 Logger.error("[API][AUDIT] Models cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Models cannot be retrieved. See logs for details. ");
             }
         }
     },{
-        readProject: false
+        lazyProject: true
     }
 );
 
@@ -447,14 +518,18 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 AUDIT_WEB_API.addAsyncPublicRoute(
     '/models/all',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
-                // ========== LOGIC
-                const am = AuditManager.getInstance();
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
+                }
 
-                const models = await am.listModels(req.dxc.project);
+                // ========== LOGIC
+                const am = $.context.getAuditManager();
+
+                const models = await am.listModels(req.user, req.project);
 
 
                 const data = models.map(x => x.toJsonObject());
@@ -466,7 +541,7 @@ AUDIT_WEB_API.addAsyncPublicRoute(
             }
         }
     },{
-        readProject: false
+        lazyProject: true
     }
 );
 
@@ -474,68 +549,21 @@ AUDIT_WEB_API.addAsyncPublicRoute(
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/project/:projectID/scan/start',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject;
+            let data:any = [];
 
             try{
-                //
-                let project = null;
-                try{
-                    project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
-                }catch(err1){
-                    throw err1;
-                }
-
+                // get project and user ACL
+                project = await $.context.getProjectManager().getProject(req.user, req.params.projectID);
 
 
                 // ========== LOGIC
-                const am = AuditManager.getInstance();
-                const allModels = await am.listModels(project);
-                const targetUIDs: string[] = req.body.models;
-                const targetModels: AssuranceModel[] = [];
-                const scanners: AssuranceScanner[] = [];
-                const reports: { [model:string] :AssuranceReport[] } = {};
-                const data:any = [];
-                const scheduler = project.getScanScheduler();
-                const flows:ScanFlow[] = [];
-
-                // retrieve the list of targeted models
-                allModels.map((vModel)=>{
-                    if(targetUIDs.indexOf(vModel.getID())>-1){
-                        // create one scanner per model
-                        const asc = LicenceManager.getProduct( project, vModel.getScannerID()) as AssuranceScanner;
-                        asc.setModel(vModel);
-
-                        targetModels.push(vModel);
-                        scanners.push(asc);
-                    }
-                });
-
-                // run scanner
-                for(let i=0; i<scanners.length; i++){
-                    console.log("Run scans ("+i+") : "+scanners[i].name);
-                    flows.push(scheduler.newScan(scanners[i]));
-                    /*
-                    scanners[i].run(project, {});
-                    console.log("Save all reports  ("+i+") : "+scanners[i].name);
-                    data[scanners[i].name] = [];
-                    scanners[i].getReports().map(x => {
-                        console.log("Save single reports  ("+i+") : "+scanners[i].name);
-                        try{
-                            const path = am.saveReport(project, x);
-                            data[scanners[i].name].push(x.toJsonObject());
-                        }catch(err1){
-                            console.log(err1.message);
-                            console.log("Save single reports  FAILED ("+i+") : "+scanners[i].name+" "+err1.stack);
-                        }
-
-                    });*/
-                }
-
-                const started = scheduler.start(200);
+                const am = $.context.getAuditManager();
 
                 // return results
-                started.map(x => {
+                (await am.batchStart(req.user, project, req.body.models)).map(x => {
                     data.push(x.toJsonObject())
                 });
                 $.sendSuccess(res, data);
@@ -545,7 +573,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: false
+        lazyProject: true
     }
 );
 
@@ -553,7 +581,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/project/:projectID/scan/list',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -579,21 +607,21 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: false
+        lazyProject: true
     }
 );
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/project/:projectID/scan/reports',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
                 //
                 let project:Nullable<DexcaliburProject> = null;
                 try{
-                    project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
+                    project = req.project; // AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
                 }catch(err1){
                     throw err1;
                 }
@@ -609,7 +637,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: false
+        lazyProject: true
     }
 );
 
@@ -617,18 +645,20 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
-
+// deprecated
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/order/list',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
                 const scheduler = $.context.getScanScheduler();
                 const data:any[] = [];
 
-                (await scheduler.listAllOrders()).map( x => {
+                (await scheduler.listAllOrders(
+                    req.user
+                )).map( x => {
                   data.push(x.toJsonObject());
                 })
 
@@ -639,18 +669,54 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: false
+        lazyProject: true
     }
 );
 
+
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
-    '/order/scan',
+    '/order/list',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
-                //let targetProject:Nullable<DexcaliburProject> = null;
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
+                }
+                const scheduler = $.context.getScanScheduler();
+                const data:any[] = [];
+
+                (await scheduler.listOrdersOf(
+                    req.project
+                )).map( x => {
+                    data.push(x.toJsonObject());
+                })
+
+                $.sendSuccess(res,data);
+            }catch(err){
+                Logger.error("[API][AUDIT] All Scans cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "All Scans cannot be listed. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
+/**
+ * To order a scan
+ *
+ *
+ */
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/order/scan',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
 
                 if(req.body.projectUID==null){
                     throw new Error("Project UID is mandatory. Please create a project first.")
@@ -664,20 +730,45 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 // ========== LOGIC
 
                 const scheduler = $.context.getScanScheduler();
-                let project:DexcaliburProject = req.dxc.project;
+                let org:Nullable<OrganizationUnit> = null;
+                let project:DexcaliburProject = await $.context.getProjectManager()
+                    .getProject(req.user, req.body.projectUID);
+
+                if(req.body.oid != null){
+                    org = await $.context.getOrgManager().getOrganization(
+                        req.user,
+                        req.body.oid as string
+                    );
+                }
 
                 if($.context.isStandaloneMode()){
 
-                    if(req.dxc.project==null){
+
+                    /*if(req.project==null){
                         // from multi-project GUI
                         project = req.dxc.sess._project[req.body.projectUID];
+                    }*/
+
+                    const order =  ScanOrder.fromScanOptions({
+                        modelUID: req.body.modelUID[0],
+                        projectUID: req.body.projectUID
+                    });
+
+                    order.orgUnit = org.getUID();
+
+                    if(req.body.aid!=null){
+                        const app = await $.context.getOrgManager().getDirectApplication(req.user, req.body.aid);
+                        order.appUnit = app.getUID();
                     }
 
+
                     //console.log(project);
-                    const report = await scheduler.newStandaloneScan(project, ScanOrder.fromScanOptions({
+                    const report = await scheduler.newStandaloneScan(req.user, project, order, org);
+
+                    /*const report = await scheduler.newLocalScan(req.user, project, ScanOrder.fromScanOptions({
                         modelUID: req.body.modelUID[0],
                         projectUID: req.body.projectUID,
-                    }));
+                    }));*/
 
                     console.log("SERIALIZE REPORT TO SEND TO WEB");
                     $.sendSuccess(res,report.toJsonObject());
@@ -690,6 +781,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     targetOS =
                 }*/
 
+                // else, schedule a new scan on slave
                 for(let i=0; i<req.body.modelUID.length; i++){
                     const order = ScanOrder.fromScanOptions({
                         modelUID: req.body.modelUID[i],
@@ -727,6 +819,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: true
+        lazyProject: true
     }
 );

@@ -11,10 +11,10 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_FRAGS_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
-HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
+HOOK_FRAGS_WEB_API.addAsyncAuthenticatedRoute(
     '/hook_frag/:hookid',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse) {
+        'get': async (req:DelegateRequest, res:DelegateResponse)=> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -80,7 +80,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook fragment cannot be created . Cause : " + err.message);
             }
         },
-        'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'put': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -126,10 +126,10 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
 );
 
 
-HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
+HOOK_FRAGS_WEB_API.addAsyncAuthenticatedRoute(
     '/hook_frag/:hookid/:fragid',
     {
-        'delete': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'delete': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 

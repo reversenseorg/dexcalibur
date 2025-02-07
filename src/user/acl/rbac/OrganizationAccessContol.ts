@@ -8,6 +8,8 @@ import AccessControl from "../AccessControl.js";
 import {Nullable} from "../../../core/IStringIndex.js";
 import {Auditable} from "../../../Auditable.js";
 import {AccessZone} from "../Zones.js";
+import {OrganizationManager} from "../../../organization/OrganizationManager.js";
+import {UserServiceException} from "../../../errors/UserServiceException.js";
 
 
 export class OrganizationAccessControl extends DelegateAccessControl {
@@ -29,6 +31,37 @@ export class OrganizationAccessControl extends DelegateAccessControl {
 
     }
 
+    static getOwnerFilter(pUserAccountUID:UserAccountUUID):any {
+
+        if(!UserAccount.VALIDATE._uid.test(pUserAccountUID)){
+            throw UserServiceException.INVALID_USER_UUID_FMT(pUserAccountUID);
+        }
+
+        const filter:any = {
+            '$or':[]
+        };
+
+        filter['$or'].push({ ['_attr.'+OrganizationAccessControl.attr.OWNER.name+'._v']: { $all: [ pUserAccountUID ] }});
+
+        return filter;
+    }
+
+    static getAppMembersFilter(pUserAccountUID:UserAccountUUID):any {
+
+        const filter:any = OrganizationAccessControl.getOwnerFilter(pUserAccountUID);
+
+        filter['$or'].push({ ['_attr.'+OrganizationAccessControl.attr.APP_MEMBER.name+'._v']: { $all: [ pUserAccountUID ] }});
+
+        return filter;
+    }
+
+    static getOrgMembersFilter(pUserAccountUID:UserAccountUUID):any {
+
+        const filter:any = OrganizationAccessControl.getOwnerFilter(pUserAccountUID);
+
+        filter['$or'].push({ ['_attr.'+OrganizationAccessControl.attr.ORG_MEMBER.name+'._v']: { $all: [ pUserAccountUID ] }});
+        return filter;
+    }
 
 
     boot():void{

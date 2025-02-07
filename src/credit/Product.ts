@@ -1,4 +1,5 @@
 import {CoreDebug} from "../core/CoreDebug.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 export interface ProductOptions {
     __pCode:string;
@@ -13,6 +14,8 @@ export interface ProductOptions {
  * @class
  */
 export class Product {
+
+    __ = NodeInternalType.REVERSENSE_PRODUCT;
 
     __pCode:string;
 

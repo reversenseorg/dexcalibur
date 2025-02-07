@@ -136,7 +136,13 @@ export class ValidationRule {
 
     static uuid():ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
-            return /^([0-9]:)?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(vValue);
+            return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(vValue);
+        });
+    }
+
+    static prefixedUuid(pPrefix:string):ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return new RegExp("^"+pPrefix+"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$").test(vValue);
         });
     }
 

@@ -11,29 +11,24 @@ import {Workflow} from "../Workflow.js";
 import StatusMessage from "../StatusMessage.js";
 import PlatformManager from "../platform/PlatformManager.js";
 import Downloader from "../Downloader.js";
-import * as _fs_ from "fs";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
-import AccessControl from "../user/acl/AccessControl.js";
-import {AccessZone} from "../user/acl/Zones.js";
-import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 import {Settings} from "../Settings.js";
 import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
-import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
 import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "../analyzer/ProjectInput.js";
 import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
-import {Connection} from "../organization/conn/Connection.js";
-import {ORG_WEB_API} from "./organization.web.api.js";
 import {InputTemplate, NewProjectFlowType} from "../project/ProjectManager.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {ValidationRule} from "../Validator.js";
-import Uploader from "../Uploader.js";
 import {UploadedResource} from "../common/UploadedResource.js";
+import {EngineNode, NodePurpose} from "../core/EngineNode.js";
+import {EngineNodeException} from "../errors/EngineNodeException.js";
+import {EngineNodeManager, NodeState} from "../core/EngineNodeManager.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_MGT_WEB_API: DelegateWebApi = new DelegateWebApi('PROJ-MGT');
 
-PROJECT_MGT_WEB_API.addAuthenticatedRoute(
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/list',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse)=>{
@@ -50,6 +45,39 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Unable to list projects : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message);
+            }
+        }
+    }
+);
+
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/info/:uid',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
+
+            let $:WebServer = req.dxc.$;
+
+            try {
+                if(!DexcaliburProject.VALIDATE.uid.test(req.params.uid)){
+                    throw DexcaliburProjectException.INVALID_UUID_FMT(req.params.uid as string);
+                }
+
+                const unsafeUUID = req.params.uid as string;
+                const prj = await $.context.getProjectManager().getProject(
+                    req.user, unsafeUUID
+                );
+
+                $.sendSuccess( res, {
+                    projects: prj.toJsonObject(),
+                    loaded: await $.context.getProjectManager().isLoaded(
+                        req.user, unsafeUUID
+                    )
+                });
+
+            }catch(err){
+                Logger.error("[API][PROJECT MGT] Unable to get project info : "+err.message+"\n"+err.stack);
                 $.sendError( res, err.message);
             }
         }
@@ -335,6 +363,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 // deprecated
+/*
 PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/new',
     {
@@ -369,9 +398,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(req.body['dev'] != null){
                     device = dm.getDevice( req.body['dev']);
-                    /*if(device == null || !device.isEnrolled()){
-                        throw DexcaliburProjectException.TARGET_DEVICE_NOT_ENROLLED();
-                    }*/
                 }
 
                 let projectUID:string;
@@ -416,19 +442,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         }));
 
                         // Merge Splitted APK (MSA)
-                        /*
-                        if(req.body['cfg'].msa_auto===true){
-
-                            if(device.isAndroid()){
-                                path = device.pullTemp( req.body['path'], { merge:true });
-                                // extraData = device.pullExtraData(req.body['path'], { merge:true });
-                            }else {
-                                Logger.error("[PROJECT] Merge Splitted APK is only supported for Android-based devices.'")
-                                path = device.pullTemp( req.body['path']  );
-                            }
-                        }else{
-                            path = device.pullTemp( req.body['path'] );
-                        }*/
 
                         break;
                     case 'download':
@@ -484,11 +497,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         break;
                 }
 
-                // chcek if file exists an it is not empty
-                /*if( (!_fs_.existsSync(path)) || (false)){
-                    throw DexcaliburProjectException.APP_FILE_OT_FOUND();
-                }*/
-
                 if(device==null && req.body['targetOS']!=null){
                     // try to find compatible device already enrolled
                     const compDevs =  dm.searchCompatibleDevice(req.body['targetOS']);
@@ -503,10 +511,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     }
                 }
 
-                /*
-                                if(['min','max','dev'].indexOf(req.body['platform'])>-1){
-                                    platform = null;
-                                }*/
 
 
                 Logger.info(
@@ -530,7 +534,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     filetype = req.body['filetype'];
                 }
 
-                Logger.info('[PROJECT][STEP 2] Filetype : '+filetype+', File : '+path);*/
+                Logger.info('[PROJECT][STEP 2] Filetype : '+filetype+', File : '+path);
                 Logger.info('[PROJECT][STEP 2] Input file : '+(projInputs[0].data as string));
 
                 /*if(anal != null){
@@ -541,7 +545,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     analCfg.setFileAnalysisMode(anal.fa_mode);
                     analCfg.setNativeAnalysisMode(anal.na_mode);
 
-                }*/
+                }
 
                 //console.log(projInputs);
 
@@ -610,7 +614,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
         }
     }
-);
+);*/
 
 /*
  * ROUTE
@@ -654,7 +658,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     {
         'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
-
             let $:WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
             let wf:Workflow;
@@ -662,8 +665,73 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
             try {
 
+                if(req.query.purpose!=null && !EngineNode.VALIDATE.purpose.test(req.query.purpose)){
+                    throw EngineNodeException.INVALID_PURPOSE(req.query.purpose);
+                }
 
-                user = req.dxc.sess.getUserAccount();
+                if(!DexcaliburProject.VALIDATE.uid.test(req.query.uid)){
+                    throw DexcaliburProjectException.INVALID_UUID_FMT(req.query.uid as string);
+                }
+
+                const unsafeUUID = req.query.uid as string;
+                const unsafePurpose = (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY);
+
+
+                let nodes = $.context.getNodeManager().getNodeByProject(unsafeUUID);
+
+                if(nodes.length>0){
+                    if(unsafePurpose!=NodePurpose.ANY){
+                        nodes = EngineNodeManager.filterNodesByPurpose(nodes, unsafePurpose);
+                    }
+
+                    if(nodes.length>0){
+                        nodes = EngineNodeManager.filterNodesByState(nodes, NodeState.IDLE);
+                        if(nodes.length>0){
+                            // search a free node and link it to user account
+                            const freshNode = await $.context.getNodeManager()
+                                .allocateNode(nodes, req.user);
+
+                            if(freshNode != null){
+                                $.sendSuccess( res, {
+                                    ready: true,
+                                    node: freshNode.getUID()
+                                });
+                            }
+                        }
+                    }
+
+                }
+
+                // filter
+
+                const targetNode = await $.context.getProjectManager().open(
+                    req.user,
+                    unsafeUUID,
+                    (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY)
+                );
+
+
+                const subscription = targetNode.nodeState$.subscribe((vChange)=>{
+                    if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
+                        subscription.unsubscribe();
+                        $.sendSuccess(res, {
+                            ready: true,
+                            node: vChange.nodeUUID
+                        });
+                    }
+                })
+
+
+                if(!$.context.getNodeManager().isCurrentNode(targetNode)){
+                    // current node is standalone or slave node
+                    //$.context.getProjectManager().
+                    targetNode.appendRequestToQueue($, req, res);
+                }else{
+                    $.sendSuccess( res, {});
+                }
+
+                /*
+                user = req.user;
 
                 // refresh connected device
                 await DeviceManager.getInstance().scan();
@@ -673,16 +741,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
-                // standalone mode
-                /*
-                AccessControl.check(
-                    AccessZone.PROJECT,
-                    AccessControl.access.PROJ_OPEN_OWN,
-                    project,
-                    req.dxc.sess.getUserAccount()
-                );
-
-                 */
 
                 if(project != null){
 
@@ -696,13 +754,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     // if the project is already opened, it is set as active (foregrounf) project
                     (req.dxc.sess as UserSession).setDefaultActiveProject(project);
 
-                    /*
-                    if($.project == null){
-                        $.setProject( project);
-                    }
-                    else if($.project != null && $.project.getUID()!==req.query.uid){
-                        $.setProject( project);
-                    }*/
 
                     if(project.isReady()){
                         $.sendSuccess( res, {});
@@ -724,23 +775,16 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                     if(nodes.length==0){
                         // create node
-                        const node = $.context.nodeManager.createNode(req.query.uid as string);//, project.getDevice().getProfile().os);
+                        const node = $.context.nodeManager.createNode(req.query.uid as string, NodePurpose.REVIEW);//, project.getDevice().getProfile().os);
                         node.appendRequestToQueue($, req, res);
-                        await node.spawn("The user request to open an  existing project.",true);
+                        await node.spawn("The user request to open an  existing project.",false);
 
                     }else{
                         nodes[0].appendRequestToQueue($, req, res);
                     }
-                     //await node.forwardWebRequest(req, res);
-
-                    // END ----
-                    //$.sendSuccess( res, { node: node.UUID });
-                    //return;
 
                 }else{
 
-
-                    // init workflow
                     wf = $.context.newWorkflow( req.query.uid  as string ).changeOwner(user);
 
                     wf.pushStatus(new StatusMessage(5, "Opening project"));
@@ -754,7 +798,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     }else{
                         throw DexcaliburProjectException.OPEN_PROJECT_FAILURE(req.query.uid);
                     }
-                }
+                }*/
 
 
             }catch(err){
@@ -810,10 +854,10 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
-PROJECT_MGT_WEB_API.addAuthenticatedRoute(
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/availability',
     {
-        'get':  (req:DelegateRequest, res:DelegateResponse)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             let $:WebServer = req.dxc.$;
             let availability:boolean = true;
@@ -845,7 +889,7 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
 );
 
 
-PROJECT_MGT_WEB_API.addAuthenticatedRoute(
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/logs',
     {
         'get':  async (req:DelegateRequest, res:DelegateResponse)=>{

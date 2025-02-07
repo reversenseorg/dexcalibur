@@ -12,15 +12,17 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
 import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
 import { Node } from "../INode.js";
+import {ProjectManagerException} from "../errors/ProjectManagerException.js";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
-export const KEYPOINT_WEB_API: DelegateWebApi = new DelegateWebApi();
+export const KEYPOINT_WEB_API: DelegateWebApi = new DelegateWebApi('KEYPOINTS');
 
 /*
-KEYPOINT_WEB_API.addAuthenticatedRoute(
+KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     '/search',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -61,18 +63,24 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 );*/
 
 
-KEYPOINT_WEB_API.addAuthenticatedRoute(
+KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     '/list',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
 
-                // ========== LOGIC
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
+
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
+                }
 
                 // get hook instance by ID
-                const kpm:KeyPointManager = req.dxc.project.getKeyPointManager();
+                const kpm:KeyPointManager = req.project.getKeyPointManager();
                 const o:KeyPoint[] = [];
 
                 (await kpm.getKeyPoints()).map( (x:KeyPoint)=>{
@@ -85,20 +93,28 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
             }
         }
     },{
-        readProject: true,
-        readProjectStrict: true
+        async: true
     }
 );
 
-KEYPOINT_WEB_API.addAuthenticatedRoute(
+KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     '/new',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             let kp:KeyPoint;
 
             try{
+
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
+
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
+                }
+
                 // ========== LOGIC
                 // get hook instance by ID
                 // const uid =  KeyPoint.TYPE.getPrimaryKey().sanitize(req.params['uid']); //KeyPoint.TYPE.
@@ -106,14 +122,12 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 const node = new (targetNodeType.getBuilder())({});
                 targetNodeType.setPrimaryKeyValueOf(node, req.body['target']._uid)
 
-                kp = await ((req.dxc.project as DexcaliburProject)
+                kp = await ((req.project as DexcaliburProject)
                     .getKeyPointManager()
                     .createKeyPoint(
                         node,
                         req.body['opts']
                     ));
-
-                console.log(kp);
 
                 $.sendSuccess(res,  kp.toJsonObject());
             }catch(err){
@@ -122,33 +136,48 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
             }
         },
     },{
-        readProject: true
+        async: true
     }
 );
 
 
-KEYPOINT_WEB_API.addAuthenticatedRoute(
+KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     '/edit/:uid',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
-                $.sendSuccess(res, (await req.dxc.project.getKeyPointManager().getKeyPointByAttr({name:req.params['uid']})).toJsonObject());
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
+
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
+                }
+
+                $.sendSuccess(res, (await req.project.getKeyPointManager().getKeyPointByAttr({name:req.params['uid']})).toJsonObject());
             }catch(err){
                 Logger.error("[API][KEY POINTS] Key Point cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Key Point cannot be retrieved. Cause : " + err.message);
             }
         },
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
 
-                // ========== LOGIC
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
+
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
+                }
+
                 // get hook instance by ID
                // const uid =  KeyPoint.TYPE.getPrimaryKey().sanitize(req.param['uid']); //KeyPoint.TYPE.
-                const kp:KeyPoint = await req.dxc.project.getKeyPointManager().getKeyPointByAttr({name:req.body.uid});
+                const kp:KeyPoint = await req.project.getKeyPointManager().getKeyPointByAttr({name:req.body.uid});
                 const unsafeData = req.body.opts
 
                 for(const unsafePPT in unsafeData){
@@ -183,7 +212,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 }
 
 
-                await req.dxc.project.getKeyPointManager().update(kp);
+                await req.project.getKeyPointManager().update(kp);
 
                 $.sendSuccess(res,  {});
             }catch(err){
@@ -191,14 +220,20 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Key Point cannot be updated. Cause : " + err.message);
             }
         },
-        'delete': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'delete': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
 
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
+                }
                 // ========== LOGIC
                 // get hook instance by ID
-                const kpm:KeyPointManager = req.dxc.project.getKeyPointManager();
+                const kpm:KeyPointManager = req.project.getKeyPointManager();
                 let removedCtr:number;
 
                 const kp:KeyPoint = await kpm.getKeyPointByAttr({name:req.params['uid']});
@@ -219,20 +254,29 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
             }
         }
     },{
+        async: true,
         readProject: true
     }
 );
 
 
-KEYPOINT_WEB_API.addAuthenticatedRoute(
+KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     '/remove/token',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
+
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
+                }
+
                 // ========== LOGIC
-                const kpm:KeyPointManager = req.dxc.project.getKeyPointManager();
+                const kpm:KeyPointManager = req.project.getKeyPointManager();
                 const unsafeToken = req.body['token'];
 
                 const nb = await kpm.removeByToken(unsafeToken);
@@ -247,23 +291,31 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
             }
         },
     },{
+        async: true,
         readProject: true
     }
 );
 
 
 
-KEYPOINT_WEB_API.addAuthenticatedRoute(
+KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     '/enable',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
-                // ========== LOGIC
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
+
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
+                }
+
                 const unsafeKeypointID = req.body['kp'];
                 const unsafeEnable = parseInt(req.body['enable'], 10);
-                const project:DexcaliburProject = req.dxc.project;
+                const project:DexcaliburProject = req.project;
 
                 if( unsafeEnable > 1 || unsafeEnable < 0){
                     throw new KeyPointManagerException("Key point status not supported. Value : 1 or 0");
@@ -280,24 +332,32 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
             }
         },
     },{
+        async: true,
         readProject: true
     }
 );
 
 
-KEYPOINT_WEB_API.addAuthenticatedRoute(
+KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     '/attach/hook',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
-                // ========== LOGIC
-                const kpm:KeyPointManager = req.dxc.project.getKeyPointManager();
+                if(req.project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
+
+                if(!req.project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
+                }
+
+                const kpm:KeyPointManager = req.project.getKeyPointManager();
                 const unsafeHookID = req.body['hook'];
                 const unsafeKeypointID = req.body['kp'];
                 const unsafeHookAction = req.body['type'];
-                const project:DexcaliburProject = req.dxc.project;
+                const project:DexcaliburProject = req.project;
 
                 if( ['load','unload'].indexOf(unsafeHookAction) == -1){
                     throw new KeyPointManagerException("Type of hook action not supported. Value : load/unload")

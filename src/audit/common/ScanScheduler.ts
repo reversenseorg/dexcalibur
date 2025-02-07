@@ -9,6 +9,14 @@ import {AssuranceScanner} from "./AssuranceScanner.js";
 import {LicenceManager} from "../../credit/LicenceManager.js";
 import AssuranceReport from "./AssuranceReport.js";
 import {ACTION_DATE} from "../../common/ActionDates.js";
+import {UserAccount} from "../../user/UserAccount.js";
+import {ApplicationUnit} from "../../organization/ApplicationUnit.js";
+import {Workflow} from "../../Workflow.js";
+import {ProjectManagerException} from "../../errors/ProjectManagerException.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
+import {AuditManagerException} from "../errors/AuditManagerException.js";
+import {BusinessPlan} from "../../billing/BusinessPlan.js";
 
 /**
  * Present a scan scheduler
@@ -79,31 +87,80 @@ export class ScanScheduler {
      * @param pProject
      * @param pOrder
      */
-    async newStandaloneScan(pProject:DexcaliburProject, pOrder:ScanOrder):Promise<AssuranceReport> {
-        const edb = this._ctx.getEngineDB();
-        const am = AuditManager.getInstance();
+    async newStandaloneScan(pUser:UserAccount, pProject:DexcaliburProject,
+                            pOrder:ScanOrder, pOrg:Nullable<OrganizationUnit> = null):Promise<AssuranceReport> {
 
+
+        if(pOrg==null){
+            throw AuditManagerException.CANNOT_SCAN_ORG_IS_MANDATORY();
+        }
+
+        const edb = this._ctx.getEngineDB();
+        const am = this._ctx.getAuditManager();
+
+        let wf:Workflow, project:DexcaliburProject;
+
+        // prepare project if it is not yet ready
+        if(!pProject.isReady()){
+            wf = new Workflow({
+                uid: `${pProject.getUID()}:scan:${(new Date()).getTime()}`
+            });
+            project = await DexcaliburProject.load(this._ctx, pProject.getUID(), pUser, null, wf);
+        }else{
+            project = pProject;
+            wf = pProject.getWorkflow();
+        }
 
         console.log("order save NEW SCAN ORDER> ",await edb.save(pOrder));
         //await edb.save(pOrder);
 
-        const model = await am.getModelFor(pProject, pOrder.getModelUID());
-        const scanner:AssuranceScanner = LicenceManager.getProduct(pProject,model.scannerID) as AssuranceScanner;
+        // to check if the organization is allowed to execute the scan order
+        /*if(pOrg!=null && pOrg.getBusinessPlan()==null){
+            pOrg.setBusinessPlan(BusinessPlan.newSubscription(pOrg,3{
+                concur
+            }));
+        }*/
 
-        const opts = scanner.validateOptions(pOrder.options);
+        this._ctx.getOrgManager().verifyScanBalance(pOrder);
 
-        scanner.setModel(model);
+        const model = await am.getModelFor(pUser, project, pOrder.getModelUID());
+
+
+        //const scanner:AssuranceScanner = LicenceManager.getProduct(project,model.scannerID) as AssuranceScanner;
+
+        //const opts = scanner.validateOptions(pOrder.options);
+
+        //console.log(scanner);
+        //scanner.setModel(model);
 
         pOrder.setState(ScanState.RUNNING);
         pOrder.setDate( ACTION_DATE.START );
 
 
-        console.log("order save BEFORE SCAN START> ",await edb.save(pOrder));
         //await edb.save(pOrder);
+
+        // check if the project is ready
+        if(!project.isReady()){
+            // load graph
+            await project.fullscan();
+        }
+
+        if(!project.isReady()){
+            //throw ScanSchedulerException.PROJECT_NOT_READY(project.getUID());
+            throw ProjectManagerException.PROJECT_NOT_LOADED(project.getUID(),"scan-scheduler-new")
+        }
 
         // check credit
         //scanner.hasCredit()
-        await scanner.run(pProject, opts);
+
+        //const report =await am.scan(pUser, pProject, pOrder.getUID());
+        const report =await am.orgScan(pUser, pOrg, project, pOrder.getModelUID());
+
+        if(pOrder.appUnit!=null){
+            report.application = pOrder.appUnit;
+        }
+
+        //await scanner.run(project, opts);
         pOrder.setDate( ACTION_DATE.STOP );
         pOrder.setState(ScanState.GENERATE_REPORT);
 
@@ -111,9 +168,9 @@ export class ScanScheduler {
         //await edb.save(pOrder);
 
         // get report
-        const report = scanner.getReport();
+        //const report = scanner.getReport();
         // save report
-        am.saveReport(pProject, report);
+        am.saveReport(project, report);
         //pOrder.report = report;
         pOrder.setState(ScanState.TERMINATED);
         console.log("order save TERMINATED> ",await edb.save(pOrder));
@@ -138,7 +195,7 @@ export class ScanScheduler {
         // check ressources quotas
         if(node == null){
             // start a new node
-            node = this._ctx.nodeManager.createNode(pOrder.settings.projectUID, null); //, pOrder.settings.targetOS);
+            node = await this._ctx.nodeManager.createNode(pOrder.settings.projectUID, NodePurpose.SCAN); //, pOrder.settings.targetOS);
             node.start("New scan ordered");
         }
 
@@ -173,9 +230,23 @@ export class ScanScheduler {
      *
      * @param pProject
      */
-    async listAllOrders():Promise<ScanOrder[]> {
-        return await (this._ctx.getEngineDB().getCollectionOf(new ScanOrder()).getAsList());
+    async listAllOrders(pUserAccount:UserAccount):Promise<ScanOrder[]> {
+        return await (this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType())
+            .getAsList());
     }
+
+    /**
+     * To list orders from a project
+     *
+     * @param pProject
+     */
+    async listOrdersByApp(pUserAccount:UserAccount, pApp:ApplicationUnit):Promise<ScanOrder[]> {
+
+        // list projects in app unit
+        return await (this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType()))
+            .search({ filter: { 'settings.projectUID': { $in: pApp.getReleases() } } }, {raw:true});
+    }
+
 
     /*
     start(pDelay = 0):ScanFlow[] {

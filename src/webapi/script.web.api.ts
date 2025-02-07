@@ -31,10 +31,10 @@ function doSecurityChecks( pRequest:DelegateRequest, pWebServer:WebServer):Dexca
 /**
  * /api/application/cmp?type=[dex|ks|libs|strings] ...
  */
-SCRIPT_WEB_API.addAuthenticatedRoute(
+SCRIPT_WEB_API.addAsyncAuthenticatedRoute(
     '/list',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -68,10 +68,10 @@ SCRIPT_WEB_API.addAuthenticatedRoute(
  * Script CRUD
  * Route : /edit/:sid
  */
-SCRIPT_WEB_API.addAuthenticatedRoute(
+SCRIPT_WEB_API.addAsyncAuthenticatedRoute(
     '/edit/:sid',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -92,7 +92,7 @@ SCRIPT_WEB_API.addAuthenticatedRoute(
                 req.dxc.$.sendError( res, err.message);
             }
         },
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async (req:DelegateRequest, res:DelegateResponse) =>{
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -116,10 +116,10 @@ SCRIPT_WEB_API.addAuthenticatedRoute(
     }
 );
 
-SCRIPT_WEB_API.addAuthenticatedRoute(
+SCRIPT_WEB_API.addAsyncAuthenticatedRoute(
     '/delete',
     {
-        'delete': function (req:DelegateRequest, res:DelegateResponse):any {
+        'delete': async (req:DelegateRequest, res:DelegateResponse) =>{
             try{
                 if(req.dxc.project == null){
                     throw new Error("Project UID is missing or you have not right privileges.")

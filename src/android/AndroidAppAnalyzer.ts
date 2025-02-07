@@ -1038,6 +1038,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return this.manifest;
 	}
 
+
 	async scan(path:string):Promise<boolean>{
 		return this.importManifest(path);
 	}
@@ -1071,6 +1072,37 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 
 		return res;
+	}
+
+
+	/**
+	 * To check if the current project has some missing, extractible, metadata
+	 *
+	 * @returns {boolean}
+	 * @method
+	 */
+	hasMissingMeta():boolean {
+		return (this.context.meta.versionName ==null)
+			|| (this.context.meta.version ==null)
+			|| (this.context.meta.minVersion ==null)
+			|| (this.context.meta.targetVersion ==null)
+			|| (this.context.meta.label ==null);
+	}
+
+	/**
+	 * To import meta data from package into project
+	 *
+	 * @method
+	 */
+	async importMeta():Promise<boolean> {
+
+		this.context.meta.versionName = this.manifest.getAttrVersionName();
+		this.context.meta.version = this.manifest.getAttrVersionCode();
+		this.context.meta.minVersion = this.manifest.getMinSdkVersion();
+		this.context.meta.targetVersion = this.manifest.getTargetSdkVersion();
+		this.context.meta.label = this.manifest.getApplication().getName();
+
+		return true;
 	}
 
     /**

@@ -71,7 +71,7 @@ export const DYNAMICLOADER_WEB_API: DelegateWebApi = new DelegateWebApi();
 DYNAMICLOADER_WEB_API.addPublicRoute(
     '/info',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
 
             const $: WebServer = req.dxc.$;
 
@@ -98,10 +98,10 @@ DYNAMICLOADER_WEB_API.addPublicRoute(
 /**
  * /api/application/cmp?type=[dex|ks|libs|strings] ...
  */
-DYNAMICLOADER_WEB_API.addAuthenticatedRoute(
+DYNAMICLOADER_WEB_API.addAsyncAuthenticatedRoute(
     '/show/:action',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;

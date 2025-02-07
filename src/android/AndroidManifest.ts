@@ -10,7 +10,15 @@ import {
     AndroidSupportedScreen
 } from "./DeviceComponent.js";
 import {AndroidRRO} from "./AndroidRRO.js";
-import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {
+    DbDataType,
+    DbKeyType,
+    INode,
+    NodeProperty,
+    NodePropertyState,
+    NodeType, SerializeOptions,
+    TagUUID
+} from "@dexcalibur/dexcalibur-orm";
 import {IntentFilter} from "./IntentFilter.js";
 import ModelClass from "../ModelClass.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
@@ -24,7 +32,7 @@ export interface AndroidSharedUser {
     maxSdkVersion: Nullable<number>;
 }
 
-export class AndroidManifest
+export class AndroidManifest implements INode
 {
 
     static TYPE:NodeType = (new NodeType( "androidManifest", NodeInternalType.ANDROID_MANIFEST, [
@@ -38,6 +46,8 @@ export class AndroidManifest
         .dataSource("PROJECT_DB"); //, "androidActivity");
 
     __:NodeInternalType = NodeInternalType.ANDROID_MANIFEST;
+
+    uuid:string;
 
     attributes:AndroidAttributeSet = {};
 
@@ -64,8 +74,9 @@ export class AndroidManifest
     __context:DexcaliburProject = null;
     __additionalContent:any = {};
 
-    constructor(ctx:DexcaliburProject=null){
+    tags:TagUUID[] = [];
 
+    constructor(ctx:DexcaliburProject=null){
 
         this.usesSdk = {
             'android:minSdkVersion': null,
@@ -73,6 +84,10 @@ export class AndroidManifest
         };
 
         this.__context = ctx;
+    }
+
+    getUID(): string | null {
+        return this.uuid;
     }
 
     static fromXml(config:any, context:DexcaliburProject){
@@ -407,4 +422,30 @@ export class AndroidManifest
 
         return info;
     }
+
+    toJsonObject(pOption?: SerializeOptions): any {
+        const o = {
+            uuid: this.uuid,
+            attributes: {},
+            usesPermissions: [],
+            permissions: [],
+            permissionTrees: [],
+            permissionGroups: [],
+            instrumentation: [],
+            usesPermissionsSdk23: [],
+            usesSdk: {},
+            usesConfiguration: [],
+            usesFeatures: [],
+            supportsScreens: [],
+            compatibleScreens: [],
+            supportsGlTextures: [],
+            application: this.application,
+            overlays: [],
+            __additionalContent: {},
+            tags: []
+        }
+
+        return o;
+    }
 }
+AndroidManifest.TYPE.builder(AndroidManifest);

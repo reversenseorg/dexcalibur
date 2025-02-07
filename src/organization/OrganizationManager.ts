@@ -15,14 +15,14 @@ import {AuthModule, AuthModuleOptions} from "../user/auth/AuthModule.js";
 import {LocalAuthModule} from "../user/auth/modules/LocalAuthModule.js";
 import {AuthenticationSettings} from "../user/auth/AuthenticationSettings.js";
 import {AuthModuleFactory} from "../user/auth/AuthModuleFactory.js";
-import {ApplicationUnit} from "./ApplicationUnit.js";
+import {ApplicationUnit, ApplicationUnitUUID} from "./ApplicationUnit.js";
 import Role, {RoleUUID} from "../user/acl/common/Role.js";
 import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
 import {EmailSender} from "../core/email/EmailSender.js";
 import {Connection, ConnectionUUID} from "./conn/Connection.js";
 import {Secret, SecretUUID} from "../core/secrets/Secret.js";
 import {Device, DeviceUUID} from "../Device.js";
-import DexcaliburProject from "../DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 import {VdevEvent, VdevEventType} from "../device/maker/VdevEvent.js";
 import {DEVICE_WEB_API} from "../webapi/device.web.api.js";
@@ -31,6 +31,8 @@ import {ProjectOrder} from "../project/ProjectOrder.js";
 import {ProjectSchedulerException} from "../errors/ProjectSchedulerException.js";
 import {BusinessPlan, BusinessPlanType, ResourceThresholds} from "../billing/BusinessPlan.js";
 import {ErrorCode} from "../errors/MonitoredError.js";
+import {ScanOrder} from "../audit/common/ScanOrder.js";
+import {ProductType} from "../billing/Purchase.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -254,6 +256,7 @@ export class OrganizationManager {
             [
                 OrganizationAccessControl.attr.OWNER,
                 OrganizationAccessControl.attr.ORG_MEMBER,
+                OrganizationAccessControl.attr.APP_MEMBER,
             ]
         );
 
@@ -507,6 +510,8 @@ export class OrganizationManager {
             .getCollectionOf(ApplicationUnit.TYPE.getType())
             .asyncAddEntry({ uuid: uuid}, pApp);
 
+        // create app subscription
+        // this.activateApplicationSubscription()
 
         return app;
     }
@@ -706,6 +711,31 @@ export class OrganizationManager {
             }catch (err){
             }
         });
+
+        return authorized;
+    }
+
+    /**
+     * To retrieve the list of authorized application unit
+     *
+     * @param pUserAccount
+     * @param pOrg
+     */
+    async listApplicationsByUser(pUserAccount: UserAccount):Promise<ApplicationUnit[]> {
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_READ,
+            pUserAccount
+        );
+
+        const authorized = await (this._ctx.getEngineDB()
+            .getCollectionOf(ApplicationUnit.TYPE.getType()) as MongodbDbCollection)
+            .search({
+                    filter: OrganizationAccessControl.getAppMembersFilter(pUserAccount.getUID())
+                },
+                { merlinRequest:false, raw:true }) as ApplicationUnit[];
+
+        //const authorized:ApplicationUnit[] = [];
 
         return authorized;
     }
@@ -940,6 +970,28 @@ export class OrganizationManager {
             return true;
         }else{
             throw OrganizationManagerException.CANNOT_UPDATE_CONNECTION(pOrg.getUID(),pConn.getUID());
+        }
+    }
+
+    async updateBusinessPlan(pUserAccount:UserAccount, pOrg: OrganizationUnit):Promise<void> {
+
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_MODIFY,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['businessPlan'] })){
+
+        }else{
+            throw OrganizationManagerException.CANNOT_UPDATE_BUSINESSPLAN(pOrg.getUID());
         }
     }
 
@@ -1365,6 +1417,53 @@ export class OrganizationManager {
         }
     }
 
+    /**
+     * to verify balance before to execute a ProjectOrder
+     *
+     * @param {ProjectOrder} pOrder
+     */
+    async verifyScanBalance(pOrder:ScanOrder):Promise<void> {
+
+        const ouid = pOrder.getOrganizationUnit();
+
+        if(!OrganizationUnit.VALIDATE.uuid.test(ouid)){
+            throw ProjectSchedulerException.CANNOT_VERIFY_ORG_BALANCE(ouid);
+        }
+
+        const org = await this.getOrganization(this._ctx.getInternalAcc(), ouid);
+        let bp:BusinessPlan;
+
+        try {
+            bp = org.getBusinessPlan();
+        }catch (e){
+            if(e.code==ErrorCode.ORGANIZATION + 31){
+                org.setBusinessPlan(BusinessPlan.newSubscription(
+                    org,
+                    {
+                        concurrentNodes: 3
+                    }
+                ));
+                await this._ctx.getEngineDB().save(org);
+                bp = org.getBusinessPlan();
+            }
+        }
+
+        const model = await this._ctx.getAuditManager()
+            .getModelByUID(
+                this._ctx.getInternalAcc(),
+                pOrder.getModelUID());
+
+        if(model==null){
+            throw OrganizationManagerException
+                .CANNOT_VERIFY_SCAN_BALANCE(`Assurance model [uuid=${pOrder.getModelUID()}] not found.`);
+        }
+
+        if(!bp.canPerformScan(model.getScannerID())){
+            throw OrganizationManagerException
+                .SCAN_LICENSE_VIOLATION(org.getUID(),model.getUID());
+        }
+    }
+
 
 
     async getOrganizationThresholds( pAccount:UserAccount, pOrgUUID:OrganizationUnitUUID):Promise<ResourceThresholds> {
@@ -1393,6 +1492,54 @@ export class OrganizationManager {
             }else{
                  throw err;
             }
+        }
+    }
+
+    /**
+     * To check if there is an activated license for a subscription of the target app
+     *
+     * @param pOrg
+     * @param pTarget
+     */
+    async isLicenseActivated( pOrg: OrganizationUnit,
+                              pTarget:DexcaliburProjectUUID|ApplicationUnitUUID):Promise<boolean>{
+
+        let bp = pOrg.getBusinessPlan();
+        if(bp==null){
+            Logger.info(`Business plan is missing for org ${pOrg.getUID()}`);
+            return false;
+        }
+
+        return bp.hasSubscriptionFor(pTarget);
+    }
+
+    /**
+     *
+     * @param pUser
+     * @param pOrg
+     * @param pType
+     * @param pTarget
+     */
+    async activateLicense( pUser:UserAccount,
+                           pOrg:OrganizationUnit,
+                           pType:ProductType,
+                           pTarget:DexcaliburProjectUUID|ApplicationUnitUUID):Promise<boolean> {
+
+
+        if(pType==ProductType.APP){
+            await this._ctx.getAuditManager().activateApplicationSubscription(
+                pUser, pOrg, pTarget
+            );
+
+            return await this.isLicenseActivated(pOrg, pTarget);
+        }else if(pType==ProductType.SCAN){
+            await this._ctx.getAuditManager().activateApplicationScan(
+                pUser, pOrg, pTarget
+            );
+
+            return true;
+        }else{
+            throw OrganizationManagerException.PRODUCT_NOT_SUPPORTED(pType);
         }
     }
 }

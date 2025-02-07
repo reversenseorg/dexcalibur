@@ -21,7 +21,7 @@ export const INSPECTOR_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
 /*
-INSPECTOR_WEB_API.addAuthenticatedRoute(
+INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
     '/inspectors/:inspectorID',
     {
         'get': function (req:DelegateRequest, res:DelegateResponse):any {
@@ -85,10 +85,10 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
 /**
  *  Middleware to route requests to Inspector's web API
  */
-INSPECTOR_WEB_API.addAuthenticatedRoute(
+INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
     '/inspector-api/:inspectorID',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -115,7 +115,7 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
 
 
         },
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async (req:DelegateRequest, res:DelegateResponse) =>{
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -149,10 +149,10 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
  * To list all inspectors
  *
  */
-INSPECTOR_WEB_API.addAuthenticatedRoute(
+INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
     '/inspectors/list',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -183,10 +183,10 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
 /**
  * .../inspector/state?inspector=<UID>&_puid=<PUID>
  */
-INSPECTOR_WEB_API.addAuthenticatedRoute(
+INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
     '/inspector/state',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -223,10 +223,10 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
 
 
 
-INSPECTOR_WEB_API.addAuthenticatedRoute(
+INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
     '/inspector/list',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;

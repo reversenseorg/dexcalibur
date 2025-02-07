@@ -31,7 +31,7 @@ export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
 HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/app/detach',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -64,7 +64,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/app/kill',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -101,7 +101,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/frida/exec',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -175,7 +175,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/frida/build',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -197,7 +197,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/strategies',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -218,10 +218,10 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/global/opts',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -243,10 +243,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 );
 
 // replace /hook/:id by /hook/get/:id
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/get/:hookid',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>  {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -280,7 +280,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook cannot be retrieved. Cause : " + err.message);
             }
         },
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async (req:DelegateRequest, res:DelegateResponse) =>  {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -308,7 +308,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook cannot be edited. Cause : " + err.message);
             }
         },
-        'delete': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'delete': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -343,10 +343,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
     }
 );
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/getBy/inspector',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>  {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -385,10 +385,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
 
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/enable/:hookid',
     {
-        'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'put': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
             try{
@@ -431,10 +431,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 );
 
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/disable/:hookid',
     {
-        'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'put': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -483,10 +483,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
 
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/list',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -568,10 +568,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
     }
 );
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/list/kp/:id',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -622,15 +622,14 @@ HOOK_WEB_API.addAuthenticatedRoute(
 HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/start',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
-
                 project = req.dxc.project;
 
-                let sess:HookSession = await this.newSession();
+                let sess:HookSession = await req.project.getHookManager().newSession();
 
                 switch(req.body.type){
                     case "spawn-self":
@@ -669,8 +668,6 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, " Hooking cannot be started. Cause : " + err.message);
             }
         }
-    },{
-        readProject: true
     }
 );
 
@@ -680,7 +677,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/libs/update',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -704,7 +701,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/download',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -741,10 +738,10 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
  * To retrieve the list of sessions
  *
  */
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/sessions',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -814,10 +811,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
 
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/msg',
     {
-        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -908,10 +905,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 );
 
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/flush/:type',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) =>  {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -949,10 +946,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 );
 
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/new/:method',
     {
-        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -1109,7 +1106,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook messages cannot be retrieved. Cause : " + err.message);
             }
         },
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async (req:DelegateRequest, res:DelegateResponse) =>  {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 

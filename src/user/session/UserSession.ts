@@ -2,14 +2,13 @@ import {UserAccount} from "../UserAccount.js";
 import {SessionCode, SessionException} from "./SessionException.js";
 import Util from "../../Utils.js";
 import {ConnectionHandler, ConnectionHandlerMap} from "../../remote/ConnectionHandler.js";
-import DexcaliburEngine, {DexcaliburProjectMap} from "../../DexcaliburEngine.js";
-import DexcaliburProject from "../../DexcaliburProject.js";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../../DexcaliburProject.js";
 import AccessControl from "../acl/AccessControl.js";
-import {AccessZone} from "../acl/Zones.js";
 import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol.js";
 import {IDexcaliburEngine} from "../../IDexcaliburEngine.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "../../persist/orm/IPersistent.js";
 import {SessionData} from "./SessionData.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
@@ -77,7 +76,7 @@ export class UserSession implements IPersistent, INode {
 
     // uid of project associated to the current session
     // TODO : add instance UID instead of project UID
-    _project: DexcaliburProjectMap = {};
+    _project: Record<DexcaliburProjectUUID, DexcaliburProject> = {};
     _defaultProject: DexcaliburProject = null;
 
     _data:Record<string, SessionData> = {};

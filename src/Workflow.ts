@@ -11,6 +11,7 @@ import {Access} from "./user/acl/Access.js";
 import AccessControl from "./user/acl/AccessControl.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {INode} from "@dexcalibur/dexcalibur-orm";
+import {Subject, Subscription} from "rxjs";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -41,12 +42,15 @@ export interface WorkflowOptions {
  */
 export class Workflow extends Auditable {
 
+
     /**
      * Workflow uid
      * @field
      * @type {string}
      */
     uid:string = "";
+
+    msg$:Subject<StatusMessage>;
 
     /**
      * Hold status
@@ -87,6 +91,8 @@ export class Workflow extends Auditable {
     private _m:string = "";
 
     private _parent:Nullable<INode> = null;
+
+    private _followSubs:Nullable<Subscription> = null;
 
     constructor( pConfig:WorkflowOptions = {}) {
         super(null);
@@ -136,7 +142,10 @@ export class Workflow extends Auditable {
     pushStatus(pMsg:StatusMessage):void {
         pMsg.msg = (this._m.length>0? this._m+' : ':'')+pMsg.msg;
         this.msgs.push(pMsg.addProgress(this.activeStep));
+
         this._t = pMsg.progress;
+
+        this.msg$.next(pMsg.addProgress(this.activeStep));
         this.sendStatusToFollowers();
     }
 
@@ -258,6 +267,17 @@ export class Workflow extends Auditable {
 
     setParent(pParent:INode):void {
         this._parent = pParent;
+    }
+
+    start():void {
+        this.msg$ = new Subject<StatusMessage>();
+        this._followSubs =  this.msg$.subscribe(()=>{
+            this.sendStatusToFollowers();
+        })
+    }
+
+    isStarted():boolean{
+        return (this._followSubs!=null);
     }
 
     /**

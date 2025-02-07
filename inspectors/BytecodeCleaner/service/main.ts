@@ -806,10 +806,10 @@ const PLUGIN_WEB_API: DelegateWebApi = new DelegateWebApi();
 /**
  * /api/application/cmp?type=[dex|ks|libs|strings] ...
  */
-PLUGIN_WEB_API.addAuthenticatedRoute(
+PLUGIN_WEB_API.addAsyncAuthenticatedRoute(
     '/:action',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;

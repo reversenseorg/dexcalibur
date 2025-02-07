@@ -19,6 +19,14 @@ export default class IosAppAnalyzer implements IAppAnalyzer
         return true;
     }
 
+    async importMeta():Promise<boolean>{
+        return true;
+    }
+
+    hasMissingMeta():boolean {
+        return false;
+    }
+
     /**
      * To restore the analyzer state
      *

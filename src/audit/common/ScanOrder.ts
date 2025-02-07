@@ -17,6 +17,8 @@ import {ModelVariable} from "../../ModelVariable.js";
 import {ModelNativeRef} from "../../ModelNativeRef.js";
 import {AbstractHook} from "../../hook/AbstractHook.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {ApplicationUnitUUID} from "../../organization/ApplicationUnit.js";
+import {OrganizationUnitUUID} from "../../organization/OrganizationUnit.js";
 
 export interface ScanOrderSettings {
     modelUID?: string;
@@ -24,6 +26,7 @@ export interface ScanOrderSettings {
     targetOS?: string;
     projectUID?: string;
     fileUploadID?:string;
+    orgUnit?:OrganizationUnitUUID
 }
 
 
@@ -80,6 +83,10 @@ export class ScanOrder implements INode {
             (new NodeProperty("webhook")).type(DbDataType.STRING),
             (new NodeProperty("settings")).type(DbDataType.STRING),
             (new NodeProperty("signatures")).type(DbDataType.STRING),
+
+            (new NodeProperty("appUnit")).type(DbDataType.STRING),
+            (new NodeProperty("orgUnit")).type(DbDataType.STRING),
+
             (new NodeProperty("appPath")).type(DbDataType.STRING),
             (new NodeProperty("options")).type(DbDataType.STRING).def({}),
             (new NodeProperty("dates")).type(DbDataType.STRING).def({ }),
@@ -114,6 +121,16 @@ export class ScanOrder implements INode {
     webhook:Nullable<string> = null;
 
     settings:ScanOrderSettings;
+
+    /**
+     * @since 1.0.34
+     */
+    appUnit?:Nullable<ApplicationUnitUUID>;
+
+    /**
+     * @since 1.0.34
+     */
+    orgUnit?:Nullable<OrganizationUnitUUID>;
 
     signatures:Nullable<string> = null;
 
@@ -217,6 +234,18 @@ export class ScanOrder implements INode {
     setState(pState:ScanState):void {
         this.state = pState;
         this.stateDates[pState] = (new Date()).getTime();
+    }
+
+    hasModel():boolean {
+        return (this.settings.modelUID!=null);
+    }
+
+    getOrganizationUnit():Nullable<OrganizationUnitUUID>{
+        return  this.orgUnit;
+    }
+
+    getApplicationUnit():Nullable<ApplicationUnitUUID>{
+        return  this.appUnit;
     }
 
     toJsonObject(pOptions?:SerializeOptions):any {

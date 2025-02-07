@@ -75,7 +75,7 @@ import {InternalSecretManager} from "./core/InternalSecretManager.js";
 import {ApplicationUnit} from "./organization/ApplicationUnit.js";
 import {Device} from "./Device.js";
 import AvdHelper from "./device/maker/AvdHelper.js";
-import {EngineNodeUUID} from "./core/EngineNode.js";
+import {EngineNode, EngineNodeUUID} from "./core/EngineNode.js";
 import {ProjectScheduler} from "./project/ProjectScheduler.js";
 
 /*
@@ -188,11 +188,6 @@ switch(process.platform){
 enum MODE {
     INSTALL,
     NORMAL
-}
-
-
-export interface DexcaliburProjectMap {
-    [uid:string] :DexcaliburProject
 }
 
 
@@ -350,6 +345,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     projMgr:ProjectManager = null;
 
+    /**
+     * Audit manager
+     * @type {AuditManager}
+     * @field
+     */
+    auditMgr:AuditManager = null;
 
     /**
      * External tool manager
@@ -369,7 +370,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * To hold active projects
      * @field
      */
-    active:DexcaliburProjectMap = {};
+    active:Record<DexcaliburProjectUUID, DexcaliburProject> = {};
 
 
     /**
@@ -556,6 +557,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.projectScheduler = new ProjectScheduler(this);
 
         this.projMgr = new ProjectManager(this);
+        this.auditMgr = AuditManager.getInstance(this);
 
         this.cleanup$.subscribe(async (vEvent:CleanupEvent)=>{
             // to automatically remove inconsistent project from workspace
@@ -573,6 +575,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     getProjectManager():ProjectManager{
         return  this.projMgr;
+    }
+
+    getAuditManager():AuditManager {
+        return this.auditMgr;
     }
 
     setCliMode(pMode:boolean):void {
@@ -1024,8 +1030,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         LicenceManager.replenish();
 
-        // create AuditManager singleton
-        AuditManager.getInstance(this);
+        // init AuditManager singleton
+        await this.getAuditManager().init();
 
         // restart child ADB server
         (async function(){
@@ -1279,7 +1285,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @return {DexcaliburProject} Project for the given UID
      * @method
      */
-    getProject(pProjectUID:string):DexcaliburProject{
+    getProject(pProjectUID:string):Nullable<DexcaliburProject>{
         if(this.active[pProjectUID] instanceof DexcaliburProject){
             return this.active[pProjectUID];
         }
@@ -1290,18 +1296,18 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     /**
      * To get all active projects of the engine instance, optionnaly filtered by owner
      *
-     * @return {DexcaliburProjectMap} A map of cctive projects, indexed by project UIDs
+     * @return {Record<DexcaliburProjectUUID, DexcaliburProject>} A map of cctive projects, indexed by project UIDs
      * @method
      * @since 1.0.0
      */
-    getActiveProjects(pUser:UserAccount = null):DexcaliburProjectMap {
+    getActiveProjects(pUser:Nullable<UserAccount> = null):Record<DexcaliburProjectUUID, DexcaliburProject> {
 
         // TODO : add ACL which allows non-owner but authorized auditor (group/team) to work on this project
 
         if(pUser === null){
             return this.active;
         }else{
-            const sub:DexcaliburProjectMap = {};
+            const sub:Record<DexcaliburProjectUUID, DexcaliburProject> = {};
             for(const uid in this.active){
                 if(this.active[uid].isOwnedBy(pUser) || this.active[uid].isAuthorizedToTest(pUser)){
                     sub[uid] = this.active[uid];
@@ -1379,6 +1385,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @return {Promise<DexcaliburProject>} The project instance
      * @async
      * @method
+     * @deprecated
      */
     async openProject( pUserAccount:UserAccount, pUID:string):Promise<DexcaliburProject>{
         let project:DexcaliburProject = null, success:any = false;
@@ -1475,6 +1482,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         if(wf===null){
             throw EngineNodeException.PROJECT_HAS_NOT_WORKFLOW(pUID);
         }
+
+        if(!wf.isStarted()) wf.start()
 
         wf.pushStatus(new StatusMessage( 2, "Scanning connected devices"));
         await DeviceManager.getInstance().scan();
@@ -1660,6 +1669,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     newWorkflow(pName:string, pExternal = false):Workflow {
         const wf:Workflow = new Workflow({ uid:(pExternal?'':'de:')+pName });
+        wf.start();
         this.registerWorkflow(wf);
         return wf;
     }
@@ -1811,7 +1821,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         // if the engine is a SLAVE instance, notify the MASTER the instance is started
         if(this.getEngineMode()==DexcaliburEngineMode.SLAVE){
-            this.nodeManager.notifyMaster(NodeState.IDDLE);
+            this.nodeManager.notifyMaster(NodeState.IDLE);
         }
 
     }
@@ -1837,6 +1847,14 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }
 
         return this.secretManager;
+    }
+
+    getNodeManager():EngineNodeManager {
+        return this.nodeManager;
+    }
+
+    getNodeUUID():EngineNodeUUID {
+        return this.getNodeManager().uuid;
     }
 }
 

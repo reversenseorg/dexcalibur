@@ -11,6 +11,8 @@ import {UserAccount} from "../user/UserAccount.js";
 import {Connection, ConnectionProtocol} from "../organization/conn/Connection.js";
 import {Secret} from "../core/secrets/Secret.js";
 import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
+import {ProjectState} from "../ProjectState.js";
+import {ProductType} from "../billing/Purchase.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi("ORG");
@@ -1077,6 +1079,144 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, true);
             } catch (err) {
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
+            }
+        }
+    }
+);
+
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/app/:aid/project/orders',
+    {
+        'get': async function (pReq:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = pReq.dxc.$;
+
+            try{
+
+                // target app
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                const pos = await $.context.getProjectManager().listProjectOrders(
+                    (pReq as any).user,
+                    app,
+                    (pReq.query.state!=null ? pReq.query.state : ProjectState.NONE) as ProjectState
+                );
+
+                $.sendSuccess(res,pos.map(x=> x.toJsonObject()));
+            }catch(err){
+                $.sendErrorAfterException(res,
+                    ORG_WEB_API.name,
+                    "App unit : project orders be listed.",
+                    err);
+            }
+        }
+    }
+);
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/app/:aid/license/activated',
+    {
+        'get': async function (pReq:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = pReq.dxc.$;
+
+            try{
+
+                // target app
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    app.getParentOrganization()
+                );
+
+                $.sendSuccess(res,await $.context.getOrgManager().isLicenseActivated(
+                    org,
+                    app.getUID()
+                ));
+            }catch(err){
+                $.sendErrorAfterException(res,
+                    ORG_WEB_API.name,
+                    "Cannot check if the application unit has activated license.",
+                    err);
+            }
+        }
+    }
+);
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/app/:aid/license/activate',
+    {
+        'post': async function (pReq:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = pReq.dxc.$;
+
+            try{
+
+                // target app
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    pReq.user,
+                    pReq.body.aid
+                );
+
+                const org = await $.context.getOrgManager().getOrganization(
+                    pReq.user,
+                    app.getParentOrganization()
+                );
+
+
+                $.sendSuccess(res,await $.context.getOrgManager().activateLicense(
+                    pReq.user,
+                    org,
+                    pReq.body.type,
+                    app.getUID()
+                ));
+            }catch(err){
+                $.sendErrorAfterException(res,
+                    ORG_WEB_API.name,
+                    "Cannot check if the application unit has activated license.",
+                    err);
+            }
+        }
+    }
+);
+
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/app/:aid/scan/orders',
+    {
+        'get': async function (pReq:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = pReq.dxc.$;
+
+            try{
+
+                // target app
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                const scheduler = $.context.getScanScheduler();
+                const data:any[] = [];
+
+                (await scheduler.listOrdersByApp(
+                    pReq.user, app
+                )).map( x => {
+                    data.push(x.toJsonObject());
+                })
+
+                $.sendSuccess(res,data);
+            }catch(err){
+                Logger.error("[API][ORG] App Unit : Scans orders cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "App Unit : Scans orders cannot be listed. Cause : " + err.message);
             }
         }
     }

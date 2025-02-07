@@ -23,10 +23,10 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 /**
  * /api/application/cmp?type=[dex|ks|libs|strings] ...
  */
-PLUGIN_WEB_API.addAuthenticatedRoute(
+PLUGIN_WEB_API.addAsyncAuthenticatedRoute(
     '/:action',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;

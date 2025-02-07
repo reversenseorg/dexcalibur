@@ -11,6 +11,8 @@ import {DeviceUUID} from "../Device.js";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
 import {SecurityZone} from "../security/SecurityZone.js";
+import {AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
+import {ProductType} from "../billing/Purchase.js";
 
 
 export class OrganizationManagerException extends MonitoredError {
@@ -158,6 +160,22 @@ export class OrganizationManagerException extends MonitoredError {
     static NO_APP_SLOT_AVAILABLE = (pOUID:OrganizationUnitUUID)=>{
         return new OrganizationManagerException(`There is not more available free app slot in organization UUID [uuid=${pOUID}]. Please purchase more.`,
             ErrorCode.ORGANIZATION + 36) };
+
+    static CANNOT_VERIFY_SCAN_BALANCE = (pCause:string)=>{
+        return new OrganizationManagerException(`Scan balance cannot be verified. Cause: ${pCause}`,
+            ErrorCode.ORGANIZATION + 37) };
+
+    static SCAN_LICENSE_VIOLATION = (pOUID:OrganizationUnitUUID, pMUID:AssuranceModelUUID)=>{
+        return new OrganizationManagerException(`Business plan not allow the organization [org=${pOUID}] to scan with model [model=${pMUID}].`,
+            ErrorCode.ORGANIZATION + 38).zone(SecurityZone.PRIVATE) };
+
+    static PRODUCT_NOT_SUPPORTED = (pType:ProductType)=>{
+        return new OrganizationManagerException(`License activation : Product type not supported [type=${pType}].`,
+            ErrorCode.ORGANIZATION + 39).zone(SecurityZone.PRIVATE) };
+
+    static CANNOT_UPDATE_BUSINESSPLAN = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`Cannot update business plan of [org=${pOUID}]`,
+            ErrorCode.ORGANIZATION + 40) };
 
 
 

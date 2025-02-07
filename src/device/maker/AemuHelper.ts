@@ -175,8 +175,13 @@ export default class AemuHelper extends External.ExternalHelper {
 
         const imgParts = imageId.split(";")
 
+        let base = process.env.ANDROID_HOME;
+        if(_path_.basename(base)!='sdk'){
+            base = _path_.join(base,'sdk');
+        }
+
         const sysDir = _path_.join(
-            process.env.ANDROID_HOME,
+            base,
             'system-images',
             imgParts[1] /* android-{VERSION} */,
             imgParts[2] /* VARIANT : default , aosp, google_apis, ... */,

@@ -1,4 +1,7 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {DeviceUUID} from "../Device.js";
+import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
+import {UserAccountUUID} from "../user/UserAccount.js";
 
 export class DexcaliburProjectException extends MonitoredError {
 
@@ -27,7 +30,15 @@ export class DexcaliburProjectException extends MonitoredError {
     static PROJECT_NOT_READY = (pProj:string)=>{ return new DexcaliburProjectException("The project [uid="+pProj+"] is not ready. Open it first.", ErrorCode.PROJECT + 115) };
     static PROJECT_DB_NOT_READY = (pProj:string)=>{ return new DexcaliburProjectException("The database from project [uid="+pProj+"] is not ready.", ErrorCode.PROJECT + 116) };
     static INSPECTOR_NOT_FOUND = (pProj:string, pInsp:string)=>{ return new DexcaliburProjectException("Inspector [uid="+pInsp+"] not found in project [uid="+pProj+"] is not ready.", ErrorCode.PROJECT + 117) };
-
+    static INVALID_UUID_FMT = (pPUID:DexcaliburProjectUUID)=>{
+        return new DexcaliburProjectException(`Invalid Project UUID format [uuid=${pPUID}]`,
+            ErrorCode.PROJECT + 118) };
+    static NOT_AUTHORIZED = (pPUID:DexcaliburProjectUUID, pUser:UserAccountUUID)=>{
+        return new DexcaliburProjectException(`User [user=${pUser}] is not authorized to access to project [puid=${pPUID}]`,
+            ErrorCode.PROJECT + 119) };
+    static CANNOT_INIT_NO_WF = (pPUID:DexcaliburProjectUUID)=>{
+        return new DexcaliburProjectException(`Cannot init project, no workflow defined [puid=${pPUID}]`,
+            ErrorCode.PROJECT + 120) };
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
