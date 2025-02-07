@@ -1,4 +1,5 @@
-#!/usr/bin/env zsh
+#!/bin/sh
+
 echo "[*] Setup env"
 # nvm use
 echo "[*] Reinstall frida-node & better-sqlite3"

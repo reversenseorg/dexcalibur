@@ -71,7 +71,7 @@ export default class AssuranceModel extends Auditable implements INode {
         (new NodeProperty("globalThreats")).type(DbDataType.STRING).def([]),
         (new NodeProperty("controls")).type(DbDataType.STRING).def([]),
         (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("kpis"))
+        (new NodeProperty("indicators"))
             .type(DbDataType.STRING)
             .wakeUp( (x:NodePropertyState) => {
                 if(x.p!=null){
