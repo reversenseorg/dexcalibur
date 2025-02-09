@@ -114,16 +114,15 @@ WORKDIR /
 RUN apt-get update && apt install -y curl ca-certificates gnupg wget unzip  \
     bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3  \
     libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
-    wmctrl libdbus-glib-1-2 sudo make gcc
+    wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils \
+    sudo libfontconfig1-dev libfreetype6-dev
 
 
-# ===============================
-# Install node
-# ===============================
 RUN mkdir -p /etc/apt/keyrings && \
-    (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg)
+    (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
+    (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list)
 
-RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+
 
 
 # ===============================
@@ -138,11 +137,17 @@ USER $DXC_USER_SRV
 WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
-    sudo apt-get -qqy install nodejs python3 && \
+    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt && \
     sudo npm install -g npm@10.0.0 && \
-    curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 
+# ===============================
+# Install RUST
+# ===============================
+
+RUN (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
+    export PATH=$HOME/.cargo/bin:$PATH && \
+    ls -la $HOME/.cargo/bin
 
 # ===============================
 # Install Android SDKManager, and pip
@@ -165,36 +170,41 @@ ENV PATH="$PATH:$DXC_USER_HOME/.local/bin:$ANDROID_SDK_ROOT/cmdline-tools/tools:
 # RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_PLATFORM_VERSION}
 
 
+
 # ===============================
-# Third-part : apktool, baksmali, binwalk
+# Install Binwalk from source
 # ===============================
 ARG BINWALK_INSTALL_DIR="/tmp/binwalk"
 ARG DEFAULT_WORKING_DIR="/analysis"
 
-
-RUN curl -L -o "$TMP_FOLDER/apktool.jar" "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_"$DXC_V_APKTOOL".jar" && \
-    curl -L -o "$TMP_FOLDER/baksmali.jar" "https://bitbucket.org/JesusFreke/smali/downloads/baksmali-"$DXC_V_BAKSMALI".jar" && \
-    curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/archive/refs/tags/v"$DXC_V_BINWALK".zip" && \
+RUN curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/archive/refs/tags/v"$DXC_V_BINWALK".zip" && \
     cd $TMP_FOLDER && \
     unzip binwalk.zip && \
     cd ./binwalk-$DXC_V_BINWALK && \
-    mkdir -p $HOME/.config/pip && \
-    echo "[global]" > $HOME/.config/pip/pip.conf && \
-    echo "break-system-packages = true" >> $HOME/.config/pip/pip.conf && \
+    mkdir -p $DXC_USER_HOME/.config/pip && \
+    echo "[global]" > $DXC_USER_HOME/.config/pip/pip.conf && \
+    echo "break-system-packages = true" >> $DXC_USER_HOME/.config/pip/pip.conf && \
     chmod +x ./dependencies/ubuntu.sh && \
-    ./dependencies/ubuntu.sh && \
-
-
-# Build and install Binwalk
-RUN  /root/.cargo/bin/cargo build --release  \
-    && cp ./target/release/binwalk /usr/local/bin/binwalk
-
-# && rm -rf ${BINWALK_INSTALL_DIR}
-
+    sudo ./dependencies/ubuntu.sh && \
+    echo $PATH && \
+    $HOME/.cargo/bin/cargo build --release && \
+    sudo cp ./target/release/binwalk /usr/local/bin/binwalk && \
+    sudo chmod 777 /usr/local/bin/binwalk && \
+    mkdir $DXC_USER_HOME/bin && \
+    cp ./target/release/binwalk $DXC_USER_HOME/binwalk && \
+    sudo chmod +x $DXC_USER_HOME/binwalk && \
+    cd $DXC_USER_HOME
 
 # Enable this environment variable to remove extractor top-level symlink,
 # as the symlink target path in the docker environment will not match that of the host.
 ENV BINWALK_RM_EXTRACTION_SYMLINK=1
+
+# ===============================
+# Third-part : apktool, baksmali, binwalk
+# ===============================
+
+RUN curl -L -o "$TMP_FOLDER/apktool.jar" "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_"$DXC_V_APKTOOL".jar" && \
+    curl -L -o "$TMP_FOLDER/baksmali.jar" "https://bitbucket.org/JesusFreke/smali/downloads/baksmali-"$DXC_V_BAKSMALI".jar"
 
 # ===============================
 # Install :
