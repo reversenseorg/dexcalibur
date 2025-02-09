@@ -72,6 +72,7 @@ ENV DXC_DB_MODE=${dxc_db_mode}
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DXC_V_APKTOOL="2.7.0"
 ENV DXC_V_BAKSMALI="2.5.2"
+ENV DXC_V_BINWALK="3.1.0"
 
 # ENV DXC_V_R2="2.5.2"
 # ENV DXC_V_FRIDA="2.5.2"
@@ -138,7 +139,8 @@ WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
     sudo apt-get -qqy install nodejs python3 && \
-    sudo npm install -g npm@10.0.0
+    sudo npm install -g npm@10.0.0 && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 
 # ===============================
@@ -173,13 +175,34 @@ RUN yes Y | sdkmanager --verbose --no_https "platform-tools" && \
 # ===============================
 # Third-part : apktool, baksmali, binwalk
 # ===============================
+ARG BINWALK_INSTALL_DIR="/tmp/binwalk"
+ARG DEFAULT_WORKING_DIR="/analysis"
+
 
 RUN curl -L -o "$TMP_FOLDER/apktool.jar" "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_"$DXC_V_APKTOOL".jar" && \
     curl -L -o "$TMP_FOLDER/baksmali.jar" "https://bitbucket.org/JesusFreke/smali/downloads/baksmali-"$DXC_V_BAKSMALI".jar" && \
-    curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/archive/refs/heads/master.zip" && \
-    cd  $TMP_FOLDER && unzip -d binwalk binwalk.zip && \
-    cd $TMP_FOLDER/binwalk/binwalk-master && \
-    sudo python3 ./setup.py install
+    curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/archive/refs/tags/v"$DXC_V_BINWALK".zip" && \
+    cd $TMP_FOLDER && \
+    unzip binwalk.zip && \
+    cd $TMP_FOLDER/binwalk && \
+    mkdir -p $HOME/.config/pip && \
+    echo "[global]" > $HOME/.config/pip/pip.conf && \
+    echo "break-system-packages = true" >> $HOME/.config/pip/pip.conf && \
+    chmod +x ./dependencies/ubuntu.sh && \
+    ./dependencies/ubuntu.sh && \
+
+
+# Build and install Binwalk
+RUN  /root/.cargo/bin/cargo build --release  \
+    && cp ./target/release/binwalk /usr/local/bin/binwalk
+
+# && rm -rf ${BINWALK_INSTALL_DIR}
+
+
+# Enable this environment variable to remove extractor top-level symlink,
+# as the symlink target path in the docker environment will not match that of the host.
+ENV BINWALK_RM_EXTRACTION_SYMLINK=1
+
 
 
 # ===============================
