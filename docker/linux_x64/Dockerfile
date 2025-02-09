@@ -143,6 +143,7 @@ RUN sudo apt-get update && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 
+
 # ===============================
 # Install Android SDKManager, and pip
 # ===============================
@@ -163,14 +164,6 @@ ENV PATH="$PATH:$DXC_USER_HOME/.local/bin:$ANDROID_SDK_ROOT/cmdline-tools/tools:
 # RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_BUILD_TOOLS}
 # RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_PLATFORM_VERSION}
 
-# ===============================
-# Install :
-#  - Android Debug Bridge
-#  - Radare 2
-# ===============================
-RUN yes Y | sdkmanager --verbose --no_https "platform-tools" && \
-    cd $TMP_FOLDER && git clone https://github.com/radareorg/radare2 && \
-    chmod a+x ./radare2/sys/install.sh && ./radare2/sys/install.sh
 
 # ===============================
 # Third-part : apktool, baksmali, binwalk
@@ -184,7 +177,7 @@ RUN curl -L -o "$TMP_FOLDER/apktool.jar" "https://bitbucket.org/iBotPeaches/apkt
     curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/archive/refs/tags/v"$DXC_V_BINWALK".zip" && \
     cd $TMP_FOLDER && \
     unzip binwalk.zip && \
-    cd $TMP_FOLDER/binwalk && \
+    cd ./binwalk-$DXC_V_BINWALK && \
     mkdir -p $HOME/.config/pip && \
     echo "[global]" > $HOME/.config/pip/pip.conf && \
     echo "break-system-packages = true" >> $HOME/.config/pip/pip.conf && \
@@ -202,6 +195,16 @@ RUN  /root/.cargo/bin/cargo build --release  \
 # Enable this environment variable to remove extractor top-level symlink,
 # as the symlink target path in the docker environment will not match that of the host.
 ENV BINWALK_RM_EXTRACTION_SYMLINK=1
+
+# ===============================
+# Install :
+#  - Android Debug Bridge
+#  - Radare 2
+# ===============================
+RUN yes Y | sdkmanager --verbose --no_https "platform-tools" && \
+    cd $TMP_FOLDER && git clone https://github.com/radareorg/radare2 && \
+    chmod a+x ./radare2/sys/install.sh && ./radare2/sys/install.sh
+
 
 
 
