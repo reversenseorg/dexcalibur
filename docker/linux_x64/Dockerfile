@@ -138,7 +138,7 @@ WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
     sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt && \
-    sudo npm install -g npm@10.0.0 && \
+    sudo npm install -g npm@10.0.0
 
 
 # ===============================
