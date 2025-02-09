@@ -40,8 +40,6 @@ import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
 import {AnalyzerConfiguration, FileAnalysisType, PackageAnalyzerOptions} from "./AnalyzerConfiguration.js";
 import SqliteConnector from "../connectors/sqlite/adapter.js";
 import AccessControl from "./user/acl/AccessControl.js";
-import {AccessZone} from "./user/acl/Zones.js";
-import {UserSession} from "./user/session/UserSession.js";
 import {AccesErrCode, AccessException} from "./user/acl/Access.js";
 import Util from "./Utils.js";
 import {Auditable} from "./Auditable.js";
@@ -68,11 +66,15 @@ import {Nullable} from "./core/IStringIndex.js";
 import {
     AppContextType,
     DbDataType,
-    DbKeyType, IAppContext, IDatabase, IDatabaseAdapter,
+    DbKeyType,
+    IAppContext,
+    IDatabase,
+    IDatabaseAdapter,
     INode,
     NodeProperty,
     NodePropertyState,
-    NodeType, Tag,
+    NodeType,
+    Tag,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
 
@@ -212,7 +214,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 if(x.p!=null){
                     const inputs:any[]=[];
                     (x.p as ProjectInput[]).map(vInput => {
-                        inputs.push(vInput.toJsonObject());
+                        inputs.push(vInput.toJsonObject(SecurityZone.PRIVATE));
                     });
                     return inputs;
                 }else{

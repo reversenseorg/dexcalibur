@@ -58,6 +58,7 @@ import {Nullable} from "./core/IStringIndex.js";
 import {Client} from "openid-client";
 import {NODE_MGR_WEB_API} from "./webapi/node.web.api.js";
 import {ORG_WEB_API} from "./webapi/organization.web.api.js";
+import {HEALTH_WEB_API} from "./webapi/health.web.api.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -1393,6 +1394,7 @@ export default class WebServer
         PRIVACY_WEB_API.injectServer(this, "/api/privacy", securedRoutes);
         AUDIT_WEB_API.injectServer(this, "/api/audit", securedRoutes);
         ORG_WEB_API.injectServer(this, "/api/organization", securedRoutes);
+        HEALTH_WEB_API.injectServer(this, "/api/health", securedRoutes);
 
         this.initRoutes({
             auth: [ensureGuiLoggedIn], //ensureGuiLoggedIn],

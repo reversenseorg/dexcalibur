@@ -80,8 +80,8 @@ export class SignatureServerAPI {
     }
 
     async deleteTracker(pControl:Control):Promise<boolean> {
-        const response = await GOT(this.baseURL+"api/signatures/trackers/delete/"+encodeURIComponent(pControl.id),{
-            method: 'POST'
+        const response = await GOT(this.baseURL+"api/signatures/trackers/edit/"+encodeURIComponent(pControl.id),{
+            method: 'DELETE'
         });
         const raw = JSON.parse(response.body);
         Logger.info("[SIGNATURE SERVER API] deleteTracker > ");

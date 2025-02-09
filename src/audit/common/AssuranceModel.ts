@@ -3,7 +3,7 @@ import Threat from "./Threat.js";
 import CodeThreat from "./CodeThreat.js";
 import CodeConstraint from "./CodeConstraint.js";
 import Control from "./Control.js";
-import {Metadata} from "./Metadata.js";
+import {Metadata, MetadataType} from "./Metadata.js";
 import {Auditable} from "../../Auditable.js";
 import {AuditAccessControl} from "../../user/acl/rbac/AuditAccessControl.js";
 import ControlAssessment from "./ControlAssessment.js";
@@ -23,6 +23,7 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 import {AccessAttribute, AccessAttributeMap} from "../../user/acl/AccessAttribute.js";
 import {Indicator, IndicatorUUID} from "./Indicator.js";
+import {AuditManagerException} from "../errors/AuditManagerException.js";
 
 export type AssuranceModelUUID = string;
 export enum AssuranceModelType {
@@ -69,7 +70,27 @@ export default class AssuranceModel extends Auditable implements INode {
         (new NodeProperty("primaryAssets")).type(DbDataType.STRING).def([]),
         (new NodeProperty("secondaryAssets")).type(DbDataType.STRING).def([]),
         (new NodeProperty("globalThreats")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("controls")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("controls"))
+            .type(DbDataType.STRING)
+            .sleep((x:NodePropertyState)=>{
+                if(x.p==null) return {};
+                const i:any[] = [];
+                x.p.map(y => {
+                    i.push(y.toJsonObject())
+                });
+                return i;
+            })
+            .wakeUp((x:NodePropertyState)=>{
+                if(x.p==null) return {};
+
+                const i:Control[] = [];
+                x.p.map(y => {
+                    i.push(new Control(y))
+                });
+                return i;
+            })
+            .def([]),
+
         (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
         (new NodeProperty("indicators"))
             .type(DbDataType.STRING)
@@ -287,6 +308,14 @@ export default class AssuranceModel extends Auditable implements INode {
         }
 
 
+        if(pData.indicators!=null){
+            pData.indicators.map( (x,i) => {
+                o.indicators[i] = Indicator.fromJsonObject(x);
+            });
+        }else{
+            o.indicators = [];
+        }
+
 
 
         return o;
@@ -308,6 +337,17 @@ export default class AssuranceModel extends Auditable implements INode {
         o.generic = this.generic;
         o.links = this.links;
         o.metadata = this.metadata;
+        o.tags = this.tags;
+
+        o.indicators = [];
+        this.indicators.map( (x,i) => {
+            if(x.toJsonObject!=null){
+                o.indicators.push(x.toJsonObject());
+            }else{
+                o.indicators.push(x);
+            }
+
+        });
 
         o.controls = [];
         this.controls.map( (x,i) => {
@@ -363,7 +403,7 @@ export default class AssuranceModel extends Auditable implements INode {
      *
      * @param pObject
      */
-    update(pObject:any, pUpdateChildren = false):void {
+    /*update(pObject:any, pUpdateChildren = false):void {
         if(pObject.id!=null) this.id = pObject.id;
         if(pObject.scannerID!=null) this.scannerID = pObject.scannerID;
         if(pObject.name!=null) this.name = pObject.name;
@@ -382,7 +422,7 @@ export default class AssuranceModel extends Auditable implements INode {
         }
 
         this.updateControlTree(this.controls);
-    }
+    }*/
 
     /**
      * To update the internal control tree
@@ -482,6 +522,185 @@ export default class AssuranceModel extends Auditable implements INode {
      */
     initAccessAttributes() {
         this.setAccessAttribute(AuditAccessControl.attr.OWNER);
+    }
+
+
+    /**
+     * To update properties
+     *
+     * @param pObject
+     */
+    update(pObject:any, pUpdateChildren = false):void {
+        if(pObject.id!=null) this.id = pObject.id;
+        if(pObject.scannerID!=null) this.scannerID = pObject.scannerID;
+        if(pObject.name!=null) this.name = pObject.name;
+        if(pObject.description!=null) this.description = pObject.description;
+        if(pObject.links!=null) this.links = pObject.links;
+        if(pObject.generic!=null) this.generic = pObject.generic;
+        if(pObject.metadata!=null) this.metadata = pObject.metadata;
+
+        if(pUpdateChildren){
+            if(pObject.primaryAssets!=null) this.primaryAssets = pObject.primaryAssets;
+            if(pObject.secondaryAssets!=null) this.secondaryAssets = pObject.secondaryAssets;
+            if(pObject.globalThreats!=null) this.globalThreats = pObject.globalThreats;
+            if(pObject.controls!=null) this.controls = pObject.controls;
+            if(pObject.indicators!=null) this.indicators = pObject.indicators;
+        }
+
+        this.updateControlTree(this.controls);
+    }
+
+    merge(pModel:AssuranceModel, pForce = false):void {
+
+        const variant = this.getVariantName();
+        let merged = false;
+
+        if((pModel.getUID()==this.getUID())
+            && (pModel.getVersion()<this.getVersion())) {
+            throw AuditManagerException.CANNOT_MERGE_NEW_WITH_OLD(this.name,this.getVersion(),pModel.getVersion())
+        }
+
+        // update metadata
+        if(pModel.id!=null) this.id = pModel.id;
+        if(pModel.scannerID!=null) this.scannerID = pModel.scannerID;
+        if(pModel.name!=null) this.name = pModel.name;
+        if(pModel.description!=null) this.description = pModel.description;
+        if(pModel.links!=null) this.links = pModel.links;
+        if(pModel.generic!=null) this.generic = pModel.generic;
+        if(pModel.metadata!=null) this.metadata = pModel.metadata;
+
+        // merge controls
+        this._mergeControls(pModel.controls, pForce);
+
+        // merge indicators
+        const isVariant = this._mergeIndicators(pModel.indicators, pForce)
+
+        if(isVariant){
+            this.setMeta(
+                MetadataType.TEXT,
+                'model.variant',
+                (variant? `merge-from-${variant}`:`merge-from-${pModel.getVersion()}`)
+            )
+        }
+
+        this.setMeta(
+            MetadataType.TEXT,
+            'version',
+            pModel.getVersion()
+        );
+
+        this.updateControlTree(this.controls)
+
+
+    }
+
+
+    private _mergeControls(pControls:Control[], pForce = false){
+
+        // new controls are added
+        // not touched controls are updated
+        // new conflicting controls are
+
+        const existings:Record<string, Control> = {};
+
+        this.controls.map(x => {
+            existings[x.getUID()] = x;
+        });
+
+        pControls.map((vControl)=>{
+            const current  = existings[vControl.getUID()];
+
+            if(current==null){
+                // add
+                existings[vControl.getUID()] = vControl;
+                return;
+            }
+
+            if(pForce){
+                existings[vControl.getUID()] = vControl;
+                //throw AuditManagerException.CONFLICT_IN_CTRL_IN_MERGE();
+            }
+
+            // else keep unchanged
+
+        })
+
+        this.controls = Object.values(existings);
+    }
+
+    private _mergeIndicators(pIndicators:Indicator[], pForce = false):boolean{
+        const existings:Record<IndicatorUUID, Indicator> = {};
+        let isVariant = false;
+
+        this.indicators.map(x => {
+            existings[x.getUID()] = x;
+        });
+
+
+        pIndicators.map((vIndicator)=>{
+            const current  = existings[vIndicator.getUID()];
+
+            if( (current==null) // new indicators are added
+                || (current.compare(vIndicator).length==0) // not customised indicators are replaced
+            ){
+                existings[vIndicator.getUID()] = vIndicator;
+                return;
+            }
+
+            existings[vIndicator.getUID()] = vIndicator;
+
+            /*
+            if(!pForce){
+                throw AuditManagerException.CONFLICT_IN_KPI_IN_MERGE();
+            }
+
+            existings[vIndicator.getUID()] = vIndicator;
+            isVariant = true;*/
+        })
+
+        this.indicators = Object.values(existings);
+
+        return isVariant;
+    }
+    /**
+     * To get a metadata by its name
+     *
+     * @param pKey
+     */
+    getMeta(pKey:string):Nullable<Metadata> {
+        return this.metadata.find((vMeta)=>{ return (vMeta.key===pKey)});
+    }
+
+    /**
+     * To set a meta data
+     *
+     * @param pType
+     * @param pKey
+     * @param pValue
+     */
+    setMeta(pType:MetadataType, pKey:string, pValue:any):void {
+        const meta = this.getMeta(pKey);
+        if(meta==null){
+            this.metadata.push({
+                type: pType,
+                value: pValue,
+                key: pKey
+            })
+        }else{
+            meta.type = pType;
+            meta.value = pValue;
+        }
+    }
+
+    /**
+     * To get the variant name
+     * @method
+     */
+    getVariantName():Nullable<string> {
+        const variant = this.getMeta('variant');
+        if(variant==null) return null;
+
+        return variant.value;
     }
 }
 AssuranceModel.TYPE.builder(AssuranceModel);

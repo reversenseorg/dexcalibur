@@ -32,6 +32,9 @@ export class AuditManagerException extends MonitoredError {
         return new AuditManagerException(`Report not found [uuid=${pUUID}] `,
             ErrorCode.AUDIT_MANAGER + 9) };
 
+    static CANNOT_MERGE_NEW_WITH_OLD = (pNew:string,pNewVersion:number,pOldVersion:number)=>{
+        return new AuditManagerException(`Cannot merge newest model with old [uuid=${pNew}][new=${pNewVersion}][old=${pOldVersion}]`,
+            ErrorCode.AUDIT_MANAGER + 10) };
 
 
 

@@ -18,6 +18,7 @@ import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessCont
 import {GenericScanner} from "./common/GenericScanner.js";
 import {ScannerFactory} from "./scanner/ScannerFactory.js";
 import {BusinessPlan, BusinessPlanType} from "../billing/BusinessPlan.js";
+import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -595,6 +596,53 @@ export class AuditManager {
         }
 
         return report;
+    }
+
+
+    /**
+     * To retrieve an assurance model by its uid
+     * @param pUser
+     * @param pModelID
+     */
+    async getReports( pUser:UserAccount, pApp:ApplicationUnit, pLimit = -1):Promise<AssuranceReport[]> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.AUDIT_REPORT_READ,
+            pUser,
+            pApp,
+            [
+                OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.OWNER,
+            ]
+        );
+
+        // TODO check assurance ACL
+        const reports = await (this.engine.getEngineDB()
+            .getCollectionOf(AssuranceReport.TYPE.getType())as MongodbDbCollection)
+            .search({ application:pApp.getUID() });
+
+
+        return reports;
+    }
+
+
+    /**
+     * To retrieve an assurance model by its uid
+     * @param pUser
+     * @param pModelID
+     */
+    async getLatestReport( pUser:UserAccount, pApp:ApplicationUnit):Promise<Nullable<AssuranceReport>> {
+
+        let reports = await this.getReports(pUser, pApp);
+
+        // sort by create date
+        if(reports.length==0) return null;
+
+        reports = reports.sort((r1:AssuranceReport, r2:AssuranceReport)=>{
+            return (r1.time>r2.time ? 1 : -1);
+        })
+
+        return reports[0];
     }
 
 }

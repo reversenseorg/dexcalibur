@@ -1106,7 +1106,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     (pReq.query.state!=null ? pReq.query.state : ProjectState.NONE) as ProjectState
                 );
 
-                $.sendSuccess(res,pos.map(x=> x.toJsonObject()));
+                $.sendSuccess(res,pos.map(x=> x.toJsonObject(null,SecurityZone.PUBLIC)));
             }catch(err){
                 $.sendErrorAfterException(res,
                     ORG_WEB_API.name,
@@ -1214,6 +1214,30 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 })
 
                 $.sendSuccess(res,data);
+            }catch(err){
+                Logger.error("[API][ORG] App Unit : Scans orders cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "App Unit : Scans orders cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+// /ou/app/:aid/info
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/app/:aid/info',
+    {
+        'get': async function (pReq:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = pReq.dxc.$;
+
+            try{
+                // target app
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                $.sendSuccess(res,app.toJsonObject());
             }catch(err){
                 Logger.error("[API][ORG] App Unit : Scans orders cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "App Unit : Scans orders cannot be listed. Cause : " + err.message);

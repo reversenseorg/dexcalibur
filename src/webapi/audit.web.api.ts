@@ -396,6 +396,122 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/reports/:appUID/list',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                let models:string[] = [];
+                models = [req.params.modelID as string]
+
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                $.sendSuccess(res, await am.getReport(
+                    req.user, req.params.unsafeReportUUID, app));
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/reports/:aid/list',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                $.sendSuccess(res, (await am.getReports(
+                    req.user, app)).map(x => x.toJsonObject()) );
+            }catch(err){
+                $.sendErrorWithLog(res,
+                    AUDIT_WEB_API.name,
+                    "Reports cannot be listed.",
+                    err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/reports/:aid/latest',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                const rap = await am.getLatestReport(req.user, app)
+                $.sendSuccess(res, (rap!=null ? rap.toJsonObject(): null));
+            }catch(err){
+                $.sendErrorWithLog(res,
+                    AUDIT_WEB_API.name,
+                    "Reports cannot be listed.",
+                    err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/reports/:appUID/latest',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                let models:string[] = [];
+                models = [req.params.modelID as string]
+
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                $.sendSuccess(res, await am.getReport(
+                    req.user, req.params.unsafeReportUUID, app));
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
 
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(

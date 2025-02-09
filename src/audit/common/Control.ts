@@ -25,6 +25,7 @@ export interface Country {
     code: string;
 }
 
+export type ControlUUID = string;
 
 /**
  * Represent a set of control points / assessments
@@ -38,7 +39,7 @@ export default class Control implements IControl {
      * @type {string}
      * @field
      */
-    id:string;
+    id:ControlUUID;
 
     /**
      * Control point name
@@ -51,20 +52,25 @@ export default class Control implements IControl {
 
     metadata:Metadata[] = [];
 
-    category:string[] = [];
+    category:string[] = []
 
-    country:Nullable<Country> = null;
-    //changes:DataChange[] = []
-
-    links:string;
+    links:Record<string,any>;
 
     children:Control[] = [];
 
-    assessments:ControlAssessment[] = [];
+    country:Nullable<Country> = null;
+
+    assessments:ControlAssessment[] = []
+
+    tags:number[] = [];
 
 
     constructor( pConfig:ControlOptions = null) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
+    }
+
+    getUID():ControlUUID {
+        return this.id;
     }
 
     hasChildren():boolean {

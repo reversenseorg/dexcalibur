@@ -1,5 +1,6 @@
 import {Nullable} from "../core/IStringIndex.js";
 import {ValidationRule} from "../Validator.js";
+import {SecurityZone} from "../security/SecurityZone.js";
 
 
 export enum ProjectInputType {
@@ -84,7 +85,17 @@ export class ProjectInput implements IProjectInput{
         return this.originalName;
     }
 
-    toJsonObject():any {
-        return this;
+    toJsonObject(pZone = SecurityZone.PUBLIC):any {
+
+        const o = {
+            data: this.data,
+            location: (pZone==SecurityZone.PRIVATE ? this.location : ""),
+            type: this.type,
+            extractOpts: this.extractOpts,
+            purpose: this.purpose,
+            originalName: this.originalName
+        }
+
+        return o;
     }
 }

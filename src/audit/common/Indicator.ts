@@ -1,6 +1,8 @@
 import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import { NodeInternalType } from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {Metadata} from "./Metadata.js";
+
 
 
 export interface IndicatorOptions {
@@ -31,19 +33,19 @@ export class Indicator implements INode {
         (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("title")).type(DbDataType.STRING).def(""),
         (new NodeProperty("description")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("metadata")).type(DbDataType.STRING).def({}),
+        (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
         (new NodeProperty("rules")).type(DbDataType.STRING).def([]),
         (new NodeProperty("view")).type(DbDataType.STRING).def(null),
         (new NodeProperty("enable")).type(DbDataType.BOOLEAN).def(true),
         (new NodeProperty("version")).type(DbDataType.BLOB).def({}),
         //(new NodeProperty("metric")).type(DbDataType.STRING).def({})
-    ])).dataSource("ENGINE_DB");
+    ]));
 
     uuid:IndicatorUUID = "";
     name:string = "";
     title:string = "";
     description:string = "";
-    metadata:any = {};
+    metadata:Metadata[] = [];
     rules:any[] = [];
     view:string = "";
     enable = true;
@@ -59,8 +61,61 @@ export class Indicator implements INode {
         }
     }
 
+    setUID(pUID:string):void {
+        this.uuid = pUID;
+    }
+
     getUID():IndicatorUUID {
         return this.uuid;
+    }
+
+    compare(pIndicator:Indicator):any[] {
+        const diffs = [];
+
+        const currMeta:Record<string, Metadata> = {};
+        const newMeta:Record<string, Metadata> = {};
+
+        this.metadata.map(x => {
+            currMeta[x.key] = x;
+        });
+
+
+        for(let k in pIndicator){
+            switch (k){
+                case "version":
+                case "rules":
+                case "metadata":
+                    if(this[k].length!=pIndicator[k].length){
+                        diffs.push({
+                            ppt: k,
+                            new: pIndicator[k],
+                            old: this[k],
+                        })
+                    }
+                    break;
+                case "tags":
+                    const t1 = this.tags.sort((a,b)=>(a>b?1:-1));
+                    const t2 = pIndicator.tags.sort((a,b)=>(a>b?1:-1));
+                    if(t1.join(':')!==t2.join(':')){
+                        diffs.push({
+                            ppt: "tags",
+                            new: pIndicator[k],
+                            old: this[k],
+                        })
+                    }
+                    break;
+                default:
+                    if(pIndicator[k]!==this[k]){
+                        diffs.push({
+                            ppt: k,
+                            new: pIndicator[k],
+                            old: this[k],
+                        })
+                    }
+                    break;
+            }
+        }
+        return diffs;
     }
 
     toJsonObject(pConfig:any = {}):any {
@@ -79,6 +134,12 @@ export class Indicator implements INode {
 
         CoreDebug.checkJsonSerialize(o, "Indicator");
         return o;
+    }
+
+    static fromJsonObject(pObj:any):Indicator {
+        const i:any = new Indicator(pObj);
+
+        return i;
     }
 }
 Indicator.TYPE.builder(Indicator);
