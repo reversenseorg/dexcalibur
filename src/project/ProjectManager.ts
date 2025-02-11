@@ -764,6 +764,8 @@ export class ProjectManager {
             pOrder.setInputs(projInputs);
             this._ctx.getEngineDB().updateOrder(pOrder, ['inputs']);
 
+
+
             // start to init the project
             project = await this._ctx.newProject(
                 pOrder.settings.projectUID,
@@ -773,7 +775,7 @@ export class ProjectManager {
                 platform,
                 anal,
                 app,
-                pOrder.getWorflow().getUID()
+                pOrder.getWorflow()//.getUID()
             );
 
             if(project == null){

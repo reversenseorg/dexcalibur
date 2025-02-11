@@ -1465,7 +1465,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     async newProject( pUID:string,  pInputs:ProjectInput[], /*pAppPath:string, pFileType:string,*/
                       pDevice:Nullable<Device>=null, pUserAccount:UserAccount = null,
                       pPlatform:Nullable<Platform> = null, pAnalyzersOpts:any = {},
-                      pAppUnit:Nullable<ApplicationUnit> = null, pWorkflowUID:Nullable<string> = null):Promise<DexcaliburProject>{
+                      pAppUnit:Nullable<ApplicationUnit> = null, pWorkflow:Nullable<string|Workflow> = null):Promise<DexcaliburProject>{
 
 
 
@@ -1478,7 +1478,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         let project:DexcaliburProject = null;
 
-        const wf:Workflow = this.getWorkflow((pWorkflowUID!=null? pWorkflowUID : pUID), true);
+        let wf:Workflow;
+        if(typeof pWorkflow=='string'){
+            wf = this.getWorkflow((pWorkflow!=null? pWorkflow : pUID), true);
+        }else{
+            wf = pWorkflow;
+        }
+
         if(wf===null){
             throw EngineNodeException.PROJECT_HAS_NOT_WORKFLOW(pUID);
         }
@@ -1570,7 +1576,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
          * - restore analyzers states
          *
          */
-        await project.init();
+        await project.init(wf);
 
         DexcaliburEngine.printBanner();
 
