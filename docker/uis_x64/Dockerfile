@@ -1,5 +1,5 @@
 # =================== BUILD STAGE =====================
-FROM rg.fr-par.scw.cloud/reversense/dxc-core-server:1.3.11
+FROM rg.fr-par.scw.cloud/reversense/dxc-core-server:1.3.12
 LABEL maintainer="georges.michel@reversense.com"
 
 ARG black_ui="pro"
