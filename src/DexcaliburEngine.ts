@@ -1480,8 +1480,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         let wf:Workflow;
         if(typeof pWorkflow=='string'){
-            wf = this.getWorkflow((pWorkflow!=null? pWorkflow : pUID), true);
-        }else{
+            wf = this.getWorkflow(pWorkflow, true);
+        }else if(pWorkflow!=null){
+            wf = this.getWorkflow(pUID, true);
+        } else{
             wf = pWorkflow;
         }
 

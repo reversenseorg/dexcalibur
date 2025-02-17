@@ -379,7 +379,7 @@ export class DelegateWebApi
                             if(unsafePUID!=null){
 
                                 // is user is not authorize, it throws an exception
-                                self.srv.context.getProjectManager().isAuthorized(
+                                await self.srv.context.getProjectManager().isAuthorized(
                                     (req.user as UserAccount),
                                     unsafePUID
                                 );
@@ -483,144 +483,78 @@ export class DelegateWebApi
                             if(unsafePUID!=null){
 
                                 // is user is not authorize, it throws an exception
+
                                 self.srv.context.getProjectManager().isAuthorized(
                                     (req.user as UserAccount),
                                     unsafePUID
-                                );
-
-                                /*
+                                ).then(()=>{
+                                    /*
                                   check engine node mode :
                                    - STANDALONE / SLAVE : process request
                                    - MASTER : forward to free SLAVE node
                                  */
-                                switch (self.srv.context.getEngineMode()){
-                                    case DexcaliburEngineMode.MASTER:
-                                        let targetNode:Nullable<EngineNode> = null;
-                                        try{
-                                            nodes = self.srv.context
-                                                .nodeManager
-                                                .getNodeByProject(
-                                                    unsafePUID,
-                                                    NodePurpose.REVIEW
-                                                );
-
-                                            if(nodes.length>0){
-                                                //targetNode = nodes[0];
-                                                self.srv.context
+                                    switch (self.srv.context.getEngineMode()){
+                                        case DexcaliburEngineMode.MASTER:
+                                            let targetNode:Nullable<EngineNode> = null;
+                                            try{
+                                                nodes = self.srv.context
                                                     .nodeManager
-                                                    .forwardWebRequest(nodes[0], self.srv, req, res)
-                                                    .then(()=>{
+                                                    .getNodeByProject(
+                                                        unsafePUID,
+                                                        NodePurpose.REVIEW
+                                                    );
 
-                                                    })
-                                            }else{
-
-                                                throw ProjectManagerException.PROJECT_NOT_LOADED(unsafePUID,"middleware-auth(master)");
-                                                // create
-                                                /*self.srv.context
-                                                    .nodeManager.createNode(unsafePUID, NodePurpose.REVIEW).then((targetNode2)=>{
-
-                                                        targetNode2.spawn(
-                                                            "Request cannot be forwarded, because this project is not linked to a node",
-                                                            false
-                                                        ).then(()=>{
-                                                            nodes.push(targetNode);
-                                                            self.srv.context
-                                                                .nodeManager
-                                                                .forwardWebRequest(targetNode, self.srv, req, res)
-                                                                .then(()=>{
-
-                                                                })
-                                                        })
-                                                    })*/
-
-                                                /*
-                                                targetNode.spawn(
-                                                    "Request cannot be forwarded, because this project is not linked to a node",
-                                                    false
-                                                ).then(()=>{
-                                                    nodes.push(targetNode);
+                                                if(nodes.length>0){
+                                                    //targetNode = nodes[0];
                                                     self.srv.context
                                                         .nodeManager
-                                                        .forwardWebRequest(targetNode, self.srv, req, res)
+                                                        .forwardWebRequest(nodes[0], self.srv, req, res)
                                                         .then(()=>{
 
                                                         })
-                                                })*/
+                                                }else{
+                                                    throw ProjectManagerException.PROJECT_NOT_LOADED(unsafePUID,"middleware-auth(master)");
+                                                }
+                                            }catch (e){
+                                                Logger.error(e.msg);
+                                                throw new Error(e.msg);
                                             }
+                                            break;
+                                        case DexcaliburEngineMode.STANDALONE:
+                                        case DexcaliburEngineMode.SLAVE:
+                                            // load project and inject it into request
+                                            self.srv.context.getProjectManager().getProject(req.user, unsafePUID)
+                                                .then((authorizedProj)=>{
+
+                                                    if(authorizedProj==null){
+                                                        // open project
+                                                        // (req as any).project = await self.srv.context.getProjectManager().getProject(req.user, unsafePUID);
+                                                        throw ProjectManagerException.PROJECT_NOT_FOUND(unsafePUID);
+                                                    }
+
+                                                    // get corresponsing active instance
+                                                    req.project = (self.srv.context.getActiveProjects())[authorizedProj.getUID()];
+
+                                                    if(req.project==null){
+                                                        throw ProjectManagerException.PROJECT_NOT_LOADED(unsafePUID);
+                                                    }
+                                                    // TODO : remove later
+                                                    req.dxc.project = req.project;
+                                                    pHandlers[httpVerb](req, res);
+                                                })
+                                            break;
+                                    }
+                                }).catch((err)=>{
+                                    Logger.error("[AUTH ROUTE | ASYNC] Authentication failed, not authorized : " + err.message);
+                                    req.dxc.$.sendError( res, "[AUTH ROUTE | SYNC] Authentication failed. ");
+                                })
 
 
-                                        }catch (e){
-                                            Logger.error(e.msg);
-                                            throw new Error(e.msg);
-                                        }
-                                        break;
-                                    case DexcaliburEngineMode.STANDALONE:
-                                    case DexcaliburEngineMode.SLAVE:
-                                        // load project and inject it into request
-                                        self.srv.context.getProjectManager().getProject(req.user, unsafePUID)
-                                            .then((authorizedProj)=>{
-
-                                           if(authorizedProj==null){
-                                                // open project
-                                                // (req as any).project = await self.srv.context.getProjectManager().getProject(req.user, unsafePUID);
-                                                throw ProjectManagerException.PROJECT_NOT_FOUND(unsafePUID);
-                                            }
-
-                                            // get corresponsing active instance
-                                            req.project = (self.srv.context.getActiveProjects())[authorizedProj.getUID()];
-
-                                            if(req.project==null){
-                                                throw ProjectManagerException.PROJECT_NOT_LOADED(unsafePUID);
-                                            }
-                                            // TODO : remove later
-                                            req.dxc.project = req.project;
-                                            pHandlers[httpVerb](req, res);
-                                        })
-                                        break;
-                                }
 
                             }else {
                                 Logger.debug("[AUTH ROUTE | SYNC] Process request");
                                 pHandlers[httpVerb](req, res);
                             }
-
-                            /*
-                            if(req.session?.passport?.user?.dxc != null){
-                                req.dxc = (req.session as any).passport.user.dxc;
-                                req.dxc.$ = self.srv;
-                            }else{
-                                console.log("SSO : Request is not authenticated. Exit");
-                                throw new Error("SSO Error");
-                            }
-                            //}*/
-                            /*
-                            Logger.debug("[AUTH ROUTE | SYNC] Process request : verify session ");
-                            if(self.srv.context.getUserService().verifySession(req.dxc.sess,'syncAuthenticatedRoute')){
-
-                                Logger.debug("[AUTH ROUTE | SYNC] Process request : check project & authorizations ");
-
-                                if(pOptions.readProject){
-                                    req.dxc.project = self.doProjectSecurityChecks(req, self.srv, pOptions);
-                                    if(req.dxc.project!=null){
-                                        nodes = self.srv.context.nodeManager.getNodeByProject(req.dxc.project.getUID());
-                                    }
-                                }
-
-                                // if the userAccount is authorized to access to this project, then continue to
-                                // process the resquest.
-                                // If the server is running in standalone mode, the request is processed immediately
-                                // else the request is forwarded to the webserver instance of the node instance
-                                // associated to requested project
-
-                                if(nodes.length>0){
-                                    self.srv.context.nodeManager.forwardWebRequestSync(nodes[0], self.srv, req, res);
-                                    //return;
-                                }else{
-                                    pHandlers[httpVerb](req, res);
-                                }
-                            }else{
-                                req.dxc.$.sendError( res, "[AUTH ROUTE | SYNC] Authentication is required. Incident has been saved.");
-                            }*/
                         }catch(err){
                             Logger.error("[AUTH ROUTE | ASYNC] Authentication failed : " + err.message)
                             req.dxc.$.sendError( res, "[AUTH ROUTE | SYNC] Authentication failed : "+err.message);

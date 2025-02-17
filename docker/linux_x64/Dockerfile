@@ -60,6 +60,7 @@ ENV DXC_USER_SRV=${user_server}
 ENV DXC_HTTP_PORT=${dxc_http_port}
 ENV DXC_WS_PORT=${dxc_ws_port}
 ENV DXC_HEAP_SZ=${dxc_heap_size}
+ENV DXC_REL_PATH=""
 
 
 ENV DXC_DB_PORT=${dxc_db_port}

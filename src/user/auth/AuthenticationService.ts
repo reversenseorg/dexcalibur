@@ -653,10 +653,10 @@ export class AuthenticationService {
     }
 
     private _getOrgAuthFormRoute(pOrg:OrganizationUnit):string {
-        return  `/auth/login/${pOrg.getUID()}/:antiReplayID`;
+        return  (process.env.DXC_REL_PATH!=undefined&&process.env.DXC_REL_PATH!="" ? process.env.DXC_REL_PATH : '')+`/auth/login/${pOrg.getUID()}/:antiReplayID`;
     }
     private _generateOrgAuthFormRoute(pOrg:OrganizationUnit, pAntiReplayToken:string):string {
-        return  `/auth/login/${pOrg.getUID()}/${pAntiReplayToken}`;
+        return  (process.env.DXC_REL_PATH!=undefined&&process.env.DXC_REL_PATH!="" ? process.env.DXC_REL_PATH : '')+`/auth/login/${pOrg.getUID()}/${pAntiReplayToken}`;
     }
 
     private _getOrgAuthLongLoginRoute(pBase:string, pOrg:OrganizationUnit):string {
@@ -975,7 +975,7 @@ export class AuthenticationService {
         if((vReq as any).dxc.org!=null){
             page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', this._generateOrgAuthFormRoute((vReq as any).dxc.org, context.replayUID));
         }else{
-            page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', '/auth/hub/login/'+context.replayUID);
+            page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', (process.env.DXC_REL_PATH!=undefined&&process.env.DXC_REL_PATH!="" ? process.env.DXC_REL_PATH : '')+'/auth/hub/login/'+context.replayUID);
         }
         page = page.replaceAll('@@_FORM_USERNAME_@@',context.usernameField);
         page = page.replaceAll('@@_FORM_PASSWORD_@@',context.pwdField);
