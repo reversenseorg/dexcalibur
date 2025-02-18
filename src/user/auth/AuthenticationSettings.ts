@@ -181,7 +181,7 @@ export class AuthenticationSettings {
 
         try{
             if(process.env.DXC_AUTHORIZED_IPS!=null && process.env.DXC_AUTHORIZED_IPS.length>0){
-                process.env.DXC_AUTHORIZED_IPS.split(':').map(x => list.push(x));
+                process.env.DXC_AUTHORIZED_IPS.split(',').map(x => list.push(x));
             }
         }catch (e){}
 
