@@ -178,6 +178,13 @@ export class AuthenticationSettings {
         if(this._authorized_ips.indexOf(AuthenticationSettings.LOCAL_ADDR_IPV4)==-1){
             list.push(AuthenticationSettings.LOCAL_ADDR_IPV4)
         }
+
+        try{
+            if(process.env.DXC_AUTHORIZED_IPS!=null && process.env.DXC_AUTHORIZED_IPS.length>0){
+                process.env.DXC_AUTHORIZED_IPS.split(':').map(x => list.push(x));
+            }
+        }catch (e){}
+
         return list;
     }
 
