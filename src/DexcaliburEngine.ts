@@ -540,9 +540,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.aclManager.init(this._internalAcc);
         
         this.sigServerApi = new SignatureServerAPI({
-            host: '127.0.0.1',
-            port: '8085',
-            ssl: false,
+            host: (process.env.DXC_SS_HOST!=null ? process.env.DXC_SS_HOST : '127.0.0.1'),
+            port: (process.env.DXC_SS_PORT!=null ? process.env.DXC_SS_PORT : '8085'),
+            ssl: (process.env.DXC_SS_SEC!=null ? (process.env.DXC_SS_SEC==="true") : false),
             auth: null
         });
 
