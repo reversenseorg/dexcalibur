@@ -22,7 +22,11 @@ export class EmailSender {
     constructor(pEngine:DexcaliburEngine) {
         try{
             // rename secret 'emailer.api-key'
-            this.apiKey = pEngine.getSecretManager().readRawSecret('SCW5QQAPBNJDG3B4K6KY').toString();
+            if(process.env.DXC_EMAIL_APIKEY!=null){
+                this.apiKey = process.env.DXC_EMAIL_APIKEY;
+            }else{
+                this.apiKey = pEngine.getSecretManager().readRawSecret('SCW5QQAPBNJDG3B4K6KY').toString();
+            }
             this.apiKey = this.apiKey.replaceAll(/[\n\r]/g,'').trim();
             this.ready = true;
         }catch(e){
