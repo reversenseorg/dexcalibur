@@ -1195,6 +1195,9 @@ export default class WebServer
         this.app.use(BodyParser.urlencoded({ extended: false }));
         this.app.use(BodyParser.json());
 
+        // remove x-powered-by header in response
+        this.app.set('x-powered-by', false);
+
         // to modify behavior of req.ip and req.ips
         if(process.env.DXC_TRUST_PROXY!=null){
             if(process.env.DXC_TRUST_PROXY==="true"){

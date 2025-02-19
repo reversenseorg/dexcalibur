@@ -462,7 +462,7 @@ export class AuthenticationService {
 
         if(state==null){
             state = new LoadedAuthModule(pAuthModule,pOrg);
-            state.updateGateEndpoint(this._getOrgAuthFormRoute(pOrg));
+            state.updateGateEndpoint(this._getOrgAuthEndpointRoute(pOrg));
             state.updateGateFailure(this._getOrgAuthLongLoginRoute(pBasePath,pOrg));
             state.updateGateSuccess(this._getOrgHomeLongRoute(pBasePath,pOrg));
             state.updateExtra({
@@ -652,9 +652,10 @@ export class AuthenticationService {
         }
     }
 
-    private _getOrgAuthFormRoute(pOrg:OrganizationUnit):string {
-        return  (process.env.DXC_REL_PATH!=undefined&&process.env.DXC_REL_PATH!="" ? process.env.DXC_REL_PATH : '')+`/auth/login/${pOrg.getUID()}/:antiReplayID`;
+    private _getOrgAuthEndpointRoute(pOrg:OrganizationUnit):string {
+        return  `/auth/login/${pOrg.getUID()}/:antiReplayID`;
     }
+
     private _generateOrgAuthFormRoute(pOrg:OrganizationUnit, pAntiReplayToken:string):string {
         return  (process.env.DXC_REL_PATH!=undefined&&process.env.DXC_REL_PATH!="" ? process.env.DXC_REL_PATH : '')+`/auth/login/${pOrg.getUID()}/${pAntiReplayToken}`;
     }
@@ -686,7 +687,7 @@ export class AuthenticationService {
 
         if(state==null){
             state = new LoadedAuthModule(pModule,pOrg);
-            state.updateGateEndpoint(this._getOrgAuthFormRoute(pOrg));
+            state.updateGateEndpoint(this._getOrgAuthEndpointRoute(pOrg));
             state.updateGateFailure(this._getOrgAuthLongLoginRoute(pBasePath,pOrg));
             state.updateGateSuccess(this._getOrgHomeLongRoute(pBasePath,pOrg));
         }else {
