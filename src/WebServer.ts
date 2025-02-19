@@ -1195,6 +1195,15 @@ export default class WebServer
         this.app.use(BodyParser.urlencoded({ extended: false }));
         this.app.use(BodyParser.json());
 
+        // to modify behavior of req.ip and req.ips
+        if(process.env.DXC_TRUST_PROXY!=null){
+            if(process.env.DXC_TRUST_PROXY==="true"){
+                this.app.set('trust proxy', true)
+            }else if(process.env.DXC_TRUST_PROXY.length > 0){
+                this.app.set('trust proxy', parseInt(process.env.DXC_TRUST_PROXY,10));
+            }
+        }
+
         /**
          * Setup CORS, context-specific headers and inject `dxc` context in DelegateResponse object
          */
