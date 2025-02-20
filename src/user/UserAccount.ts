@@ -17,6 +17,7 @@ import {ValidationRule} from "../Validator.js";
 import {UserAccountAction, UserAccountEvent, UserAccountHelper} from "./UserAccountEvent.js";
 import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
 import {User} from "../User.js";
+import {Token, TokenOptions, TokenPurpose} from "../core/secrets/Token.js";
 
 
 export enum UserAccountType {
@@ -40,6 +41,7 @@ export interface UserAccountOptions extends IStringIndex<any> {
     _email?:string,
     _type?:UserAccountType;
     _authorized_ips?:string[],
+    _tokens?:Token[],
     _projects?:ProjectURI[],
     _history?:UserAccountEvent[],
     _orgs?:OrganizationUnitUUID[],
@@ -89,6 +91,7 @@ export class UserAccount implements IPersistent, INode {
     private _orgs:OrganizationUnitUUID[] = [];
     private _activated:number = -1;
     private _history:UserAccountEvent[] =[];
+    private _tokens:Token[] =[];
     private _extra:Record<string, any> = {};
     private _attrs:any = {};
 
@@ -430,6 +433,35 @@ export class UserAccount implements IPersistent, INode {
 
 
         return o;
+    }
+
+    addVerifyToken(pTokenOpts: TokenOptions) {
+        this._tokens.push({
+            token: pTokenOpts.token,
+            purpose: pTokenOpts.purpose,
+            ttl: pTokenOpts.ttl,
+            date: Util.time()
+        });
+    }
+
+    verifyToken(pToken:string, pPurpose:TokenPurpose):boolean{
+        const match = this._tokens.find((vToken)=>{
+            return CryptoUtils.stringEqual(vToken.token,pToken) && (vToken.purpose===pPurpose);
+        });
+
+        if(match==null || ((Util.time()-match.date) > match.ttl) ){
+            // flush expired token
+            this._tokens = this._tokens.filter((vTok)=>{
+                return ((Util.time()-vTok.date) < vTok.ttl);
+            });
+            return false;
+        }else{
+            // flush all token with same purpose and expired tokens
+            this._tokens = this._tokens.filter((vTok)=>{
+                return (vTok.purpose!=pPurpose) && ((Util.time()-vTok.date) < vTok.ttl);
+            });
+            return true;
+        }
     }
 }
 

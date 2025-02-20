@@ -1,5 +1,5 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
+import {UserAccount, UserAccountOptions, UserAccountType, UserAccountUUID} from "../user/UserAccount.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
@@ -24,8 +24,7 @@ import {Secret, SecretUUID} from "../core/secrets/Secret.js";
 import {Device, DeviceUUID} from "../Device.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
-import {VdevEvent, VdevEventType} from "../device/maker/VdevEvent.js";
-import {DEVICE_WEB_API} from "../webapi/device.web.api.js";
+import {VdevEvent} from "../device/maker/VdevEvent.js";
 import {Observable} from "rxjs";
 import {ProjectOrder} from "../project/ProjectOrder.js";
 import {ProjectSchedulerException} from "../errors/ProjectSchedulerException.js";
@@ -33,6 +32,9 @@ import {BusinessPlan, BusinessPlanType, ResourceThresholds} from "../billing/Bus
 import {ErrorCode} from "../errors/MonitoredError.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {ProductType} from "../billing/Purchase.js";
+import {Person} from "../user/Person.js";
+import {CryptoUtils} from "../CryptoUtils.js";
+import {TokenPurpose} from "../core/secrets/Token.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -89,8 +91,64 @@ export class OrganizationManager {
         );
     }
 
+    async sendActivationMail(pUserAccount:UserAccount, pTokenLifetime:number, pSave = false):Promise<void> {
 
-    async inviteUsers(pUserAccount:UserAccount, pOrg:OrganizationUnit, pEmails:string[], pGrpUID:Nullable<UserGroupUUID>):Promise<boolean> {
+        // generate activation token
+        const token = Buffer.from(CryptoUtils.randomChunk(256)).toString('base64');
+
+        // save token
+        pUserAccount.addVerifyToken({
+            token: token,
+            purpose: TokenPurpose.ACCOUNT_VERIFY,
+            ttl: pTokenLifetime
+        });
+
+        // update account
+        if(pSave){
+            await this._ctx.getEngineDB().save(pUserAccount);
+        }
+
+        const link = `${process.env.DXC_SCHEMA!=null?process.env.DXC_SCHEMA:'http'}://${process.env.DXC_HOSTNAME!=null?process.env.DXC_HOSTNAME:'127.0.0.1:8080'}/activate/account/?token=${token}`;
+
+        // send email
+        await this._emailSender.sendMail(
+            pUserAccount.getEmail(),
+            'Activate your Reversense account',
+            null,
+            ' <!DOCTYPE html PUBLIC "-//W3C//DTDXHTML1.0Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"> <head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title></title></head><body><div style="width:100%; height:100%; background: #DDD;padding:20px;"><div style="margin: 10px 30%"><h3>Hi there</h3>,<p>Thank you for signing up for Reversense. Click on the link below to verify your email:</p><div style="width:100%;text-align: center"><a href="${link}">Activate</a><br></div><p>If the link above didn&quot;t work, copy this link into your browser : ${link}</p><p>This link will expire in 24 hours.</p> <p>Best,<br/>The Reversense Team </p></div></div></body> </html>'
+        );
+
+        // send email
+        /*
+        await this._emailSender.sendMail(
+            pUserAccount.getEmail(),
+            'Activate your Reversense account',
+            `
+
+Hi there,
+
+Thank you for signing up for Reversense. Click on the link below to verify your email:
+
+${link}
+
+This link will expire in 24 hours.
+
+Best,
+
+The Reversense Team
+            `,
+            ' <!DOCTYPE html PUBLIC "-//W3C//DTDXHTML1.0Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"> <head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title></title></head><body><div style="width:100%; height:100%; background: #DDD;padding:20px;"><div style="margin: 10px 30%"><h3>Hi there</h3>,<p>Thank you for signing up for Reversense. Click on the link below to verify your email:</p><div style="width:100%;text-align: center"><a href="${link}">Activate</a><br></div><p>If the link above didn&quot;t work, copy this link into your browser : ${link}</p><p>This link will expire in 24 hours.</p> <p>Best,<br/>The Reversense Team </p></div></div></body> </html>'
+        );*/
+    }
+
+    /**
+     *
+     * @param pUserAccount
+     * @param pOrg
+     * @param pEmails
+     * @param {Nullable<UserGroupUUID>} pGrpUID Optional
+     */
+    async inviteUsers(pUserAccount:UserAccount, pOrg:OrganizationUnit, pEmails:string[], pGrpUID:Nullable<UserGroupUUID>=null):Promise<boolean> {
         AccessControl.isAuthorized(
             AccessControl.access.ORG_USR_MGT,
             pUserAccount,
@@ -108,6 +166,7 @@ export class OrganizationManager {
         }
 
 
+
         let usrAcc:UserAccount;
         let success = 0;
         for(let k=0; k<pEmails.length; k++){
@@ -122,8 +181,13 @@ export class OrganizationManager {
                 // create account and perform various init ops
                 usrAcc = await this._ctx.getUserService().createUser(usrAcc, pOrg);
 
+                // todo if group if sepcified, assign the user to the group
+                if(grp!=null){
+                    grp.addMember(usrAcc.getUID());
+                }
+
                 // send acount activation link
-                await this.sendInvitationMail(usrAcc);
+                await this.sendActivationMail(usrAcc, 3600*2, true);
 
                 success++;
             }catch (err){
@@ -131,8 +195,17 @@ export class OrganizationManager {
             }
         }
 
+        // save group
+        if(grp != null){
+            await this.updateOrganization(pUserAccount, pOrg, {
+                groups: pOrg.groups
+            });
+        }
+
         return (success==pEmails.length);
     }
+
+    //async updateUserGroup( pUserAccount:UserAccount, pOrg:OrganizationUnit)
 
     async countMembers(pUserAccount:UserAccount, pOrg:OrganizationUnit):Promise<number> {
         AccessControl.isAuthorized(
@@ -163,7 +236,7 @@ export class OrganizationManager {
 
         const all = await (this._ctx.getEngineDB()
             .getCollectionOf(UserAccount.TYPE.getType()) as MongodbDbCollection)
-            .search({ filter: {_orgs: { $all: [ pOrg.getUID() ] }}},{ merlinRequest:false, raw:true }) as UserAccount[];
+            .search({ filter: {_uid: { $all: pOrg.members }}},{ merlinRequest:false, raw:true }) as UserAccount[];
 
         console.log(all);
 
@@ -452,7 +525,7 @@ export class OrganizationManager {
 
         return await this._ctx.getEngineDB()
             .getCollectionOf(OrganizationUnit.TYPE.getType())
-            .asyncUpdateEntry(pOrg, {replace:false});
+            .asyncUpdateEntry(pOrg, {replace:false, $set:Object.keys(pChanges)});
     }
 
     async dropOrganization(pUserAccount:UserAccount, pOrg:OrganizationUnit):Promise<boolean> {
@@ -740,6 +813,52 @@ export class OrganizationManager {
         return authorized;
     }
 
+    async dropUserGroup(pUserAccount:UserAccount, pOrg:OrganizationUnit, pGrpUUID:UserGroupUUID):Promise<boolean> {
+
+        // check if the user is authorized to drop the app (must be the owner of app or of the org)
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_GRP_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        pOrg.removeUserGroup(pGrpUUID);
+
+        return await this.updateOrganization(pUserAccount, pOrg, {
+            groups: pOrg.groups
+        })
+    }
+
+    async updateUserGroup(pUserAccount:UserAccount, pOrg:OrganizationUnit, pGrpUUID:UserGroupUUID, pData:any):Promise<boolean> {
+
+        // check if the user is authorized to drop the app (must be the owner of app or of the org)
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_GRP_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        const grp = pOrg.getUserGroup(pGrpUUID);
+        if(grp==null){
+            throw OrganizationManagerException.USER_GROUP_NOT_FOUND(pGrpUUID);
+        }
+
+        grp.update(pData);
+
+        return await this.updateOrganization(pUserAccount, pOrg, {
+            groups: pOrg.groups
+        })
+    }
+
+
     async listGroupMembers(pUserAccount: UserAccount, pOrg: OrganizationUnit, pGrpUUID: string):Promise<UserAccount[]> {
         AccessControl.isAuthorized(
             AccessControl.access.ORG_GRP_MGT,
@@ -792,6 +911,7 @@ export class OrganizationManager {
             ]
         );
 
+        // uid must be unique organization-wide
         let uid:UserGroupUUID;
         do{
             uid = randomUUID()
@@ -1542,4 +1662,132 @@ export class OrganizationManager {
             throw OrganizationManagerException.PRODUCT_NOT_SUPPORTED(pType);
         }
     }
+
+    async createUser(pUserAccount: UserAccount,
+                     pOrg: OrganizationUnit,
+                     pUnsafeData:UserAccountOptions):Promise<Nullable<UserAccountUUID>> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_USR_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.ORG_MEMBER,
+                OrganizationAccessControl.attr.OWNER
+            ]
+        );
+
+        let uuid = await this._ctx.getEngineDB().generateFreeUuid(
+            UserAccount.TYPE.getType(),
+            UserAccount.TYPE.getPrimaryKey().getName()
+        );
+        let account:UserAccount;
+        let unsafeAcc = new UserAccount();
+        unsafeAcc.lock();
+        if(UserAccount.VALIDATE._email.test(pUnsafeData._username)){
+            unsafeAcc.username = pUnsafeData._username;
+        }
+        if(UserAccount.VALIDATE._type.test(pUnsafeData._type)){
+            unsafeAcc.setType(pUnsafeData._type);
+        }
+        if(pUnsafeData._person!=null && Object.values(pUnsafeData._person).length>0){
+            const prs = new Person();
+            if(Person.VALIDATE._firstname.test((pUnsafeData._person as any)._firstname)){
+                prs.firstname = (pUnsafeData._person as any)._firstname;
+            }
+            if(Person.VALIDATE._lastname.test((pUnsafeData._person as any)._lastname)){
+                prs.lastname = (pUnsafeData._person as any)._lastname;
+            }
+            unsafeAcc.person = prs;
+        }
+
+
+        if(unsafeAcc.getType()===UserAccountType.LOCAL){
+            account = await this._ctx.getUserService().createLocalUser(
+                uuid,[], unsafeAcc.username, unsafeAcc.person, false
+            );
+        }else{
+            throw OrganizationManagerException.CANNOT_CREATE_FEDERATED_USR(unsafeAcc.username, pOrg.getUID());
+        }
+
+        pOrg.addMember(account);
+
+        if(await this.updateOrganization(pUserAccount, pOrg, {
+            members: pOrg.members
+        })){
+
+            // send activation email
+            await this.sendActivationMail(account, 3600*2, true);
+
+            return account.getUID();
+        }else{
+            return null;
+        }
+    }
+
+
+    async updateUser(pUserAccount: UserAccount,
+                     pOrg: OrganizationUnit,
+                     pUserUID: UserAccountUUID,
+                     pUnsafeUpdates:UserAccountOptions):Promise<boolean> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_USR_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.ORG_MEMBER,
+                OrganizationAccessControl.attr.OWNER
+            ]
+        );
+
+        // check if the user is a member of the organization
+        if(!pOrg.hasMember(pUserUID)){
+            throw OrganizationManagerException.NOT_A_MEMBER(pUserUID,pOrg.getUID());
+        }
+
+        const account = await this._ctx.getUserService().getAccount(pUserAccount, pUserUID);
+
+        if(account.getType()===UserAccountType.FEDERATED){
+            throw OrganizationManagerException.CANNOT_UPDATE_FEDERATED_USR(pUserUID, pOrg.getUID());
+        }
+
+        const updatedAcc = await this._ctx.getUserService().updateAccountWithUnsafe(
+            pUserAccount, pUserUID, pUnsafeUpdates
+        );
+
+        return true;
+    }
+
+
+    async sendUnlockMail(pUserAccount: UserAccount,
+                     pOrg: OrganizationUnit,
+                     pUserUID: UserAccountUUID):Promise<boolean> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_USR_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.ORG_MEMBER,
+                OrganizationAccessControl.attr.OWNER
+            ]
+        );
+
+        // check if the user is a member of the organization
+        if(!pOrg.hasMember(pUserUID)){
+            throw OrganizationManagerException.NOT_A_MEMBER(pUserUID,pOrg.getUID());
+        }
+
+        const account = await this._ctx.getUserService().getAccount(pUserAccount, pUserUID);
+
+        if(account.getType()===UserAccountType.FEDERATED){
+            throw OrganizationManagerException.CANNOT_UPDATE_FEDERATED_USR(pUserUID, pOrg.getUID());
+        }
+
+        this.sendActivationMail(account, 3600*2, true);
+
+        return true;
+    }
+
 }

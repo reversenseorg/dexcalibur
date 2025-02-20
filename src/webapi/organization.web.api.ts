@@ -831,6 +831,65 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
 
 ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/members/create',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+                const user = await $.context.getOrgManager().createUser(pReq.user, org, pReq.body);
+
+                $.sendSuccess( pRes, { uuid: user });
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot create a new user into this organization", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/member/:uid',
+    {
+        'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+
+                $.sendSuccess( pRes, {
+                    updated: await $.context.getOrgManager().updateUser(pReq.user, org, pReq.params.uid, pReq.body.user)
+                });
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot create a new user into this organization", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/member/:uid/send_unlock',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+
+                $.sendSuccess( pRes, {
+                    sent: await $.context.getOrgManager().sendUnlockMail(pReq.user, org, pReq.params.uid)
+                });
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot sent unlock mail", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:uid/members/list',
     {
         'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
@@ -871,7 +930,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     throw new Error("Emails format is invalid")
                 }
 
-                if(!UserGroup.VALIDATE.uuid.test(pReq.body.grp)){
+                if(pReq.body.grp!=null && !UserGroup.VALIDATE.uuid.test(pReq.body.grp)){
                     throw new Error("UserGroupUUID format is invalid")
                 }
 
@@ -992,6 +1051,43 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
         }
     }
 );
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:uid/usergroup/:grp/',
+    {
+        'delete': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.uid);
+
+                $.sendSuccess(
+                    pRes,
+                    await $.context.getOrgManager().dropUserGroup(pReq.user, org, pReq.params.grp)
+                );
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
+            }
+        },
+        'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.uid);
+
+                $.sendSuccess(
+                    pRes,
+                    await $.context.getOrgManager().updateUserGroup(pReq.user, org, pReq.params.grp, pReq.body.data)
+                );
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
+            }
+        }
+    }
+);
+
 
 ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:uid/usergroup/:grp/members',

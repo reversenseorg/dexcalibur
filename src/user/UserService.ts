@@ -28,6 +28,7 @@ import {OrganizationAccessControl} from "./acl/rbac/OrganizationAccessContol.js"
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {randomUUID} from "crypto";
+import {Person} from "./Person.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -174,7 +175,7 @@ export class UserService {
      *
      * @param pRoles
      */
-    async createLocalUser(pUID:string, pRoles:Role[], pUsername:Nullable<string> = null):Promise<UserAccount> {
+    async createLocalUser(pUID:string, pRoles:Role[], pUsername:Nullable<string> = null, pPerson:Nullable<Person> = null, pPrint = false):Promise<UserAccount> {
         let clearPwd = AuthenticationService.generatePassword({
             minLength: 12,
             maxLength: 255,
@@ -184,7 +185,8 @@ export class UserService {
         const user = new UserAccount({
             _uid: pUID,
             _username: (pUsername!=null ? pUsername : UserAccount.generateUsername()),
-            _type: UserAccountType.LOCAL
+            _type: UserAccountType.LOCAL,
+            _person: (pPerson!=null ? pPerson : null)
         });
 
         pRoles.map(x => user.addRole(x));
@@ -195,19 +197,18 @@ export class UserService {
 
         user.newPassword(clearPwd);
 
-        Logger.success(`
-+---[ IMPORTANT ]------------------------------
-| New local administrator created. Please note username and password
-|
-| Username: ${user.username}
-| Password: ${clearPwd}
-+----------------------------------------------
-        `);
+        if(pPrint){
+            Logger.success(`
+    +---[ IMPORTANT ]------------------------------
+    | New local administrator created. Please note username and password
+    |
+    | Username: ${user.username}
+    | Password: ${clearPwd}
+    +----------------------------------------------
+            `);
+        }
 
-
-        this._ctx.getEngineDB().save(user);
-
-        return  null;
+        return  await this._ctx.getEngineDB().save(user) as UserAccount;
     }
 
     static getCommonOrganizations( pAccount1:UserAccount, pAccount2:UserAccount, ):OrganizationUnitUUID[] {
@@ -436,7 +437,7 @@ export class UserService {
      */
     async getAccount(pUserAccount:UserAccount, pUUID:UserAccountUUID):Promise<UserAccount> {
         if(pUserAccount.uuidEquals(pUUID)){
-            return await this.find(new UserAccount({ uuid:pUserAccount.getUID() }), { autoCreate:false });
+            return await this.find(new UserAccount({ _uid:pUserAccount.getUID() }), { autoCreate:false });
         }else{
             // check basic perm
             AccessControl.isAuthorized(
@@ -445,17 +446,27 @@ export class UserService {
             );
 
             // check i
-            let user = await this.find(new UserAccount({ uuid:pUUID }), { autoCreate:false });
+            let user = await this.find(new UserAccount({ _uid:pUUID }), { autoCreate:false });
 
             if(user==null){
                 throw UserServiceException.USER_NOT_FOUND();
             }
 
+
             const sameOrgs = UserService.getCommonOrganizations(pUserAccount, user);
 
             // verify user is a part of issuer org
             if(sameOrgs.length==0){
-                throw UserServiceException.USERS_NOT_SAME_ORG(pUserAccount, user);
+                try{
+                    AccessControl.isAuthorized(
+                        AccessControl.access.SRV_INSTANCE_MGT,
+                        pUserAccount);
+
+                    return user;
+
+                }catch (er){
+                    throw UserServiceException.USERS_NOT_SAME_ORG(pUserAccount, user);
+                }
             }
 
             try{

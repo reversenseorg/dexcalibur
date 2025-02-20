@@ -20,21 +20,22 @@ SETTINGS_WEB_API.addPublicRoute(
 
             try{
                 switch (req.query['type']){
-                    case 'ext':
+                    /*case 'ext':
                         data = $.context.getSettings().getExternalSettings().toObject(SecurityZone.PUBLIC);
+                        break;
+                    case 'conn':
+                        data = $.context.getSettings().getConnectionSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     case 'srv':
                         data = $.context.getSettings().getServerSettings().toObject(SecurityZone.PUBLIC);
-                        break;
+                        break;*/
                     case 'web':
                         data = $.context.getSettings().getWebserverSettings().toObject(SecurityZone.PUBLIC);
                         // override with current settings
                         data.http = $.context.getWebserver().getPort();
                         data.ws = $.context.getWebsocketServer().port;
                         break;
-                    case 'conn':
-                        data = $.context.getSettings().getConnectionSettings().toObject(SecurityZone.PUBLIC);
-                        break;
+
                     default:
                         throw GlobalSettingsException.CATEGORY_UNKNOW();
                 }
@@ -47,15 +48,13 @@ SETTINGS_WEB_API.addPublicRoute(
                 Logger.error("[API][SETTINGS] Category cannot be retrieved : "+err.message+"\n\t"+err.stack);
                 $.sendError(res, err.message);
             }
-        },
+        }/*,
         'post': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
             let settings:any;
 
-
             try{
-
                 if(req.body['name'] == null){
                     throw GlobalSettingsException.SETTING_UNKNOW();
                 }
@@ -125,10 +124,11 @@ SETTINGS_WEB_API.addPublicRoute(
                 Logger.error("[API][SETTINGS] Category cannot be retrieved : "+err.message+"\n\t"+err.stack);
                 $.sendError(res, err.message);
             }
-        }
+        }*/
     }
 )
 
+/*
 SETTINGS_WEB_API.addPublicRoute(
     '/import',
     {
@@ -164,4 +164,4 @@ SETTINGS_WEB_API.addPublicRoute(
             }
         }
     }
-)
+)*/

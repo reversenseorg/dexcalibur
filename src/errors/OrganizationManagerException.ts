@@ -177,11 +177,21 @@ export class OrganizationManagerException extends MonitoredError {
         return new OrganizationManagerException(`Cannot update business plan of [org=${pOUID}]`,
             ErrorCode.ORGANIZATION + 40) };
 
+    static CANNOT_CREATE_FEDERATED_USR = (pUsername: UserAccountUUID, pOUID: OrganizationUnitUUID) =>{
+        return new OrganizationManagerException(`Cannot create federated user account [user=${pUsername}][org=${pOUID}]`,
+            ErrorCode.ORGANIZATION + 41) };
 
+    static NOT_A_MEMBER = (pUsername: UserAccountUUID, pOUID: OrganizationUnitUUID) => {
+        return new OrganizationManagerException(`The user is not a member of the organization [user=${pUsername}][org=${pOUID}]`,
+            ErrorCode.ORGANIZATION + 42) };
 
+    static CANNOT_UPDATE_FEDERATED_USR = (pUsername: UserAccountUUID, pOUID: OrganizationUnitUUID) =>{
+        return new OrganizationManagerException(`Cannot update federated user account [user=${pUsername}][org=${pOUID}]`,
+            ErrorCode.ORGANIZATION + 43) };
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('ORGANIZATION', pMsg, pCode, pExtra);
     }
+
 
 }

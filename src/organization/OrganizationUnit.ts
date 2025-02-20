@@ -355,6 +355,12 @@ export class OrganizationUnit extends Auditable implements INode {
         });
     }
 
+    removeUserGroup(pUserGrpUID:UserGroupUUID):void {
+        this.groups = this.groups.filter((vUserGrp)=> {
+            return vUserGrp.getUID()!==pUserGrpUID;
+        });
+    }
+
     removeSecret(pSecretUUID:SecretUUID):void {
         this.secrets = this.secrets.filter((vSecret)=> {
             console.log(vSecret.getUID(),pSecretUUID);

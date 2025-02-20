@@ -129,6 +129,19 @@ export class UserGroup extends Auditable implements INode {
 
     /**
      *
+     * @param pData
+     * @returns {string[]} List of updated properties
+     */
+    update(pData:UserGroupOptions):string[]{
+        const modified:string[] = [];
+        if(pData.name){this.name = pData.name; modified.push('name'); }
+        if(pData.description){ this.description = pData.description; modified.push('description'); }
+        if(pData.roles){ this.roles = pData.roles; modified.push('roles'); }
+        if(pData.members){ this.members = pData.members; modified.push('members'); }
+        return modified;
+    }
+    /**
+     *
      * @param pOption
      */
     toJsonObject(pOption?: SerializeOptions, pZone = SecurityZone.PUBLIC): any {

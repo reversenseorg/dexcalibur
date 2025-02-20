@@ -921,6 +921,7 @@ export class ProjectManager {
 
         const proj = await this.getProject(this._ctx.getInternalAcc(), pProjectUID);
 
+        console.log("IS AUTHORIZED ", pProjectUID, proj);
         let authorized = false;
         try{
             AccessControl.isAuthorizedByAttr(
@@ -940,7 +941,8 @@ export class ProjectManager {
                 authorized = true;
             }catch (e2){
                 // check if authorized by app
-                if(ApplicationUnit.VALIDATE.uuid.test(proj.appUnit)){
+
+                if(proj.appUnit!=null && ApplicationUnit.VALIDATE.uuid.test(proj.appUnit)){
                     // check if current user can access to this app unit
                     await this._ctx.getOrgManager()
                         .getApplicationUnit(pAccount,proj.appUnit);
