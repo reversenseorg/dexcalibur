@@ -189,9 +189,14 @@ export class OrganizationManagerException extends MonitoredError {
         return new OrganizationManagerException(`Cannot update federated user account [user=${pUsername}][org=${pOUID}]`,
             ErrorCode.ORGANIZATION + 43) };
 
+    static INVALID_USER_EMAIL = (pUsername: UserAccountUUID, pOpeMsg = "") =>{
+        return new OrganizationManagerException(`Email address of user account is invalid [user=${pUsername}]. ${pOpeMsg} `,
+            ErrorCode.ORGANIZATION + 44) };
+
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('ORGANIZATION', pMsg, pCode, pExtra);
     }
+
 
 
 }

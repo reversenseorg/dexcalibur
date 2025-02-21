@@ -13,6 +13,7 @@ import {Secret} from "../core/secrets/Secret.js";
 import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
 import {ProjectState} from "../ProjectState.js";
 import {ProductType} from "../billing/Purchase.js";
+import {UserServiceException} from "../errors/UserServiceException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi("ORG");
@@ -843,7 +844,12 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess( pRes, { uuid: user });
             } catch (err) {
-                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot create a new user into this organization", err);
+                if(err.code===UserServiceException.ERR.USERNAME_NOT_AVAILABLE){
+                    $.sendErrorAfterException(pRes, ORG_WEB_API.name,  "This username is not available.", err);
+                }else{
+                    $.sendErrorAfterException(pRes, ORG_WEB_API.name,  "Cannot create a new user into this organization", err);
+                }
+
             }
         }
     }
@@ -865,6 +871,20 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
             } catch (err) {
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot create a new user into this organization", err);
             }
+        },
+        'delete': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+
+                $.sendSuccess( pRes, {
+                    updated: await $.context.getOrgManager().dropMember(pReq.user, org, pReq.params.uid, false)
+                });
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot create a new user into this organization", err);
+            }
         }
     }
 );
@@ -881,6 +901,26 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess( pRes, {
                     sent: await $.context.getOrgManager().sendUnlockMail(pReq.user, org, pReq.params.uid)
+                });
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot sent unlock mail", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/member/:uid/lock',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+
+                $.sendSuccess( pRes, {
+                    sent: await $.context.getOrgManager().lockMember(pReq.user, org, pReq.params.uid)
                 });
             } catch (err) {
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot sent unlock mail", err);

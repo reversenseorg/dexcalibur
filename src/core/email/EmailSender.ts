@@ -3,6 +3,10 @@ import DexcaliburEngine from "../../DexcaliburEngine.js";
 
 import * as Got from "got";
 import {EmailSenderException} from "./error/EmailSenderException.js";
+
+import * as Log from '../../Logger.js';
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const got = Got.default;
 
 /**
@@ -74,12 +78,13 @@ export class EmailSender {
                 json: this.createBody(pAddress,pSubject,pRawBody,pBody)
             };
 
-            console.log(opts);
+            Logger.debugRAW(opts);
             data = await got(`https://api.scaleway.com/transactional-email/v1alpha1/regions/${this.region}/emails`, opts as any);
-            console.log(data);
+            Logger.debugRAW(data);
 
         }catch (e){
-            console.log(e.stack);
+            Logger.error(e.stack);
+            throw EmailSenderException.SENDING_FAILURE(pAddress,pSubject);
         }
 
         return false;

@@ -18,7 +18,18 @@ import {UserAccountAction, UserAccountEvent, UserAccountHelper} from "./UserAcco
 import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
 import {User} from "../User.js";
 import {Token, TokenOptions, TokenPurpose} from "../core/secrets/Token.js";
+import {UserServiceException} from "../errors/UserServiceException.js";
 
+export interface Membership {
+    locked: boolean,
+    _lockDate: number,
+    activated: boolean
+    _activateDate: number,
+    preferences: any,
+    //bookmarks: any,
+    //requests: any
+    [ppt:string]:any
+}
 
 export enum UserAccountType {
     LOCAL='local',
@@ -40,8 +51,9 @@ export interface UserAccountOptions extends IStringIndex<any> {
     _activated?:number,
     _email?:string,
     _type?:UserAccountType;
+    _membership?:Record<OrganizationUnitUUID, Membership>;
     _authorized_ips?:string[],
-    _tokens?:Token[],
+    _tokens?:Token<any>[],
     _projects?:ProjectURI[],
     _history?:UserAccountEvent[],
     _orgs?:OrganizationUnitUUID[],
@@ -65,7 +77,7 @@ export class UserAccount implements IPersistent, INode {
                 color1: ValidationRule.hexColor(),
                 color2: ValidationRule.hexColor()
             }
-        }),
+        })
     }
 
     static TYPE:NodeType = new NodeType(
@@ -88,10 +100,11 @@ export class UserAccount implements IPersistent, INode {
     private _authorized_ips:string[] = [];
     private _type:UserAccountType = UserAccountType.LOCAL;
     private _locked:boolean = false;
+    private _membership:Record<OrganizationUnitUUID,Membership> = {};
     private _orgs:OrganizationUnitUUID[] = [];
     private _activated:number = -1;
     private _history:UserAccountEvent[] =[];
-    private _tokens:Token[] =[];
+    private _tokens:Token<any>[] =[];
     private _extra:Record<string, any> = {};
     private _attrs:any = {};
 
@@ -425,6 +438,7 @@ export class UserAccount implements IPersistent, INode {
         o._orgs = this._orgs;
         o._history = this._history;
         o._activated = this._activated;
+        o._membership = this._membership;
         o._extra = this._extra;
 
         //if(pZone==SecurityZone.PRIVATE){
@@ -435,33 +449,84 @@ export class UserAccount implements IPersistent, INode {
         return o;
     }
 
-    addVerifyToken(pTokenOpts: TokenOptions) {
+    /**
+     * To add a token to this account.
+     *
+     * Token are useful to add a manual step (such as email verifying, of MFA)
+     * in a validation workflow
+     *
+     * @param {TokenOptions} pTokenOpts
+     * @returns {void}
+     * @method
+     * @since 1.5.0
+     */
+    addVerifyToken(pTokenOpts: TokenOptions<any>, pExtra:any = null) {
         this._tokens.push({
             token: pTokenOpts.token,
             purpose: pTokenOpts.purpose,
             ttl: pTokenOpts.ttl,
-            date: Util.time()
+            date: Util.time(),
+            extra: pExtra
         });
     }
 
-    verifyToken(pToken:string, pPurpose:TokenPurpose):boolean{
+    /**
+     * To verify is a token match a valid token associated to this account.
+     *
+     * This method verify the value AND is the token is not expired
+     *
+     * @param {string} pToken
+     * @param {TokenPurpose} pPurpose
+     * @returns {Nullable<Token>} The matching token object or NULL
+     * @method
+     * @since 1.5.0
+     */
+    verifyToken<T>(pToken:string, pPurpose:TokenPurpose):Nullable<Token<T>>{
         const match = this._tokens.find((vToken)=>{
             return CryptoUtils.stringEqual(vToken.token,pToken) && (vToken.purpose===pPurpose);
         });
 
-        if(match==null || ((Util.time()-match.date) > match.ttl) ){
+        if(match==null || ((Util.time()-match.date) > (match.ttl*1000)) ){
             // flush expired token
             this._tokens = this._tokens.filter((vTok)=>{
-                return ((Util.time()-vTok.date) < vTok.ttl);
+                return ((Util.time()-vTok.date) < (vTok.ttl*1000));
             });
-            return false;
+            return null;
         }else{
             // flush all token with same purpose and expired tokens
             this._tokens = this._tokens.filter((vTok)=>{
-                return (vTok.purpose!=pPurpose) && ((Util.time()-vTok.date) < vTok.ttl);
+                return (vTok.purpose!=pPurpose) && ((Util.time()-vTok.date) < (vTok.ttl*1000));
             });
-            return true;
+            return match;
         }
+    }
+
+    getMembership(pOUID:OrganizationUnitUUID):Nullable<Membership> {
+        return this._membership[pOUID];
+    }
+
+    isLockedByOrg(pOUID:OrganizationUnitUUID):boolean {
+        if(this._membership[pOUID]!=null){
+            return this._membership[pOUID].locked;
+        }else{
+            throw UserServiceException.MISSING_MEMBERSHIP(this.getUID(),pOUID,'is-locked-by-org');
+        }
+    }
+
+    isActiveByOrg(pOUID:OrganizationUnitUUID):boolean {
+        if(this._membership[pOUID]!=null){
+            return this._membership[pOUID].activated;
+        }else{
+            throw UserServiceException.MISSING_MEMBERSHIP(this.getUID(),pOUID,'is-activated-by-org');
+        }
+    }
+
+    addMembership( pOUID:OrganizationUnitUUID, pMembership:Membership):void{
+        this._membership[pOUID] = pMembership;
+    }
+
+    removeMembership(pOUID:OrganizationUnitUUID){
+        delete this._membership[pOUID];
     }
 }
 

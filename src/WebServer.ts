@@ -59,6 +59,7 @@ import {Client} from "openid-client";
 import {NODE_MGR_WEB_API} from "./webapi/node.web.api.js";
 import {ORG_WEB_API} from "./webapi/organization.web.api.js";
 import {HEALTH_WEB_API} from "./webapi/health.web.api.js";
+import {WEBHOOK_WEB_API} from "./webapi/webhook.web.api.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -744,6 +745,7 @@ export default class WebServer
             })*/
 
 
+
         // API routes
         this.app.route('/api/status')
             .get(async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
@@ -1407,6 +1409,8 @@ export default class WebServer
         AUDIT_WEB_API.injectServer(this, "/api/audit", securedRoutes);
         ORG_WEB_API.injectServer(this, "/api/organization", securedRoutes);
         HEALTH_WEB_API.injectServer(this, "/api/health", securedRoutes);
+
+        WEBHOOK_WEB_API.injectServer(this, "/activate", securedRoutes);
 
         this.initRoutes({
             auth: [ensureGuiLoggedIn], //ensureGuiLoggedIn],

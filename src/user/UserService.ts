@@ -18,7 +18,7 @@ import {UserServiceException} from "../errors/UserServiceException.js";
 import {MonitoredError} from "../errors/MonitoredError.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {SessionData} from "./session/SessionData.js";
-import {IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDatabaseAdapter, IDbCollection, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
 import Role from "./acl/common/Role.js";
@@ -29,6 +29,8 @@ import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {randomUUID} from "crypto";
 import {Person} from "./Person.js";
+import {TokenOptions, TokenPurpose} from "../core/secrets/Token.js";
+import Util from "../Utils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -362,7 +364,34 @@ export class UserService {
         pAccount.setUID(candidateUUID);
         pAccount.init(candidateUUID);
 
-        return await this._coll.asyncAddEntry(pAccount.getUID(), pAccount);;
+        if(pOrg!=null){
+            pAccount.addMembership(pOrg.getUID(), {
+                activated: false,
+                _activateDate: -1,
+                locked: false,
+                _lockDate: -1,
+                preferences: {},
+                roles: []
+            });
+        }
+
+        let acc:UserAccount;
+        try{
+            acc = await this._coll.asyncAddEntry(pAccount.getUID(), pAccount);
+        }catch (e){
+            console.log(e,e.code);
+            throw e;
+        }
+
+        return acc;
+    }
+
+    /**
+     * To create a user account and save it
+     * @param pAccount
+     */
+    async dropUser( pAccount:UserAccount):Promise<boolean>{
+        return await this._coll.asyncRemoveEntry(pAccount);
     }
 
 
@@ -532,5 +561,121 @@ export class UserService {
         }else{
             throw UserServiceException.CANNOT_UPDATE_ACCOUNT(pTargetAccount);
         }
+    }
+
+    /**
+     * To activate the account and return a target page where the user
+     * will be redirected
+     *
+     * @param {string} pToken
+     * @returns {string} Target page after activat (probably login page or password  reset)
+     */
+    async activateAccount(pToken:string):Promise<string> {
+        // validate token format
+        if(!ValidationRule.base64String().test(pToken)){
+            throw UserServiceException.INVALID_TOKEN_FMT();
+        }
+
+        // search user account associated to this token,
+        const useraccs:UserAccount[] = await this._ctx.getEngineDB()
+            .getCollectionOf(UserAccount.TYPE.getType())
+            .search({filter:{ "_tokens.token": pToken }}, {raw:true, merlin:false});
+
+        if(useraccs.length<1){
+            throw UserServiceException.INVALID_TOKEN('not found');
+        }
+
+        // check if token is not expired
+        const token = useraccs[0].verifyToken<OrganizationUnitUUID>(pToken, TokenPurpose.ACCOUNT_VERIFY);
+        if(token == null){
+            // weak comparison matches undefined AND null token
+            throw UserServiceException.INVALID_TOKEN('expired');
+        }
+
+        // unlock account
+        useraccs[0].unlock();
+        await this._ctx.getEngineDB().save(useraccs[0]);
+
+        // if the token is related to an organization, the target url use it
+        if(OrganizationUnit.VALIDATE.uuid.test(token.extra)){
+
+            const ms = useraccs[0].getMembership(token.extra);
+            if(ms != null){
+                ms.locked = false;
+                ms._lockDate = -1;
+                ms.activated = false;
+                ms._activateDate = Util.time();
+            }
+
+            useraccs[0].unlock();
+            await this._ctx.getEngineDB().save(useraccs[0]);
+
+            // redirect
+            return `${process.env.DXC_SCHEMA}://${process.env.DXC_HOSTNAME}/login/org/${token.extra}`;
+        }else{
+
+            useraccs[0].unlock();
+            await this._ctx.getEngineDB().save(useraccs[0]);
+
+            // redirect
+            return `${process.env.DXC_SCHEMA}://${process.env.DXC_HOSTNAME}/login`;
+        }
+
+
+    }
+
+    async checkUsernameIsFree(pUsername:string):Promise<void> {
+        const x = await this._coll.search({  filter:{ "_username": pUsername}}, {raw:true});
+
+        if(x.length>0){
+            throw UserServiceException.USERNAME_NOT_AVAILABLE();
+        }
+    }
+
+    async addVerifyToken(pUserAccount: UserAccount, pTokenOpts:TokenOptions<any>):Promise<boolean> {
+        pUserAccount.addVerifyToken({
+            token: pTokenOpts.token,
+            purpose: pTokenOpts.purpose,
+            ttl: pTokenOpts.ttl
+        },pTokenOpts.extra);
+
+        return await this._coll.asyncUpdateEntry(pUserAccount, { replace:false, $set:['_tokens']});
+    }
+
+    async addMembership(pUserAccount: UserAccount, pOrg: OrganizationUnit) {
+        pUserAccount.addMembership(pOrg.getUID(), {
+            activated: true,
+            _activateDate: -1,
+            locked: true,
+            _lockDate: Util.time(),
+            preferences: {},
+            roles: []
+        });
+
+        return await this._coll.asyncUpdateEntry(pUserAccount, { replace:false, $set:['_membership']});
+    }
+
+    async deactivate(pUserAccount: UserAccount, pOrg: Nullable<OrganizationUnit> = null) {
+
+        if(pOrg!=null){
+            const ms = pUserAccount.getMembership(pOrg.getUID());
+
+            if(ms!=null){
+                ms.activated = false;
+                ms._activateDate = -1;
+                ms.locked = true;
+                ms._lockDate = Util.time();
+            }else{
+                pUserAccount.addMembership(pOrg.getUID(),{
+                    activated: false,
+                    _activateDate: -1,
+                    locked: true,
+                    _lockDate: Util.time(),
+                    preferences: {}
+                })
+            }
+        }
+
+        await this._coll.asyncUpdateEntry(pUserAccount, {replace:false, $set:['_membership','_locked','_activated']});
     }
 }

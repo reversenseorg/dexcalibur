@@ -324,8 +324,12 @@ export class OrganizationUnit extends Auditable implements INode {
     }*/
 
     removeMember(pUser:UserAccount):void {
+        // remove account from member list
         const uuid = pUser.getUID();
         this.members = this.members.filter(x => x!=uuid);
+
+        // remove membership from account
+        pUser.removeMembership(this.getUID());
     }
 
     getMemberPage(pOffset:number, pSize:number):UserAccountUUID[] {

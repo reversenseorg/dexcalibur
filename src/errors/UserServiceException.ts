@@ -3,6 +3,7 @@ import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/Sanitiz
 import {A} from "@reversense/interruptor/src/syscalls/LinuxX64Syscalls.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {SecurityZone} from "../security/SecurityZone.js";
+import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 
 
 
@@ -25,6 +26,9 @@ export class UserServiceException extends MonitoredError {
         ACCESS_DENIED_USER_PROFILE: ErrorCode.USER_SERVICE + 112,
         CANNOT_UPDATE_ACCOUNT: ErrorCode.USER_SERVICE + 113,
         INVALID_USER_UUID_FMT: ErrorCode.USER_SERVICE + 114,
+        INVALID_TOKEN_FMT: ErrorCode.USER_SERVICE + 115,
+        INVALID_TOKEN: ErrorCode.USER_SERVICE + 116,
+        MISSING_MEMBERSHIP: ErrorCode.USER_SERVICE + 117
     };
 
     static WRONG_DB_FORMAT = ()=>{ return new UserServiceException(" User DB format is invalid",UserServiceException.ERR.WRONG_DB_FORMAT) };
@@ -46,6 +50,18 @@ export class UserServiceException extends MonitoredError {
     static CANNOT_UPDATE_ACCOUNT = (pAcc:UserAccountUUID)=>{ return new UserServiceException("Cannot update user account [uuid="+pAcc+"]",UserServiceException.ERR.CANNOT_UPDATE_ACCOUNT) };
 
     static INVALID_USER_UUID_FMT = (pAcc:UserAccountUUID)=>{ return new UserServiceException(`Invalid user account UUID format [uuid=${pAcc}]`,UserServiceException.ERR.CANNOT_UPDATE_ACCOUNT).zone(SecurityZone.PRIVATE) };
+
+    static INVALID_TOKEN_FMT = ()=>{
+        return new UserServiceException(`Invalid token format.`,
+            UserServiceException.ERR.INVALID_TOKEN_FMT).zone(SecurityZone.PUBLIC) };
+
+    static INVALID_TOKEN = (pCause:string)=>{
+        return new UserServiceException(`Invalid token [cause=${pCause}]`,
+            UserServiceException.ERR.INVALID_TOKEN).zone(SecurityZone.PRIVATE) };
+
+    static MISSING_MEMBERSHIP = (pUUID:UserAccountUUID, pOUID:OrganizationUnitUUID, pWhere:string)=>{
+        return new UserServiceException(`Missing membership [user=${pUUID}][org=${pOUID}][where=${pWhere}]`,
+            UserServiceException.ERR.INVALID_TOKEN).zone(SecurityZone.PRIVATE) };
 
 
 
