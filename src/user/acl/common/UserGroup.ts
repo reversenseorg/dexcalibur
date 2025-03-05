@@ -15,6 +15,7 @@ import {GlobalAccessControl} from "../rbac/GlobalAccessContol.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import {SecurityZone} from "../../../security/SecurityZone.js";
 import {ValidationRule} from "../../../Validator.js";
+import {CryptoUtils} from "../../../CryptoUtils.js";
 
 export type UserGroupUUID = string;
 export interface UserGroupOptions {
@@ -59,6 +60,7 @@ export class UserGroup extends Auditable implements INode {
                             m[k] = AccessAttribute.from({
                                 name: x.p[k]._n,
                                 value: x.p[k]._v,
+                                type: x.p[k]._t
                             });
                         }
                         return m;
@@ -117,7 +119,7 @@ export class UserGroup extends Auditable implements INode {
      * To init ACL attributes of OrganizationUnit instances
      *
      * Supported attributes:
-     * - `OrganizationAccessControl.attr.ORG_MEMBER`
+     * - `OrganizationAccessControl.attr.MEMBER_GRP`
      *
      * @return {void}
      * @method
@@ -153,5 +155,14 @@ export class UserGroup extends Auditable implements INode {
             roles: this.roles,
             tags: this.tags
         };
+    }
+
+
+    uuidEquals( pUnsafe:UserAccountUUID):boolean {
+        return CryptoUtils.stringEqual(this.getUID(), pUnsafe);
+    }
+
+    getRoles():RoleUUID[] {
+        return this.roles;
     }
 }

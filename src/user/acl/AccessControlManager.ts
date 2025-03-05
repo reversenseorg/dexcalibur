@@ -5,16 +5,19 @@ import {ProjectAccessControl} from "./rbac/ProjectAccessContol.js";
 import {SettingsAccessControl} from "./rbac/SettingsAccessContol.js";
 import {GlobalAccessControl} from "./rbac/GlobalAccessContol.js";
 import {OrganizationAccessControl} from "./rbac/OrganizationAccessContol.js";
-import Role from "./common/Role.js";
-import {UserAccount} from "../UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
-import {Access, AccessProperty, AccessType, AccessUID} from "./Access.js";
+import Role, {RoleUUID} from "./common/Role.js";
+import {UserAccount, UserAccountUUID} from "../UserAccount.js";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {AccesErrCode, Access, AccessException, AccessProperty, AccessUID} from "./Access.js";
 import {AccessFactory} from "./AccessFactory.js";
 import {AccessControlException} from "../../errors/AccessControlException.js";
 import * as Log from "../../Logger.js";
 import {AccessAttribute} from "./AccessAttribute.js";
-import {UserGroup} from "./common/UserGroup.js";
-import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
+import {UserGroup, UserGroupUUID} from "./common/UserGroup.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "../../organization/OrganizationUnit.js";
+import {Auditable} from "../../Auditable.js";
+import {INode} from "@dexcalibur/dexcalibur-orm";
+import {OrganizationManagerException} from "../../errors/OrganizationManagerException.js";
 
 export type AclMatrix = Record<AccessUID, Role[]>;
 
@@ -39,13 +42,16 @@ export class AccessControlManager {
 
     private _roles:Record<string, Role> = {};
 
+    private _roleCache:Record<OrganizationUnitUUID,Record<RoleUUID,Role[]>> = {};
+    private _groupsCache:Record<OrganizationUnitUUID,Record<UserGroupUUID,UserGroup>> = {};
+
     private _groups:Record<string, UserGroup> = {};
 
     /**
      * ACL Matrix
      *
      * Help to answer to the question :
-     * - Is the account X has a role which allow the operation A ?
+     * - Is the account or user group X has a role which allow the operation A ?
      *
      * @private
      */
@@ -166,30 +172,25 @@ export class AccessControlManager {
         AccessControl.isAuthorized(
             AccessControl.access.ORG_ROL_READ,
             pUserAccount,
+            pOrg,
             [
                 OrganizationAccessControl.attr.OWNER,
-                OrganizationAccessControl.attr.ORG_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
 
-        // todo : search directly in DB by Org UUID
-        let roles:Role[] = [];
-        roles = await this._ctx.getEngineDB()
-            .getCollectionOf(Role.TYPE.getType())
-            .getAsList();
-
-        // gather generic roles from db
-        const orgUUID = pOrg.getUID();
-        roles = roles.filter(r => r.hasOrg(orgUUID));
-
-        return roles;
+        return pOrg.getRoles();
     }
 
+
+    /**
+     * To create universal cross-org role
+     * @param pUserAccount
+     * @param pRole
+     */
     async createRole(pUserAccount:UserAccount, pRole:Role):Promise<Role> {
-        AccessControl.check(
-            AccessZone.ORGANIZATION,
-            AccessControl.access.ORG_ACL_MGT,
-            null,
+        AccessControl.isAuthorized(
+            AccessControl.access.SRV_INSTANCE_MGT,
             pUserAccount
         );
 
@@ -198,11 +199,15 @@ export class AccessControlManager {
             .asyncAddEntry(pRole.getUID(), pRole);
     }
 
+    /**
+     *
+     * To update universal cross-org role
+     * @param pUserAccount
+     * @param pRole
+     */
     async updateRole(pUserAccount:UserAccount, pRole:Role):Promise<boolean> {
-        AccessControl.check(
-            AccessZone.ORGANIZATION,
-            AccessControl.access.ORG_ACL_MGT,
-            null,
+        AccessControl.isAuthorized(
+            AccessControl.access.SRV_INSTANCE_MGT,
             pUserAccount
         );
 
@@ -211,11 +216,16 @@ export class AccessControlManager {
             .asyncUpdateEntry(pRole);
     }
 
+
+    /**
+     *
+     * To remove universal cross-org role
+     * @param pUserAccount
+     * @param pRole
+     */
     async removeRole(pUserAccount:UserAccount, pRole:Role):Promise<boolean> {
-        AccessControl.check(
-            AccessZone.ORGANIZATION,
-            AccessControl.access.ORG_ACL_MGT,
-            null,
+        AccessControl.isAuthorized(
+            AccessControl.access.SRV_INSTANCE_MGT,
             pUserAccount
         );
 
@@ -247,7 +257,7 @@ export class AccessControlManager {
 
         [
             new Role({
-                uuid: 'local_admin',
+                uuid: AccessControlManager.BUILT_IN_DEFAULT_ROLE, // 'local_admin',
                 name: 'Local admin',
                 permissions: AccessControl.getMatchingAccessesList( AccessProperty.UID, '.')
             }),
@@ -257,14 +267,23 @@ export class AccessControlManager {
                 permissions: [
                     AccessControl.access.ORG_OU_READ,
                     AccessControl.access.ORG_OU_MODIFY,
+
                     AccessControl.access.ORG_AU_READ,
                     AccessControl.access.ORG_AU_MODIFY,
+
                     AccessControl.access.ORG_ACL_MGT,
                     AccessControl.access.ORG_AUTH_MGT,
                     AccessControl.access.ORG_WEBAPI_ACCESS,
+
                     AccessControl.access.ORG_ROL_MGT,
+                    AccessControl.access.ORG_ROL_READ,
+
                     AccessControl.access.ORG_GRP_MGT,
-                    AccessControl.access.ORG_ACL_MGT,
+                    AccessControl.access.ORG_GRP_READ,
+
+                    AccessControl.access.ORG_USR_MGT,
+                    AccessControl.access.ORG_USR_READ,
+
                     AccessControl.access.ORG_OU_SECRETS_MGT
                 ]
             }),
@@ -272,7 +291,11 @@ export class AccessControlManager {
                 uuid: 'R_AUADM',
                 name: 'Application Administrator',
                 permissions: [
+                    AccessControl.access.ORG_OU_READ,
                     AccessControl.access.ORG_AU_READ,
+                    AccessControl.access.ORG_ROL_READ,
+                    AccessControl.access.ORG_USR_READ,
+                    AccessControl.access.ORG_GRP_READ,
 
                     AccessControl.access.PROJ_SETTINGS_EDIT,
                     AccessControl.access.PROJ_SETTINGS_READ,
@@ -359,7 +382,7 @@ export class AccessControlManager {
     }
 
     /**
-     * Add a rol to the in-memory list of role
+     * Add a role to the in-memory list of role
      * and add the role to ACL matrix
      *
      * @param {Role} vRole
@@ -386,6 +409,39 @@ export class AccessControlManager {
     }
 
     /**
+     * To refresh user group cache
+     */
+    async refreshUserGroups():Promise<void> {
+
+        // get all orgs
+        const orgs = await this._ctx.getOrgManager().listOrganizations(this._ctx.getInternalAcc());
+        const cache:Record<OrganizationUnitUUID, Record<UserGroupUUID, UserGroup>> = {};
+        //
+        orgs.map(x => {
+            const grps:Record<UserGroupUUID, UserGroup> = {};
+            x.getUserGroups().map(g => grps[g.getUID()] = g);
+            cache[x.getUID()] = grps;
+        });
+        // finally update cache
+        this._groupsCache = cache;
+    }
+
+    /**
+     * To get a user group from cache
+     *
+     * @param pUID
+     * @param pOrg
+     */
+    getUserGroup(pUID:UserGroupUUID, pOrg:Nullable<OrganizationUnitUUID> = null):UserGroup {
+        const orgMap = this._groupsCache[pOrg!=null? pOrg : 'all'];
+        if(orgMap==null || orgMap[pUID]==null){
+            throw AccessControlException.MISSING_USER_GROUP(pOrg, pUID);
+        }
+
+        return orgMap[pUID];
+    }
+
+    /**
      * To check if one of role authorized on pAccess is a part of the list of roles assigned
      * to specified pUser
      *
@@ -393,7 +449,7 @@ export class AccessControlManager {
      * @param pUser
      * @param pSubject
      */
-    isAuthorized(pAccess:Access, pUser:UserAccount, pResource?:Nullable<any>, pAttributes?:AccessAttribute<any>[] ):void {
+    isAuthorized_OLD(pAccess:Access, pIssuer:UserAccount|UserGroup, pResource?:Nullable<Auditable>, pAttributes?:AccessAttribute<any>[] ):void {
 
         if(pAccess==null || this._matrix[pAccess.getUID()]==null){
             throw AccessControlException.MISSING_ACCESS(pAccess);
@@ -403,8 +459,41 @@ export class AccessControlManager {
             throw AccessControlException.MISSING_ACCESS(pAccess);
         }
 
+        let authorized = false;
+
+        // if the issuer is a user account, then recursively check each user group of which he is a part
+        if(pIssuer.__===NodeInternalType.USER_ACCOUNT){
+
+            // check roles inherited by groups (universal and org-level groups)
+            authorized = this.isAuthorizedByGroups(pAccess,pIssuer as UserAccount,pResource,pAttributes);
+
+            if(authorized){
+                return;
+            }
+        }
+
+        // if the issuer is a user group
+        // else if the issuer is user account but groups not allowed the operation
         let roleFound = false;
-        const usrRoles:string[] = pUser.getRoles();
+
+        // check is user group or account has a role with required permissions
+        let usrRoles:string[];
+
+        usrRoles = pIssuer.getRoles();
+
+        if(pIssuer.__===NodeInternalType.USER_ACCOUNT && pResource!=null){
+            // gather also org-level roles inherited from membership
+            const oid_attr = pResource.getAccessAttribute<OrganizationUnitUUID>(GlobalAccessControl.attr.ORG);
+            if(oid_attr!=null){
+                const ms = (pIssuer as UserAccount).getMembership(oid_attr.value[0]);
+                if(ms!=null && ms.roles!=null){
+                    ms.roles.map(r => {
+                        usrRoles.push(r);
+                    })
+                }
+            }
+        }
+
         for(let i=0; i<this._matrix[pAccess.getUID()].length; i++){
 
             // authorized by role
@@ -418,16 +507,15 @@ export class AccessControlManager {
                     for(let k=0; k<pAttributes.length; k++){
 
                         // access to res authorized by attr
-                        if(AccessControl
-                            .isAuthorizedByAttr(pAttributes[k], pResource, pUser)){
-                            Logger.success(`[ACCESS MANAGER] User [uuid=${pUser.getUID()}] has been authorized to access  resource [res=${pResource.getUID()}] over [access=${pAccess.getUID()}] with [attr=${pAttributes[k].name}]`);
+                        if(this.isAuthorizedByAttr(pAttributes[k], pResource, pIssuer)){
+                            Logger.success(`[ACCESS MANAGER] User [uuid=${pIssuer.getUID()}] has been authorized to access  resource [res=${(pResource as any).getUID()}] over [access=${pAccess.getUID()}] with [attr=${pAttributes[k].name}]`);
                             return ;
                         }
                     }
                 }else if(pAttributes!=undefined){
                     continue;
                 }else{
-                    Logger.success(`[ACCESS MANAGER] User [uuid=${pUser.getUID()}] has been authorized to access [uid=${pAccess.getUID()}]`);
+                    Logger.success(`[ACCESS MANAGER] User [uuid=${pIssuer.getUID()}] has been authorized to access [uid=${pAccess.getUID()}]`);
                     return;
                 }
             }
@@ -435,9 +523,305 @@ export class AccessControlManager {
 
         // todo : log access
 
-        Logger.error(`[ACCESS MANAGER] User [uuid=${pUser.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by ${(roleFound && pAttributes.length>0)? 'attributes':'roles'}`);
-        throw AccessControlException.NOT_AUTHORIZED(pAccess,pUser);
+        Logger.error(`[ACCESS MANAGER] User [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by ${(roleFound && pAttributes.length>0)? 'attributes':'roles'}`);
+        throw AccessControlException.NOT_AUTHORIZED(pAccess,pIssuer);
     }
+
+    /**
+     * To check if one of role authorized on pAccess is a part of the list of roles assigned
+     * to specified pUser
+     *
+     * @param pAccess
+     * @param pUser
+     * @param pSubject
+     */
+    isAuthorized(pAccess:Access, pIssuer:UserAccount|UserGroup, pResource?:Nullable<Auditable>, pAttributes?:AccessAttribute<any>[] ):void {
+
+        if(pAccess==null || this._matrix[pAccess.getUID()]==null){
+            throw AccessControlException.MISSING_ACCESS(pAccess);
+        }
+
+        if(this._matrix[pAccess.getUID()]==null){
+            throw AccessControlException.MISSING_ACCESS(pAccess);
+        }
+
+        let success:boolean = false;
+
+        // start by checking if pIssuer has a role required by pAccess
+        success = this._isRbacOk(pAccess,pIssuer,pResource,pAttributes);
+
+        if(!success){
+            Logger.error(`[ACCESS MANAGER] User [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by roles`);
+            throw AccessControlException.NOT_AUTHORIZED(pAccess,pIssuer);
+        }
+
+        // next, check attributes
+        if(pResource!=null && pAttributes!=null && pAttributes.length>0){
+            success = this._isAbacOk(pAccess,pIssuer,pResource,pAttributes);
+
+            if(!success){
+                Logger.error(`[ACCESS MANAGER] User [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by attributes`);
+                throw AccessControlException.NOT_AUTHORIZED(pAccess,pIssuer);
+            }
+        }
+    }
+
+
+    /**
+     * To check if the issuer has sufficient role to access pAccess (ONLY)
+     *
+     * Attributes are not checked
+     *
+     * @param pAccess
+     * @param pUser
+     * @param pSubject
+     */
+    private _isRbacOk(pAccess:Access, pIssuer:UserAccount|UserGroup,
+                                pResource?:Nullable<Auditable>, pAttributes?:AccessAttribute<any>[] ):boolean {
+
+        if(pAccess==null || this._matrix[pAccess.getUID()]==null){
+            throw AccessControlException.MISSING_ACCESS(pAccess);
+        }
+
+        if(this._matrix[pAccess.getUID()]==null){
+            throw AccessControlException.MISSING_ACCESS(pAccess);
+        }
+
+        let authorized = false;
+
+        // if the issuer is a user account, then recursively check each user group of which he is a part
+        if(pIssuer.__===NodeInternalType.USER_ACCOUNT){
+
+            // check roles inherited by groups (universal and org-level groups)
+            authorized = this.isAuthorizedByGroups(pAccess,pIssuer as UserAccount,pResource,pAttributes);
+
+            if(authorized){
+                return;
+            }
+        }
+
+        // if the issuer is a user group
+        // else if the issuer is user account but groups not allowed the operation
+        let roleFound = false;
+
+        // check is user group or account has a role with required permissions
+        let usrRoles:RoleUUID[] = [];
+
+        pIssuer.getRoles().map(x => usrRoles.push(x));
+
+        if(pIssuer.__===NodeInternalType.USER_ACCOUNT && pResource!=null){
+            // gather also org-level roles inherited from membership
+            const oid_attr = pResource.getAccessAttribute<OrganizationUnitUUID>(GlobalAccessControl.attr.ORG);
+            if(oid_attr!=null){
+                const ms = (pIssuer as UserAccount).getMembership(oid_attr.value[0]);
+                if(ms!=null && ms.roles!=null){
+                    ms.roles.map(r => {
+                        if(usrRoles.indexOf(r)==-1){
+                            usrRoles.push(r);
+                        }
+                    })
+                }
+            }
+        }
+
+        for(let i=0; i<this._matrix[pAccess.getUID()].length; i++){
+            // authorized by role
+            if(usrRoles.indexOf(this._matrix[pAccess.getUID()][i].getUID())>-1){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * To check if the issuer has sufficient role to access pAccess (ONLY)
+     *
+     * Attributes are not checked
+     *
+     * @param pAccess
+     * @param pUser
+     * @param pSubject
+     */
+    private _isAbacOk(pAccess:Access, pIssuer:UserAccount|UserGroup,
+                                pResource:Nullable<Auditable>, pAttributes:AccessAttribute<any>[] ):boolean {
+
+        if(pResource==undefined || pAttributes==undefined){
+            return false;
+        }
+
+        if(pAccess==null || this._matrix[pAccess.getUID()]==null){
+            throw AccessControlException.MISSING_ACCESS(pAccess);
+        }
+
+        if(this._matrix[pAccess.getUID()]==null){
+            throw AccessControlException.MISSING_ACCESS(pAccess);
+        }
+
+        // check each attribute
+        for(let k=0; k<pAttributes.length; k++){
+
+            // access to res authorized by attr
+            if(this.isAuthorizedByAttr_2(pAttributes[k], pResource, pIssuer)){
+                Logger.success(`[ACCESS MANAGER] User [uuid=${pIssuer.getUID()}] has been authorized to access  resource [res=${(pResource as any).getUID()}] over [access=${pAccess.getUID()}] with [attr=${pAttributes[k].name}]`);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    /**
+     * To check if a user group or a user account is authorized against an attribute
+     *
+     * @param pAttr
+     * @param pResource
+     * @param pAccount
+     */
+    isAuthorizedByAttr_2(pAttr:AccessAttribute<any>, pResource:Auditable, pAccount:UserAccount|UserGroup):boolean{
+        if(pResource==null){
+            throw new AccessException("Access attribute of an undefined object cannot be verified : rejected ", AccesErrCode.MANDATORY_OBJECT_UNDEFINED)
+        }
+
+        if(pAccount.uuidEquals(AccessControl.INTERNAL_USER_ACCOUNT_UUID)){
+            // bypass for internal user (dxengine)
+            return;
+        }
+
+
+        // get a list authorized UUIDs for a given attribute from pSubject
+        // UserAccountUUID[] | UserGroupUUID[]
+        const authorizedUIDs:string[] = pResource.getAccessAttribute<UserAccountUUID|UserGroupUUID>(pAttr).value;
+
+        if(authorizedUIDs==null || !Array.isArray(authorizedUIDs)){
+            throw AccessControlException.UNKNOWN_ACL_ATTRIBUTE(pAttr);
+        }
+
+        if(pAttr.is(NodeInternalType.USER_GROUP)){
+
+            let grps:UserGroupUUID[];
+            if(pAccount.__===NodeInternalType.USER_ACCOUNT){
+                const oid_attr = pResource.getAccessAttribute(GlobalAccessControl.attr.ORG);
+                if(oid_attr!=null){
+                    const ms = (pAccount as UserAccount).getMembership(oid_attr.value[0]);
+                    if(ms!=null){
+                        grps = ms.groups;
+                    }
+                }
+            }else{
+                grps = [(pAccount as UserGroup).getUID()];
+            }
+
+
+            for(let k=0; k<grps.length; k++){
+                if(authorizedUIDs.indexOf(grps[k])>-1){
+                    return true;
+                }
+            }
+
+            return false;
+        }else if(pAttr.is(NodeInternalType.USER_ACCOUNT)){
+            return (authorizedUIDs.indexOf(pAccount.getUID())>-1);
+        }else{
+            return false;
+            //throw new Error("not checkeable attr");
+        }
+    }
+
+
+    /**
+     * To check is a user is authorized thanks to direct user group or org-level user groups of
+     * which he is a part
+     *
+     * @param pAccess
+     * @param pIssuer
+     * @param pResource
+     * @param pAttributes
+     */
+    isAuthorizedByGroups(pAccess:Access,
+                         pIssuer:UserAccount,
+                         pResource?:Nullable<any>,
+                         pAttributes?:AccessAttribute<any>[] ):boolean {
+
+        let authorized = false;
+
+        // check universal groups
+        pIssuer.getUserGroups().map((vGrpUID)=>{
+            try{
+                this.isAuthorized(
+                    pAccess,
+                    this.getUserGroup(vGrpUID),
+                    pResource,
+                    pAttributes);
+                authorized = true;
+            }catch (e){}
+        });
+
+        if(pResource==null){
+            return authorized;
+        }
+
+        // check org-level groups is th resource is bound to an org
+        // get the organization bound to the resource
+
+        const orgUUIDAttr = pResource.getAccessAttribute(GlobalAccessControl.attr.ORG);
+
+        // if the resource is not bound to an organization through an attribute,
+        // then org-level ACL cannot be checked for this resource
+        if(orgUUIDAttr!=null){
+
+            const oid = orgUUIDAttr.value[0] as OrganizationUnitUUID;
+            const ms = pIssuer.getMembership(oid);
+
+            if(ms!=null){
+                // check org-level groups
+                ms.groups.map((vGrpUID)=>{
+                    try{
+                        this.isAuthorized(
+                            pAccess,
+                            this.getUserGroup(vGrpUID,oid),
+                            pResource,
+                            pAttributes);
+                        authorized = true;
+                    }catch (e){}
+                });
+            }
+        }
+
+        return authorized;
+    }
+
+    /**
+     * To check if a user group or a user account is authorized against an attribute
+     *
+     * @param pAttr
+     * @param pResource
+     * @param pAccount
+     */
+    isAuthorizedByAttr(pAttr:AccessAttribute<any>, pResource:any, pAccount:UserAccount|UserGroup){
+        if(pResource==null){
+            throw new AccessException("Access attribute of an undefined object cannot be verified : rejected ", AccesErrCode.MANDATORY_OBJECT_UNDEFINED)
+        }
+
+        if(pAccount.uuidEquals(AccessControl.INTERNAL_USER_ACCOUNT_UUID)){
+            // bypass for internal user (dxengine)
+            return;
+        }
+
+        // get a list authorized UUIDs for a given attribute from pSubject
+        // UserAccountUUID[] | UserGroupUUID[]
+        let authorizedUIDs:string = pResource.getAccessAttribute(pAttr).value;
+
+        //console.log(pResource.getUID(), pAttr.name, authorizedUIDs, pAccount.getUID());
+        if(authorizedUIDs!=null && Array.isArray(authorizedUIDs)){
+            // verify the UUID of given account or usergroup is a part of the list of authorized account/usergroup
+            return (authorizedUIDs.indexOf(pAccount.getUID())>-1);
+        }else{
+            return false;
+        }
+    }
+
 
     // init AC list
     private _initAclMatrix(pAccesses: Record<string, Access>) {
@@ -446,5 +830,39 @@ export class AccessControlManager {
                 this._matrix[key] = [];
             }
         }
+    }
+
+    /**
+     *
+     * @param pGroupUID
+     * @param pOrg
+     */
+    async addUserToGroup(pTarget:UserAccountUUID, pGroupUID: UserGroupUUID, pOrg: OrganizationUnit):Promise<void> {
+
+        // get user
+        const user = await this._ctx.getUserService().getAccount(this._ctx.getInternalAcc(),pTarget);
+
+        // get membership
+        const ms = user.getMembership(pOrg.getUID());
+
+        if(ms==null){
+            throw OrganizationManagerException.NOT_A_MEMBER(user.username, pOrg.getUID());
+        }
+
+        if(ms.groups==null || !Array.isArray(ms.groups)){
+            ms.groups = [];
+        }
+
+        // avoid duplicated GUID
+        if(ms.groups.indexOf(pGroupUID)==-1){
+            ms.groups.push(pGroupUID);
+        }
+
+        // update user
+        await this._ctx.getUserService().updateMembership(
+            this._ctx.getInternalAcc(),
+            pOrg,
+            user
+        );
     }
 }

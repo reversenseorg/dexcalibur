@@ -4,6 +4,7 @@ import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import {UserAccount, UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
 import {AccessZone} from "../Zones.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 /**
  * Represent access control configuration for audits
@@ -16,7 +17,7 @@ export class AuditAccessControl extends DelegateAccessControl {
     static uid:string = 'AUDIT';
 
     static attr:AccessAttributeMap = {
-        OWNER: new AccessAttribute<UserAccountUUID>( 'owner')
+        OWNER: new AccessAttribute<UserAccountUUID>( 'owner', [], NodeInternalType.USER_ACCOUNT)
     };
 
     constructor() {

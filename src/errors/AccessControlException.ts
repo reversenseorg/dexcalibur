@@ -4,6 +4,10 @@ import {UserAccount} from "../user/UserAccount.js";
 import {AccessZone} from "../user/acl/Zones.js";
 import {AccessAttribute} from "../user/acl/AccessAttribute.js";
 import Role from "../user/acl/common/Role.js";
+import {SecurityZone} from "../security/SecurityZone.js";
+import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 export class AccessControlException extends MonitoredError {
 
@@ -20,8 +24,8 @@ export class AccessControlException extends MonitoredError {
         return new AccessControlException(`The access point [${pAccess.name}] is missing. Contact the administrator to give access to this resource`,
             ErrorCode.SECURITY_ACL + 3) };
 
-    static NOT_AUTHORIZED = (pAccess:Access, pUser:UserAccount)=>{
-        return new AccessControlException(`The user  [${pUser.getUID()}] is not authorized to access/perform [${pAccess.name}]. Contact the administrator to give access to this resource`,
+    static NOT_AUTHORIZED = (pAccess:Access, pIssuer:UserAccount|UserGroup)=>{
+        return new AccessControlException(`The user ${pIssuer.__===NodeInternalType.USER_GROUP?'group':''}  [${pIssuer.getUID()}] is not authorized to access/perform [${pAccess.name}]. Contact the administrator to give access to this resource`,
             ErrorCode.SECURITY_ACL + 4) };
 
     static INVALID_ZONE = (pZone:AccessZone)=>{
@@ -35,6 +39,19 @@ export class AccessControlException extends MonitoredError {
     static CANNOT_SETUP_ROLE = (pRole:Role)=>{
         return new AccessControlException(`The role cannot be set up [name=${pRole.getUID()}]`,
             ErrorCode.SECURITY_ACL + 7) };
+
+    static MISSING_ACCOUNT = (pAccess:Access)=>{
+        return new AccessControlException(`The user account is missing [${pAccess.name}]`,
+            ErrorCode.SECURITY_ACL + 8).zone(SecurityZone.PRIVATE) };
+
+
+    static NOT_AUTHORIZED_BY_GRP = (pAttr:AccessAttribute<any>[], pUser:UserAccount)=>{
+        return new AccessControlException(`The user  [${pUser.getUID()}] is not authorized by attribute and user group [${pAttr.map(x => x.name).join(',')}]. Contact the administrator to give access to this resource`,
+            ErrorCode.SECURITY_ACL + 9) };
+
+    static MISSING_USER_GROUP = (pOrg:OrganizationUnitUUID, pGroup:UserGroupUUID)=>{
+        return new AccessControlException(`The user group [${pGroup}] is missing in org [${pOrg}]. Contact the administrator to give access to this resource`,
+            ErrorCode.SECURITY_ACL + 10) };
 
 
 

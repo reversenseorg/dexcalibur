@@ -199,6 +199,7 @@ UserAccount.TYPE.updateProperties([
     (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
     (new NodeProperty('_roles')).type(DbDataType.STRING).def([]),
+    (new NodeProperty('_groups')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_tokens')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_type')).type(DbDataType.STRING).def(UserAccountType.LOCAL),
     (new NodeProperty('_orgs')).type(DbDataType.BLOB).def([]),

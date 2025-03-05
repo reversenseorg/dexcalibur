@@ -108,7 +108,7 @@ export class PasswordAuthenticator implements Authenticator{
 
 
             account = await this.svc.getUserService()
-                .find(new UserAccount({_username:pUsername}),{autoCreate:false});
+                .findByUsername(new UserAccount({_username:pUsername}),{autoCreate:false});
 
 
             if(account==null){
@@ -130,7 +130,7 @@ export class PasswordAuthenticator implements Authenticator{
                         account, pOrgUUID
                     );
                     AccessControl.isAuthorizedByAttr(
-                        OrganizationAccessControl.attr.ORG_MEMBER,
+                        OrganizationAccessControl.attr.MEMBER_GRP,
                         org,
                         account
                     );

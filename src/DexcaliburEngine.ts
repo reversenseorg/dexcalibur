@@ -995,6 +995,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         this.orgMgr = new OrganizationManager(this);
 
+
+        await this.aclManager.refreshUserGroups();
+
         // init workspace
         await this.workspace.init();
 

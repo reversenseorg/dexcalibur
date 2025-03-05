@@ -286,6 +286,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                             m[k] = AccessAttribute.from({
                                 name: x.p[k]._n,
                                 value: x.p[k]._v,
+                                type: x.p[k]._t
                             });
                         }
                     }
@@ -3121,6 +3122,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             OrganizationAccessControl.attr.APP_MEMBER,
             pAppUnit.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER).value
         );
+
+
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

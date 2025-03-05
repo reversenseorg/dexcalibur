@@ -55,6 +55,7 @@ export class UploadedResource extends Auditable implements INode {
                             m[k] = AccessAttribute.from({
                                 name: x.p[k]._n,
                                 value: x.p[k]._v,
+                                type: x.p[k]._t
                             });
                         }
                         return m;

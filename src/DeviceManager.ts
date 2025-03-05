@@ -927,12 +927,14 @@ export default class DeviceManager extends ValidationCapable
      * @returns {Promise<Device>}
      * @method
      */
-    async allocateVirtualDevice(pUserAccount:UserAccount, pDevTplUI:DeviceTemplateUUID, pExtra:Record<string,any> ):Promise<Observable<VdevEvent>> {
+    async allocateVirtualDevice(pUserAccount:UserAccount, pDevTplUI:DeviceTemplateUUID,
+                                pExtra:Record<string,any>, pOrg:Nullable<OrganizationUnit> = null ):Promise<Observable<VdevEvent>> {
 
         // check if user can allocate device
         AccessControl.isAuthorized(
             AccessControl.access.DEV_ALLOC_VIRT,
-            pUserAccount
+            pUserAccount,
+            pOrg
         );
 
         // retrieve device template, and derive a new customized template from it
@@ -941,7 +943,7 @@ export default class DeviceManager extends ValidationCapable
             .fill(pExtra);
 
         // create device
-        return await this._vdf.provisionDevice(pUserAccount, devTpl);
+        return await this._vdf.provisionDevice(pUserAccount, devTpl, pOrg);
     }
 
 

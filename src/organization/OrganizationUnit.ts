@@ -26,7 +26,10 @@ import {Secret, SecretProtectionType, SecretType, SecretUUID} from "../core/secr
 import {AesKeyLength, CryptoUtils} from "../CryptoUtils.js";
 import {ValidationRule} from "../Validator.js";
 import {BusinessPlan} from "../billing/BusinessPlan.js";
-import {Purchase} from "../billing/Purchase.js";
+import {AccessControlException} from "../errors/AccessControlException.js";
+import Role from "../user/acl/common/Role.js";
+import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
+import {OrganizationManager} from "./OrganizationManager.js";
 
 export type OrganizationUnitUUID = string;
 
@@ -156,6 +159,24 @@ export class OrganizationUnit extends Auditable implements INode {
                 });
             })
             .def([]),
+        (new NodeProperty("roles"))
+            .type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                let o:any[] = [];
+                x.p.map((s:any) => {
+                    o.push(s.toJsonObject(SecurityZone.PRIVATE));
+                });
+                return o;
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+
+                return x.p.map((x:any) => {
+                    return new Role(x);
+                });
+            })
+            .def([]),
         (new NodeProperty("authModules"))
             .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState) => {
@@ -185,6 +206,7 @@ export class OrganizationUnit extends Auditable implements INode {
                         m[k] = AccessAttribute.from({
                             name: x.p[k]._n,
                             value: x.p[k]._v,
+                            type: x.p[k]._t
                         });
                     }
                     return m;
@@ -204,7 +226,14 @@ export class OrganizationUnit extends Auditable implements INode {
     owner:string;
     members:UserAccountUUID[] = [];
     connections: Connection[] = [];
+    /**
+     * Custom org-level user groups
+     */
     groups:UserGroup[] = [];
+    /**
+     * Custom org-level roles
+     */
+    roles:Role[] = [];
     authModules: AuthModule[] = [];
     devices: DeviceUUID[] = [];
     secrets: Secret[] = [];
@@ -396,14 +425,21 @@ export class OrganizationUnit extends Auditable implements INode {
      * To init ACL attributes of OrganizationUnit instances
      *
      * Supported attributes:
-     * - `OrganizationAccessControl.attr.ORG_MEMBER`
+     * - `OrganizationAccessControl.attr.MEMBER_GRP`
      *
      * @return {void}
      * @method
      */
     initAccessAttributes(){
-        this.setAccessAttribute(OrganizationAccessControl.attr.ORG_MEMBER);
+        // user list
+        this.setAccessAttribute(OrganizationAccessControl.attr.MEMBER_GRP); // => list of UUIDs replaced by group MEMBER_GRP
         this.setAccessAttribute(OrganizationAccessControl.attr.OWNER);
+
+        // useless ?
+        this.setAccessAttribute(GlobalAccessControl.attr.ORG);
+
+        // user group => replaced by membership ?
+        this.setAccessAttribute(OrganizationAccessControl.attr.MEMBER_GRP);
     }
 
     toJsonObject(pOption?: SerializeOptions, pZone:SecurityZone = SecurityZone.PUBLIC): any {
@@ -560,6 +596,124 @@ export class OrganizationUnit extends Auditable implements INode {
 
     setBusinessPlan(pPlan:BusinessPlan):void {
         this.businessPlan = pPlan;
+    }
+
+    /**
+     * To check if specified user account is a member of this organization
+     * and if the user is a part of some specified groups
+     *
+     * @param pAccount
+     * @param {UserGroupUUID[]}  pGroups Required user groups
+     * @returns {UserGroupUUID[]} Matching groups
+     */
+    searchMatchingUserGroups(pAccount:UserAccount, pGroups:UserGroupUUID[]):UserGroupUUID[]{
+        // check user membership
+        if(!pAccount.isMemberOf(this.getUID())){
+            return [];
+            // throw OrganizationManagerException.NOT_A_MEMBER(pAccount.username, this.getUID());
+        }
+
+        // check groups
+        const membership = pAccount.getMembership(this.getUID());
+        if(membership.groups==null){ return []; }
+
+        let result:UserGroupUUID[] = [];
+        membership.groups.map(vGrp => {
+            if(pGroups.indexOf(vGrp)>-1){
+                result.push(vGrp);
+            }
+        });
+
+        return result;
+    }
+
+    /**
+     * To check if specified user account is a member of this organization
+     * and if the user is a part of some specified groups
+     *
+     * @param pAccount
+     * @param {UserGroupUUID[]}  pGroups Required user groups
+     * @returns {UserGroupUUID[]} Matching groups
+     */
+    isAuthorizedByAttrGrp(pAccount:UserAccount, pAttrGrps:AccessAttribute<any>[]):UserGroupUUID[]{
+        // check user membership
+        if(!pAccount.isMemberOf(this.getUID())){
+            return [];
+            // throw OrganizationManagerException.NOT_A_MEMBER(pAccount.username, this.getUID());
+        }
+
+        // check groups
+        const membership = pAccount.getMembership(this.getUID());
+        if(membership.groups==null){ return []; }
+
+        const requiredGrps:UserGroupUUID[] = [];
+
+        // retrieve usergroup from attributes of this instance
+        pAttrGrps.map(vAttr => {
+            const att = this.getAccessAttribute(vAttr);
+            if(att.is(NodeInternalType.USER_GROUP)){
+                requiredGrps.push(this.getAccessAttribute(vAttr).value[0]);
+            }
+        });
+
+        // check if the user membership contains accesses to at least one of these groups
+        let result:UserGroupUUID[] = [];
+        membership.groups.map(vGrp => {
+            if(requiredGrps.indexOf(vGrp)>-1){
+                result.push(vGrp);
+            }
+        });
+
+        if(result==null){
+            throw AccessControlException.NOT_AUTHORIZED_BY_GRP(pAttrGrps,pAccount);
+        }
+        return result;
+    }
+
+    /**
+     * If it returns FALSE the check is aborted, else it continues
+     *
+     * @param pAccount
+     * @param pAttrGrps
+     */
+    override __beforeAuthorizationCheck(pAccount:UserAccount, pAttrGrps:AccessAttribute<any>[]):boolean{
+        // check user membership
+        if(!pAccount.isMemberOf(this.getUID())){
+            return false;
+            // throw OrganizationManagerException.NOT_A_MEMBER(pAccount.username, this.getUID());
+        }else{
+            return true;
+        }
+    }
+
+    getRoles():Role[] {
+        if(this.roles==null){
+            this.roles = [];
+        }
+
+        return this.roles;
+    }
+
+    getUserGroups():UserGroup[] {
+        if(this.groups==null){
+            this.groups = [];
+        }
+
+        return this.groups;
+    }
+
+    getUserGroupByName(pName:string):UserGroup {
+        const res = this.groups.filter(g => g.name===pName);
+
+        if(res.length>1){
+            throw OrganizationManagerException.DUPLICATED_GRP_NAME(this.getUID(),pName);
+        }
+
+        if(res.length==0){
+            throw OrganizationManagerException.MISSING_GRP_BYNAME(this.getUID(),pName);
+        }
+
+        return res[0];
     }
 }
 OrganizationUnit.TYPE.builder(OrganizationUnit);

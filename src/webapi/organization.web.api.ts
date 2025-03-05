@@ -287,8 +287,8 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, app.toJsonObject());
 
             }catch(err){
-                Logger.error("[API][ORG] Organization unit cannot be created : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, "Organization unit cannot be created. ", {cause:err.message });
+                Logger.error("[API][ORG] Application unit cannot be created : "+err.message+"\n\t"+err.stack);
+                $.sendError(pRes, "Application unit cannot be created. ", {cause:err.message });
             }
         }
     }
@@ -930,6 +930,74 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/member/:uid/roles',
+    {
+        'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+
+                $.sendSuccess( pRes, {
+                    sent: await $.context.getOrgManager().updateMemberRoles(pReq.user, org, pReq.params.uid, pReq.body.roles)
+                });
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot changed roles of this user", err);
+            }
+        }
+    }
+);
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/member/:uid/pwd',
+    {
+        'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+                let success = false;
+
+                if(!UserAccount.VALIDATE._uid.test(pReq.params.uid)){
+                    throw UserServiceException.INVALID_USER_UUID_FMT(pReq.params.uid);
+                }
+
+                if(pReq.user.getUID()===pReq.params.uid){
+                    success = await $.context.getUserService().changeOwnPwd(
+                        pReq.user,
+                        pReq.body.current,
+                        pReq.body.newpwd,
+                        pReq.body.csrf
+                    );
+                }else{
+                    success = await $.context.getUserService().changeUserPwd(
+                        pReq.user,
+                        pReq.params.uid,
+                        pReq.body.current,
+                        pReq.body.newpwd,
+                        org,
+                        pReq.body.csrf
+                    );
+                }
+
+                $.sendSuccess( pRes, success);
+            } catch (err) {
+
+
+                $.sendErrorAfterException(
+                    pRes,
+                    ORG_WEB_API.name,
+                    (err.message!=null ? err.message : "Cannot change password of the user account."),
+                    err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:uid/members/list',
     {
         'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
@@ -1107,7 +1175,9 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     await $.context.getOrgManager().dropUserGroup(pReq.user, org, pReq.params.grp)
                 );
             } catch (err) {
-                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
+                Logger.error(err.stack);
+                console.log(err);
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot delete the user group from organization", err);
             }
         },
         'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {

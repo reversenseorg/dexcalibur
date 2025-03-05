@@ -19,6 +19,8 @@ import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
 import {User} from "../User.js";
 import {Token, TokenOptions, TokenPurpose} from "../core/secrets/Token.js";
 import {UserServiceException} from "../errors/UserServiceException.js";
+import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
+import {UserGroup, UserGroupUUID} from "./acl/common/UserGroup.js";
 
 export interface Membership {
     locked: boolean,
@@ -26,6 +28,8 @@ export interface Membership {
     activated: boolean
     _activateDate: number,
     preferences: any,
+    roles?:RoleUUID[];
+    groups?:UserGroupUUID[];
     //bookmarks: any,
     //requests: any
     [ppt:string]:any
@@ -57,6 +61,7 @@ export interface UserAccountOptions extends IStringIndex<any> {
     _projects?:ProjectURI[],
     _history?:UserAccountEvent[],
     _orgs?:OrganizationUnitUUID[],
+    _groups?:UserGroupUUID[],
     _extra?:Record<string, any>
 }
 
@@ -106,6 +111,11 @@ export class UserAccount implements IPersistent, INode {
     private _history:UserAccountEvent[] =[];
     private _tokens:Token<any>[] =[];
     private _extra:Record<string, any> = {};
+    /**
+     * Server-level user groups
+     * @private
+     */
+    private _groups:UserGroupUUID[] = [];
     private _attrs:any = {};
 
     tags:number[] = [];
@@ -527,6 +537,54 @@ export class UserAccount implements IPersistent, INode {
 
     removeMembership(pOUID:OrganizationUnitUUID){
         delete this._membership[pOUID];
+    }
+
+    isMemberOf(pOUID:OrganizationUnitUUID):boolean {
+        return (this._membership[pOUID]!=null);
+    }
+
+    updateRoles(pRoles: RoleUUID[]) {
+        this._roles = pRoles;
+    }
+
+    updateMembershipRoles(pOUID:OrganizationUnitUUID, pRoles: RoleUUID[]) {
+        if(this._membership[pOUID]==null){
+            throw OrganizationManagerException.NOT_A_MEMBER(this.getUID(), pOUID);
+        }
+        this._membership[pOUID].roles = pRoles;
+    }
+
+    getMembershipRoles(pOUID:OrganizationUnitUUID ):RoleUUID[] {
+        if(this._membership[pOUID]==null){
+            throw OrganizationManagerException.NOT_A_MEMBER(this.getUID(), pOUID);
+        }
+
+        if( this._membership[pOUID].roles!=null
+            && Array.isArray(this._membership[pOUID].roles)){
+
+            return  this._membership[pOUID].roles;
+        }else{
+            return [];
+        }
+    }
+
+    getUserGroups():UserGroupUUID[] {
+        return this._groups;
+    }
+
+    addGroup( pGUID:UserGroupUUID):void{
+        // avoid duplicated entries
+        if(this._groups.indexOf(pGUID)==-1){
+            this._groups.push(pGUID);
+        }
+    }
+
+    removeGroup(pGUID:UserGroupUUID){
+        this._groups = this._groups.filter(x => x!==pGUID);
+    }
+
+    getMemberships():Record<OrganizationUnitUUID,Membership> {
+        return this._membership;
     }
 }
 

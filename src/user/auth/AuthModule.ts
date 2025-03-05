@@ -5,7 +5,8 @@ import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 
 export enum AuthModuleType {
     LOCAL_PASSWD='local_pwd',
-    OIDC='oidc'
+    OIDC='oidc',
+    APIKEY='api_key'
 }
 
 export interface SelfRegistrationStatus {

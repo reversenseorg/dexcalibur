@@ -18,6 +18,7 @@ import { Architecture } from "../Architecture.js";
 import {ValidationRule} from "../Validator.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {DeviceUUID} from "../Device.js";
+import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 
 
 export type ApplicationUnitUUID = string;
@@ -70,6 +71,7 @@ export class ApplicationUnit extends Auditable implements INode {
                         m[k] = AccessAttribute.from({
                             name: x.p[k]._n,
                             value: x.p[k]._v,
+                            type: x.p[k]._t
                         });
                     }
                     return m;
@@ -132,6 +134,7 @@ export class ApplicationUnit extends Auditable implements INode {
      */
     initAccessAttributes(){
         this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);
+        this.setAccessAttribute(GlobalAccessControl.attr.ORG);
     }
 
     attachProject( pProject:DexcaliburProject, pForce = false){

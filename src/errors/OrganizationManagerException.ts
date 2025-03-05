@@ -193,6 +193,17 @@ export class OrganizationManagerException extends MonitoredError {
         return new OrganizationManagerException(`Email address of user account is invalid [user=${pUsername}]. ${pOpeMsg} `,
             ErrorCode.ORGANIZATION + 44) };
 
+    static DUPLICATED_GRP_NAME = (pOUID: OrganizationUnitUUID, pName:string) =>{
+        return new OrganizationManagerException(`Duplicated group name in the same organization [oid=${pOUID}][grp=${pName}] `,
+            ErrorCode.ORGANIZATION + 45) };
+
+    static MISSING_GRP_BYNAME = (pOUID: OrganizationUnitUUID, pName:string) =>{
+        return new OrganizationManagerException(`Missing user group (by name) in the organization [oid=${pOUID}][grp=${pName}] `,
+            ErrorCode.ORGANIZATION + 46) };
+
+
+
+
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('ORGANIZATION', pMsg, pCode, pExtra);
     }

@@ -1,13 +1,10 @@
 import {DelegateAccessControl} from "../DelegateAccessControl.js";
-import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../Access.js";
-import {UserSession} from "../../session/UserSession.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
-import DexcaliburProject from "../../../DexcaliburProject.js";
 import {UserAccount, UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
-import {Nullable} from "../../../core/IStringIndex.js";
 import {AccessZone} from "../Zones.js";
 import {UserServiceException} from "../../../errors/UserServiceException.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 
 export class ProjectAccessControl extends DelegateAccessControl {
@@ -17,8 +14,8 @@ export class ProjectAccessControl extends DelegateAccessControl {
     static uid:string = 'PROJ';
 
     static attr:AccessAttributeMap = {
-        OWNER: new AccessAttribute<UserAccountUUID>( 'owner'),
-        TESTER: new AccessAttribute<UserAccountUUID>( 'tester')
+        OWNER: new AccessAttribute<UserAccountUUID>( 'owner', [], NodeInternalType.USER_ACCOUNT),
+        TESTER: new AccessAttribute<UserAccountUUID>( 'tester', [], NodeInternalType.USER_ACCOUNT)
     };
 
     constructor() {

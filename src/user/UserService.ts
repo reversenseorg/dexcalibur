@@ -21,7 +21,7 @@ import {SessionData} from "./session/SessionData.js";
 import {IDatabase, IDatabaseAdapter, IDbCollection, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
-import Role from "./acl/common/Role.js";
+import Role, {RoleUUID} from "./acl/common/Role.js";
 import AccessControl from "./acl/AccessControl.js";
 import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {OrganizationAccessControl} from "./acl/rbac/OrganizationAccessContol.js";
@@ -31,6 +31,9 @@ import {randomUUID} from "crypto";
 import {Person} from "./Person.js";
 import {TokenOptions, TokenPurpose} from "../core/secrets/Token.js";
 import Util from "../Utils.js";
+import {RoleUpdate} from "../organization/OrganizationManager.js";
+import {AccessControlManager} from "./acl/AccessControlManager.js";
+import {UserGroupUUID} from "./acl/common/UserGroup.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -419,10 +422,41 @@ export class UserService {
         return this.sessSvc;
     }
 
+    async findByUsername(pAccount: UserAccount, pOptions: { autoCreate: boolean, type?:UserAccountType, org?:OrganizationUnit }):Promise<Nullable<UserAccount>> {
+
+        let user = await this._coll.asyncGetEntry({
+            _username: pAccount.username
+        });
+
+        if(user != null) {
+            Logger.success("[AUTH SERVICE] Find user : account found");
+            return user;
+        }else{
+            if(pOptions.autoCreate === true){
+
+                pAccount.setType(pOptions.type);
+
+                user = await this.createUser(pAccount, pOptions.org);
+                /*user = await this._coll.asyncAddEntry(
+                    {
+                        [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
+                    },
+                    pAccount);*/
+
+                Logger.success("[AUTH SERVICE] Find user : account not found but created accordingly to 'autoCreate' option");
+
+                return user;
+            }else{
+                return null;
+            }
+        }
+    }
+
     async find(pAccount: UserAccount, pOptions: { autoCreate: boolean, type?:UserAccountType, org?:OrganizationUnit }):Promise<Nullable<UserAccount>> {
 
         let user = await this._coll.asyncGetEntry({
             [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
+            //_username: pAccount.username
         });
 
         if(user != null) {
@@ -508,7 +542,7 @@ export class UserService {
                     await this._ctx.getOrgManager().getOrganization(pUserAccount, sameOrgs[0]),
                     [
                         OrganizationAccessControl.attr.OWNER,
-                        OrganizationAccessControl.attr.ORG_MEMBER
+                        OrganizationAccessControl.attr.MEMBER_GRP
                     ]
                 );
 
@@ -603,7 +637,7 @@ export class UserService {
             if(ms != null){
                 ms.locked = false;
                 ms._lockDate = -1;
-                ms.activated = false;
+                ms.activated = true;
                 ms._activateDate = Util.time();
             }
 
@@ -642,16 +676,25 @@ export class UserService {
         return await this._coll.asyncUpdateEntry(pUserAccount, { replace:false, $set:['_tokens']});
     }
 
-    async addMembership(pUserAccount: UserAccount, pOrg: OrganizationUnit) {
+    async addMembership(pUserAccount: UserAccount, pOrg: OrganizationUnit, pActivated = true) {
+        const grp = pOrg.getAccessAttribute<UserGroupUUID>(OrganizationAccessControl.attr.MEMBER_GRP).value[0];
+
         pUserAccount.addMembership(pOrg.getUID(), {
-            activated: true,
+            activated: pActivated,
             _activateDate: -1,
             locked: true,
             _lockDate: Util.time(),
             preferences: {},
-            roles: []
+            roles: [],
+            groups: [grp]
         });
 
+        return await this._coll.asyncUpdateEntry(pUserAccount, { replace:false, $set:['_membership']});
+    }
+
+    async dropMembership(pUserAccount: UserAccount, pOrg: OrganizationUnit, pActivated = true) {
+
+        pUserAccount.removeMembership(pOrg.getUID());
         return await this._coll.asyncUpdateEntry(pUserAccount, { replace:false, $set:['_membership']});
     }
 
@@ -661,21 +704,159 @@ export class UserService {
             const ms = pUserAccount.getMembership(pOrg.getUID());
 
             if(ms!=null){
-                ms.activated = false;
-                ms._activateDate = -1;
                 ms.locked = true;
                 ms._lockDate = Util.time();
+                ms.roles = [];
+                ms.groups = [];
             }else{
                 pUserAccount.addMembership(pOrg.getUID(),{
                     activated: false,
                     _activateDate: -1,
                     locked: true,
                     _lockDate: Util.time(),
-                    preferences: {}
+                    preferences: {},
+                    roles:[],
+                    groups: []
                 })
             }
         }
 
         await this._coll.asyncUpdateEntry(pUserAccount, {replace:false, $set:['_membership','_locked','_activated']});
+    }
+
+    async updateOrgRoles(pIssuer: UserAccount, pOrg:OrganizationUnitUUID,
+                         pTargetAcc:UserAccountUUID, pRoles:RoleUUID[]):Promise<boolean> {
+
+
+        // check if the target user is a part of the target organization
+        const target = await this.getAccount(pIssuer, pTargetAcc);
+
+        if(!target.isMemberOf(pOrg)){
+            throw OrganizationManagerException.NOT_A_MEMBER(pTargetAcc, pOrg);
+        }
+
+        const results:RoleUpdate[] = [];
+        const requestPerms = AccessControl.mergePermissions(pRoles);
+
+        // IMPORTANT :
+        // check if issuer has higher role
+        if(requestPerms[AccessControl.access.SRV_INSTANCE_MGT.getUID()]!=null){
+            throw UserServiceException.CANNOT_GRANT_TO_LOCAL_ADMIN(pIssuer.getUID(), pOrg, pTargetAcc)
+        }
+
+        // TODO : remove later
+        target.updateMembershipRoles(pOrg, pRoles);
+        target.updateRoles(pRoles);
+
+        // save
+        if(await this._coll.asyncUpdateEntry(
+            target, { replace:false, $set:['_membership','_roles']}
+        )){
+            return true;
+        }else{
+            return false;
+            //throw UserServiceException.CANNOT_GRANT_TO_LOCAL_ADMIN(pIssuer.getUID(), pOrg, pTargetAcc)
+        }
+    }
+
+    /**
+     *
+     * @param pIssuer
+     * @param pTargetAcc
+     * @param pCurrent
+     * @param pNew
+     * @param pOrg
+     * @param pCSRF
+     */
+    async changeUserPwd(pIssuer: UserAccount, pTargetAcc: UserAccountUUID,
+                        pCurrent:string, pNew:string,
+                        pOrg:Nullable<OrganizationUnit>, pCSRF:string = ""):Promise<boolean> {
+
+        if(pOrg!=null){
+            AccessControl.isAuthorized(
+                AccessControl.access.ORG_USR_MGT,
+                pIssuer,
+                pOrg,
+                [
+                    OrganizationAccessControl.attr.OWNER,
+                    OrganizationAccessControl.attr.MEMBER_GRP,
+                ]
+            );
+        }else{
+            AccessControl.isAuthorized(
+                AccessControl.access.SRV_INSTANCE_MGT,
+                pIssuer
+            );
+        }
+
+        const target = await this.getAccount(pIssuer, pTargetAcc);
+
+        if(pOrg!=null){
+            if(!target.isMemberOf(pOrg.getUID())){
+                throw OrganizationManagerException.NOT_A_MEMBER(target.username,pOrg.getUID());
+            }
+        }
+
+        // authenticate issuer with current
+        const authResult = await this.getAuthenticationService()
+            .newPasswordAuthenticator()
+            .doAuthentication(pIssuer.username, pCurrent);
+
+        if(!AuthenticationResult.isSuccess(authResult)){
+            throw AuthenticationException.AUTHENTICATION_FAILED();
+        }
+
+        // change target passwd & save
+        return await this._updatePassword(target, pNew);
+    }
+
+    /**
+     *
+     * @param {UserAccount} pOwner
+     * @param {string} pCurrent Current password
+     * @param {string} pNew New password
+     * @param {string} pCSRF
+     */
+    async changeOwnPwd(pOwner: UserAccount,
+                        pCurrent:string, pNew:string, pCSRF:string = ""):Promise<boolean> {
+
+        // authenticate issuer with current
+        const authResult = await this.getAuthenticationService()
+            .newPasswordAuthenticator()
+            .doAuthentication(pOwner.username, pCurrent);
+
+        if(!AuthenticationResult.isSuccess(authResult)){
+            throw AuthenticationException.AUTHENTICATION_FAILED();
+        }
+
+        // change target passwd & save
+        return await this._updatePassword(pOwner, pNew);
+    }
+
+    /**
+     *
+     * @param pAccount
+     * @param pClearPassword
+     */
+    private async _updatePassword(pAccount:UserAccount, pClearPassword:string):Promise<boolean>{
+
+        // TODO : add password policy check
+
+        // change user password;
+        pAccount.newPassword(pClearPassword);
+
+        // save changes
+        return await this._coll.asyncUpdateEntry(pAccount,{ replace:false, $set:['_padding','_salt','_password']});
+    }
+
+    async updateMembership(pAccount: UserAccount, pOrg:OrganizationUnit, pUpdatedUser: UserAccount) {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_USER_MGT,
+            pAccount,
+            pOrg
+        );
+
+        await this._coll.asyncUpdateEntry(pUpdatedUser, {replace:false, $set:['_membership']})
     }
 }

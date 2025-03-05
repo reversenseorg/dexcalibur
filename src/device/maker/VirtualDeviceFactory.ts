@@ -9,6 +9,8 @@ import {VirtualDeviceFactoryException} from "../error/VirtualDeviceFactoryExcept
 import {Observable, Subject} from "rxjs";
 import {VdevEvent} from "./VdevEvent.js";
 import {DeviceInstance} from "./DeviceInstance.js";
+import {Nullable} from "../../core/IStringIndex.js";
+import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 
 /**
  * The main API to allocate and destroy virtual devices
@@ -31,7 +33,9 @@ export class VirtualDeviceFactory {
      * @param {DeviceTemplate} pTemplate
      * @returns
      */
-    async provisionDevice(pUserAccount:UserAccount, pTemplate:DeviceTemplate):Promise<Observable<VdevEvent>> {
+    async provisionDevice(pUserAccount:UserAccount,
+                          pTemplate:DeviceTemplate,
+                          pOrg:Nullable<OrganizationUnit>):Promise<Observable<VdevEvent>> {
 
         AccessControl.isAuthorized(
             (pTemplate.isVirtual()? AccessControl.access.DEV_ALLOC_VIRT : AccessControl.access.DEV_ALLOC_PHY),

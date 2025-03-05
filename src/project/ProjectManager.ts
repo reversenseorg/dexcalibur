@@ -1,7 +1,7 @@
 import DexcaliburEngine, {DexcaliburEngineMode} from "../DexcaliburEngine.js";
 import {UserAccount} from "../user/UserAccount.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
-import {OrganizationUnit} from "../organization/OrganizationUnit.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
@@ -92,6 +92,16 @@ export class ProjectManager {
         this._ctx = pCtx;
     }
 
+    /**
+     * To list all project from DB
+     *
+     * @private
+     */
+    private async _listAllProjects():Promise<DexcaliburProject[]> {
+        return await this._ctx.getEngineDB()
+            .getCollectionOf(DexcaliburProject.TYPE.getType())
+            .getAsList();
+    }
 
     /**
      * To retrieve the list of project accessible to specified user account.
@@ -105,8 +115,40 @@ export class ProjectManager {
      * @method
      */
     async listProjectByUser( pAccount:UserAccount):Promise<DexcaliburProject[]> {
-        const all:DexcaliburProject[] = await this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()).getAsList();
+
+        try{
+            AccessControl.isAuthorized(
+                AccessControl.access.SRV_INSTANCE_MGT,
+                pAccount
+            );
+
+            return await this._listAllProjects();
+        }catch (e){
+            AccessControl.isAuthorized(
+                AccessControl.access.PROJ_META_READ,
+                pAccount
+            );
+        }
+
+        // retrieve every membships
+        const mss = pAccount.getMemberships();
+        let projects:DexcaliburProject[] = [];
+        let org:OrganizationUnit;
+
+        for(let oid in mss){
+            org = await this._ctx.getOrgManager().getOrganization(pAccount, oid);
+            projects = projects.concat( await this.listProjectByOrgUnit(pAccount, org));
+        }
+
+        // if the user as admin role, he can open all projects
+        /*
+
+        const all:DexcaliburProject[] = await this._ctx.getEngineDB()
+            .getCollectionOf(DexcaliburProject.TYPE.getType())
+            .getAsList();
+
         const authorizedApps = await this._ctx.getOrgManager().listApplicationsByUser(pAccount);
+
         let authorizedPUID: DexcaliburProjectUUID[] = [];
         authorizedApps.map(x =>{
             authorizedPUID = authorizedPUID.concat(x.getReleases())
@@ -133,36 +175,28 @@ export class ProjectManager {
                 );
 
                 filtered.push(vProj);
-            }catch (e){ /* skip */ }
-        });
+            }catch (e){  }
+        });*/
 
-        return filtered;
+        return projects;
     }
 
     async listProjectByOrgUnit( pAccount:UserAccount, pOrg:OrganizationUnit):Promise<DexcaliburProject[]> {
-        const all = this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()).getAsList();
-        const filtered:DexcaliburProject[] = [];
-        const apps:ApplicationUnit[] = await this._ctx.getEngineDB()
-            .getCollectionOf(ApplicationUnit.TYPE.getType())
-            .search({
-                orgUnit: pOrg.getUID()
-            });
 
-        let authorized:DexcaliburProjectUUID[] = [];
+        let projUIDs:DexcaliburProjectUUID[] = [];
 
-        apps.map(vApp => {
-            authorized = authorized.concat(vApp.projects);
-        });
+        // get authorized app units
+        const apps = await this._ctx.getOrgManager().listApplications(pAccount, pOrg);
 
-        all.map(vProj => {
-            try{
-                if(authorized.indexOf(vProj)>-1){
-                    filtered.push(vProj);
-                }
-            }catch (e){ /* skip */ }
-        })
+        for(let i=0; i<apps.length; i++) {
+            projUIDs = projUIDs.concat(apps[i].getReleases());
+        }
 
-        return filtered;
+        return await this._ctx.getEngineDB()
+            .getCollectionOf(DexcaliburProject.TYPE.getType())
+            .search(
+                { filter:{ uid: { $in: projUIDs } }},
+                { merlinRequest:false, raw:true });
     }
 
     /**
@@ -193,7 +227,7 @@ export class ProjectManager {
             pOrg,
             [
                 OrganizationAccessControl.attr.OWNER,
-                OrganizationAccessControl.attr.ORG_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
 

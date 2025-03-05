@@ -4,6 +4,7 @@ import {AuthModule, AuthModuleOptions, AuthModuleType} from "./AuthModule.js";
 import {OrganizationManagerException} from "../../errors/OrganizationManagerException.js";
 import {OidcAuthModule} from "./modules/OidcAuthModule.js";
 import {LocalAuthModule} from "./modules/LocalAuthModule.js";
+import {ApikeyAuthModule} from "./modules/ApikeyAuthModule.js";
 
 export class AuthModuleFactory {
 
@@ -13,20 +14,24 @@ export class AuthModuleFactory {
                 return new LocalAuthModule(pOptions);
             case AuthModuleType.OIDC:
                 return new OidcAuthModule(pOptions);
+            case AuthModuleType.APIKEY:
+                return new ApikeyAuthModule(pOptions);
             default:
                 throw OrganizationManagerException.INVALID_AUTH_MOD_TYPE(pOptions.type);
         }
     }
 
-    static fromUnsafe(pOptions:any):AuthModule {
+    /*static fromUnsafe(pOptions:any):AuthModule {
 
         switch (pOptions.type) {
             case AuthModuleType.LOCAL_PASSWD:
                 return new LocalAuthModule(pOptions);
             case AuthModuleType.OIDC:
                 return new OidcAuthModule(pOptions);
+            case AuthModuleType.APIKEY:
+                return new ApikeyAuthModule(pOptions);
             default:
                 throw OrganizationManagerException.INVALID_AUTH_MOD_TYPE(pOptions.type);
         }
-    }
+    }*/
 }

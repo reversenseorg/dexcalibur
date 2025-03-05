@@ -28,7 +28,8 @@ export class UserServiceException extends MonitoredError {
         INVALID_USER_UUID_FMT: ErrorCode.USER_SERVICE + 114,
         INVALID_TOKEN_FMT: ErrorCode.USER_SERVICE + 115,
         INVALID_TOKEN: ErrorCode.USER_SERVICE + 116,
-        MISSING_MEMBERSHIP: ErrorCode.USER_SERVICE + 117
+        MISSING_MEMBERSHIP: ErrorCode.USER_SERVICE + 117,
+        CANNOT_GRANT_TO_LOCAL_ADMIN: ErrorCode.USER_SERVICE + 118
     };
 
     static WRONG_DB_FORMAT = ()=>{ return new UserServiceException(" User DB format is invalid",UserServiceException.ERR.WRONG_DB_FORMAT) };
@@ -61,7 +62,11 @@ export class UserServiceException extends MonitoredError {
 
     static MISSING_MEMBERSHIP = (pUUID:UserAccountUUID, pOUID:OrganizationUnitUUID, pWhere:string)=>{
         return new UserServiceException(`Missing membership [user=${pUUID}][org=${pOUID}][where=${pWhere}]`,
-            UserServiceException.ERR.INVALID_TOKEN).zone(SecurityZone.PRIVATE) };
+            UserServiceException.ERR.MISSING_MEMBERSHIP).zone(SecurityZone.PRIVATE) };
+
+    static CANNOT_GRANT_TO_LOCAL_ADMIN = (pUUID:UserAccountUUID, pOUID:OrganizationUnitUUID, pTarget:UserAccountUUID)=>{
+        return new UserServiceException(`Cannot grant user to local admin [user=${pUUID}][org=${pOUID}][target_user=${pTarget}]`,
+            UserServiceException.ERR.CANNOT_GRANT_TO_LOCAL_ADMIN) };
 
 
 

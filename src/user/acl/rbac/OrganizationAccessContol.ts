@@ -1,15 +1,11 @@
 import {DelegateAccessControl} from "../DelegateAccessControl.js";
-import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../Access.js";
-import {UserSession} from "../../session/UserSession.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
-import DexcaliburProject from "../../../DexcaliburProject.js";
 import {UserAccount, UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
-import {Nullable} from "../../../core/IStringIndex.js";
-import {Auditable} from "../../../Auditable.js";
 import {AccessZone} from "../Zones.js";
-import {OrganizationManager} from "../../../organization/OrganizationManager.js";
 import {UserServiceException} from "../../../errors/UserServiceException.js";
+import {UserGroupUUID} from "../common/UserGroup.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 
 export class OrganizationAccessControl extends DelegateAccessControl {
@@ -22,7 +18,10 @@ export class OrganizationAccessControl extends DelegateAccessControl {
     static attr:AccessAttributeMap = {
         ORG_MEMBER: new AccessAttribute<UserAccountUUID>( 'org_member'),
         APP_MEMBER: new AccessAttribute<UserAccountUUID>( 'app_member'),
-        OWNER: new AccessAttribute<UserAccountUUID>( 'owner'),
+        OWNER: new AccessAttribute<UserAccountUUID>( 'owner',[], NodeInternalType.USER_ACCOUNT),
+
+        MEMBER_GRP: new AccessAttribute<UserGroupUUID>( 'members', [], NodeInternalType.USER_GROUP),
+        APP_MEMBER_GRP: new AccessAttribute<UserGroupUUID>( 'app_grp',[], NodeInternalType.USER_GROUP),
     };
 
     constructor() {
@@ -46,6 +45,11 @@ export class OrganizationAccessControl extends DelegateAccessControl {
         return filter;
     }
 
+    /**
+     * To get MongoDB filter to apply in order to filter document by document owned by AppUnit members only
+     *
+     * @param pUserAccountUID
+     */
     static getAppMembersFilter(pUserAccountUID:UserAccountUUID):any {
 
         const filter:any = OrganizationAccessControl.getOwnerFilter(pUserAccountUID);
@@ -59,7 +63,7 @@ export class OrganizationAccessControl extends DelegateAccessControl {
 
         const filter:any = OrganizationAccessControl.getOwnerFilter(pUserAccountUID);
 
-        filter['$or'].push({ ['_attr.'+OrganizationAccessControl.attr.ORG_MEMBER.name+'._v']: { $all: [ pUserAccountUID ] }});
+        filter['$or'].push({ ['_attr.'+OrganizationAccessControl.attr.MEMBER_GRP.name+'._v']: { $all: [ pUserAccountUID ] }});
         return filter;
     }
 

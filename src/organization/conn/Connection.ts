@@ -106,7 +106,7 @@ export class Connection extends Auditable   {
      * To init ACL attributes of OrganizationUnit instances
      *
      * Supported attributes:
-     * - `OrganizationAccessControl.attr.ORG_MEMBER`
+     * - `OrganizationAccessControl.attr.MEMBER_GRP`
      *
      * @return {void}
      * @method

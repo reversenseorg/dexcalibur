@@ -37,11 +37,20 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
             let user:UserAccount;
 
             try {
-                    user = (req.dxc.sess as UserSession).getUserAccount();
+                    /*user = (req.dxc.sess as UserSession).getUserAccount();
 
                     $.sendSuccess( res, {
                         projects: await user.listProjects($.context)
+                    });*/
+
+                    $.sendSuccess( res, {
+                        projects: (await $.context
+                                        .getProjectManager()
+                                        .listProjectByUser(req.user))
+                                            .map(x => x.toJsonObject())
                     });
+
+
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Unable to list projects : "+err.message+"\n"+err.stack);
