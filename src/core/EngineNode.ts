@@ -1,5 +1,7 @@
 import got from "got";
 import * as _ps_ from "process";
+import * as _path_ from "path";
+
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
 import {Subject} from "rxjs";
@@ -785,8 +787,12 @@ export class EngineNode implements INode {
             //const out:number = _fs_.openSync( this.outPipe, 'w+', 0o666);
             //const err:number = _fs_.openSync( this.errPipe, 'w+', 0o666);
 
+            if(process.env.DXC_BIN_PATH){
+                args.push(_path_.join(process.env.DXC_BIN_PATH,'dexcalibur.js'));
+            }else{
+                args.push('./dist/dexcalibur.js');
+            }
 
-            args.push('./dist/dexcalibur.js');
             args.push('--headless');
             args.push('--slave-node');
             args.push('--node-uid='+this.UUID);
