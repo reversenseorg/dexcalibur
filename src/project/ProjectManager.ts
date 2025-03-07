@@ -267,6 +267,10 @@ export class ProjectManager {
 
         // build project order
         let newPrjOrder= new ProjectOrder({
+            uuid: await this._ctx.getEngineDB().generateFreeUuid(
+                ProjectOrder.TYPE.getType(),
+                'uuid'
+            ),
             // org unit, app unit
             orgUnit: pOrg.getUID(),
             appUnit: pAppUnit.getUID(),
