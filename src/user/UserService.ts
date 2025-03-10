@@ -34,6 +34,9 @@ import Util from "../Utils.js";
 import {RoleUpdate} from "../organization/OrganizationManager.js";
 import {AccessControlManager} from "./acl/AccessControlManager.js";
 import {UserGroupUUID} from "./acl/common/UserGroup.js";
+import {AuthCode} from "./auth/AuthTypes.js";
+import {CryptoUtils} from "../CryptoUtils.js";
+import {EmailSender} from "../core/email/EmailSender.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -55,6 +58,8 @@ export class UserService {
     //ctx:DexcaliburEngine = null;
     authSvc: AuthenticationService;
     sessSvc: SessionService;
+
+    emailSender:EmailSender;
 
     /**
      * @deprecated
@@ -80,6 +85,10 @@ export class UserService {
 
         if(pSettings==null){
             throw UserServiceException.DB_IS_NOT_READY();
+        }
+
+        if(this._ctx!=null){
+            this.emailSender = new EmailSender(this._ctx);
         }
 
 
@@ -424,6 +433,19 @@ export class UserService {
 
     async findByUsername(pAccount: UserAccount, pOptions: { autoCreate: boolean, type?:UserAccountType, org?:OrganizationUnit }):Promise<Nullable<UserAccount>> {
 
+
+        if(pAccount.username==null
+            || pAccount.username.length==0
+            || typeof pAccount.username !== 'string'
+            || /^[\s\t]*$/.test(pAccount.username)){
+            throw new AuthenticationException("Invalid username", AuthCode.EMPTY_USERNAME);
+        }
+
+        if(!UserAccount.VALIDATE._username.test(pAccount.username)){
+            throw new AuthenticationException("Invalid username (#2)", AuthCode.EMPTY_USERNAME);
+        }
+
+
         let user = await this._coll.asyncGetEntry({
             _username: pAccount.username
         });
@@ -447,7 +469,7 @@ export class UserService {
 
                 return user;
             }else{
-                return null;
+                throw new AuthenticationException("Invalid username", AuthCode.INVALID_USERNAME);
             }
         }
     }
@@ -654,8 +676,6 @@ export class UserService {
             // redirect
             return `${process.env.DXC_SCHEMA}://${process.env.DXC_HOSTNAME}/login`;
         }
-
-
     }
 
     async checkUsernameIsFree(pUsername:string):Promise<void> {
@@ -675,6 +695,25 @@ export class UserService {
 
         return await this._coll.asyncUpdateEntry(pUserAccount, { replace:false, $set:['_tokens']});
     }
+
+    /**
+     *
+     * @param pUserAccount
+     * @param pTokenOpts
+     */
+    async createAccountToken(pUserAccount: UserAccount, pTokenOpts:TokenOptions<any>):Promise<string> {
+
+        // clone options and generate token
+        const opts = JSON.parse(JSON.stringify(pTokenOpts));
+        opts.token = Buffer.from(CryptoUtils.randomChunk(256)).toString('base64');
+
+        if(this.addVerifyToken(pUserAccount, opts)){
+            return opts.token;
+        }else{
+            throw new Error('Cannot generate token');
+        }
+    }
+
 
     async addMembership(pUserAccount: UserAccount, pOrg: OrganizationUnit, pActivated = true) {
         const grp = pOrg.getAccessAttribute<UserGroupUUID>(OrganizationAccessControl.attr.MEMBER_GRP).value[0];

@@ -88,7 +88,7 @@ export interface GuiMiddlewareOptions {
  * @param pOptions
  * @function
  */
-function SEND_ERROR_RESPONSE( pRes:ExpressResponse, pMessage:string, pOptions:any=null):void{
+export function SEND_ERROR_RESPONSE( pRes:ExpressResponse, pMessage:string, pOptions:any=null):void{
     pRes.status(
         (pOptions!=null && pOptions.hasOwnProperty('httpCode'))? pOptions.httpCode : HTTP_CODE_ERROR
     ).send(JSON.stringify({
@@ -106,7 +106,7 @@ function SEND_ERROR_RESPONSE( pRes:ExpressResponse, pMessage:string, pOptions:an
  * @param {any} pOptions
  * @function
  */
-function SEND_SUCCESS_RESPONSE( pRes:ExpressResponse, pData:any, pOptions:any=null):void{
+export function SEND_SUCCESS_RESPONSE( pRes:ExpressResponse, pData:any, pOptions:any=null):void{
     let data:any = { success:true, data:pData };
 
     // weak comparison skips undefined and null values

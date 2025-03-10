@@ -778,7 +778,13 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                         discoverUri: pReq.body.module.discoverUri,
 
                         authorizedIPs: pReq.body.module.authorizedIPs,
-                        authorizedCIDR: pReq.body.module.authorizedCIDR
+                        authorizedCIDR: pReq.body.module.authorizedCIDR,
+
+
+                        ttl: pReq.body.module.ttl,
+                        keysize: pReq.body.module.keysize
+
+
                     });
 
                 $.sendSuccess( pRes, { created: result });
@@ -797,7 +803,6 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.query.org as string);
-                console.log(org);
                 const result = await $.context.getOrgManager().getAuthModules(pReq.user, org);
                 $.sendSuccess( pRes, result.map(x => x.toJsonObject(SecurityZone.PUBLIC)));
 

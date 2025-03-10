@@ -16,7 +16,6 @@ import * as _openidconnect_ from 'passport-openidconnect';
 
 import {Application, Router} from 'express';
 import {Issuer} from "openid-client";
-import expressSession from "express-session";
 import {Person} from "../Person.js";
 import {Nullable} from "../../core/IStringIndex.js";
 import {AccessControlManager} from "../acl/AccessControlManager.js";
@@ -33,8 +32,13 @@ import {AuthenticationModuleException} from "./error/AuthenticationModuleExcepti
 import {AuthStrategyUUID, LoadedAuthModule} from "./modules/LoadedAuthModule.js";
 import {SessionMiddleware, UnsetMode} from "../session/SessionMiddleware.js";
 import {SameSite} from "../session/Cookie.js";
-import {MemoryStore} from "../session/MemoryStore.js";
 import {UserSession} from "../session/UserSession.js";
+import {ValidationRule} from "../../Validator.js";
+import {UserServiceException} from "../../errors/UserServiceException.js";
+import {TokenPurpose} from "../../core/secrets/Token.js";
+import {PasswordlessAuthenticator} from "./PasswordlessAuthenticator.js";
+import {OrganizationEmailBuilder} from "../../organization/OrganizationEmailBuilder.js";
+import {PasswordlessAuthModule} from "./modules/PasswordlessAuthModule.js";
 
 const GOT = got.default;
 const BodyParser = (_bodyparser_ as any).default;
@@ -191,6 +195,30 @@ export class AuthenticationService {
         }
     }
 
+    async verifyToken(pAccount:UserAccount, pToken:string):Promise<void> {
+
+        // validate token format
+        if(!ValidationRule.base64String().test(pToken)){
+            throw UserServiceException.INVALID_TOKEN_FMT();
+        }
+
+        // search user account associated to this token,
+        const useraccs:UserAccount[] = await this._ctx.getEngineDB()
+            .getCollectionOf(UserAccount.TYPE.getType())
+            .search({filter:{ "_tokens.token": pToken, "_uid":pAccount.getUID() }}, {raw:true, merlin:false});
+
+        if(useraccs.length<1){
+            throw UserServiceException.INVALID_TOKEN('not found');
+        }
+
+        // check if token is not expired
+        const token = useraccs[0].verifyToken<OrganizationUnitUUID>(pToken, TokenPurpose.ACCOUNT_PWDL_AUTH);
+        if(token == null){
+            // weak comparison matches undefined AND null token
+            throw UserServiceException.INVALID_TOKEN('expired');
+        }
+    }
+
     /**
      *
      */
@@ -201,8 +229,9 @@ export class AuthenticationService {
         return new PasswordAuthenticator(this);
     }
 
-
-    // todo replace
+    newPasswordlessAuthenticator():Authenticator {
+        return new PasswordlessAuthenticator(this);
+    }
 
     /**
      * To search a user account by UserAccount's username in database
@@ -390,6 +419,11 @@ export class AuthenticationService {
                     this._loadedModules[moduleState.getUUID()] = moduleState;
 
                     strats.all.push(moduleState.getUUID());
+
+                    if(strats[mods[i].type]==null){
+                        strats[mods[i].type] = [];
+                    }
+
                     strats[mods[i].type].push(moduleState.getUUID());
                     Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module deployed`);
 
@@ -652,24 +686,33 @@ export class AuthenticationService {
         }
     }
 
-    private _getOrgAuthEndpointRoute(pOrg:OrganizationUnit):string {
+    _getOrgAuthEndpointBaseRoute(pOrg:OrganizationUnit):string {
+        return  `/auth/login/${pOrg.getUID()}/`;
+    }
+
+    _getOrgAuthEndpointRoute(pOrg:OrganizationUnit):string {
         return  `/auth/login/${pOrg.getUID()}/:antiReplayID`;
     }
 
-    private _generateOrgAuthFormRoute(pOrg:OrganizationUnit, pAntiReplayToken:string):string {
+    _getOrgAuthVerifyRoute(pOrg:OrganizationUnit):string {
+        return  `/auth/verify/${pOrg.getUID()}`;
+    }
+
+    _generateOrgAuthFormRoute(pOrg:OrganizationUnit, pAntiReplayToken:string):string {
         return  (process.env.DXC_REL_PATH!=undefined&&process.env.DXC_REL_PATH!="" ? process.env.DXC_REL_PATH : '')+`/auth/login/${pOrg.getUID()}/${pAntiReplayToken}`;
     }
 
-    private _getOrgAuthLongLoginRoute(pBase:string, pOrg:OrganizationUnit):string {
+
+    _getOrgAuthLongLoginRoute(pBase:string, pOrg:OrganizationUnit):string {
         return pBase+'/org/'+pOrg.getUID();
     }
 
-    private _getOrgAuthShortLoginRoute(pBase:string, pOrg:OrganizationUnit):string {
+    _getOrgAuthShortLoginRoute(pBase:string, pOrg:OrganizationUnit):string {
         return pBase+'/'+pOrg.name;
     }
 
 
-    private _getOrgHomeLongRoute(pBase:string, pOrg:OrganizationUnit):string {
+    _getOrgHomeLongRoute(pBase:string, pOrg:OrganizationUnit):string {
         return  `/home/?org=${pOrg.getUID()}`;
     }
 
@@ -682,6 +725,72 @@ export class AuthenticationService {
      * @private
      */
     private _setupLocalAuthStrategy(pApp:Application|Router, pBasePath:string, pModule:AuthModule, pOrg:OrganizationUnit, pState:Nullable<LoadedAuthModule> = null):LoadedAuthModule {
+
+        let state = pState;
+
+        if(state==null){
+            state = new LoadedAuthModule(pModule,pOrg);
+            state.updateGateEndpoint(this._getOrgAuthEndpointRoute(pOrg));
+            state.updateGateFailure(this._getOrgAuthLongLoginRoute(pBasePath,pOrg));
+            state.updateGateSuccess(this._getOrgHomeLongRoute(pBasePath,pOrg));
+        }else {
+            // trigger update
+        }
+
+
+        const str = new LocalStrategy(
+            {
+                passReqToCallback: true
+            },
+            (vReq, vUsername:string, vPasswd:string, vVerifiedCB:any)=> {
+                ((this.newPasswordAuthenticator()
+                    .doAuthentication(vUsername,vPasswd,pOrg.getUID()))  as Promise<AuthenticationResult>)
+                    .then((vAuthRes)=>{
+                        if(vAuthRes._success){
+                            (vReq.session as UserSession).setUserAccount(vAuthRes.getAccount());
+                            (vReq.session as UserSession).passport.user = vAuthRes.getAccount();
+                            (vReq.session as UserSession).addData('org',pOrg.getUID());
+                            (vReq.session as UserSession).save(()=>{
+                                vVerifiedCB.apply(null, [null, vAuthRes.getAccount(), vAuthRes]);
+                            });
+                            //vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
+                        }else{
+                            vVerifiedCB.apply(null, [null, null, vAuthRes]);
+                        }
+                    },(err)=>{
+                        vVerifiedCB.apply(null, [err, null, null]);
+                    }).catch((err)=>{
+                    vVerifiedCB.apply(null, [err, null, null]);
+                })
+            }
+        );
+        passport.use(state.getUUID(), str);
+
+        (pApp as Application).post(
+            state.getAuthEndpoint(),
+            BodyParser.urlencoded({ extended: false }),
+            passport.authenticate(state.getUUID(), {
+                successMessage: true,
+                failureMessage:true,
+                failureRedirect: state.getFailureEndpoint(),
+                successReturnToOrRedirect: state.getSuccessEndpoint(),
+            })
+        );
+
+        Logger.info(`[AUTH SERVICE][org=${pOrg.getUID()}][mod=${pModule.getUID()}] Serve local auth over ${state.getAuthEndpoint()}`);
+
+        return state;
+    }
+
+
+    /**
+     * Setup local authentication, and authentication endpoint
+     *
+     * @param pApp
+     * @param pCfg
+     * @private
+     */
+    private _setupPasswordlessAuthStrategy(pApp:Application|Router, pBasePath:string, pModule:AuthModule, pOrg:OrganizationUnit, pState:Nullable<LoadedAuthModule> = null):LoadedAuthModule {
 
         let state = pState;
 
@@ -939,57 +1048,80 @@ export class AuthenticationService {
     }
 
 
+    async isOrgSupportsPasswordless(pOUID:OrganizationUnitUUID):Promise<boolean> {
 
-    serveLoginPage( vReq:any, vRes:any, vNext:any):void {
+        const org = await this.userSvc._ctx.getOrgManager()
+                                                .getOrganization(this.userSvc._ctx.getInternalAcc(), pOUID);
+        const am = org.getAuthModuleByType(AuthModuleType.PASSWORDLESS);
 
+        return (am!=null) && (am.active);
+    }
 
-        let page = _fs_.readFileSync(
-            _path_.join(
-                Util.__dirname(import.meta.url),'..','..','..', 'assets', 'login', 'index.html'
-            ), {
-                encoding: 'utf-8'
+    serveLoginPage( pReq:any, pRes:any, pNext:any):void {
+
+        ( async ( vReq:any, vRes:any, vNext:any)=>{
+
+            let loginPage = 'index.html';
+            let passwordless = false;
+
+            if((vReq as any).dxc.org!=null){
+
+                if(await this.isOrgSupportsPasswordless((vReq as any).dxc.org.getUID())){
+                    loginPage = 'index_pwdl.html';
+                    passwordless = true;
+                }
+
             }
-        ).toString();
 
-        // context
-        const context:PasswordFormContext = {
-            replayUID: randomUUID(),
-            usernameField: randomUUID(),
-            pwdField: randomUUID(),
-            csrfField: randomUUID(),
-            csrfToken: randomUUID(),
-        };
+            let page = _fs_.readFileSync(
+                _path_.join(
+                    Util.__dirname(import.meta.url),'..','..','..', 'assets', 'login', loginPage
+                ), {
+                    encoding: 'utf-8'
+                }
+            ).toString();
 
-        const sess:UserSession = (vReq as any).session;
-        let forms:Record<string, any> = sess.getData('forms');
-        
-        if(forms==null){
-            forms = {};
-        }
+            // context
+            const context:PasswordFormContext = {
+                replayUID: randomUUID(),
+                usernameField: randomUUID(),
+                pwdField: randomUUID(),
+                csrfField: randomUUID(),
+                csrfToken: randomUUID(),
+            };
 
-        forms[context.replayUID] = context;
+            const sess:UserSession = (vReq as any).session;
+            let forms:Record<string, any> = sess.getData('forms');
 
-        ((vReq as any).session as UserSession).addData('forms',forms);
+            if(forms==null){
+                forms = {};
+            }
 
-        // replace tokens in page chunk
-        page = page.replaceAll('@@_ANTI_REPLAY_ENDPOINT_@@',context.replayUID);
-        if((vReq as any).dxc.org!=null){
-            page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', this._generateOrgAuthFormRoute((vReq as any).dxc.org, context.replayUID));
-        }else{
-            page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', (process.env.DXC_REL_PATH!=undefined&&process.env.DXC_REL_PATH!="" ? process.env.DXC_REL_PATH : '')+'/auth/hub/login/'+context.replayUID);
-        }
-        page = page.replaceAll('@@_FORM_USERNAME_@@',context.usernameField);
-        page = page.replaceAll('@@_FORM_PASSWORD_@@',context.pwdField);
-        page = page.replaceAll('@@_CSRF_TOKEN_NAME_@@',context.csrfField);
-        page = page.replaceAll('@@_CSRF_TOKEN_VAL_@@',context.csrfToken);
+            forms[context.replayUID] = context;
+
+            ((vReq as any).session as UserSession).addData('forms',forms);
+
+            // replace tokens in page chunk
+            page = page.replaceAll('@@_ANTI_REPLAY_ENDPOINT_@@',context.replayUID);
+            if((vReq as any).dxc.org!=null){
+                page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', this._generateOrgAuthFormRoute((vReq as any).dxc.org, context.replayUID)+(passwordless?'/pwdl':''));
+            }else{
+                page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', (process.env.DXC_REL_PATH!=undefined&&process.env.DXC_REL_PATH!="" ? process.env.DXC_REL_PATH : '')+'/auth/hub/login/'+context.replayUID);
+            }
+            page = page.replaceAll('@@_FORM_USERNAME_@@',context.usernameField);
+            page = page.replaceAll('@@_FORM_PASSWORD_@@',context.pwdField);
+            page = page.replaceAll('@@_CSRF_TOKEN_NAME_@@',context.csrfField);
+            page = page.replaceAll('@@_CSRF_TOKEN_VAL_@@',context.csrfToken);
 
 
-        vRes.status(200);
-        vRes.write(page, ()=>{
-            vRes.send();
+            vRes.status(200);
+            vRes.write(page, ()=>{
+                vRes.send();
+                return;
+            });
             return;
-        });
-        return;
+        })(pReq,pRes,pNext);
+
     }
 
 
@@ -1084,10 +1216,33 @@ export class AuthenticationService {
             case AuthModuleType.OIDC:
                 currState = await this._setupOidcStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
                 break;
+            case AuthModuleType.PASSWORDLESS:
+                currState = (pModule as PasswordlessAuthModule).setupAuthStrategy(this, pApp,pBasePath, pOrg, currState);
+                //currState = await this._setupOidcStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
+                break;
+            /*case AuthModuleType.APIKEY:
+                currState = await this._setupOidcStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
+                break;
+            case AuthModuleType.PASSWORDLESS:
+                currState = await this._setupOidcStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
+                break;*/
             default:
                 throw  AuthenticationModuleException.MODULE_NOT_SUPPORTED(pModule,pOrg);
         }
 
         return currState;
+    }
+
+    async sendPasswordlessAuthMail(
+                    pAccount: UserAccount, pVerifiedEmail:string,
+                    pOrg:OrganizationUnitUUID,  pToken: string,
+                    pTokenTTL:number, pAntiReplayID:string):Promise<boolean> {
+
+        const link = `${process.env.DXC_SCHEMA!=null?process.env.DXC_SCHEMA:'http'}://${process.env.DXC_HOSTNAME!=null?process.env.DXC_HOSTNAME:'127.0.0.1:8080'}/auth/verify/${pOrg}?token=${encodeURIComponent(pToken)}&ar=${pAntiReplayID}`;
+
+        return await this.getUserService().emailSender.sendPreparedMail(
+            pVerifiedEmail,
+            OrganizationEmailBuilder.buildPasswordlessAuthEmail(pAccount, link, pTokenTTL)
+        );
     }
 }

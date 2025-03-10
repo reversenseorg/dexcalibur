@@ -42,6 +42,7 @@ import {TokenPurpose} from "../core/secrets/Token.js";
 import Util from "../Utils.js";
 import {UserServiceException} from "../errors/UserServiceException.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
+import {OrganizationEmailBuilder} from "./OrganizationEmailBuilder.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -55,11 +56,14 @@ export class OrganizationManager {
 
     private _ctx:DexcaliburEngine;
 
+    private _emailBuilder:OrganizationEmailBuilder;
+
     private _emailSender:EmailSender;
 
     constructor( pInstance:DexcaliburEngine ) {
         this._ctx = pInstance;
         this._emailSender = new EmailSender(this._ctx);
+        this._emailBuilder = new OrganizationEmailBuilder(this);
     }
 
     async listOrganizations(pUserAccount:UserAccount):Promise<OrganizationUnit[]> {
@@ -104,18 +108,6 @@ export class OrganizationManager {
         );
     }
 
-    private _getActivateEmailTemplate(pLink:string, pExpire:string):string {
-        let tpl = _fs_.readFileSync(
-            _path_.join(
-                Util.__dirname(import.meta.url),'..','..','assets','emails',
-                'activate_account.tpl.html'
-            )).toString();
-
-        tpl = tpl.replaceAll('%%_ACTIVATION_LINK_%%',pLink);
-        tpl = tpl.replaceAll('%%_EXPIRE_%%',pLink);
-
-        return tpl;
-    }
 
 
     async sendActivationMail(pUserAccount:UserAccount, pTokenLifetime:number, pOrg:Nullable<OrganizationUnit>) {
@@ -130,24 +122,29 @@ export class OrganizationManager {
             extra: pOrg.getUID()
         });
 
-        const link = `${process.env.DXC_SCHEMA!=null?process.env.DXC_SCHEMA:'http'}://${process.env.DXC_HOSTNAME!=null?process.env.DXC_HOSTNAME:'127.0.0.1:8080'}/activate/account/?token=${encodeURIComponent(token)}`;
-        let email:string;
-        let expire:string = (pTokenLifetime>=3600)? (pTokenLifetime/3600)+" hours" : (pTokenLifetime/60)+" minutes" ;
+        //const link = `${process.env.DXC_SCHEMA!=null?process.env.DXC_SCHEMA:'http'}://${process.env.DXC_HOSTNAME!=null?process.env.DXC_HOSTNAME:'127.0.0.1:8080'}/activate/account/?token=${encodeURIComponent(token)}`;
+        let emailAddr:string = null;
+        // let expire:string = (pTokenLifetime>=3600)? (pTokenLifetime/3600)+" hours" : (pTokenLifetime/60)+" minutes" ;
 
+        // validate email address
         if(ValidationRule.email().test(pUserAccount.getEmail())){
-            email = pUserAccount.getEmail()
+            emailAddr = pUserAccount.getEmail()
         }
 
-        if(email==null && ValidationRule.email().test(pUserAccount.username)){
-            email = pUserAccount.username;
+        if(emailAddr==null && ValidationRule.email().test(pUserAccount.username)){
+            emailAddr = pUserAccount.username;
         }
 
-        if(email==null){
+        if(emailAddr==null){
             throw OrganizationManagerException.INVALID_USER_EMAIL(
                 pUserAccount.getUID(),
                 "Activation email cannot be sent.");
         }
 
+        // build email and send it
+        await this._emailSender.sendPreparedMail( emailAddr, this._emailBuilder.buildActivationEmail(pUserAccount, token, pTokenLifetime, pOrg));
+
+        /*
         await this._emailSender.sendMail(
             email,
             'Activate your Reversense account',
@@ -166,27 +163,7 @@ Best,
 The Reversense Team
             `,
             this._getActivateEmailTemplate(link,expire)
-            /*`<!DOCTYPE html PUBLIC "-//W3C//DTDXHTML1.0Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
-      xmlns:o="urn:schemas-microsoft-com:office:office">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title></head>
-<body>
-<div style="width:100%; height:100%; background: #FFF;padding:20px;">
-    <div style="margin: 10px 30%; text-justify: inter-word"><h3>Dear ${email},</h3><p>Thank you for signing up for Reversense. Click on the link below
-        to verify your email:</p>
-        <div style="width:100%;text-align: center;margin: 10px 0;">
-            <a href="${link}">Activate</a>
-        </div>
-        <p>If the link above didn&quot;t work, copy this link into your browser : ${link}<br>This link will expire in ${expire}.</p>
-        <p>Best,<br/>The Reversense Team </p></div>
-</div>
-</body>
-</html>`*/
-        );
+        );*/
     }
 
     /**
@@ -776,7 +753,7 @@ The Reversense Team
         const mods = pOrg.getAuthModuleByType(pAuthMod.type);
         let modsUUID:string;
         if(mods != null){
-            mods[0].update(pAuthMod);
+            mods.update(pAuthMod);
             modsUUID = pAuthMod.uid;
         }else{
             modsUUID = pOrg.addAuthModule(AuthModuleFactory.from(pAuthMod));
@@ -1659,6 +1636,68 @@ The Reversense Team
     }
 
 
+
+    /**
+     * If the device has been provisioned by organization ,then drop it, else aonly detach it from the device
+     *
+     * When a Device is dropped, it triggers a cleanup routine to remove device files
+     *
+     * @param pUserAccount
+     * @param pOrgUnit
+     * @param pDevUID
+     */
+    async dropDevice(pUserAccount:UserAccount, pOrgUnit:OrganizationUnit, pDevUID:DeviceUUID):Promise<Device>{
+
+        // check if user can list applications
+        try{
+            AccessControl.isAuthorized(
+                AccessControl.access.DEV_DESTROY_VIRT,
+                pUserAccount,
+                pOrgUnit,
+                [
+                    OrganizationAccessControl.attr.OWNER,
+                    OrganizationAccessControl.attr.MEMBER_GRP
+                ]
+            );
+        }catch (e){
+            AccessControl.isAuthorized(
+                AccessControl.access.DEV_DESTROY_PHY,
+                pUserAccount,
+                pOrgUnit,
+                [
+                    OrganizationAccessControl.attr.OWNER,
+                    OrganizationAccessControl.attr.MEMBER_GRP
+                ]
+            );
+        }
+
+
+        // read device
+        const dev = this._ctx.getDeviceManager().getDevice(pDevUID);
+
+        // check if device is a part of the organization
+        if(pOrgUnit.getDevices().indexOf(pDevUID)==-1){
+            throw  OrganizationManagerException.CANNOT_DETROY_DEV(pDevUID,"Not a part of target organization")
+        }
+
+        // check if the device is attached to more organization
+        const linkedOrgs = await this._searchOrganizationByDevice(pDevUID);
+
+        if(linkedOrgs.length>1 && linkedOrgs.indexOf(pOrgUnit.getUID())>-1){
+            // more than one organization use this device
+            // The device must be flushed from org data/app
+            // await this._ctx.getDeviceManager().flushDevice(pUserAccount, pDevUID);
+            throw new Error("Operation not supported");
+        }else{
+            // The device is used only by the organization, then the device can be detroyed
+            // 1) Ask to DM to destroy device,  mark it as "removed"
+            await this._ctx.getDeviceManager().dropDeviceSoft(pUserAccount, pDevUID);
+            // 2) Remove from Org
+        }
+
+        return dev;
+    }
+
     /**
      * to verify balance before to execute a ProjectOrder
      *
@@ -2122,5 +2161,25 @@ The Reversense Team
         }
 
         return await this._ctx.getUserService().updateOrgRoles(pIssuer,pOrg.getUID(),target.getUID(),pRoles);
+    }
+
+    /**
+     * Search organization sharing the same device
+     *
+     * @param {DeviceUUID} pDevUID
+     * @returns {OrganizationUnitUUID[]} Organization attached to this device
+     * @private
+     */
+    private async _searchOrganizationByDevice(pDevUID: DeviceUUID):Promise<OrganizationUnitUUID[]> {
+
+        const orgs = await this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType())
+            .search({ filter:{ devices: { $in: [pDevUID] }}}, {raw:true, marlin:false});
+
+        if(orgs==null || !Array.isArray(orgs) || orgs.length==0){
+            return [];
+        }
+
+        return orgs.map( o => o.getUID());
     }
 }

@@ -3,7 +3,7 @@ import {Access} from "../user/acl/Access.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {AccessZone} from "../user/acl/Zones.js";
 import {AccessAttribute} from "../user/acl/AccessAttribute.js";
-import Role from "../user/acl/common/Role.js";
+import Role, {RoleUUID} from "../user/acl/common/Role.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
@@ -52,6 +52,10 @@ export class AccessControlException extends MonitoredError {
     static MISSING_USER_GROUP = (pOrg:OrganizationUnitUUID, pGroup:UserGroupUUID)=>{
         return new AccessControlException(`The user group [${pGroup}] is missing in org [${pOrg}]. Contact the administrator to give access to this resource`,
             ErrorCode.SECURITY_ACL + 10) };
+
+    static UNKNOWN_ACCESS = (pRoleUID:RoleUUID, pName:string)=>{
+        return new AccessControlException(`The role [${pName},${pRoleUID}] require unknown permissions.`,
+            ErrorCode.SECURITY_ACL + 11).zone(SecurityZone.PRIVATE) };
 
 
 

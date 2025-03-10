@@ -529,14 +529,14 @@ export class EngineNodeManager {
             // add affinity
             node = this.getNodeByUUID(vEvent.nodeUUID);
 
-            console.log(node);
+            //console.log(node);
 
             const ope:Nullable<Operation> = node.opeQueue.shift();
 
             if(ope==null){ return; }
 
                 node.execOperation2(ope).then(()=>{
-                    console.log('onNodeStateChanged > OPE SUCCESS > ', ope.type);
+                    //console.log('onNodeStateChanged > OPE SUCCESS > ', ope.type);
                     //
                 });
             // next, check the queue of scan orders

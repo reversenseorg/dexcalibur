@@ -2,7 +2,7 @@
 <html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Passwordless Login</title>
     <style>
       @charset "UTF-8";/*!
  * Bootstrap  v5.3.3 (https://getbootstrap.com/)
@@ -98,7 +98,32 @@
         }
 
         .errmessage {
-            color: red;
+            color: #a51515;
+            text-align: center;
+            margin: 2em auto;
+            width: 86%;
+            background-color: #f5e4e4;
+            border-radius: 5px;
+            border-width: 0 0 0 4px;
+            border-color: #a51515;
+            padding-left: 2em;
+            font-size: 0.8em;
+            padding: 1em 0;
+        }
+
+
+        .successmessage {
+            color: #266705;
+            text-align: center;
+            margin: 2em auto;
+            width: 86%;
+            background-color: #dfffde;
+            border-radius: 5px;
+            border-width: 0 0 0 4px;
+            border-color: #266705;
+            padding-left: 2em;
+            font-size: 0.8em;
+            padding: 1em 0;
         }
 
         .hiddenerr {
@@ -120,18 +145,26 @@
     <div class="body row g-0">
         <div class="col-6 text-center p-2" style="height:100%">
             <h3 class="mt-3 mb-5">Authentication</h3>
-            <div id="err_wrong" class="hiddenerr text-center errmessage">
+            <div id="err_wrong" class="hiddenerr errmessage">
                 There is not corresponding user account or credentials are wrong.
             </div>
-            <div id="err_notactivated" class="hiddenerr text-center errmessage">
+            <div id="err_notactivated" class="hiddenerr errmessage">
                 Your account is not yet activated. Please check your mail and follow instructions.
             </div>
-            <div id="err_locked" class="hiddenerr text-center errmessage">
+            <div id="err_locked" class="hiddenerr errmessage">
                 This user account has been locked.
             </div>
-            <div id="err_expired" class="hiddenerr text-center errmessage">
+            <div id="err_expired" class="hiddenerr errmessage">
                 Your session has expired, you have been logged out.
             </div>
+            <div id="err_noteligible" class="hiddenerr errmessage">
+                Your account is not eligible to passwordless authentication. Please contact your administrator.
+            </div>
+            <div id="err_pwdl_check_mailbox" class="hiddenerr successmessage">
+                Check your mailbox.
+            </div>
+
+
             <form method="post" action="@@_AUTH_FORM_ENDPOINT_@@">
                 <div class="row mb-3">
                     <div class="col-2 offset-1 text-right">
@@ -141,22 +174,10 @@
                         <input class="form-control form-control-sm" value="" type="text" id="username" name="@@_FORM_USERNAME_@@"  />
                     </div>
                 </div>
-                <div class="row mb-3">
-
-                    <div class="col-2 offset-1 text-right">
-                        <label for="pwd">Password</label>
-                    </div>
-                    <div class="col-8">
-                        <input class="form-control form-control-sm" value="" type="password" id="pwd" name="@@_FORM_PASSWORD_@@" />
-                    </div>
-                </div>
                 <div class="row">
                     <div class="col-7 pe-1" style="text-align:right; align-content: center">
                         <input type="hidden" name="@@_CSRF_TOKEN_NAME_@@" value="@@_CSRF_TOKEN_VAL_@@">
                         <a class="help" href="https://help.reversense.com/">Need some help ?</a>
-                    </div>
-                    <div class="col-2">
-                        <input type="reset" value="Cancel" class="btn btn-outline-secondary" />
                     </div>
                     <div class="col-2">
                         <input type="submit" value="Login" class="btn btn-primary" />
@@ -174,18 +195,19 @@
     </div>
 </section>
 <script>
-    const ppt=new URLSearchParams(window.location.search);
-    if(ppt.get('err')!=null){
-        switch(ppt.get('err')){
-            case 'wrong':
-            case 'expired':
-            case 'locked':
-            case 'notactivated':
-            case 'pwdl_check_mailbox':
-                document.getElementById("err_"+ppt.get('err')).classList.remove('hiddenerr');
-                break;
-        }
+const ppt=new URLSearchParams(window.location.search);
+if(ppt.get('err')!=null){
+    switch(ppt.get('err')){
+        case 'wrong':
+        case 'expired':
+        case 'locked':
+        case 'notactivated':
+        case 'pwdl_check_mailbox':
+        case 'noteligible':
+            document.getElementById("err_"+ppt.get('err')).classList.remove('hiddenerr');
+            break;
     }
+}
 
 </script>
 </body>

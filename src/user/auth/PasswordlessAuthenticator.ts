@@ -6,46 +6,10 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 import {OrganizationUnit, OrganizationUnitUUID} from "../../organization/OrganizationUnit.js";
 import AccessControl from "../acl/AccessControl.js";
 import {OrganizationAccessControl} from "../acl/rbac/OrganizationAccessContol.js";
+import {AuthenticationResult} from "./PasswordAuthenticator.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
-
-
-export class AuthenticationResult {
-    _code:AuthCode = AuthCode.NONE;
-    _success: boolean = false;
-    _account: UserAccount = null;
-
-    constructor( pSuccess:boolean, pAcc:UserAccount = null, pCode:AuthCode = AuthCode.NONE){
-        this._success = pSuccess;
-        this._account = pAcc;
-        this._code = pCode;
-    }
-
-    static successful( pAcc:UserAccount):AuthenticationResult{
-        return new AuthenticationResult( true, pAcc);
-    }
-
-    static failure( pCode:AuthCode, pAcc:UserAccount):AuthenticationResult{
-
-        // TODO : if activated by authentication policy, on failure, increment delay between requets and response to prevent bruteforce
-        // TODO : if activated by authentication policy, the user account is locked after X attempts
-
-        return new AuthenticationResult( false, null, pCode);
-    }
-
-    static isSuccess( pResult:AuthenticationResult):boolean {
-        return (pResult._success === true);
-    }
-
-    getCode():AuthCode {
-        return this._code;
-    }
-
-    getAccount():UserAccount {
-        return this._account;
-    }
-}
 
 
 /**
@@ -54,7 +18,7 @@ export class AuthenticationResult {
  *
  * @class
  */
-export class PasswordAuthenticator implements Authenticator{
+export class PasswordlessAuthenticator implements Authenticator{
 
     /**
      * Authentication service
@@ -68,24 +32,6 @@ export class PasswordAuthenticator implements Authenticator{
         this.svc = pAuthSvc;
     }
 
-    /**
-     * To verify password
-     *
-     * @param pAccount
-     * @param pPwd
-     */
-    verifyPassword( pAccount:UserAccount, pPwd:string){
-        if(pPwd==null || pPwd.length==0 || typeof pPwd !== 'string'){
-            throw new AuthenticationException("Invalid password : password cannot be empty", AuthCode.EMPTY_PASSWORD);
-        }
-
-        if(pAccount.isLocked()){
-            throw new AuthenticationException("Account is locked", AuthCode.ACCOUNT_LOCKED);
-        }
-
-        pAccount.passwordEquals(pPwd);
-    }
-
 
     /**
      * To do authentication
@@ -96,7 +42,7 @@ export class PasswordAuthenticator implements Authenticator{
      * @param {string} pUsername Username
      * @param {string} pPwd User password
      */
-    async doAuthentication( pUsername:string, pPwd:string, pOrgUUID?:Nullable<OrganizationUnitUUID>):Promise<AuthenticationResult> {
+    async doAuthentication( pUsername:string, pToken:string,  pOrgUUID?:Nullable<OrganizationUnitUUID>):Promise<AuthenticationResult> {
         let res:AuthenticationResult;
         let account:UserAccount = null;
 
@@ -105,12 +51,11 @@ export class PasswordAuthenticator implements Authenticator{
             account = await this.svc.getUserService()
                 .findByUsername(new UserAccount({_username:pUsername}),{autoCreate:false});
 
-
             Logger.info("[AUTH] Retrieve user by name ("+pUsername+") = "+account.getUID());
-            this.verifyPassword( account, pPwd);
+            await this.svc.verifyToken(account, pToken);
 
 
-            Logger.info("[AUTH] User ("+pUsername+") authenticated ");
+            Logger.info("[AUTH] User ("+pUsername+") authenticated by token (passwordless)");
 
 
             // if the authenticator is trigged from a form bound to an organization
@@ -143,7 +88,7 @@ export class PasswordAuthenticator implements Authenticator{
 
             res = AuthenticationResult.successful( account);
         }catch(err){
-            Logger.error("Authentication failed. Cause : "+err.message);
+            Logger.error("Authentication failed (passwordless). Cause : "+err.message);
             res = AuthenticationResult.failure( err.getCode(), account);
         }finally {
             // TODO : clean password from memory

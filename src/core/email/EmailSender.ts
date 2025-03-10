@@ -5,6 +5,7 @@ import * as Got from "got";
 import {EmailSenderException} from "./error/EmailSenderException.js";
 
 import * as Log from '../../Logger.js';
+import {Email} from "./Email.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const got = Got.default;
@@ -44,7 +45,7 @@ export class EmailSender {
     createBody(pToMail:string, pSubject:string, pRawText:string, pHtml:string):any {
         return {
             "from": {
-                "name": "Reversense Support team",
+                "name": "Reversense Support",
                 "email": "no-reply@reversense.net"
             },
             "to": [
@@ -85,6 +86,30 @@ export class EmailSender {
         }catch (e){
             Logger.error(e.stack);
             throw EmailSenderException.SENDING_FAILURE(pAddress,pSubject);
+        }
+
+        return false;
+    }
+
+    async sendPreparedMail( pAddress:string,pEmail:Email):Promise<boolean> {
+
+        let data:any;
+        try{
+            const opts = {
+                method: 'POST',
+                headers: {
+                    'X-Auth-Token':this.apiKey
+                },
+                json: this.createBody(pAddress,pEmail.getSubject(),pEmail.getRawText(),pEmail.getHTML())
+            };
+
+            Logger.debugRAW(opts);
+            data = await got(`https://api.scaleway.com/transactional-email/v1alpha1/regions/${this.region}/emails`, opts as any);
+            Logger.debugRAW(data);
+
+        }catch (e){
+            Logger.error(e.stack);
+            throw EmailSenderException.SENDING_FAILURE(pAddress,pEmail.getSubject());
         }
 
         return false;

@@ -23,7 +23,7 @@ import {randomUUID} from "crypto";
 import {VirtualDeviceFactory} from "./device/maker/VirtualDeviceFactory.js";
 import {PlatformManagerException} from "./errors/PlatformManagerException.js";
 import {UserAccount} from "./user/UserAccount.js";
-import {OrganizationUnit} from "./organization/OrganizationUnit.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
 import {DeviceTemplateOptions, DeviceTemplateUUID} from "./device/template/DeviceTemplate.js";
 import AccessControl from "./user/acl/AccessControl.js";
 import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
@@ -34,6 +34,7 @@ import {ApplicationUnit} from "./organization/ApplicationUnit.js";
 import {Observable} from "rxjs";
 import {VdevEvent} from "./device/maker/VdevEvent.js";
 import {DeviceInstance} from "./device/maker/DeviceInstance.js";
+import {DeviceManagerClient} from "./device/DeviceManagerClient.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -110,6 +111,8 @@ export default class DeviceManager extends ValidationCapable
 
     private _tplApi:DeviceTemplateAPI;
 
+    private _client:DeviceManagerClient;
+
     /**
      * To create an instance of DeviceManager
      * @param {Configuration} config The configuration object
@@ -127,6 +130,7 @@ export default class DeviceManager extends ValidationCapable
         this._ctx = pEngine;
         this._tplApi = new DeviceTemplateAPI(pEngine);
         this._vdf = new VirtualDeviceFactory(this);
+        this._client = new DeviceManagerClient(this._ctx);
         this.dxcWorkspace = DexcaliburWorkspace.getInstance();
 
         // deprecated ??
@@ -176,7 +180,7 @@ export default class DeviceManager extends ValidationCapable
      * @param {Nullable<any>} pSpec
      * @method
      */
-    searchCompatibleDevice(pTargetOS:OperatingSystem, pAppUnit:Nullable<ApplicationUnit> = null, pSpec:Nullable<any> = null){
+    searchCompatibleDevice(pTargetOS:OperatingSystem, pAppUnit:Nullable<ApplicationUnit> = null, pThrow = true){
 
         const all = this.getAll();
         let result:Device[];
@@ -192,7 +196,7 @@ export default class DeviceManager extends ValidationCapable
             });
         }
 
-        if(result.length==0){
+        if(result.length==0 && pThrow){
             throw new Error("No compatible device found");
         }
 
@@ -1022,6 +1026,50 @@ export default class DeviceManager extends ValidationCapable
         pLogs.map(x => pInstance.appendLog(x));
         return await this._ctx.getEngineDB().getCollectionOf(DeviceInstance.TYPE.getType())
             .asyncUpdateEntry(pInstance, { replace:false, $set:['logs'] });
+    }
+
+
+
+    /**
+     * To drop a device only from ORG PoV, free resources, and mark it as removed.
+     *
+     * @param pAccount
+     * @param pDeviceUID
+     * @param pOID
+     */
+    async dropDeviceSoft(pAccount:UserAccount, pDeviceUID:DeviceUUID, pOID:Nullable<OrganizationUnitUUID> = null):Promise<void> {
+
+        // retrieve device info
+        const dev = await this.getDevice(pDeviceUID);
+
+        // mark it as removed
+        dev.removed = true;
+
+        // release resource
+        this._vdf.destroyDevice(pAccount,dev);
+
+        // save
+        this._ctx.getEngineDB().getCollectionOf(Device.TYPE.getType())
+            .updateEntry(dev, { replace:false, $set:['removed']});
+
+        /*
+        if(dev.isLocal(this._ctx.)){
+            // device managed by current DM
+        }else{
+            // device from remote device manager, ask to remote DM to drop the device
+            //this.
+        }*/
+    }
+
+    /**
+     * To flush some data from org on shared devices
+     *
+     * @param pAccount
+     * @param pDeviceUID
+     * @param pOID
+     */
+    async flushDevice(pAccount:UserAccount, pDeviceUID:DeviceUUID, pOID:Nullable<OrganizationUnitUUID> = null):Promise<void> {
+        // to do later
     }
 }
 

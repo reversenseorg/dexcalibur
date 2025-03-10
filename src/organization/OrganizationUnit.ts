@@ -51,6 +51,12 @@ export interface OrganizationUnitOptions {
     _attr?:AccessAttributeMap;
 }
 
+export interface AttachedDevice {
+    uid: DeviceUUID,
+    removed: boolean,
+    removeDate: number
+}
+
 export class OrganizationUnit extends Auditable implements INode {
 
     static SEED_SUID = '8162b327-e7a9-4342-a688-f515ae1c8664';

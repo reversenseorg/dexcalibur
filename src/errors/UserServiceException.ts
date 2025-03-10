@@ -29,7 +29,8 @@ export class UserServiceException extends MonitoredError {
         INVALID_TOKEN_FMT: ErrorCode.USER_SERVICE + 115,
         INVALID_TOKEN: ErrorCode.USER_SERVICE + 116,
         MISSING_MEMBERSHIP: ErrorCode.USER_SERVICE + 117,
-        CANNOT_GRANT_TO_LOCAL_ADMIN: ErrorCode.USER_SERVICE + 118
+        CANNOT_GRANT_TO_LOCAL_ADMIN: ErrorCode.USER_SERVICE + 118,
+        ACCOUNT_NOT_ELIGIBLE_PWDL: ErrorCode.USER_SERVICE + 119
     };
 
     static WRONG_DB_FORMAT = ()=>{ return new UserServiceException(" User DB format is invalid",UserServiceException.ERR.WRONG_DB_FORMAT) };
@@ -67,6 +68,15 @@ export class UserServiceException extends MonitoredError {
     static CANNOT_GRANT_TO_LOCAL_ADMIN = (pUUID:UserAccountUUID, pOUID:OrganizationUnitUUID, pTarget:UserAccountUUID)=>{
         return new UserServiceException(`Cannot grant user to local admin [user=${pUUID}][org=${pOUID}][target_user=${pTarget}]`,
             UserServiceException.ERR.CANNOT_GRANT_TO_LOCAL_ADMIN) };
+
+
+    static ACCOUNT_NOT_ELIGIBLE_PWDL = (pUUID:UserAccountUUID, pCause:string)=>{
+        return new UserServiceException(`Passwordless authentication failed for this account : ${pCause}`,
+            UserServiceException.ERR.ACCOUNT_NOT_ELIGIBLE_PWDL,
+            {
+                user: pUUID,
+                cause: pCause
+            }) };
 
 
 

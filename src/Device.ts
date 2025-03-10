@@ -249,6 +249,7 @@ export class Device implements INode
                 // volatile states
                 (new NodeProperty("authorized")).volatile().type(DbDataType.BOOLEAN).def(false),
                 (new NodeProperty("connected")).volatile().type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("removed")).volatile().type(DbDataType.BOOLEAN).def(false),
                 (new NodeProperty("bridge")).volatile().type(DbDataType.STRING).def(null),
                 (new NodeProperty("selected")).volatile().type(DbDataType.STRING).def(null),
                 (new NodeProperty("isEmulated")).volatile().type(DbDataType.BOOLEAN).def(false),
@@ -432,6 +433,14 @@ export class Device implements INode
     emulatorOpts?:Record<string, any> = {};
 
     tpl:Nullable<DeviceTemplate> = null;
+
+    /**
+     * Flag to store if the device has been removed, resource released,
+     * and it is only kept to avoid to break audit report
+     *
+     * @field
+     */
+    removed = false;
 
     /**
      * 

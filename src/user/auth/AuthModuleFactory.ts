@@ -5,6 +5,7 @@ import {OrganizationManagerException} from "../../errors/OrganizationManagerExce
 import {OidcAuthModule} from "./modules/OidcAuthModule.js";
 import {LocalAuthModule} from "./modules/LocalAuthModule.js";
 import {ApikeyAuthModule} from "./modules/ApikeyAuthModule.js";
+import {PasswordlessAuthModule} from "./modules/PasswordlessAuthModule.js";
 
 export class AuthModuleFactory {
 
@@ -16,6 +17,8 @@ export class AuthModuleFactory {
                 return new OidcAuthModule(pOptions);
             case AuthModuleType.APIKEY:
                 return new ApikeyAuthModule(pOptions);
+            case AuthModuleType.PASSWORDLESS:
+                return new PasswordlessAuthModule(pOptions);
             default:
                 throw OrganizationManagerException.INVALID_AUTH_MOD_TYPE(pOptions.type);
         }

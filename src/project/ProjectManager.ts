@@ -664,7 +664,7 @@ export class ProjectManager {
 
             // guess device and platform from app unit
             if(device==null){
-                let compatDev = dm.searchCompatibleDevice(app.os, app);
+                let compatDev = dm.searchCompatibleDevice(app.os, app, false);
                 if(compatDev.length>0){
                     device = compatDev[0];
                 }

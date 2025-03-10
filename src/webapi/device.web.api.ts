@@ -1332,6 +1332,53 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
 
 DEVICE_WEB_API.addAsyncPublicRoute(
+    '/vdev/del/:did/:oid',
+    {
+        'delete': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                if(!OrganizationUnit.VALIDATE.uuid.test(pReq.params.oid)){
+                    throw OrganizationManagerException.INVALID_ORG_UUID_FMT(pReq.params.oid)
+                }
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                if(!Device.VALIDATE.uuid.test(pReq.params.did as string)){
+                    throw VirtualDeviceFactoryException.INVALID_DEVICE_UUID_FMT(pReq.params.did as string);
+                }
+
+
+                await $.context.getOrgManager().dropDevice(
+                    (pReq as any).user,
+                    org,
+                    pReq.params.did
+                );
+
+                $.sendSuccess(
+                    pRes,
+                    true
+                );
+
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, DEVICE_WEB_API.name,
+                    "Device cannot be stopped.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
     '/action/:uid/:action',
     {
         'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {

@@ -1,7 +1,8 @@
 
 export enum TokenPurpose {
     NONE='none',
-    ACCOUNT_VERIFY='accver'
+    ACCOUNT_VERIFY='accver',
+    ACCOUNT_PWDL_AUTH='accpwdl'
 }
 export interface Token<T> {
     token: string,

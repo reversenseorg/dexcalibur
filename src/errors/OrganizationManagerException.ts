@@ -13,6 +13,7 @@ import {ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
 import {ProductType} from "../billing/Purchase.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 
 export class OrganizationManagerException extends MonitoredError {
@@ -200,6 +201,14 @@ export class OrganizationManagerException extends MonitoredError {
     static MISSING_GRP_BYNAME = (pOUID: OrganizationUnitUUID, pName:string) =>{
         return new OrganizationManagerException(`Missing user group (by name) in the organization [oid=${pOUID}][grp=${pName}] `,
             ErrorCode.ORGANIZATION + 46) };
+
+    static CANNOT_DETROY_DEV = (pDev:DeviceUUID, pOUID: Nullable<OrganizationUnitUUID> =null) =>{
+        return new OrganizationManagerException(
+            `Cannot destroy the device. This device is not a part of organization.`,
+            ErrorCode.ORGANIZATION + 46, {
+                oid: pOUID,
+                did: pDev
+            }) };
 
 
 

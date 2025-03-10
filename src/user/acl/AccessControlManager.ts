@@ -290,37 +290,48 @@ export class AccessControlManager {
             new Role({
                 uuid: 'R_AUADM',
                 name: 'Application Administrator',
-                permissions: [
-                    AccessControl.access.ORG_OU_READ,
-                    AccessControl.access.ORG_AU_READ,
-                    AccessControl.access.ORG_ROL_READ,
-                    AccessControl.access.ORG_USR_READ,
-                    AccessControl.access.ORG_GRP_READ,
+                permissions: AccessFactory.merge(
+                    [
+                        AccessControl.access.ORG_OU_READ,
+                        AccessControl.access.ORG_AU_READ,
+                        AccessControl.access.ORG_ROL_READ,
+                        AccessControl.access.ORG_USR_READ,
+                        AccessControl.access.ORG_GRP_READ,
 
-                    AccessControl.access.PROJ_SETTINGS_EDIT,
-                    AccessControl.access.PROJ_SETTINGS_READ,
-                    AccessControl.access.PROJ_CHOWN,
-                    AccessControl.access.PROJ_OPEN_OWN,
-                    AccessControl.access.PROJ_CREATE_OWN,
-                    AccessControl.access.PROJ_DELETE_OWN,
-                    AccessControl.access.PROJ_META_READ,
-                    AccessControl.access.PROJ_PKG_READ,
-                    AccessControl.access.PROJ_NEW_OWN_WF,
+                        AccessControl.access.ORG_AU_NEW_PROJ,
 
-                    AccessControl.access.DEV_ALLOC_VIRT,
-                    AccessControl.access.DEV_ALLOC_PHY,
-                    AccessControl.access.DEV_DESTROY_VIRT,
-                    AccessControl.access.DEV_DESTROY_PHY,
-                    AccessControl.access.DEV_INS_KILL,
-                    AccessControl.access.DEV_INS_START,
 
-                    AccessControl.access.SCAN_ORDER_NEW,
-                    AccessControl.access.SCAN_ORDER_READ,
-                    AccessControl.access.SCAN_ORDER_DEL,
-                    AccessControl.access.SCAN_ORDER_PAUSE,
-                    AccessControl.access.SCAN_SCHED_TRIG,
-                    AccessControl.access.SCAN_SCHED_PER
-                ]
+                        AccessControl.access.PROJ_SETTINGS_EDIT,
+                        AccessControl.access.PROJ_SETTINGS_READ,
+                        AccessControl.access.PROJ_CHOWN,
+                        AccessControl.access.PROJ_OPEN_OWN,
+                        AccessControl.access.PROJ_CREATE_OWN,
+                        AccessControl.access.PROJ_DELETE_OWN,
+                        AccessControl.access.PROJ_META_READ,
+                        AccessControl.access.PROJ_PKG_READ,
+                        AccessControl.access.PROJ_NEW_OWN_WF,
+
+                        AccessControl.access.PROJ_ORDER_MGT,
+
+                        AccessControl.access.DEV_ALLOC_VIRT,
+                        AccessControl.access.DEV_ALLOC_PHY,
+                        AccessControl.access.DEV_DESTROY_VIRT,
+                        AccessControl.access.DEV_DESTROY_PHY,
+                        AccessControl.access.DEV_INS_KILL,
+                        AccessControl.access.DEV_INS_START,
+
+                        AccessControl.access.SCAN_ORDER_NEW,
+                        AccessControl.access.SCAN_ORDER_READ,
+                        AccessControl.access.SCAN_ORDER_DEL,
+                        AccessControl.access.SCAN_ORDER_PAUSE,
+
+                        AccessControl.access.SCAN_SCHED_TRIG,
+                        AccessControl.access.SCAN_SCHED_PER,
+
+                        AccessControl.access.GLOBAL_MODEL_READ
+                    ],
+                    AccessControl.getMatchingAccessesList( AccessProperty.UID, '^ORG_AU_.+$')
+                )
             }),
             new Role({
                 uuid: 'R_QAAUDITOR',
@@ -328,10 +339,13 @@ export class AccessControlManager {
                 permissions: [
                     AccessControl.access.ORG_AU_READ,
                     AccessControl.access.GLOBAL_MODEL_READ,
+                    AccessControl.access.PROJ_OPEN_OWN,
+
                     AccessControl.access.PROJECT_MODEL_READ,
                     AccessControl.access.PROJECT_MODEL_EDIT,
                     AccessControl.access.PROJECT_MODEL_DELETE,
                     AccessControl.access.PROJECT_MODEL_CREATE,
+
                     AccessControl.access.AUDIT_REPORT_READ,
                     AccessControl.access.AUDIT_DX_ACCESS
                 ]
@@ -353,7 +367,7 @@ export class AccessControlManager {
             }),
             new Role({
                 uuid: 'R_DEVOPS',
-                name: 'DevOps',
+                name: 'DevOps / Analyst',
                 permissions: [
 
                     AccessControl.access.ORG_AU_READ,
@@ -364,6 +378,7 @@ export class AccessControlManager {
                     AccessControl.access.SCAN_ORDER_READ,
                     AccessControl.access.SCAN_ORDER_DEL,
                     AccessControl.access.SCAN_ORDER_PAUSE,
+
                     AccessControl.access.SCAN_SCHED_TRIG,
                     AccessControl.access.SCAN_SCHED_PER
                 ]
@@ -382,6 +397,19 @@ export class AccessControlManager {
     }
 
     /**
+     * Check if every permissions exists, else it throws error
+     * @param pRole
+     * @private
+     */
+    private _checkAccessesIntegrity(pRole:Role):void {
+        for(let i=0; i<pRole.access.length; i++){
+            if(pRole.access[i]==null){
+                throw AccessControlException.UNKNOWN_ACCESS(pRole.getUID(),pRole.name);
+            }
+        }
+    }
+
+    /**
      * Add a role to the in-memory list of role
      * and add the role to ACL matrix
      *
@@ -390,6 +418,9 @@ export class AccessControlManager {
      */
     private _setupRole(vRole:Role):void {
         try{
+            // check every access control in roles exists
+            this._checkAccessesIntegrity(vRole);
+
             // push role to list of active roles
             this._roles[vRole.getUID()] = vRole;
 

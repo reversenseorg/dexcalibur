@@ -6,7 +6,8 @@ import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 export enum AuthModuleType {
     LOCAL_PASSWD='local_pwd',
     OIDC='oidc',
-    APIKEY='api_key'
+    APIKEY='api_key',
+    PASSWORDLESS='pwdl'
 }
 
 export interface SelfRegistrationStatus {
@@ -32,7 +33,12 @@ export interface DirectAuthModuleOptions extends AuthModuleOptions{
 export class AuthModule {
 
     static VALIDATE:Record<string, ValidationRule> = {
-        type: ValidationRule.newPinklistAssert([ AuthModuleType.OIDC, AuthModuleType.LOCAL_PASSWD ]),
+        type: ValidationRule.newPinklistAssert([
+            AuthModuleType.OIDC,
+            AuthModuleType.LOCAL_PASSWD,
+            AuthModuleType.APIKEY,
+            AuthModuleType.PASSWORDLESS
+        ]),
         uid: ValidationRule.newRegexpAssert(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/),
         name: ValidationRule.newRegexpAssert(/^[0-9a-zA-Z-_]{3,64}$/),
         active: ValidationRule.newPinklistAssert([ true, false ])
