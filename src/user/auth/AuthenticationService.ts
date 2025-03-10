@@ -1114,6 +1114,7 @@ export class AuthenticationService {
             page = page.replaceAll('@@_CSRF_TOKEN_VAL_@@',context.csrfToken);
 
 
+            vRes.setHeader('content-type', 'text/html; charset=utf-8');
             vRes.status(200);
             vRes.write(page, ()=>{
                 vRes.send();
