@@ -324,7 +324,7 @@ export class AuthenticationService {
 
     async protectRoutes( pApp:Application|Router, pCfg:{sso:boolean,local:boolean} ):Promise<void> {
 
-        const basePath = '/login';
+        const basePath = (process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+'/login';
         // session middleware
         /*pApp.use(
             expressSession({
@@ -921,7 +921,7 @@ export class AuthenticationService {
                 if(kReq.session !=null){
                     const o = (kReq.session as UserSession).getData('org');
                     if(o != null && OrganizationUnit.VALIDATE.uuid.test(o)){
-                        kRes.status(200).redirect(`/home/?org=${o}`);
+                        kRes.status(200).redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+`/home/?org=${o}`);
                     }
                 }
 

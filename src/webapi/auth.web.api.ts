@@ -92,10 +92,12 @@ AUTH_WEB_API.addAsyncAuthenticatedRoute(
                     req.params.oid
                 );
 
+
+
                 // redirect to login page of organization associated to users
                 // $.context.getUserService().closeSession(req.dxc.sess);
                 (req.session as UserSession).destroy((vErr:any)=>{
-                    res.status(200).redirect(`/login/${org.name}`);
+                    res.status(200).redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+`/login/${org.name}`);
                 });
 
 

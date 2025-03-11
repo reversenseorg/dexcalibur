@@ -313,7 +313,7 @@ export class DelegateWebApi
 
         Logger.error(`[WEBSERVER][MIDDLEWARE][ensureLoggedIn][path=${req.path}][ip=${req.ip}] Not authenticated, redirecting ...`);
 
-        res.redirect('/login')
+        res.redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+'/login')
     };
 
     _ensureAuthenticated(req, res, next){
@@ -321,7 +321,7 @@ export class DelegateWebApi
             return next();
         }
 
-        res.redirect('/login')
+        res.redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+'/login')
 
         //return (this.ensureLoggedIn)(req,res,next);
     }

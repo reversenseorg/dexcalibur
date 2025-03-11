@@ -683,7 +683,7 @@ export default class WebServer
             }
 
             Logger.error(`[WEBSERVER][MIDDLEWARE][defaultEnsureLoggedIn][static] Not authenticated, redirecting ...`);
-            res.redirect('/login')
+            res.redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+'/login')
         }
 
         const mw = pOptions.before.concat((pOptions.auth!=null ? pOptions.auth : [defaultEnsureLoggedIn]).concat(pOptions.after) );
@@ -1258,7 +1258,7 @@ export default class WebServer
             try{
                 if(req.session == null || (req as any).user ==null){
                     Logger.error("[SESSION] Session cannot be restored or not found");
-                    res.redirect('/login');
+                    res.redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+'/login');
                     return;
                 }
 
@@ -1359,7 +1359,7 @@ export default class WebServer
 
             Logger.error(`[WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Not authenticated, redirecting ...`);
             if(usr_svc.getAuthenticationService().hasHubLoginPage()){
-                res.redirect('/login');
+                res.redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+'/login');
             }else{
                 /*if(req.session !=null){
 
@@ -1372,7 +1372,7 @@ export default class WebServer
                     }
                 }
                 res.status(200);*/
-                res.redirect("/login");
+                res.redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+"/login");
             }
         }
 
