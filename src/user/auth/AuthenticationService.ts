@@ -324,7 +324,7 @@ export class AuthenticationService {
 
     async protectRoutes( pApp:Application|Router, pCfg:{sso:boolean,local:boolean} ):Promise<void> {
 
-        const basePath = (process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+'/login';
+        const basePath = '/login';
         // session middleware
         /*pApp.use(
             expressSession({

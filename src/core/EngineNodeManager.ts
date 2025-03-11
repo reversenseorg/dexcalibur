@@ -99,6 +99,10 @@ export class EngineNodeManager {
         this.setPortRange(10200,10300);
     }
 
+    async recoverRunningSlaves():Promise<EngineNodeUUID[]> {
+        // todo
+        return [];
+    }
 
     async loadInternalState():Promise<void>{
         this._state = await this.engine.getEngineDB().getStateByName(`engine-node-mgr-${this.uuid}`);
@@ -115,9 +119,18 @@ export class EngineNodeManager {
         let states = this._state.getProperty('states');
         if(states!=null) this.states = states;
 
-        // restore EngineNodes
+
         const slaves:Record<EngineNodeUUID, EngineNode> = {};
-        const slavesUuids = this._state.getProperty('slaves');
+        let slavesUuids:EngineNodeUUID[] = [];
+        if(this._state==null){
+            // recover mode, search running slaves
+
+            slavesUuids = await this.recoverRunningSlaves();
+        }else{
+            // restore EngineNodes
+            slavesUuids = this._state.getProperty('slaves');
+        }
+
         let tmpNode:Nullable<EngineNode> = null;
         if(slavesUuids!=null){
             for(let i=0;i<slavesUuids.length;i++){
@@ -181,7 +194,7 @@ export class EngineNodeManager {
         this._state.setProperty('states', this.states);
         this._state.setProperty('masterURI', this.masterURI);
 
-        return await this.engine.getEngineDB().save(this._state);
+        return await this._state.save();
     }
 
     /**

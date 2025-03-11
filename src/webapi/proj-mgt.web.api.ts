@@ -665,7 +665,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/open',
     {
-        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse, pNext:any)=>{
 
             let $:WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -727,6 +727,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                             ready: true,
                             node: vChange.nodeUUID
                         });
+                        pNext();
                     }
                 })
 
@@ -735,8 +736,10 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     // current node is standalone or slave node
                     //$.context.getProjectManager().
                     targetNode.appendRequestToQueue($, req, res);
+                    return;
                 }else{
                     $.sendSuccess( res, {});
+                    return;
                 }
 
                 /*
@@ -814,8 +817,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 Logger.error("[API][PROJECT MGT] Opening project failed : "+err.message+"\n"+err.stack);
                 $.sendError( res, "Project ["+req.query.uid+"] cannot be opened : "+err.message);
             }
-
-
         }
     }
 )
