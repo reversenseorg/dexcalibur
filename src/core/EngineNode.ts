@@ -131,6 +131,7 @@ export interface EngineNodeOptions {
     stdout$?:Subject<string>;
     stderr$?:Subject<string>;
     _state?:InternalState;
+    nodeOpts?: Record<string, any>;
 }
 
 
@@ -146,6 +147,7 @@ export interface EngineNodeOptions {
  */
 export class EngineNode implements INode {
 
+    static readonly DEFAULT_MAX_HEAP_SIZE = 6192;
 
     static VALIDATE = {
         uuid: ValidationRule.uuid(),
@@ -181,6 +183,7 @@ export class EngineNode implements INode {
             (new NodeProperty("opeTerminated")).volatile().type(DbDataType.STRING).def([]),
             (new NodeProperty("parentUUID")).type(DbDataType.STRING).def(null),
             (new NodeProperty("spawnCmd")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("nodeOpts")).type(DbDataType.BLOB).def({}),
             (new NodeProperty("_state")).volatile().type(DbDataType.BLOB).def(null)
         ]).dataSource("ENGINE_DB");
 
@@ -283,6 +286,8 @@ export class EngineNode implements INode {
      */
     private _state:InternalState;
 
+    nodeOpts:Record<string, any> = {};
+
     tags:TagUUID[] = [];
 
     constructor(pOptions:EngineNodeOptions) {
@@ -313,6 +318,7 @@ export class EngineNode implements INode {
         if(pOptions.stdout$ != null) this.stdout$ = pOptions.stdout$;
         if(pOptions.stderr$ != null) this.stderr$ = pOptions.stderr$;
         if(pOptions._state != null) this._state = pOptions._state;
+        if(pOptions.nodeOpts != null) this.nodeOpts = pOptions.nodeOpts;
 
         this.operation$.subscribe((pOperation:Operation)=>{
             if(this.isReady()){
@@ -434,12 +440,18 @@ export class EngineNode implements INode {
     /**
      *
      */
-    async start(pCause:string):Promise<void> {
+    async start(pCause:string, pNodeOpts:string[] = []):Promise<void> {
         if(this.state!==NodeState.NEW){
-            throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node');
+            throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node : '+this.state);
         }
 
-        return await this.spawn(pCause, false);
+        const hasHeapSizeOpt = pNodeOpts.find( x => (x.indexOf('--max-old-space-size=')>-1));
+
+        if(hasHeapSizeOpt==null){
+            pNodeOpts.push(`--max-old-space-size=${this.getMaxHeapSize()}`);
+        }
+
+        return await this.spawn(pCause, false, pNodeOpts);
     }
 
     /**
@@ -452,7 +464,7 @@ export class EngineNode implements INode {
     async open():Promise<any> {
 
         if(this.state!==NodeState.IDLE){
-            throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node');
+            throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node : '+this.state);
         }
 
         return GOT(
@@ -747,6 +759,18 @@ export class EngineNode implements INode {
         this.httpsPort = pPort;
     }
 
+    setMaxHeapSize(pSize:number):void {
+        this.nodeOpts.heap_size = pSize;
+    }
+
+    getMaxHeapSize():number {
+        if(this.nodeOpts!=null && this.nodeOpts.heap_size!=null){
+            return this.nodeOpts.heap_size;
+        }else{
+            return EngineNode.DEFAULT_MAX_HEAP_SIZE;
+        }
+    }
+
     isStarted():boolean {
         return (this.state==NodeState.IDLE||this.state==NodeState.BUSY);
     }
@@ -767,7 +791,7 @@ export class EngineNode implements INode {
      *
      * @method
      */
-    async spawn(pCause:string, pDebug = false):Promise<any>{
+    async spawn(pCause:string, pDebug = false, pNodeOpts:string[] = []):Promise<any>{
 
 
         let child:_child_process_.ChildProcess=null;
@@ -776,7 +800,7 @@ export class EngineNode implements INode {
 
         console.log( `[ENGINE NODE] Start to spawn new node [node=${this.UUID}] because : ${pCause}`);
         try{
-            let args:string[] = [];
+            let args:string[] = pNodeOpts;
             const ws:DexcaliburWorkspace =  DexcaliburWorkspace.getInstance();
             const time = UT.time();
 

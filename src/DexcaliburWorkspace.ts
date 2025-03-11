@@ -2,6 +2,7 @@ import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 import Util from "./Utils.js";
 import {Settings} from "./Settings.js";
+import {randomUUID} from "crypto";
 
 
 const FILENAME_CONFIG = 'config.json';
@@ -298,6 +299,26 @@ export default class DexcaliburWorkspace
                 _fs_.closeSync(_fs_.openSync(fpath, 'w'));
             }
         }
+        return fpath;
+    }
+
+    /**
+     * To create a temporary file into dxc workspace temp folder.
+     *
+     * @param {string} pPrefix (Optional) A prefix of the filename. It can helps to sort/flush files
+     * @param {boolean} pTouch (Optional) Default FALSE. If TRUE, the file is touched, it prevents conflicts.
+     * @return {string} Path of the temporary file
+     * @method
+     * @since 1.0.0
+     */
+    createTempFolder(pPrefix:string=''):string {
+        let fpath:string = null;
+        do{
+            fpath = _path_.join(this.tmpFolder, pPrefix+randomUUID());
+        }while(_fs_.existsSync(fpath));
+
+        _fs_.mkdirSync(fpath, { mode: 0o444 });
+
         return fpath;
     }
 

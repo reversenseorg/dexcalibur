@@ -59,6 +59,7 @@ export enum NodeState {
  */
 export class EngineNodeManager {
 
+
     static readonly HEADER_NODE_UUID = 'x-dxc-nodeuid';
     /**
      * UUID of this instance (engine node) into reversense pod
@@ -316,6 +317,11 @@ export class EngineNodeManager {
         node.setState(NodeState.NEW)
         node.setHttpPort(this.getNextPort());
         node.setHttpsPort(this.getNextPort());
+
+        if(process.env.DXC_NODE_HEAP_SZ){
+            node.setMaxHeapSize(parseInt(process.env.DXC_NODE_HEAP_SZ,10));
+        }
+
 
         if(this.projectMapping[pProjectUID]==null){
             this.projectMapping[pProjectUID] = [];

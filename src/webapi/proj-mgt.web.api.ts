@@ -956,6 +956,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         analyzerOpts: pReq.body['cfg'],
                         platformUID: pReq.body['platform'] as string,
                         deviceUID: pReq.body['dev'] as DeviceUUID,
+                        targetOS: pReq.body['targetOS'],
 
                         flowType: NewProjectFlowType.SELECT,
                         remotePath: pReq.body['path'] as string,
@@ -1017,6 +1018,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         analyzerOpts: pReq.body['cfg'],
                         platformUID: pReq.body['platform'] as string,
                         deviceUID: pReq.body['dev'] as DeviceUUID,
+                        targetOS: pReq.body['targetOS'],
 
                         flowType: NewProjectFlowType.UPLOAD,
                         uploadUID: [pReq.body['file'] as string],
@@ -1067,6 +1069,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         analyzerOpts: pReq.body['cfg'],
                         platformUID: pReq.body['platform'] as string,
                         deviceUID: pReq.body['dev'] as DeviceUUID,
+                        targetOS: pReq.body['targetOS'],
 
                         flowType: NewProjectFlowType.DOWNLOAD,
                         url: pReq.body['url'] as string,

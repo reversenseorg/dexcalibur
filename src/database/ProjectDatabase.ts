@@ -378,17 +378,21 @@ export class ProjectDatabase {
      * @async
      * @method
      */
-    async save(pObject:INode, pFilter:Nullable<any>=null):Promise<INode> {
+    async save(pObject:INode, pFilter:Nullable<any>=null, pSet:string[] = []):Promise<INode> {
 
 
         let obj:INode;
         const info = this._getCollectionInfo(pObject);
         const coll = this._db.getCollection(info.collName, info.collType);
+        let opt:any;
 
         if(pObject._id!=null){
             //Logger.info("PROJECT DB > save > ",pObject._id);
-
-            if((await coll.asyncUpdateEntry( pObject, { upsert:true, filter: {_id:pObject._id} }))===false){
+            opt = { upsert:true, replace:false, filter: {_id:pObject._id} };
+            if(pSet.length>0){
+                opt['$set'] = pSet;
+            }
+            if((await coll.asyncUpdateEntry( pObject, opt))===false){
                 throw EngineDatabaseException.UPDATE_FAILED_FOR(NodeInternalTypeName[pObject.__], pObject._id );
             }else{
                 obj = pObject;
@@ -402,7 +406,11 @@ export class ProjectDatabase {
                 NodeType.INTERN[pObject.__].setPrimaryKeyValueOf( filterId as any, pObject.getUID());
 
                 console.log(e,{ upsert:true, replace:false, filter: filterId });
-                await coll.asyncUpdateEntry( pObject, { upsert:true, replace:false, filter: filterId });
+                opt = { upsert:true, replace:false, filter: filterId };
+                if(pSet.length>0){
+                    opt['$set'] = pSet;
+                }
+                await coll.asyncUpdateEntry( pObject, opt);
             }
 
         }

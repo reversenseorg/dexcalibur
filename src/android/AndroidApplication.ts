@@ -7,6 +7,7 @@ import {AndroidManifest} from "./AndroidManifest.js";
 import {ApplicationBinary} from "../Application.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AndroidApplicationException} from "../errors/android/AndroidApplicationException.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 
 
@@ -83,7 +84,7 @@ export default class AndroidApplication extends ApplicationBinary
                     this[i] = config[i];
     }
 
-    static fromXml(pContext:DexcaliburProject, xmlobj:any):AndroidApplication{
+    static fromXml(pContext:Nullable<DexcaliburProject>, xmlobj:any):AndroidApplication{
         let app:AndroidApplication = new AndroidApplication(pContext);
 
         for(let i in xmlobj.$){

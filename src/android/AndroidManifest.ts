@@ -90,7 +90,7 @@ export class AndroidManifest implements INode
         return this.uuid;
     }
 
-    static fromXml(config:any, context:DexcaliburProject){
+    static fromXml(config:any, context:Nullable<DexcaliburProject> = null){
         let self:AndroidManifest = new AndroidManifest();
         // init manifest attributes
         for(let i in config){
@@ -170,11 +170,12 @@ export class AndroidManifest implements INode
                         self.application = config[i];
                     }else{
                         self.application = AndroidApplication.fromXml(context, config[i][0]);
-                        context.trigger({
-                            type: "app.application.new",
-                            data: self.application
-                        })
-
+                        if(context!=null){
+                            context.trigger({
+                                type: "app.application.new",
+                                data: self.application
+                            })
+                        }
                     }
                     self.application.setManifest(self);
                     break;

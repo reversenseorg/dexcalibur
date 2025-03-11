@@ -25,6 +25,10 @@ import {
 import {DexcaliburProjectException} from "../../errors/DexcaliburProjectException.js";
 import Util from "../../Utils.js";
 import {PackageAnalyzerException} from "../../errors/PackageAnalyzerException.js";
+import Platform from "../../platform/Platform.js";
+import {AndroidManifest} from "../AndroidManifest.js";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
+import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -50,7 +54,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
     private _extra:Record<string,ProjectInput[]> = {};
 
-
+    private _data:Record<string, any> = {};
 
     constructor(pConfig:AndroidPackageAnalyzerConfig) {
         this._cfg = pConfig;
@@ -171,11 +175,12 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         if(this._base_apk==null){
             throw DexcaliburProjectException.APP_FILE_OT_FOUND();
         }
-        if(this._project.getDevice() == null){
+        /* if(this._project.getDevice() == null){
             throw DexcaliburProjectException.TARGET_DEVICE_NOT_FOUND();
-        }
+        }*/
 
         const device = this._project.getDevice();
+
         let targetApp:TargetApp;
         let basePath:string;
         let splittedInput:ProjectInput[] = [];
@@ -192,7 +197,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         baseInput.data = basePath;
 
         // if enabled, search split apk on target device
-        if(this._cfg.mustSearchSplittedAPK()){
+        if(this._cfg.mustSearchSplittedAPK() && (device!=null)){
 
             if(device == null){
                 throw AnalyzerException.ANDROID_SEARCH_SPLITTED_DEV_FAIL();
@@ -545,4 +550,78 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         return  inputs;
     }
+
+    async extractInputsTemporary():Promise<void> {
+
+        this._data.extracted = false;
+
+        if(this._base_apk==null){
+            throw new Error("Cannot extract package temporary : no inputs");
+        }
+
+        this._data.dir = DexcaliburEngine.getInstance().getWorkspace().createTempFolder('prj-new-');
+
+        const success = await AndroidPackageAnalyzer.extractApk(
+            this._base_apk.data as string,
+            this._data.dir, {
+                force: true,
+                match: true,
+                type: 'bin'
+            }
+        );
+
+        if(success==false){
+            throw new Error("Cannot extract package temporary  ")
+        }
+
+        this._data.extracted = true;
+
+    }
+
+    /**
+     * to destroy this object  and release resource
+     */
+    async destroy():Promise<void> {
+        if(this._data.dir!=null && _fs_.existsSync(this._data.dir)){
+            _fs_.rmdirSync(this._data.dir);
+        }
+
+        delete this._data;
+    }
+
+    async getManifest():Promise<AndroidManifest> {
+        if(!this._data.extracted){
+            await this.extractInputsTemporary();
+        }
+
+        if(this._data.manifest==null){
+            const manifestPath = _path_.join(this._data.dir,"AndroidManifest.xml");
+
+            if(!_fs_.existsSync(manifestPath)){
+                throw new Error("Manifest not found");
+            }
+
+            const data:any = await AndroidAppAnalyzer._parseXmlFile(manifestPath);
+            this._data.manifest = AndroidManifest.fromXml(data.manifest);
+        }
+
+        return this._data.manifest
+    }
+
+    /**
+     * Return minimal platform object according to manifest (and more) data
+     */
+    async getMinPlatform():Promise<string> {
+        const manifest = await this.getManifest();
+        return manifest.getMinSdkVersion();
+    }
+
+    /**
+     * Return minimal platform object according to manifest (and more) data
+     */
+    async getTargetPlatform():Promise<string> {
+        const manifest = await this.getManifest();
+        return manifest.getTargetSdkVersion();
+    }
+
 }

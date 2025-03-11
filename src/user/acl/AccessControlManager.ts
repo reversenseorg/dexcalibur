@@ -305,6 +305,7 @@ export class AccessControlManager {
                         AccessControl.access.PROJ_SETTINGS_READ,
                         AccessControl.access.PROJ_CHOWN,
                         AccessControl.access.PROJ_OPEN_OWN,
+                        AccessControl.access.PROJ_OPEN_ANY,
                         AccessControl.access.PROJ_CREATE_OWN,
                         AccessControl.access.PROJ_DELETE_OWN,
                         AccessControl.access.PROJ_META_READ,

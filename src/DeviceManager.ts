@@ -180,7 +180,8 @@ export default class DeviceManager extends ValidationCapable
      * @param {Nullable<any>} pSpec
      * @method
      */
-    searchCompatibleDevice(pTargetOS:OperatingSystem, pAppUnit:Nullable<ApplicationUnit> = null, pThrow = true){
+    searchCompatibleDevice(pTargetOS:OperatingSystem, pAppUnit:Nullable<ApplicationUnit> = null,
+                           pPlatform:Nullable<Platform> = null, pThrow = true){
 
         const all = this.getAll();
         let result:Device[];

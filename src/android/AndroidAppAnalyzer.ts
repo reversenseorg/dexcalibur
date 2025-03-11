@@ -103,27 +103,41 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		[
 			"app.activity.new",
-			"app.activity.update",
 			"app.provider.new",
-			"app.provider.update",
 			"app.receiver.new",
-			"app.receiver.update",
 			"app.service.new",
+		].map((vEvtType:string)=>{
+			this.context.getBus().subscribe(vEvtType, BusSubscriber.from((pEvent:BusEvent<any>)=>{
+				(async ()=>{
+					try{
+
+						// it should be skipped if already exists
+						await this.context.getProjectDB().save(pEvent.getData().obj, null, ['label','name','attr','intentFilters'] /*, { _id:obj._id, name: obj.name}*/);
+					}catch(err){
+
+					}
+				})();
+			}));
+		});
+
+		[
+			"app.activity.update",
+			"app.provider.update",
+			"app.receiver.update",
 			"app.service.update"
 		].map((vEvtType:string)=>{
 			this.context.getBus().subscribe(vEvtType, BusSubscriber.from((pEvent:BusEvent<any>)=>{
 				(async ()=>{
 					try{
 						let obj = pEvent.getData().obj as any;
-						await this.context.getProjectDB().save(pEvent.getData().obj, { _id:obj._id, name: obj.name});
+
+						await this.context.getProjectDB().save(pEvent.getData().obj /*{ _id:obj._id, name: obj.name}*/);
 					}catch(err){
 						Logger.error(err.message,err.stack);
 					}
 				})();
 			}));
 		});
-
-
 		/*
 		this.context.getBus().subscribe("app.application.new", BusSubscriber.from((pEvent:BusEvent<any>)=>{
 			try{
