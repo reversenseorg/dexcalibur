@@ -165,17 +165,7 @@ export class UserService {
         try{
             await this.authSvc.init();
         }catch (err){
-
-            // if SSO settings exists, then the remote server is unreachable
-            // as alternative way, check if local authentication is allowed
-            if(this._settings.isLocalAuthEnabled()){
-                // TODO : later add API Key auth check and more
-                // continue
-            }else{
-                console.log(err);
-                // there is not alternative, engine cannot start
-                throw UserServiceException.AUTH_IS_NOT_READY();
-            }
+            // USELESS, DEPRECATED, REPLACED BY ORG AND AUTH MODULES
         }finally {
             this.sessSvc = new SessionService( this._settings.getSessionSettings(),pContext);
             this.sessSvc.setBackendCollection(
@@ -288,7 +278,6 @@ export class UserService {
                 throw SessionException.INVALID_SESSION();
             } // TODO : add expiration check
         }catch(err){
-            //console.log(err.message+err.stack);
             Logger.error(err.message+"\n\t"+err.stack);
             throw SessionException.INVALID_SESSION();
         }

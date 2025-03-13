@@ -2,19 +2,20 @@ import {randomUUID} from "crypto";
 
 
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
-import {EngineNode, EngineNodeUUID, NodePurpose, Operation, OperationType, StateChangeEvent} from "./EngineNode.js";
+import {EngineNode, EngineNodeUUID, NodePurpose, Operation, StateChangeEvent} from "./EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import got from "got";
 import * as Log from "../Logger.js";
 import WebServer from "../WebServer.js";
-import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {InternalState} from "./InternalState.js";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {ResourceThresholds} from "../billing/BusinessPlan.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {ValidationRule} from "../Validator.js";
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const GOT = got.default;
@@ -74,12 +75,30 @@ export class EngineNodeManager {
 
     engine:DexcaliburEngine;
 
+
+    /**
+     * Replace by DB request => stateless
+     * @deprecated
+     */
     slaves:Record<EngineNodeUUID, EngineNode> = {};
 
+    /**
+     Replace by DB request => stateless
+     * @deprecated
+     */
     projectMapping:Record<DexcaliburProjectUUID, EngineNode[]> = {};
 
+    /**
+     * Replace by DB request => stateless
+     * @deprecated
+     */
     orgMapping:Record<OrganizationUnitUUID, EngineNode[]> = {};
 
+
+    /**
+     * Replace by DB request => stateless
+     * @deprecated
+     */
     states:Record<EngineNodeUUID, NodeState> = {};
 
     private _state:InternalState;
@@ -130,6 +149,9 @@ export class EngineNodeManager {
             // restore EngineNodes
             slavesUuids = this._state.getProperty('slaves');
         }
+
+        // refresh node pool before to reload
+        await this.refreshPool();
 
         let tmpNode:Nullable<EngineNode> = null;
         if(slavesUuids!=null){
@@ -231,6 +253,7 @@ export class EngineNodeManager {
      * @method
      */
     getNextPort():number {
+
         if(this.portCounter+1>this.portRange[1]){
             throw EngineNodeException.MAX_PORT_REACHED();
         }
@@ -238,24 +261,31 @@ export class EngineNodeManager {
         return (this.portCounter++);
     }
 
-    /**
-     *
-     * @param pProject
-     */
-    hasReadySlave(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose):boolean{
-        const engines = this.projectMapping[pProjectUID];
-        if(engines.length==0){
-            return false;
+    async getNextPorts():Promise<{ http:number, https:number }> {
+        // gather running node
+        const nodes = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+            .search({
+                filter: {
+                    running: true
+                }
+            },{ merlin:false, raw:true });
+
+        const portSlices:number[] = [];
+        const ports:Record<string, number> = {};
+
+        nodes.map(x => {
+            portSlices.push(x.httpPort,x.httpsPort);
+        });
+
+        let start = this.portRange[0];
+        while(portSlices.indexOf(start)>-1 && portSlices.indexOf(start+1)>-1){
+            start+=2;
         }
 
-        let ready = false;
-        engines.map(x => {
-            if(x.isReady() && (x.purpose===pPurpose)){
-                ready = true;
-            }
-        })
-
-        return ready;
+        return {
+            http: start,
+            https: start+1
+        };
     }
 
 
@@ -263,27 +293,42 @@ export class EngineNodeManager {
      *
      * @param pProject
      */
-    getReadySlave(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose, pOrg:Nullable<OrganizationUnitUUID> = null):Nullable<EngineNode>{
-        const engines = this.projectMapping[pProjectUID];
-        if(engines==null || engines.length==0){
+    async getReadySlave(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose,
+                        pOrg:Nullable<OrganizationUnitUUID> = null):Promise<Nullable<EngineNode>>{
+
+        let nodes = await
+                this.getNodes( {
+                    _projectUID: { $in: [pProjectUID] },
+                    state: NodeState.IDLE,
+                    running: true
+                });
+
+        console.log('Ready slave before filtering : ',nodes.length,' '+nodes.map(x => x.purpose).join(','));
+        nodes = nodes.filter(x => (x.purpose==pPurpose || x.purpose==NodePurpose.ANY));
+        console.log('Ready slave after filtering : ',nodes.length);
+
+        if(nodes.length>0){
+            nodes.map(x => x.setEngine(this.engine));
+            await nodes[0].loadInternalState();
+            return nodes[0];
+        }else{
             return null;
         }
-
-        let readyNode:Nullable<EngineNode> = null;
-        engines.map(x => {
-            if(x.isReady() && (x.purpose===pPurpose)){
-                readyNode = x;
-            }
-        })
-
-        return readyNode;
     }
 
-    /**
+    /*
      * To check if there is an existing node for this project
      * @param pProjectUID
      */
-    isStarted(pProjectUID:string):boolean {
+    /*isStarted(pProjectUID:string):boolean {
+
+        const nodes = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+            .search({
+                filter: {
+                    _projectUID: { $in: [pProjectUID] }
+                }
+            },{ merlin:false, raw:true });
+
         const proj = this.projectMapping[pProjectUID];
         let exists = false;
 
@@ -292,14 +337,7 @@ export class EngineNodeManager {
         });
 
         return exists;
-    }
-
-    generateSlaveWebhook(pSlave:IDexcaliburEngine):void {
-        /*
-        const crypto = require('crypto');
-        console.log(crypto.randomUUID());
-         */
-    }
+    }*/
 
     /**
      *
@@ -323,13 +361,16 @@ export class EngineNodeManager {
     async createNode(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose, pOUID:Nullable<OrganizationUnitUUID> = null):Promise<EngineNode> {
         const uuid = randomUUID();
 
-        const node =  EngineNode.newNode(uuid, this.uuid, pProjectUID);
+        const node =  await EngineNode.newNode(uuid, this.uuid, pProjectUID, this.engine);
+
+        const nextPorts = await this.getNextPorts();
 
         node.setEngine(this.engine);
         node.setMasterUri(this.getLocalURI());
         node.setState(NodeState.NEW)
-        node.setHttpPort(this.getNextPort());
-        node.setHttpsPort(this.getNextPort());
+        node.setHttpPort(nextPorts.http);
+        node.setHttpsPort(nextPorts.https);
+        node.setPurpose(pPurpose);
 
         if(process.env.DXC_NODE_HEAP_SZ){
             node.setMaxHeapSize(parseInt(process.env.DXC_NODE_HEAP_SZ,10));
@@ -356,18 +397,18 @@ export class EngineNodeManager {
            this.onNodeStateChanged(vEvent);
         });
 
+        // save node state
         await node.saveInternalState();
-        // save node
-        await this.engine.getEngineDB().save(node);
 
-        // save state
+        // save node
+        await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
+            .asyncAddEntry(node.getUID(),node);
+
+        // update node manager state
         await this.saveInternalState();
 
-
-        return this.slaves[uuid];
+        return node; //this.slaves[uuid];
     }
-
-
 
     /**
      *
@@ -391,9 +432,14 @@ export class EngineNodeManager {
                return new EngineNode({ parentUUID:null, UUID:DexcaliburEngine.DEFAULT_UID });
            }
        }
-        return await (this.engine.getEngineDB()
+        const node = await (this.engine.getEngineDB()
             .getCollectionOf(EngineNode.TYPE.getType())as MongodbDbCollection)
             .asyncGetEntry({ UUID: pNodeUUID });
+
+        node.setEngine(this.engine);
+       await node.loadInternalState();
+
+       return node;
    }
 
     static filterNodesByPurpose(pNode:EngineNode[], pPurpose:NodePurpose):EngineNode[] {
@@ -412,6 +458,7 @@ export class EngineNodeManager {
         });
     }
 
+
     /**
      * To get the list of nodes linked to a specific project
      *
@@ -419,11 +466,61 @@ export class EngineNodeManager {
      * @returns {EngineNode[]} The list of node linked to a project by its UID. If there is not node, the list is empty.
      * @method
      */
-    getNodeByProject(pProjectUID:DexcaliburProjectUUID,pPurpose:Nullable<NodePurpose> = null):EngineNode[] {
-        let nodes = this.projectMapping[pProjectUID];
+    async listNodeByProject(pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
+                            pPurpose:Nullable<NodePurpose> = null):Promise<EngineNode[]> {
+
+        /*AccessControl.isAuthorized(
+
+        )*/
+
+        let nodes:EngineNode[] = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
+            .search({
+                filter: {
+                    _projectUID: { $in: [pProjectUID] },
+                    running:true
+                }
+            },{merlin:false, raw:true});
+
+        //let nodes = this.projectMapping[pProjectUID];
         if(nodes==null || !Array.isArray(nodes)){
             return [];
         }
+
+        if(pPurpose!=null){
+            nodes = EngineNodeManager.filterNodesByPurpose(nodes, pPurpose);
+        }
+
+
+        // load states
+        for(let i=0;i<nodes.length; i++){
+            nodes[i].setEngine(this.engine);
+            await (nodes[i].loadInternalState())
+        }
+        return nodes;
+    }
+
+    /**
+     * To get the list of nodes linked to a specific project
+     *
+     * @param {string} pProjectUID The project UID
+     * @returns {EngineNode[]} The list of node linked to a project by its UID. If there is not node, the list is empty.
+     * @method
+     */
+    async getNodeByProject(pProjectUID:DexcaliburProjectUUID,pPurpose:Nullable<NodePurpose> = null, pRunning:Nullable<boolean> = true):Promise<EngineNode[]> {
+
+        let extra:any = undefined;
+        if(ValidationRule.bool().test(pRunning)){
+            extra = { running:pRunning };
+        }
+
+        let nodes = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+            .search({
+                filter: {
+                    _projectUID: { $in: [pProjectUID] },
+                    ...extra
+                }
+            },{ merlin:false, raw:true });
+
 
         if(pPurpose!=null){
             nodes = EngineNodeManager.filterNodesByPurpose(nodes, pPurpose);
@@ -472,6 +569,8 @@ export class EngineNodeManager {
             throw EngineNodeException.INVALID_MASTER_URI('notify');
         }
 
+        Logger.info("[ENGINE NODE][GOT] Notify master  : "+this.masterURI+"/api/node/webhook/state/"+pState);
+
         const response = await GOT(this.masterURI+"/api/node/webhook/state/"+pState, {
             headers: {
                 // this one is mandatory to be processed by master middleware of /api/node/** routes
@@ -517,7 +616,14 @@ export class EngineNodeManager {
         };
 
         if(pProjectUID!=null){
-            this.getNodeByProject(pProjectUID).map(x => {
+            /*this.getNodeByProject(pProjectUID)
+
+            nod.map(x => {
+                o.slaves.push(x.toJsonObject());
+            });*/
+            // TODO
+
+            Object.values(this.slaves).map(x => {
                 o.slaves.push(x.toJsonObject());
             });
         }else{
@@ -541,12 +647,15 @@ export class EngineNodeManager {
     onNodeStateChanged(vEvent: StateChangeEvent) {
 
         Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
-        let node:EngineNode;
+        let node:EngineNode = this.getNodeByUUID(vEvent.nodeUUID);
+
+        (async ()=>{
+            await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
+                .asyncUpdateEntry(node, { replace:false, $set:['running','state','pid']})
+        })();
+
 
         if(vEvent.new==NodeState.IDLE){
-
-            // add affinity
-            node = this.getNodeByUUID(vEvent.nodeUUID);
 
             //console.log(node);
 
@@ -585,16 +694,27 @@ export class EngineNodeManager {
      * @param {string} pSignal Name of signal
      * @method
      */
-    killNodes(pSignal: string) {
-        const nodes = this.getSlaves();
+    async killNodes(pSignal: string, pFilters:any = { running:true }, pExclude:EngineNodeUUID[] = [], pLatest = false):Promise<void> {
+        let nodes = await this.getNodes(pFilters);
+
+        console.log(nodes);
+        nodes = nodes.filter(x => (pExclude.indexOf(x.getUID())==-1) )
+        console.log(`[${this.engine.isSlaveNode()?'SLAVE':'MASTER'}] KILL NODES : `,nodes.map(x => `\t${(new Date(x.startedAt)).toUTCString()}\t${x.getUID()}`).join('\n'));
+
+        if(pLatest && nodes.length>0){
+            nodes = [nodes[0]];
+        }
+
         switch (pSignal){
             case 'SIGINT':
                 // controlled kill => kill children
-                nodes.map(x => {
-                    x.kill();
-                    // save state
-                    this.engine.getEngineDB().save(x).then(()=>{});
-                });
+                for(let i=0; i<nodes.length; i++){
+                    try{
+                        nodes[i].kill();
+                        // save state
+                        nodes[i].stopped(this.engine);
+                    }catch (e){}
+                }
                 break;
             case 'SIGKILL':
                 // don't kill child
@@ -638,9 +758,13 @@ export class EngineNodeManager {
         let free:Nullable<EngineNode> = null;
         const timeouts = (pThreshold==null? { user:3600*100, node:3600*200 }:pThreshold );
 
+        let owner:Nullable<UserAccountUUID>;
         for(let i=0; i<pNodePool.length; i++){
-            if(!pNodePool[i].isOwnershipExpired(timeouts.user))  {
-                continue;
+            owner = await pNodePool[i].getOwner();
+            if(owner!=null){
+                if((owner!=pUser.getUID()) && (!pNodePool[i].isOwnershipExpired(timeouts.user)))  {
+                    continue;
+                }
             }
             free = pNodePool[i];
         }
@@ -651,5 +775,77 @@ export class EngineNodeManager {
         }else{
             return null;
         }
+    }
+
+    /**
+     * To print the list of nodes (running or not)
+     *
+     * @param pAccount
+     */
+    async printNodes(pAccount:UserAccount):Promise<void> {
+
+        await this.refreshPool();
+
+        const nodes:EngineNode[] = await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
+            .getAsList();
+
+        let body = "";
+        nodes.map(vNode => {
+            body += `${vNode.getUID()}\t${vNode.getMaxHeapSize()}\t${vNode.purpose}\t${vNode.state}\t${vNode.httpPort}\t${vNode.running?'RUNNING':'STOPPED'}\n`;
+        });
+    }
+
+    /**
+     * Perform engine node healthcheck and update state in DB
+     *
+     * @param pNode
+     */
+    async refreshRunningStatus(pNode:EngineNode, pEngine:DexcaliburEngine):Promise<void> {
+
+        if(pNode.running){
+            const up = await pNode.getHcStatus(pEngine);
+
+            console.log(pNode.getUID(),up);
+            if(!up){
+                pNode.stopped(this.engine);
+            }
+        }
+    }
+
+    /**
+     * To refresh the state of all nodes, update pools
+     */
+    async refreshPool():Promise<void> {
+
+        let nodes:EngineNode[] = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
+                                    .getAsList();
+
+        for(let i=0; i<nodes.length; i++){
+            await this.refreshRunningStatus(nodes[i], this.engine);
+        }
+
+    }
+
+    /**
+     *
+     * @param pFilters
+     * @private
+     */
+    private async getNodes(pFilters: any):Promise<EngineNode[]> {
+        const nodes:EngineNode[] = await (this.engine.getEngineDB()
+            .getCollectionOf(EngineNode.TYPE.getType()))
+            .search({
+                filter: pFilters
+            },{ merlin:false, raw:true });
+
+        console.log(pFilters,nodes);
+
+        return nodes.sort((a,b)=>{
+            if(a.startedAt==-1 || a.startedAt <= b.startedAt){
+                return 1;
+            }else {
+                return -1;
+            }
+        })
     }
 }

@@ -1796,7 +1796,6 @@ export class HookManager
      * @param prologue
      */
     addPrologue(prologue:HookPrologue):void{
-        console.log(prologue);
         this.prologues.push(prologue.injectContext(this.context));
     }
 

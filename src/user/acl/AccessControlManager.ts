@@ -845,7 +845,6 @@ export class AccessControlManager {
         // UserAccountUUID[] | UserGroupUUID[]
         let authorizedUIDs:string = pResource.getAccessAttribute(pAttr).value;
 
-        //console.log(pResource.getUID(), pAttr.name, authorizedUIDs, pAccount.getUID());
         if(authorizedUIDs!=null && Array.isArray(authorizedUIDs)){
             // verify the UUID of given account or usergroup is a part of the list of authorized account/usergroup
             return (authorizedUIDs.indexOf(pAccount.getUID())>-1);

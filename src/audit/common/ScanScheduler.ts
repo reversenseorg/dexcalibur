@@ -17,6 +17,7 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {BusinessPlan} from "../../billing/BusinessPlan.js";
+import {NodeState} from "../../core/EngineNodeManager.js";
 
 /**
  * Present a scan scheduler
@@ -56,7 +57,7 @@ export class ScanScheduler {
         });
 
         this._queued$.subscribe((vOrder:ScanOrder)=>{
-            this.newScan(vOrder);
+            this.newScan(vOrder, vOrder.options);
         });
     }
 
@@ -179,30 +180,50 @@ export class ScanScheduler {
         return report;
     }
 
+
+    async saveOrder(pOrder:ScanOrder):Promise<any> {
+        return await this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType())
+            .asyncAddEntry(pOrder.getUUID(), pOrder);
+    }
+
     /**
      * To start a new scan
      *
      * @param pOrder
      */
-    async newScan(pOrder:ScanOrder):Promise<any> {
+    async newScan(pOrder:ScanOrder, pExtraOpts:any = {}):Promise<any> {
 
-        let existingNodes:EngineNode[];
-        let node:EngineNode = this._ctx.nodeManager.getReadySlave(
-            pOrder.getProjectUID(),
-            NodePurpose.SCAN
-        );
+        let node:EngineNode;
+
+        // check
+        if(pOrder.getProjectUID()!=null){
+            node = await this._ctx.nodeManager.getReadySlave(
+                pOrder.getProjectUID(),
+                NodePurpose.ANY
+            );
+
+            console.log("READY SLAVE FROM newScan ",node)
+        }
+
+        // save order
+        await this.saveOrder(pOrder);
 
         // check ressources quotas
         if(node == null){
-            // start a new node
-            node = await this._ctx.nodeManager.createNode(pOrder.settings.projectUID, NodePurpose.SCAN); //, pOrder.settings.targetOS);
-            node.start("New scan ordered");
+
+            pExtraOpts.scanOrders = [pOrder];
+            // search free node or node for REVIEW / HOOK
+            node = await this._ctx.getProjectManager().open(
+                this._ctx.getInternalAcc(),
+                pOrder.getProjectUID(),
+                NodePurpose.ANY,
+                pExtraOpts);
         }
 
         if(!await node.isBusy()){
             // send a request to order a scan to the node
             node.startScan(pOrder);
-        }else{
+        }else {
             // add scan to queue
             node.appendToQueue(pOrder, OperationType.SCAN_ORDER);
         }

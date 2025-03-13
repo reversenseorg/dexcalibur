@@ -147,7 +147,6 @@ export class SessionStore /*extends expressSession.Store*/ {
             expires: (new Date()).getTime()+this._engine.getUserService().getSessionService().getSettings().getMaxDuration()
         });
 
-        console.log("set session : ",pSession);
         sess.addData('express-session', pSession);*/
 
         this._coll.asyncGetEntry({ _uid: pSID }).then((vSess:UserSession)=>{

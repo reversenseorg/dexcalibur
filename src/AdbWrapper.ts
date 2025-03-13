@@ -466,7 +466,7 @@ export default class AdbWrapper implements IBridge
         //Logger.debug(ret);
 
         ret = await UT.execAsync(this.setup(pDeviceID) + " connect "+pIpAddress+':'+pPortNumber);
-        //console.log(ret);
+
         
         if(ret.stderr != null && ret.stderr.length > 0)
             return false;

@@ -316,16 +316,13 @@ export default class SmaliParser
             pInStr.shift();
 
         clz = new ModelClass();
-        //console.log(src);
         // parse modifiers
         clz.modifiers = SmaliParser.modifier(pInStr, match);
-        //console.log(src);
 
         // clean src with identified modifier
         for(let i:number=0; i<match.c; i++)
             pInStr.shift();
 
-        // console.log(src);
         // parse nam
         javaFqcn = SmaliParser.fqcn(pInStr);
         end = javaFqcn.lastIndexOf(".");
@@ -342,15 +339,6 @@ export default class SmaliParser
                 clz.name.substr(0,clz.name.lastIndexOf(CONST.LEX.TOKEN.INNER_FQCN)));
         }
 
-        /*
-        if(clz.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)>-1){
-            clz.simpleName = clz.simpleName.substr(clz.simpleName.indexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
-            clz.innerClass = true;
-            clz.enclosingClass = new ModelClassReference(
-                clz.name.substr(0,clz.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)));
-        }*/
-
-        //this.obj._hashcode = this.obj.hashCode();
 
         Logger.debug("[parser::class] End\n---------------------------------------------");
         return clz;
@@ -373,7 +361,6 @@ export default class SmaliParser
             if(src[i]==CONST.LEX.TOKEN.OBJREF){
                 l=src.indexOf(";",i);
                 fqn=SmaliParser.fqcn(src.substr(i,l-i+1));
-                //console.log(fqn);
                 types.push(new ModelObjectType(fqn, isArray));
                 i=l+1;
                 isArray=false;

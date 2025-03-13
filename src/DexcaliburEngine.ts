@@ -1817,10 +1817,15 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             // clear DB connections
 
             // kill children nodes
-            this.nodeManager.killNodes('SIGINT');
+            (async ()=>{
+                if(!this.isSlaveNode()){
+                    await this.nodeManager.killNodes('SIGINT');
+                }
 
-            Logger.success('DxEngine has been stopped successfully');
-            process.exit(0);
+                Logger.success('DxEngine has been stopped successfully');
+                process.exit(0);
+            })();
+
         });
     }
 
@@ -1863,6 +1868,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
     getNodeManager():EngineNodeManager {
+        (async ()=>{
+            if(this.getEngineMode()==DexcaliburEngineMode.MASTER){
+                this.nodeManager.printNodes(null);
+            }
+        })();
         return this.nodeManager;
     }
 

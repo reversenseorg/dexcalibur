@@ -38,7 +38,6 @@ export class BusSubscriber {
         this._uid = pUID;
         this._f = (pEvent: BusEvent<any>)=>{
             try{
-                //console.log(pEvent);
                 pFunc.apply(null, [pEvent]);
             }catch (err){
                 Logger.error("[BUS][EVENT_HANDLER][uid="+pEvent.type+"] Execution crash : "+err.message);

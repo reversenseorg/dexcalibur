@@ -246,7 +246,7 @@ export class DelegateWebApi
                         let nodes:EngineNode[] = [];
                         req.dxc.$ = self.srv;
                         if(insecureProjectUID!=null){
-                            nodes = self.srv.context.nodeManager.getNodeByProject(insecureProjectUID);
+                            nodes = await self.srv.context.nodeManager.getNodeByProject(insecureProjectUID);
                             if(nodes.length>0){
                                 return await self.srv.context.nodeManager.forwardWebRequest(nodes[0], self.srv,  req, res);
                             }
@@ -272,10 +272,12 @@ export class DelegateWebApi
                         let nodes:EngineNode[] = [];
                         req.dxc.$ = self.srv;
                         if(insecureProjectUID!=null){
-                            nodes = self.srv.context.nodeManager.getNodeByProject(insecureProjectUID);
+                            // TODOs
+                            throw  new Error("Replace public route by asyn auth route");
+                            /*self.srv.context.nodeManager.getNodeByProject(insecureProjectUID);
                             if(nodes.length>0){
                                 return nodes[0].forwardWebRequest(self.srv, req, res);
-                            }
+                            }*/
                         }
 
                         return pHandlers[httpVerb](req, res);
@@ -392,7 +394,7 @@ export class DelegateWebApi
                                 switch (self.srv.context.getEngineMode()){
                                     case DexcaliburEngineMode.MASTER:
                                         let targetNode:Nullable<EngineNode> = null;
-                                        nodes = self.srv.context
+                                        nodes = await self.srv.context
                                             .nodeManager
                                             .getNodeByProject(
                                                 unsafePUID,
@@ -496,29 +498,34 @@ export class DelegateWebApi
                                     switch (self.srv.context.getEngineMode()){
                                         case DexcaliburEngineMode.MASTER:
                                             let targetNode:Nullable<EngineNode> = null;
+                                            throw new Error("Replace "+pRoute+" route by async route");
+                                            /*
                                             try{
+
                                                 nodes = self.srv.context
                                                     .nodeManager
                                                     .getNodeByProject(
                                                         unsafePUID,
                                                         NodePurpose.REVIEW
-                                                    );
+                                                    ).then(()=>{
+                                                        if(nodes.length>0){
+                                                            //targetNode = nodes[0];
+                                                            self.srv.context
+                                                                .nodeManager
+                                                                .forwardWebRequest(nodes[0], self.srv, req, res)
+                                                                .then(()=>{
 
-                                                if(nodes.length>0){
-                                                    //targetNode = nodes[0];
-                                                    self.srv.context
-                                                        .nodeManager
-                                                        .forwardWebRequest(nodes[0], self.srv, req, res)
-                                                        .then(()=>{
+                                                                })
+                                                        }else{
+                                                            throw ProjectManagerException.PROJECT_NOT_LOADED(unsafePUID,"middleware-auth(master)");
+                                                        }
+                                                    })
 
-                                                        })
-                                                }else{
-                                                    throw ProjectManagerException.PROJECT_NOT_LOADED(unsafePUID,"middleware-auth(master)");
-                                                }
+
                                             }catch (e){
                                                 Logger.error(e.msg);
                                                 throw new Error(e.msg);
-                                            }
+                                            }*/
                                             break;
                                         case DexcaliburEngineMode.STANDALONE:
                                         case DexcaliburEngineMode.SLAVE:

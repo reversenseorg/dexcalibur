@@ -31,6 +31,7 @@ import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer
 import {AndroidPackageAnalyzerConfig} from "../android/analyzer/AndroidPackageAnalyzerConfig.js";
 import {IPackageAnalyzer} from "../analyzer/IPackageAnalyzer.js";
 import {OperatingSystem} from "../platform/OperatingSystem.js";
+import {ScanOrder} from "../audit/common/ScanOrder.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -251,7 +252,7 @@ export class ProjectManager {
         proj = await this._ctx.getEngineDB().createProject(proj);
 
         // search slave ready
-        let node:EngineNode = this._ctx.nodeManager.getReadySlave(
+        let node:EngineNode = await this._ctx.nodeManager.getReadySlave(
             proj.getUID(),
             NodePurpose.NEW_PRJ
         );
@@ -681,7 +682,8 @@ export class ProjectManager {
             pAccount
         );
 
-        let nodes = (this._ctx.getNodeManager().getNodeByProject(pProjectUID));
+        let nodes = await (this._ctx.getNodeManager().getNodeByProject(pProjectUID));
+
         if(pPurpose!=NodePurpose.ANY){
             nodes = EngineNodeManager.filterNodesByPurpose(nodes, pPurpose);
         }
@@ -706,7 +708,6 @@ export class ProjectManager {
 
         const proj = await this.getProject(this._ctx.getInternalAcc(), pProjectUID);
 
-        console.log("IS AUTHORIZED ", pProjectUID, proj);
         let authorized = false;
         try{
             AccessControl.isAuthorizedByAttr(
@@ -748,7 +749,8 @@ export class ProjectManager {
      * @param pUser
      * @param pProjectUID
      */
-    async open( pUser:UserAccount, pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose = NodePurpose.HOOK):Promise<EngineNode> {
+    async open( pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
+                pPurpose:NodePurpose = NodePurpose.HOOK, pExtraOpts:any = {}):Promise<EngineNode> {
         // validate project UID format
         if(!DexcaliburProject.VALIDATE.uid.test(pProjectUID)){
             throw DexcaliburProjectException.INVALID_UUID_FMT(pProjectUID);
@@ -759,25 +761,42 @@ export class ProjectManager {
 
         // detect current engine node mode
         if(this._ctx.getEngineMode()===DexcaliburEngineMode.MASTER){
+
             // search free node or node for REVIEW / HOOK
             const remoteNode = await this._openRemotely(pUser,pProjectUID,pPurpose);
             /*const res = await remoteNode.startScan(ScanOrder.fromScanOptions({
                 modelUID: null,
                 projectUID: pProjectUID,
             }));*/
-            // to start the node
+
+            let scanOrders:ScanOrder[] = pExtraOpts.scanOrders;
+
+            // to subsribe to state changes
             remoteNode.nodeState$.subscribe((vChange  )=>{
                 // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per node
                 if(vChange.new==NodeState.IDLE && vChange.before==NodeState.STARTING){
                     // to open associated project
-                    remoteNode.open().then((r)=>{
+                    remoteNode.open(pExtraOpts).then((r)=>{
                         //remoteNode.nodeState$
-                        remoteNode.setState(NodeState.IDLE);
+                        remoteNode.setState(NodeState.IDLE); //.then(()=>{});
+                    })
+                }
+                if(vChange.new==NodeState.IDLE && ([NodeState.BUSY,NodeState.IDLE].indexOf(vChange.before)>-1) ){
+
+                    if(scanOrders.length==0) return;
+
+                    let order = scanOrders.pop();
+
+                    // to open associated project
+                    remoteNode.startScan(order).then((r)=>{
+                        //remoteNode.nodeState$
+                        remoteNode.setState(NodeState.IDLE); //.then(()=>{});
                     })
                 }
             });
 
-            await remoteNode.start("New project created");
+            // to start the node
+            await remoteNode.start("Opening project");
 
             return remoteNode;
         }
@@ -786,6 +805,8 @@ export class ProjectManager {
         // then check if node has already loaded the project
         let project = this._ctx.getProject(pProjectUID);
         const currNode = await this._ctx.getNodeManager().getEngineNodeByUUID(this._ctx.getNodeUUID());
+
+        console.log("PROJ OPEN currNode ",currNode.getUID());
 
         // if project is loaded, return it
         if(project!=null && project.isReady()){
@@ -796,7 +817,10 @@ export class ProjectManager {
         this._ctx.newWorkflow(pProjectUID).changeOwner(pUser);
 
         // if project not loaded, open it locally
-        project = await this._openLocally(pUser, pProjectUID);
+        project = await this._openLocally(pUser, pProjectUID, currNode);
+
+        console.log("PROJ OPEN done, changing state ");
+        currNode.setState(NodeState.IDLE);
 
         return currNode;
     }
@@ -811,8 +835,12 @@ export class ProjectManager {
     private async _openRemotely(pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
                                 pPurpose:NodePurpose):Promise<EngineNode> {
 
+
+        let assignedNode = await this._ctx.getNodeManager().getReadySlave(pProjectUID,pPurpose);
         // search nodes already assigned to this project
-        let assignedNodes = this._ctx.getNodeManager().getNodeByProject(pProjectUID);
+        /*let assignedNodes = await this._ctx.getNodeManager().getNodeByProject(pProjectUID);
+
+
 
         if(assignedNodes.length>0){
             // filter by purpose
@@ -827,6 +855,10 @@ export class ProjectManager {
                     return assignedNodes[0];
                 }
             }
+        }*/
+
+        if(assignedNode!=null){
+            return assignedNode;
         }
 
         // no assigned nodes => allocate a new one
@@ -862,12 +894,14 @@ export class ProjectManager {
      * @async
      * @method
      */
-     private async _openLocally( pUserAccount:UserAccount, pUID:DexcaliburProjectUUID):Promise<DexcaliburProject>{
+     private async _openLocally( pUserAccount:UserAccount, pUID:DexcaliburProjectUUID,
+                                 pNode:Nullable<EngineNode>=null):Promise<DexcaliburProject>{
         let project:DexcaliburProject = null, success:any = false;
         let currNode:EngineNode;
+
         //const currNode = this._ctx.getNodeManager().getNodeByUUID(this._ctx.getNodeUUID());
         if(this._ctx.getEngineMode()==DexcaliburEngineMode.SLAVE){
-            currNode = await this._ctx.getNodeManager().getEngineNodeByUUID(this._ctx.getNodeUUID());
+            currNode = pNode;
 
             if(currNode==null){
                 throw EngineNodeException.MISSING_NODE(this._ctx.getNodeUUID(),"_openLocally");
@@ -910,10 +944,10 @@ export class ProjectManager {
 
             wf.stepUp(0.1);
 
-            Logger.debug("[ENGINE] [OPEN PROJECT] Project attached to global DB");
+            Logger.info("[ENGINE] [OPEN PROJECT] Project attached to global DB");
             success = await project.open();
 
-            Logger.debug("[ENGINE] [OPEN PROJECT] Project opened");
+            Logger.info("[ENGINE] [OPEN PROJECT] Project opened");
 
             wf.pushStatus(StatusMessage.newSuccess("Project is ready."));
             this._ctx.active[pUID] = project;
@@ -921,8 +955,9 @@ export class ProjectManager {
 
             project.state = ProjectState.OPEN;
             this._ctx.log("Project loaded", project);
+            Logger.info("[ENGINE] [OPEN PROJECT] Project loaded, state of node changed ");
 
-            if(this._ctx.getEngineMode()==DexcaliburEngineMode.SLAVE) {
+            if(currNode!=null) {
                 currNode.setState(NodeState.IDLE);
             }
 
@@ -1004,5 +1039,20 @@ export class ProjectManager {
          }
 
         return undefined;
+    }
+
+
+    /**
+     *
+     * @param pUser
+     * @param pProject
+     */
+    getLocalActiveProject(pUser:UserAccount, pProject:DexcaliburProjectUUID):DexcaliburProject {
+         // check  acl
+        const local = this._ctx.getProject(pProject);
+        if(local==null){
+            throw DexcaliburProjectException.PROJECT_NOT_READY(pProject);
+        }
+        return local;
     }
 }

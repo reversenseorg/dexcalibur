@@ -368,7 +368,6 @@ export class AuthenticationService {
 
         passport.serializeUser(function(vUser:UserAccount, done:any) {
             //Logger.info("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
-            //console.log("serializeUser > ",vUser);
             done(null, vUser);//.getUID());
             //done(null, vUser.toJsonObject());
         });
@@ -431,23 +430,6 @@ export class AuthenticationService {
                     Logger.error(err.stack);
                     throw AuthenticationModuleException.AUTH_MODULE_DEPLOY_FAILURE(mods[i],orgs[k]);
                 }
-
-                /*
-                switch (mods[i].type) {
-                    case AuthModuleType.LOCAL_PASSWD:
-                        this._setupLocalAuthStrategy(pApp, basePath, stratUID, mods[i] as LocalAuthModule, orgs[k]);
-                        hasLocalAuth = true;
-                        strats.all.push(stratUID);
-                        strats[AuthModuleType.LOCAL_PASSWD].push(stratUID);
-                        Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module deployed`);
-                        break;
-                    case AuthModuleType.OIDC:
-                        await this._setupOidcStrategy(pApp, basePath, stratUID, mods[i] as OidcAuthModule, orgs[k]);
-                        strats.all.push(stratUID);
-                        strats[AuthModuleType.OIDC].push(stratUID);
-                        Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module deployed`);
-                        break;
-                }*/
             }
 
             if(strats.all.length>0){
@@ -569,8 +551,6 @@ export class AuthenticationService {
                             org: pOrg
                         }).then((vAccount: Nullable<UserAccount>) => {
                             Logger.info(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Account verified ... `);
-                            console.log(vAccount);
-
 
 
                             if (vAccount != null) {
@@ -654,7 +634,7 @@ export class AuthenticationService {
                             autoCreate: true,
                             type: UserAccountType.FEDERATED
                         }).then((vAccount: Nullable<UserAccount>) => {
-                            console.log("OIDC Verifiying > ", vAccount);
+                            Logger.debug("OIDC Verifiying > ", vAccount!=null?vAccount.getUID():'null');
 
                             if (vAccount != null) {
                                 verified(null, acc);
@@ -1181,7 +1161,7 @@ export class AuthenticationService {
                             && (_oidClientCfg.extra.userInfoURL!=null);
 
         }catch(err){
-            console.log(err.message,err.stack);
+            Logger.error(err.stack);
             res.msg = err.message;
             res.success = false;
         }

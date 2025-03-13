@@ -834,7 +834,7 @@ export class EngineDatabase {
 
 
     async searchUsers(pUUIDs: UserAccountUUID[]):Promise<UserAccount[]> {
-        return await (this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection)
+        return await (this.getCollectionOf(UserAccount.TYPE.getType()) as MongodbDbCollection)
             .search({ filter: { _uid: { $in: pUUIDs } } }, {raw:true});
     }
 
@@ -921,5 +921,27 @@ export class EngineDatabase {
         }else{
             return coll.asyncUpdateEntry(pNode);
         }
+    }
+
+    /**
+     *
+     * @param pState
+     */
+    async saveState(pState:InternalState):Promise<any> {
+
+        if(pState==null){
+            throw new Error("Cannot save state : state is null");
+        }
+        return this.getCollectionOf(InternalState.TYPE.getType()).asyncUpdateEntry(
+            pState,
+            {
+                upsert: true,
+                replace:false,
+                /*filter: {
+                    [InternalState.TYPE.getPrimaryKey().getName()]:pState.getUID()
+                },*/
+                $set:['state','modified']
+            }
+        );
     }
 }

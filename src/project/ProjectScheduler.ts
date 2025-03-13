@@ -138,7 +138,7 @@ export class ProjectScheduler {
     async newProject(pOrder:ProjectOrder):Promise<any> {
 
         let existingNodes:EngineNode[];
-        let node:EngineNode = this._ctx.nodeManager.getReadySlave(
+        let node:EngineNode = await this._ctx.nodeManager.getReadySlave(
             pOrder.getProjectUID(),
             NodePurpose.NEW_PRJ,
             pOrder.getOrganizationUnit()

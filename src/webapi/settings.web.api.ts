@@ -16,7 +16,7 @@ SETTINGS_WEB_API.addPublicRoute(
         'get': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
-            let data:any;
+            let data:any = {}
 
             try{
                 switch (req.query['type']){
@@ -36,8 +36,9 @@ SETTINGS_WEB_API.addPublicRoute(
                         data.ws = $.context.getWebsocketServer().port;
                         break;
 
-                    default:
-                        throw GlobalSettingsException.CATEGORY_UNKNOW();
+                    /*default:
+                        data = {};
+                        throw GlobalSettingsException.CATEGORY_UNKNOW();*/
                 }
 
 

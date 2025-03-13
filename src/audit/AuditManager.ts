@@ -19,6 +19,7 @@ import {GenericScanner} from "./common/GenericScanner.js";
 import {ScannerFactory} from "./scanner/ScannerFactory.js";
 import {BusinessPlan, BusinessPlanType} from "../billing/BusinessPlan.js";
 import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
+import {ScanOrder, ScanOrderUUID} from "./common/ScanOrder.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -82,6 +83,13 @@ export class AuditManager {
     }
 
 
+    async getScanOrder(pUser:UserAccount, pOrder:ScanOrderUUID):Promise<ScanOrder>{
+
+        let res =  await (this.engine.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType()))
+            .search({ uuid: pOrder });
+
+        return (res.length>0 ? res[0] : res);
+    }
 
     /**
      * To list assurance model of the project.

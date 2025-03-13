@@ -22,11 +22,11 @@ export class HttpClient {
         this.baseURL = "http"+(pOptions.ssl?'s':'')+'://'+this.options.host+':'+this.options.port+'/';
     }
 
-    perform(pUri:string,pOptions:any = null,pMethod:string = 'GET'):Promise<any>{
+    async perform(pUri:string,pOptions:any = null,pMethod:string = 'GET'):Promise<any>{
         if(pOptions!=null){
-            return GOT(this.baseURL+pUri, pOptions);
+            return await GOT(this.baseURL+pUri, pOptions);
         }else{
-            return GOT(this.baseURL+pUri);
+            return await GOT(this.baseURL+pUri);
         }
     }
 }

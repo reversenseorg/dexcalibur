@@ -359,7 +359,6 @@ export class UserSession implements IPersistent, INode {
         if(this._destroyed > -1)
             throw new SessionException("Data cannot be read : Session has been destroyed.", SessionCode.DESTROYED);
 
-        //console.log("getData ", pName, this._data[pName],  )
         if(pName==null){
             return this._data;
         }

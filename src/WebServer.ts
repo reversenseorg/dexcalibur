@@ -1344,6 +1344,8 @@ export default class WebServer
                 return next();
             }
 
+
+            Logger.error(` [WEBSERVER][MIDDLEWARE][ensureApiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt but access denied `);
             self.sendError(res, "Access denied");
         }
 

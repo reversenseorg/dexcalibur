@@ -24,15 +24,15 @@ HEALTH_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
-HEALTH_WEB_API.addAsyncAuthenticatedRoute(
+HEALTH_WEB_API.addAsyncPublicRoute(
     '/started',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
             try{
-                res.send(1);
+                res.sendStatus(200);
             }catch(err){
-                res.send(0);
+                res.sendStatus(500);
             }
         }
     },{
@@ -41,7 +41,7 @@ HEALTH_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
-HEALTH_WEB_API.addAsyncAuthenticatedRoute(
+HEALTH_WEB_API.addAsyncPublicRoute(
     '/ready',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
@@ -49,13 +49,13 @@ HEALTH_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 if(await $.context.getOrgManager().listOrganizations($.context.getInternalAcc())){
-                    res.send(1);
+                    res.sendStatus(200);
                 }else{
-                    res.send(0);
+                    res.sendStatus(404);
                 }
             }catch(err){
                 console.log(" Health check failed. Server is not ready.", err);
-                res.send(0);
+                res.sendStatus(500)
             }
         }
     },{

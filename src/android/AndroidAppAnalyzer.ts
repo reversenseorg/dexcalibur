@@ -101,6 +101,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 */
 	private _initSaveRoutines(){
 
+
 		[
 			"app.activity.new",
 			"app.provider.new",
@@ -108,15 +109,17 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			"app.service.new",
 		].map((vEvtType:string)=>{
 			this.context.getBus().subscribe(vEvtType, BusSubscriber.from((pEvent:BusEvent<any>)=>{
-				(async ()=>{
-					try{
 
-						// it should be skipped if already exists
-						await this.context.getProjectDB().save(pEvent.getData().obj, null, ['label','name','attr','intentFilters'] /*, { _id:obj._id, name: obj.name}*/);
-					}catch(err){
+				if(pEvent.getData().fresh!==false){
+					(async ()=>{
+						try{
+							// it should be skipped if already exists
+							await this.context.getProjectDB().save(pEvent.getData().obj, null, ['label','name','attr','intentFilters'] /*, { _id:obj._id, name: obj.name}*/);
+						}catch(err){
 
-					}
-				})();
+						}
+					})();
+				}
 			}));
 		});
 
@@ -557,7 +560,13 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		const pkgScope = await this.context.getDataAnalyzer().getDataScope('PKG');
 
 		console.log("Parse manifest")
-		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
+		const success:boolean = await this.importManifest(
+			_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"),
+			{
+				cause: 'fullscan',
+				fresh: pNewProject
+			}
+		);
 
 		// parse all resources in res/ folder, for each a ModelFile will be created
 		// and joined into PKG data scope
@@ -1054,7 +1063,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 
 	async scan(path:string):Promise<boolean>{
-		return this.importManifest(path);
+		return this.importManifest(path,{ cause:'scan' });
 	}
 
 	/**
@@ -1123,14 +1132,14 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
      * To import an Android manifest from he given path
      * @param {String} path Path to the manifest
      */
-    async importManifest(path:string):Promise<boolean>{
+    async importManifest(path:string, pExtra:any = {}):Promise<boolean>{
 
 		Logger.debug("[Manifest] Start parsing");
 
         const codeAnal:Analyzer = this.context.getAnalyzer();
 		const result:any = await AndroidAppAnalyzer._parseXmlFile(path);
 		const manifest:AndroidManifest = AndroidManifest.fromXml(result.manifest, this.context);
-		
+
 
 		this.manifest = manifest;
 		this.manifestPath = path;
@@ -1150,28 +1159,52 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			manifest.application.activities.map(x => {
 				this.context.trigger({
 					type: "app.activity.new",
-					data: { obj:x, manifest:manifest}
+					data: {
+						obj:x,
+						manifest:manifest,
+						from: 'import',
+						cause: pExtra.cause,
+						fresh: pExtra.fresh
+					}
 				});
 				codeAnal.db.activities.addEntry(x.name, x);
 			});
 			manifest.application.providers.map(x => {
 				this.context.trigger({
 					type: "app.provider.new",
-					data: { obj:x, manifest:manifest}
+					data: {
+						obj:x,
+						manifest:manifest,
+						from: 'import',
+						cause: pExtra.cause,
+						fresh: pExtra.fresh
+					}
 				});
 				codeAnal.db.providers.addEntry(x.name, x);
 			});
 			manifest.application.receivers.map(x => {
 				this.context.trigger({
 					type: "app.receiver.new",
-					data: { obj:x, manifest:manifest}
+					data: {
+						obj:x,
+						manifest:manifest,
+						from: 'import',
+						cause: pExtra.cause,
+						fresh: pExtra.fresh
+					}
 				});
 				codeAnal.db.receivers.addEntry(x.name, x);
 			});
 			manifest.application.services.map(x => {
 				this.context.trigger({
 					type: "app.service.new",
-					data: { obj:x, manifest:manifest}
+					data: {
+						obj:x,
+						manifest:manifest,
+						from: 'import',
+						cause: pExtra.cause,
+						fresh: pExtra.fresh
+					}
 				});
 				codeAnal.db.services.addEntry(x.name, x);
 			});

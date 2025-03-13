@@ -1634,7 +1634,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * 
      * @method
      */
-    async open(){
+    async open():Promise<DexcaliburProject>{
 
         Logger.success("[PROJECT] [OPEN] Opening ...");
         //throw new Error('[DEXCALIBUR PROJECT] open() : Not implemented');

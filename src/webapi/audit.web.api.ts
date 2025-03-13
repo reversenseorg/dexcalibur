@@ -672,17 +672,60 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 // get project and user ACL
-                project = await $.context.getProjectManager().getProject(req.user, req.params.projectID);
-
+                project = await $.context.getProjectManager().getLocalActiveProject(req.user, req.params.projectID);
 
                 // ========== LOGIC
                 const am = $.context.getAuditManager();
 
-                // return results
-                (await am.batchStart(req.user, project, req.body.models)).map(x => {
-                    data.push(x.toJsonObject())
-                });
-                $.sendSuccess(res, data);
+                console.log(req.body);
+
+                if(req.body.scheduled==0){
+
+                    const scheduler = $.context.getScanScheduler(); //.getScanScheduler();
+
+                    let order:ScanOrder;
+                    if(req.body.order!=null){
+                        order = await $.context.getAuditManager().getScanOrder(req.user,req.body.order);
+                    }else{
+                        order =  ScanOrder.fromScanOptions({
+                            modelUID: req.body.modelUID[0],
+                            projectUID: req.body.projectUID
+                        });
+                    }
+
+                    console.log(order);
+                    if(order==null){
+                        throw new Error("Scan order not found in DB")
+                    }
+
+
+
+
+                    let org:OrganizationUnit = null;
+                    if(order.orgUnit!=null){
+                        org = await $.context.getOrgManager().getOrganization(req.user, order.orgUnit);
+                    }
+
+                    console.log(order.orgUnit, org);
+                    //console.log(project);
+                    const report = await scheduler.newStandaloneScan(req.user, project, order, org);
+
+                    /*const report = await scheduler.newLocalScan(req.user, project, ScanOrder.fromScanOptions({
+                        modelUID: req.body.modelUID[0],
+                        projectUID: req.body.projectUID,
+                    }));*/
+
+                    console.log("SERIALIZE REPORT TO SEND TO WEB");
+                    $.sendSuccess(res,report.toJsonObject());
+                }else{
+                    // return results
+                    (await am.batchStart(req.user, project, req.body.models)).map(x => {
+                        data.push(x.toJsonObject())
+                    });
+                    $.sendSuccess(res, data);
+                }
+
+
             }catch(err){
                 Logger.error("[API][AUDIT] Scan cannot be started. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Scan cannot be started. Cause : " + err.message);
@@ -847,6 +890,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 const scheduler = $.context.getScanScheduler();
                 let org:Nullable<OrganizationUnit> = null;
+                let app:Nullable<ApplicationUnit> = null;
                 let project:DexcaliburProject = await $.context.getProjectManager()
                     .getProject(req.user, req.body.projectUID);
 
@@ -855,6 +899,11 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         req.user,
                         req.body.oid as string
                     );
+                }
+
+
+                if(req.body.aid!=null){
+                    app = await $.context.getOrgManager().getDirectApplication(req.user, req.body.aid);
                 }
 
                 if($.context.isStandaloneMode()){
@@ -870,12 +919,9 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         projectUID: req.body.projectUID
                     });
 
-                    order.orgUnit = org.getUID();
 
-                    if(req.body.aid!=null){
-                        const app = await $.context.getOrgManager().getDirectApplication(req.user, req.body.aid);
-                        order.appUnit = app.getUID();
-                    }
+                    order.orgUnit = org!=null?org.getUID():null;
+                    order.appUnit = app!=null?app.getUID():null;
 
 
                     //console.log(project);
@@ -901,32 +947,24 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 for(let i=0; i<req.body.modelUID.length; i++){
                     const order = ScanOrder.fromScanOptions({
                         modelUID: req.body.modelUID[i],
-                        projectUID: req.body.projectUID,
+                        projectUID: req.body.projectUID
                     });
 
+                    order.orgUnit = org!=null?org.getUID():null;
+                    order.appUnit = app!=null?app.getUID():null;
                     // file upload
                     if(req.body.fileUploadID!=null){
                         order.setTargetFile(await $.uploader.getPathOf(req.body.fileUploadID));
                     }
 
-                    scheduler.newScan(order);
+                    order.options = {
+                        cookie: req.cookies
+                    };
+
+                    await scheduler.newScan(order, {
+                        cookie: req.cookies
+                    });
                 }
-
-                /*
-                req.body.modelUID.map( vModelUID => {
-                    const order = ScanOrder.fromScanOptions({
-                        modelUID: vModelUID,
-                        projectUID: req.body.projectUID,
-                    });
-
-                    // file upload
-                    if(req.body.fileUploadID!=null){
-                        order.setTargetFile(await $.uploader.getPathOf(req.body.fileUploadID));
-                    }
-
-                    scheduler.newScan(order);
-                });*/
-
 
                 $.sendSuccess(res,{ });
             }catch(err){

@@ -621,7 +621,7 @@ export class SessionMiddleware {
                         }
                     }
                     s.save((e,d)=>{
-                       // todo : handle error,   console.log(s);
+                       // todo : handle error,
                     });
                 } catch (e) {
                     next(e)

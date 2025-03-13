@@ -194,8 +194,6 @@ export class OrganizationUnit extends Auditable implements INode {
                 return o;
             })
             .wakeUp( (x:NodePropertyState) => {
-                console.log(x.p);
-
                 if(x.p==null) return [];
 
                 return x.p.map((x:any) => {

@@ -668,9 +668,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
         'get': async (req:DelegateRequest, res:DelegateResponse, pNext:any)=>{
 
             let $:WebServer = req.dxc.$;
-            let project:DexcaliburProject = null;
-            let wf:Workflow;
-            let user:UserAccount;
 
             try {
 
@@ -682,11 +679,15 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     throw DexcaliburProjectException.INVALID_UUID_FMT(req.query.uid as string);
                 }
 
+
                 const unsafeUUID = req.query.uid as string;
                 const unsafePurpose = (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY);
 
+                // TODO check is user is authorized to access project
+                // search a running node for this project
+                /*
+                let nodes = await $.context.getNodeManager().listNodeByProject(req.user, unsafeUUID);
 
-                let nodes = $.context.getNodeManager().getNodeByProject(unsafeUUID);
 
                 if(nodes.length>0){
                     if(unsafePurpose!=NodePurpose.ANY){
@@ -705,42 +706,72 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                                     ready: true,
                                     node: freshNode.getUID()
                                 });
+                                return;
                             }
                         }
                     }
+                }*/
 
+
+                let candidate = await $.context.getNodeManager().getReadySlave( unsafeUUID, unsafePurpose);
+                if(candidate!=null){
+                    const freshNode = await $.context.getNodeManager()
+                        .allocateNode([candidate], req.user);
+
+                    if(freshNode != null){
+                        $.sendSuccess( res, {
+                            ready: true,
+                            node: freshNode.getUID()
+                        });
+                        return;
+                    }
                 }
 
-                // filter
-
+                // else : allocate a node , start it and open the project
                 const targetNode = await $.context.getProjectManager().open(
                     req.user,
                     unsafeUUID,
-                    (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY)
+                    (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY),
+                    {
+                        cookie: req.cookies
+                    }
                 );
 
 
+                let nodeReady = false;
                 const subscription = targetNode.nodeState$.subscribe((vChange)=>{
                     if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
                         subscription.unsubscribe();
+                        nodeReady = true;
                         $.sendSuccess(res, {
                             ready: true,
                             node: vChange.nodeUUID
                         });
-                        pNext();
+                        //pNext();
+                    }else{
+                        subscription.unsubscribe();
+                        nodeReady = true;
+                        $.sendSuccess(res, {
+                            ready: false,
+                            node: vChange.nodeUUID
+                        });
+                        //pNext();
                     }
-                })
+                });
 
 
-                if(!$.context.getNodeManager().isCurrentNode(targetNode)){
+                /*if(!$.context.getNodeManager().isCurrentNode(targetNode)){
                     // current node is standalone or slave node
                     //$.context.getProjectManager().
                     targetNode.appendRequestToQueue($, req, res);
                     return;
                 }else{
-                    $.sendSuccess( res, {});
+                    $.sendSuccess( res, {
+                        ready: nodeReady,
+                        node: targetNode.getUID()
+                    });
                     return;
-                }
+                //}
 
                 /*
                 user = req.user;
@@ -820,6 +851,79 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
         }
     }
 )
+
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/open_slave',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse, pNext:any)=>{
+
+            let $:WebServer = req.dxc.$;
+
+            try {
+
+                if(req.query.purpose!=null && !EngineNode.VALIDATE.purpose.test(req.query.purpose)){
+                    throw EngineNodeException.INVALID_PURPOSE(req.query.purpose);
+                }
+
+                if(!DexcaliburProject.VALIDATE.uid.test(req.query.uid)){
+                    throw DexcaliburProjectException.INVALID_UUID_FMT(req.query.uid as string);
+                }
+
+
+                const unsafeUUID = req.query.uid as string;
+                const unsafePurpose = (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY);
+
+                // TODO check is user is authorized to access project
+                // search a running node for this project
+
+                Logger.info("[API][PROJECT MGT] Open project from slave : start ");
+                // else : allocate a node , start it and open the project
+                const targetNode = await $.context.getProjectManager().open(
+                    req.user,
+                    unsafeUUID,
+                    unsafePurpose
+                );
+
+
+                let nodeReady = false;
+                let sent = false;
+                const subscription = targetNode.nodeState$.subscribe((vChange)=>{
+
+                    Logger.info(`[API][PROJECT MGT] Open project from slave : state of local node changed ${vChange.before} to ${vChange.new}`);
+                    if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
+                        subscription.unsubscribe();
+                        nodeReady = true;
+
+                        Logger.info(`[API][PROJECT MGT] Open project from slave : Terminated`);
+                        if(!sent){
+                            $.sendSuccess(res, {
+                                ready: true,
+                                node: targetNode.getUID()
+                            });
+
+                        }
+                        //pNext();
+                    }
+                })
+
+                Logger.info(`[API][PROJECT MGT] Open project from slave : waiting ...`);
+                if(!sent){
+                    sent = true;
+                    $.sendSuccess( res, {
+                        ready: nodeReady,
+                        node: targetNode.getUID()
+                    });
+                }
+
+            }catch(err){
+                Logger.error("[API][PROJECT MGT] Opening project on slave node failed : "+err.message+"\n"+err.stack);
+                $.sendError( res, "Project ["+req.query.uid+"] cannot be opened : "+err.message);
+            }
+        }
+    }
+)
+
 
 PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/delete',

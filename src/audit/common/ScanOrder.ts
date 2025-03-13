@@ -27,6 +27,7 @@ export interface ScanOrderSettings {
     projectUID?: string;
     fileUploadID?:string;
     orgUnit?:OrganizationUnitUUID
+    appUnit?:OrganizationUnitUUID
 }
 
 
@@ -47,6 +48,8 @@ export interface ScanOrderOptions {
     stateDates?: IStringIndex<number>;
     report?:any;
 }
+
+export type ScanOrderUUID = string;
 
 /**
  * Represent an order to scan a project with a specified
@@ -164,6 +167,7 @@ export class ScanOrder implements INode {
         if(this.uuid==null){
             this.uuid = randomUUID();
         }
+
         if(this.dates[ACTION_DATE.START]==-1){
             this.setDate( ACTION_DATE.ORDER);
         }

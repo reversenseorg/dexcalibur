@@ -175,7 +175,6 @@ export default class ApkHelper extends External.ExternalHelper
         if(stderr){
             let no_err:boolean = true;
             stderr.split(EOL).map(x =>{
-                //console.log(x);
                 if(x.startsWith('E:')) no_err = false;
             });
 

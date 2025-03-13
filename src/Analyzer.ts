@@ -514,8 +514,6 @@ export default class Analyzer
 
             if(pDb.packages.hasEntry(pkg)==false){
 
-                //console.log(`creating>  ${pkg} (${pkg.length}) parent=${ppkg}`);
-
                 fresh = ModelPackage.fromJavaFQCN(pkg);
                 pDb.packages.setEntry(pkg,  fresh);
                 this.context.trigger({
@@ -887,12 +885,6 @@ export default class Analyzer
 
 
         this._wf.computeStepUp(data.classes.size()*4);
-        /*
-        let c = 0;
-        for(let i in data.classes)c++;
-        console.log(Chalk.bold.red("Classes in DB : "+c));
-        */
-
         // STEP 1
         // merge Absolute DB and Temp DB
         // if a class has been already analyzed its data will be updated
