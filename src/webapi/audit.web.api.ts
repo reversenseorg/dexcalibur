@@ -1,27 +1,28 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
-import {Request, Response} from "express";
+import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import {LicenceManager, ProductInfo} from "../credit/LicenceManager.js";
-import {AuditManager} from "../audit/AuditManager.js";
 import {AssuranceScanner} from "../audit/common/AssuranceScanner.js";
 import AssuranceReport from "../audit/common/AssuranceReport.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 import Control from "../audit/common/Control.js";
-import {ScanFlow} from "../audit/common/ScanFlow.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {Nullable} from "../core/IStringIndex.js";
-import {TagCategory} from "@dexcalibur/dexcalibur-orm";
-import {AuditManagerException} from "../audit/errors/AuditManagerException.js";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import {ValidationRule} from "../Validator.js";
 
+import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
+
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
 
+const DEFAULT_OPTIONS = {
+    lazyProject: true,
+    nodeAffinity: DexcaliburEngineMode.MASTER
+};
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/trackers/all',
@@ -324,7 +325,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 
@@ -338,9 +340,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 // ========== LOGIC
-                let models:string[] = [];
-                models = [req.params.modelID as string]
-
                 const am = $.context.getAuditManager();
                 const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
                     req.user,
@@ -355,7 +354,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 
@@ -421,7 +421,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 
@@ -449,7 +450,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 
@@ -467,19 +469,55 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     req.params.aid as string
                 );
 
-                const rap = await am.getLatestReport(req.user, app)
+                let rap = await am.getLatestReport(req.user, app);
+
                 $.sendSuccess(res, (rap!=null ? rap.toJsonObject(): null));
             }catch(err){
                 $.sendErrorWithLog(res,
                     AUDIT_WEB_API.name,
-                    "Reports cannot be listed.",
+                    "Latest report of this application unit cannot be retrieved.",
                     err.message);
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
+
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/reports/:aid/latest/kpis',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                let rap = await am.getLatestReport(req.user, app);
+
+                //am.explainKpis(rap)
+
+                $.sendSuccess(res, (rap!=null ? rap.toJsonObject(): null));
+            }catch(err){
+                $.sendErrorWithLog(res,
+                    AUDIT_WEB_API.name,
+                    "Latest report of this application unit cannot be retrieved.",
+                    err.message);
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
+    }
+);
+
 
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
@@ -507,7 +545,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 
@@ -532,9 +571,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
             }
         }
-    },{
-        lazyProject: true
-    });
+    },DEFAULT_OPTIONS);
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/model/:modelID',
@@ -575,7 +612,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 
@@ -623,7 +661,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 
@@ -631,7 +670,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 /**
  * To get a list of available models
  */
-AUDIT_WEB_API.addAsyncPublicRoute(
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/models/all',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
@@ -657,7 +696,8 @@ AUDIT_WEB_API.addAsyncPublicRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 
@@ -677,8 +717,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 // ========== LOGIC
                 const am = $.context.getAuditManager();
 
-                console.log(req.body);
-
                 if(req.body.scheduled==0){
 
                     const scheduler = $.context.getScanScheduler(); //.getScanScheduler();
@@ -693,20 +731,15 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         });
                     }
 
-                    console.log(order);
                     if(order==null){
                         throw new Error("Scan order not found in DB")
                     }
-
-
-
 
                     let org:OrganizationUnit = null;
                     if(order.orgUnit!=null){
                         org = await $.context.getOrgManager().getOrganization(req.user, order.orgUnit);
                     }
 
-                    console.log(order.orgUnit, org);
                     //console.log(project);
                     const report = await scheduler.newStandaloneScan(req.user, project, order, org);
 
@@ -744,13 +777,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-                /*
-                let project = null;
-                try{
-                    project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
-                }catch(err1){
-                    throw err1;
-                }*/
 
                 // ========== LOGIC
                 const orders = await  $.context.getScanScheduler().listOrdersOf(req.params.projectID);
@@ -780,7 +806,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 //
                 let project:Nullable<DexcaliburProject> = null;
                 try{
-                    project = req.project; // AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
+                    project = req.project;
                 }catch(err1){
                     throw err1;
                 }

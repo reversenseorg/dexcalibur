@@ -27,7 +27,7 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export const DEVICE_WEB_API: DelegateWebApi = new DelegateWebApi("DEV");
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/fs/list',
     {
         'get': async (req, res)=>{
@@ -90,7 +90,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 )
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/fs/content',
     {
         'get': async function (req:DelegateRequest, res:DelegateResponse): Promise<any> {
@@ -103,7 +103,6 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 if (req.query.uid != null) {
                     dev = $.context.getDeviceManager().getDevice(req.query.uid as string);
                 } else {
-                    //req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $, {readProject:true, readProjectStrict:true });
                     dev = req.project.getDevice();
                 }
 
@@ -158,7 +157,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/profile/:type',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -251,7 +250,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/frida/settings',
     {
         'post': (req:DelegateRequest, res:DelegateResponse):any => {
@@ -283,7 +282,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
         }
     });
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/processes',
     {
         'get': async function (req:DelegateRequest, res:DelegateResponse): Promise<any> {
@@ -335,7 +334,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     });
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/connect',
     {
         'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -391,7 +390,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     });
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/clear/:deviceid',
     {
         'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -419,7 +418,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/clear',
     {
         'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -440,7 +439,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/bridge/:name/kill',
     {
         'post': async  (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -461,7 +460,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
         }
     });
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/enroll',
     {
         'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -481,7 +480,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     });
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/enroll/status',
     {
         'get':  (req:DelegateRequest, res:DelegateResponse):any => {
@@ -516,7 +515,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     });
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '',
     {
     'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> => {
@@ -625,7 +624,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 });
 
 //
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/syscalls',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -646,7 +645,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             }
         }
     });
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/syscalls',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -668,7 +667,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
         }
     });
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/eop/change',
     {
     'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -944,7 +943,7 @@ DEVICE_WEB_API.addPublicRoute(
     });
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/:uid/bridge',
     {
         'put': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -992,7 +991,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     });
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/models/search',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
@@ -1019,7 +1018,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     }
 );
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/models/list',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
@@ -1042,7 +1041,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     }
 );
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/brands/list',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
@@ -1066,7 +1065,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 );
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/applications/:uid',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
@@ -1102,7 +1101,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 );
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/dev/:uid/org/:oid',
     {
         'get': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
@@ -1138,7 +1137,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/vdev/tpl/org/:oid',
     {
         'get': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
@@ -1173,7 +1172,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 );
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/vdev/tpl/org/:oid/create/:tpl',
     {
         'post': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
@@ -1235,7 +1234,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 );
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/vdev/start/:did/:oid',
     {
         'post': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
@@ -1285,7 +1284,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/vdev/stop/:did/:oid',
     {
         'post': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
@@ -1331,7 +1330,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 );
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/vdev/del/:did/:oid',
     {
         'delete': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
@@ -1378,7 +1377,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 );
 
 
-DEVICE_WEB_API.addAsyncPublicRoute(
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/action/:uid/:action',
     {
         'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {

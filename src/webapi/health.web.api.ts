@@ -6,6 +6,11 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HEALTH_WEB_API: DelegateWebApi = new DelegateWebApi("HEALTH");
 
 
+/* ================ IMPORTANT ================
+ PRIVATE API :
+ - This API contains Public (not authenticated) endpoints, it must be not exposed to outside
+ - TODO : deny external access by configuration of reverse proxy
+ ============================================= */
 HEALTH_WEB_API.addAsyncAuthenticatedRoute(
     '/uuid',
     {
