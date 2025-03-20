@@ -4,7 +4,6 @@ import PlatformManager from "./platform/PlatformManager.js";
 import * as  _fs_ from 'fs';
 import * as  _path_ from 'path';
 import * as  _os_ from "os";
-import * as _ps_ from "process";
 
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 
@@ -32,13 +31,10 @@ import {Settings} from "./Settings.js";
 import RadareHelper from "./R2Helper.js";
 import {UserService} from "./user/UserService.js";
 import AccessControl from "./user/acl/AccessControl.js";
-import {AccessZone} from "./user/acl/Zones.js";
 import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
-import {SettingsAccessControl} from "./user/acl/rbac/SettingsAccessContol.js";
 import {IDexcaliburEngine} from "./IDexcaliburEngine.js";
 import {ConnectionManager} from "./remote/ConnectionManager.js";
 import ShellHelper from "./ShellHelper.js";
-import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
 import {UserAccount} from "./user/UserAccount.js";
 import {NodeSchema} from "./NodeSchema.js";
 import {DexcaliburUpdater} from "./DexcaliburUpdater.js";
@@ -52,31 +48,29 @@ import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {EngineNodeManager, MasterNodeOptions, NodeState} from "./core/EngineNodeManager.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
-import {AppContextType, IAppContext, TagCategory} from "@dexcalibur/dexcalibur-orm"
+import {AppContextType, IAppContext} from "@dexcalibur/dexcalibur-orm"
 import {EngineDatabase} from "./database/EngineDatabase.js";
 import {EngineNodeException} from "./errors/EngineNodeException.js";
 import TargetApp from "./common/TargetApp.js";
 import Platform from "./platform/Platform.js";
 import {ProjectState} from "./ProjectState.js";
-import Tool = External.Tool;
-import { Subject} from "rxjs";
+import {Subject} from "rxjs";
 import {LogMessage} from "./log/Log.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {UserServiceException} from "./errors/UserServiceException.js";
 import {OrganizationManager} from "./organization/OrganizationManager.js";
-import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
 import {AccessControlManager} from "./user/acl/AccessControlManager.js";
-import Role from "./user/acl/common/Role.js";
 import {randomUUID} from "crypto";
 import {ProjectManager} from "./project/ProjectManager.js";
 import ts from "typescript/lib/tsserverlibrary.js";
-import Project = ts.server.Project;
 import {InternalSecretManager} from "./core/InternalSecretManager.js";
 import {ApplicationUnit} from "./organization/ApplicationUnit.js";
 import {Device} from "./Device.js";
 import AvdHelper from "./device/maker/AvdHelper.js";
-import {EngineNode, EngineNodeUUID} from "./core/EngineNode.js";
+import {EngineNodeUUID} from "./core/EngineNode.js";
 import {ProjectScheduler} from "./project/ProjectScheduler.js";
+import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
+import Tool = External.Tool;
 
 /*
 const _fixPath_ = require("fix-path");
@@ -85,18 +79,6 @@ if(require('os').platform()=="darwin"){
     _fixPath_();
 }*/
 export const DEXCALIBUR_HOME_DIRNAME = ".dexcalibur";
-/**
- * Running mode of engine instance :
- * - master : manage several slave engines, and expose GUIs
- * - slave : headless engine used to distribute processing
- *
- *
- */
-export enum DexcaliburEngineMode {
-    MASTER= "MASTER",
-    SLAVE= "SLAVE",
-    STANDALONE="STANDALONE"
-}
 
 
 export interface RepairWsOptions {
@@ -1839,7 +1821,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         // if the engine is a SLAVE instance, notify the MASTER the instance is started
         if(this.getEngineMode()==DexcaliburEngineMode.SLAVE){
-            this.nodeManager.notifyMaster(NodeState.IDLE);
+            if(this.nodeManager.selfRegistration){
+                this.nodeManager.registerMaster();
+            }else{
+                this.nodeManager.notifyMaster(NodeState.IDLE);
+            }
         }
 
     }

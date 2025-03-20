@@ -8,7 +8,11 @@ import {EngineNodeException} from "../errors/EngineNodeException.js";
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const NODE_MGR_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-
+/* ================ IMPORTANT ================
+ PRIVATE API :
+ - This API contains Public (not authenticated) endpoints, it must be not exposed to outside
+ - TODO : deny external access by configuration of reverse proxy
+ ============================================= */
 NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
     '/scheduler/info',
     {
@@ -81,46 +85,39 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
     }
 );
 
-/*
 
-NODE_MGR_WEB_API.addPublicRoute(
-    '/scan/:node_uuid/:state',
+/**
+ * A webhook used by slave nodes to send state/health checks to master node
+ *
+ */
+NODE_MGR_WEB_API.addAsyncPublicRoute(
+    '/webhook/register',
     {
-        'get': async (req:DelegateRequest, res:DelegateResponse) => {
-            const $: WebServer = req.dxc.$;
-
-            try{
-                let safeState:NodeState
-                if([NodeState.IDLE,NodeState.BUSY,NodeState.STOPPED].indexOf(req.params['state'] as NodeState)==-1){
-                    throw new Error("Status not supported");
-                }else{
-                    safeState = req.params['state'] as NodeState;
-                }
-
-                $.context.nodeManager.updateState(req.params['node_uuid'],safeState);
-                $.sendSuccess(res, {});
-            }catch(err){
-                Logger.error("[API][NODE] Node state cannot updated. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "");
-            }
-        },
         'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
 
             try{
-                let safeState:NodeState
-                if([NodeState.IDLE,NodeState.BUSY,NodeState.STOPPED].indexOf(req.params['state'] as NodeState)==-1){
-                    throw new Error("Status not supported");
-                }else{
-                    safeState = req.params['state'] as NodeState;
-                }
+                // retireve registration key
+                const unsafeKey = req.body[$.context.nodeManager.getRegistrationKeyName()];
 
-                $.context.nodeManager.updateState(req.params['node_uuid'],safeState);
+                const unsafeHost = req.headers[EngineNodeManager.HEADER_NODE_HOST];
+
+                // validate
+                $.context.nodeManager.registerNode(
+                    unsafeKey,
+                    unsafeHost as string,
+                    {
+                        http: req.body.http,
+                        https: req.body.https,
+                    }
+                );
+
                 $.sendSuccess(res, {});
             }catch(err){
-                Logger.error("[API][NODE] Node state cannot updated. Cause : " + err.message + "\n\t" + err.stack);
+                Logger.error("[API][NODE] Node state cannot updated. Cause : UUID Header is missing : ",err.stack,err.message);
+                //console.log(req.headers);
                 $.sendError(res, "");
             }
         }
     }
-);*/
+);

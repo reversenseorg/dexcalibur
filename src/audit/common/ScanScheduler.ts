@@ -112,9 +112,8 @@ export class ScanScheduler {
             wf = pProject.getWorkflow();
         }
 
-        console.log("order save NEW SCAN ORDER> ",await edb.save(pOrder));
-        //await edb.save(pOrder);
-
+        console.log("order save NEW SCAN ORDER> ");
+        await edb.save(pOrder);
         // to check if the organization is allowed to execute the scan order
         /*if(pOrg!=null && pOrg.getBusinessPlan()==null){
             pOrg.setBusinessPlan(BusinessPlan.newSubscription(pOrg,3{
@@ -165,7 +164,8 @@ export class ScanScheduler {
         pOrder.setDate( ACTION_DATE.STOP );
         pOrder.setState(ScanState.GENERATE_REPORT);
 
-        console.log("order save BEFORE REPORT SAVING> ",await edb.save(pOrder));
+        console.log("order save BEFORE REPORT SAVING> ");
+        await edb.save(pOrder);
         //await edb.save(pOrder);
 
         // get report
@@ -174,7 +174,8 @@ export class ScanScheduler {
         am.saveReport(project, report);
         //pOrder.report = report;
         pOrder.setState(ScanState.TERMINATED);
-        console.log("order save TERMINATED> ",await edb.save(pOrder));
+        console.log("order save TERMINATED> ");
+        await edb.save(pOrder);
         //await edb.save(pOrder);
         // get hook instance by ID
         return report;

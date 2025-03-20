@@ -6,7 +6,7 @@ import Control from "./Control.js";
 import {Metadata, MetadataType} from "./Metadata.js";
 import {Auditable} from "../../Auditable.js";
 import {AuditAccessControl} from "../../user/acl/rbac/AuditAccessControl.js";
-import ControlAssessment from "./ControlAssessment.js";
+import ControlAssessment, {MetadataTopic} from "./ControlAssessment.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Nullable} from "../../core/IStringIndex.js";
@@ -173,9 +173,9 @@ export default class AssuranceModel extends Auditable implements INode {
 
     tags:number[];
 
-    constructor( pConfig:any = null) {
+    constructor( pConfig:any = null, pUpdate = true) {
         super(null);
-        this.update(pConfig, true);
+        this.update(pConfig, pUpdate);
     }
 
     getUID(): AssuranceModelUUID {
@@ -274,7 +274,7 @@ export default class AssuranceModel extends Auditable implements INode {
      * @static
      */
     static fromJsonObject(pData:any):AssuranceModel {
-        const o = new AssuranceModel(pData);
+        const o = new AssuranceModel(pData,false);
 
         if(pData.globalThreats!=null){
             pData.globalThreats.map( (x,i) => {
@@ -317,7 +317,7 @@ export default class AssuranceModel extends Auditable implements INode {
             o.indicators = [];
         }
 
-
+        o.update(o,true);
 
         return o;
     }
@@ -435,7 +435,27 @@ export default class AssuranceModel extends Auditable implements INode {
         const current:ControlNode = (pCurrNode==null ? { canonicalID:CANONICALIZED_ROOT, children:{} } : pCurrNode );
 
         pControls.map((vCtrl:Control|ControlAssessment)=>{
-            const canonicalID = current.canonicalID+CANONICAL_ID_SEPARATOR+vCtrl.id;
+
+            let canonicalID:string;
+
+            if(vCtrl.id!=null){
+                canonicalID = current.canonicalID+CANONICAL_ID_SEPARATOR+vCtrl.id;
+            }else{
+                // retrieve MetadataTopic.DFLOW_STEP
+                const dflow = vCtrl.metadata.find(x => x.key===MetadataTopic.DFLOW_STEP);
+                if(dflow!=null){
+                    canonicalID = current.canonicalID+CANONICAL_ID_SEPARATOR+dflow;
+                }
+                // retrieve analType
+                if(vCtrl.isControlAssessment()){
+                    if(dflow!=null){
+                        canonicalID += ":"+(vCtrl as ControlAssessment).analType;
+                    }else{
+                        canonicalID = current.canonicalID+CANONICAL_ID_SEPARATOR+(vCtrl as ControlAssessment).analType;
+                    }
+                }
+            }
+
             const node:ControlNode = {
                 parent:current,
                 canonicalID:canonicalID,
@@ -702,6 +722,10 @@ export default class AssuranceModel extends Auditable implements INode {
         if(variant==null) return null;
 
         return variant.value;
+    }
+
+    getControlTree():any {
+        return this._controlTree;
     }
 }
 AssuranceModel.TYPE.builder(AssuranceModel);

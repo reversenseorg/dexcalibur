@@ -177,6 +177,7 @@ export class EngineNode implements INode {
             (new NodeProperty("httpPort")).type(DbDataType.STRING).def(-1),
             (new NodeProperty("httpsPort")).type(DbDataType.STRING).def(-1),
             (new NodeProperty("running")).type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("createdAt")).type(DbDataType.NUMERIC).def(-1),
             (new NodeProperty("startedAt")).type(DbDataType.NUMERIC).def(-1),
             (new NodeProperty("stoppedAt")).type(DbDataType.NUMERIC).def(-1),
             (new NodeProperty("activeScanSession")).type(DbDataType.STRING).def(null),
@@ -187,6 +188,7 @@ export class EngineNode implements INode {
             (new NodeProperty("parentUUID")).type(DbDataType.STRING).def(null),
             (new NodeProperty("spawnCmd")).type(DbDataType.STRING).def(null),
             (new NodeProperty("nodeOpts")).type(DbDataType.BLOB).def({}),
+            (new NodeProperty("selfReg")).type(DbDataType.BOOLEAN).def(false),
             (new NodeProperty("_state")).volatile().type(DbDataType.BLOB).def(null)
         ]).dataSource("ENGINE_DB");
 
@@ -296,7 +298,19 @@ export class EngineNode implements INode {
 
     startedAt = -1;
     stoppedAt = -1;
+    createdAt = -1;
+    /**
+     * Flag.
+     * TRUE if the node is allowed to start on self registration of a slave
+     * @field
+     */
+    selfReg = false;
 
+    /**
+     *
+     * @param {EngineNodeOptions} pOptions
+     * @constructor
+     */
     constructor(pOptions:EngineNodeOptions) {
 
         if(pOptions.UUID != null) this.UUID = pOptions.UUID;
@@ -480,11 +494,23 @@ export class EngineNode implements INode {
     }
 
     /**
+     * Trigger
+     */
+    async remoteStart():Promise<any> {
+        // notify kube api, ...
+        return;
+    }
+
+    /**
      *
      */
     async start(pCause:string, pNodeOpts:string[] = []):Promise<void> {
-        if(this.state!==NodeState.NEW){
+        if(this.state!==NodeState.NEW && this.state!==NodeState.QUEUED){
             throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node : '+this.state);
+        }
+
+            if(this.isAllowSefRegistration() && this.state==NodeState.QUEUED){
+            //return; // await this.remoteStart();
         }
 
         const hasHeapSizeOpt = pNodeOpts.find( x => (x.indexOf('--max-old-space-size=')>-1));
@@ -497,6 +523,7 @@ export class EngineNode implements INode {
 
 
         return await this.spawn(pCause, false, pNodeOpts);
+
     }
 
     /**
@@ -873,7 +900,15 @@ export class EngineNode implements INode {
 
             args.push('--headless');
             args.push('--slave-node');
-            args.push('--node-uid='+this.UUID);
+
+            if((this._engine as DexcaliburEngine).getNodeManager().selfRegistration){
+
+                args.push('--self-registration');
+                args.push('--self-registration-secret='+(this._engine as DexcaliburEngine).getNodeManager()
+                                        .getRegistrationKeyPath());
+            }else{
+                args.push('--node-uid='+this.UUID);
+            }
             args.push('--port='+this.httpPort);
             args.push('--port-ws='+this.httpsPort); // change
             args.push('--master-uri='+this.masterURI);
@@ -1046,9 +1081,13 @@ export class EngineNode implements INode {
     /**
      * To kill this node
      *
+     * Only work when parallelism is based on top of process
+     * (not on top of self registration)
+     *
      * @method
      */
     kill():void {
+
         if(this._pid==-1 || this._pid==null) return;
 
         try{
@@ -1126,6 +1165,7 @@ export class EngineNode implements INode {
             waitingQueue: this.waitingQueue,
             spawnCmd: this.spawnCmd,
             pid: this._pid,
+            selfReg: this.selfReg
             //errPipe: (this.errPipe!=null),
             //outPipe: (this.outPipe!=null)
         };
@@ -1136,6 +1176,8 @@ export class EngineNode implements INode {
      * @param pRequest
      * @param pResponse
      * @param pOptions
+     * @async
+     * @method
      */
     async forwardWebRequest(pServer:WebServer, pRequest:any, pResponse?:any ):Promise<any> {
         console.log(`[ASYNC] Forward request from [node=${this.parentUUID}] to [node=${this.UUID}][uri=${this.getHost()}][url=${pRequest.url}]`)
@@ -1163,13 +1205,13 @@ export class EngineNode implements INode {
                 let rawData = '';
 
                 proxyRes.on('data', (chunk) => {
-                    console.log("RESPONSE CHUNK  > ",chunk);
+                    // Logger.raw("RESPONSE CHUNK  > ",chunk);
 
                     rawData += chunk;
                 });
                 proxyRes.on('end', () => {
 
-                    console.log("RESPONSE > ",rawData, proxyRes.statusCode, proxyRes.headers);
+                    //Logger.raw("RESPONSE > ",rawData, proxyRes.statusCode, proxyRes.headers);
                     //pResponse.writeHead(proxyRes.statusCode, proxyRes.headers);
 
                     if(!responseSent){
@@ -1221,7 +1263,7 @@ export class EngineNode implements INode {
     /**
      * To check if the node is up or not
      *
-     *
+     * @since 1.8.0
      */
     async getHcStatus(pEngine:Nullable<IDexcaliburEngine> = null):Promise<any> {
 
@@ -1244,6 +1286,9 @@ export class EngineNode implements INode {
 
     /**
      * To unscribe queues and listener when the node is dead
+     *
+     * @param {DexcaliburEngine} pEngine
+     * @method
      */
     stopped(pEngine:DexcaliburEngine) {
         // reschedule current operration
@@ -1262,6 +1307,28 @@ export class EngineNode implements INode {
         if(this._engine==null) this._engine = pEngine;
 
         this.save(['running','state','stoppedAt','startedAt']);
+    }
+
+    /**
+     * To allow this node to start on self registration
+     * of a slave
+     *
+     * @method
+     * @since 1.8.0
+     */
+    allowSelfRegistration(){
+        this.selfReg = true;
+    }
+
+    /**
+     * To check if this node allow starting o registration of a slave node
+     *
+     * @returns {boolean}
+     * @method
+     * @since 1.8.0
+     */
+    isAllowSefRegistration():boolean {
+        return this.selfReg;
     }
 }
 EngineNode.TYPE.builder(EngineNode);

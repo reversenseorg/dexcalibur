@@ -1,6 +1,6 @@
 import {Finder} from "./Finder.js";
 import { SearchAPISelector } from "./SearchAPISelector.js";
-import {MerlinSearchRequest} from "./MerlinSearchRequest.js";
+import {MerlinError, MerlinSearchRequest} from "./MerlinSearchRequest.js";
 import Util from "../Utils.js";
 
 import AnalyzerDatabase from "../AnalyzerDatabase.js";

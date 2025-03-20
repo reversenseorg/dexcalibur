@@ -409,9 +409,9 @@ export default class AdbWrapper implements IBridge
     async kill():Promise<boolean>{
         let ret:Promise<string> = null;
 
-        ret = await UT.execAsync(this.setup() + " kill-server").catch((err:string)=>{
+        ret = await UT.execAsync(this.setup() + " kill-server");/*.catch((err:string)=>{
             throw new Error('[ADB WRAPPER] kill-server : '+err);
-        });
+        });*/
 
         return true;
     }

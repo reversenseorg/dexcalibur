@@ -150,6 +150,15 @@ export class MerlinUnserializer {
     }
 
 
+    /**
+     * To create search request instance from serialized one
+     *
+     * Serialized Requests mainly come from database and API
+     *
+     * @param {SerializedSearchRequest} pRequest Poor object representing serialized request
+     * @static
+     * @method
+     */
     static fromSerializedSearchRequest(pRequest:SerializedSearchRequest):MerlinSearchRequest {
         let reqOpts:any = {};
         let reqOpers:Operation[] = [];
@@ -202,6 +211,8 @@ export class MerlinUnserializer {
         let reqOpers:Operation[] = [];
         let options:MerlinRuleOptions =  {}
         let reqOpts:SearchOptions;
+        let errors:any[] = [];
+
         try{
 
             // if a single request is specified
@@ -209,7 +220,17 @@ export class MerlinUnserializer {
 
                 // unserialize req options (base node)
                 if (pObject.request.opts != null) {
-                    reqOpts = MerlinUnserializer.fromSerializedOptions(pObject.request.opts);
+                    try{
+                        reqOpts = MerlinUnserializer.fromSerializedOptions(pObject.request.opts);
+                    }catch (e){
+                        errors.push({
+                            location: 'unserialize',
+                            what: 'opts',
+                            msg: e.msg,
+                            stack: e.stack
+                        })
+                        reqOpts = {not: false};
+                    }
                 } else {
                     reqOpts = {not: false};
                 }
@@ -219,12 +240,21 @@ export class MerlinUnserializer {
                 if (pObject.request.pattern != null) {
 
                     // most basic operation for a single request is a search
-                    reqOpers.push({
-                        type: OperationType.SEARCH,
-                        args: {
-                            pattern: MerlinSearchRequest.parseCondition2(pObject.request.pattern, reqOpts)
-                        }
-                    });
+                    try{
+                        reqOpers.push({
+                            type: OperationType.SEARCH,
+                            args: {
+                                pattern: MerlinSearchRequest.parseCondition2(pObject.request.pattern, reqOpts)
+                            }
+                        });
+                    }catch (e){
+                        errors.push({
+                            location: 'unserialize',
+                            what: 'pattern',
+                            msg: e.msg,
+                            stack: e.stack
+                        })
+                    }
                 }
 
 
@@ -236,15 +266,27 @@ export class MerlinUnserializer {
                                 case OperationType.FILTER:
                                     if((x.args as any).pattern != null){
 
-                                        //console.info('OperationType.FILTER  processed ',x);
-                                        reqOpers.push({
-                                            type: OperationType.FILTER,
-                                            args: {
-                                                pattern: MerlinSearchRequest.parseCondition2((x.args as any).pattern,
-                                                    ((x.args as any).options!=null?
-                                                        (x.args as any).options:null))
-                                            }
-                                        });
+                                        try{
+                                            reqOpers.push({
+                                                type: OperationType.FILTER,
+                                                args: {
+                                                    pattern: MerlinSearchRequest.parseCondition2((x.args as any).pattern,
+                                                        ((x.args as any).options!=null?
+                                                            (x.args as any).options:null))
+                                                }
+                                            });
+                                        }catch (e){
+                                            errors.push({
+                                                location: 'unserialize',
+                                                what: 'filter-pattern',
+                                                subject: {
+                                                    pattern: (x.args as any).pattern,
+                                                    options: (x.args as any).options
+                                                },
+                                                msg: e.msg,
+                                                stack: e.stack
+                                            })
+                                        }
                                     }else{
                                         //console.log('OperationType.FILTER not processed ',x);
                                     }
@@ -301,6 +343,17 @@ export class MerlinUnserializer {
                     if(req.request==null){
                         console.log(pObject.request.node, pObject.os, NodeType.ALL[pObject.request.node]);
                         console.log(pObject);
+
+
+                        errors.push({
+                            location: 'unserialize',
+                            what: 'node-type',
+                            subject: {
+                                node: pObject.request.node,
+                                os: pObject.os
+                            }
+                        });
+
                         throw MerlinSearchRequestException.MISSING_NODE_TYPE(pObject.request.node);
                     }
                 }
@@ -308,18 +361,53 @@ export class MerlinUnserializer {
 
             // unserialize rule options (including taint-related requests)
             if(pObject.sinks!=null){
-                pObject.sinks.map( x => {
-                    req.sink(MerlinUnserializer.fromSerializedMerlinPrimitive(x));
-                })
+                pObject.sinks.map( (x,i) => {
+                    const single = MerlinUnserializer.fromSerializedMerlinPrimitive(x)
+                    req.sink(single);
+                    if(single.hasErrors()){
+                        req.addError({
+                            location: 'unserialize',
+                            what: 'sinks-req',
+                            subject: {
+                                offset: i,
+                                err: single.getErrors()
+                            }
+                        });
+                    }
+
+                });
             }
             if(pObject.sources!=null){
-                pObject.sources.map( x => {
-                    req.sources(MerlinUnserializer.fromSerializedMerlinPrimitive(x));
+                pObject.sources.map( (x,i) => {
+                    const single = MerlinUnserializer.fromSerializedMerlinPrimitive(x)
+                    req.sources(single);
+                    if(single.hasErrors()){
+                        req.addError({
+                            location: 'unserialize',
+                            what: 'sources-req',
+                            subject: {
+                                offset: i,
+                                err: single.getErrors()
+                            }
+                        });
+                    }
                 })
             }
             if(pObject.steps!=null){
-                pObject.steps.map( x => {
-                    req.steps(MerlinUnserializer.fromSerializedMerlinPrimitive(x));
+                pObject.steps.map( (x,i) => {
+                    const single = MerlinUnserializer.fromSerializedMerlinPrimitive(x)
+                    req.steps(single);
+
+                    if(single.hasErrors()){
+                        req.addError({
+                            location: 'unserialize',
+                            what: 'steps-req',
+                            subject: {
+                                offset: i,
+                                err: single.getErrors()
+                            }
+                        });
+                    }
                 })
             }
 
@@ -335,10 +423,17 @@ export class MerlinUnserializer {
             }
 
         }catch(err:any){
-
+            errors.push({
+                location: 'unserialize',
+                what: 'uncaught',
+                msg: err.msg
+            });
             console.log(err.message,err.stack);
         }
 
+        if(errors.length>0){
+            req.setErrors(errors);
+        }
 
 
         return req;

@@ -110,7 +110,13 @@ export interface AggregationOption {
   size?: number
 }
 
-
+export interface MerlinError {
+  msg?:string;
+  stack?:string;
+  subject?:any;
+  what:string;
+  location:string;
+}
 
 
 export interface ValidationResult {
@@ -133,7 +139,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   private _oper:Operation[];
   private _aggs = 0;
   private _search = 0;
-
+  private _errors:MerlinError[] = [];
   private _evt:string[] = []
 
   private _options:SearchRequestOptions = {
@@ -431,7 +437,12 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       //const rx = new RegExp(pattern.substring(1,lastDeliminiter), reFlags);
 
       cond.regexp = true;
-      cond.turnAsRegexp();
+      try{
+        cond.turnAsRegexp();
+      }catch(e){
+        cond.setError( { msg:e.msg });
+      }
+
       //cond.pattern = rx;
 
     }else if(pattern.length > 0){
@@ -1079,7 +1090,8 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         _options: this._options,
         _evt: this._evt,
         _oper: this.getOperations(),
-        __stringified: ""
+        __stringified: "",
+        _errors: this._errors
       };
 
     this.getOperations().map((vOpe,vIdx) => {
@@ -1111,4 +1123,19 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     return r;
   }
 
+  hasErrors():boolean {
+    return (this._errors.length>0);
+  }
+
+  addError(pErr:MerlinError):void {
+    this._errors.push(pErr);
+  }
+
+  getErrors():MerlinError[] {
+    return this._errors;
+  }
+
+  setErrors(pErrs:MerlinError[]):void {
+    this._errors = pErrs;
+  }
 }

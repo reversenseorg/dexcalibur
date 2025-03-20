@@ -4,7 +4,7 @@ import * as Process from 'process';
 import ArgParser from './src/ArgUtils.js';
 
 
-import DexcaliburEngine, {DexcaliburEngineMode, DexcaliburEngineOptions} from './src/DexcaliburEngine.js';
+import DexcaliburEngine, {DexcaliburEngineOptions} from './src/DexcaliburEngine.js';
 
 import * as _fs_ from "fs";
 import * as _os_ from "os";
@@ -12,6 +12,7 @@ import * as Log from "./src/Logger.js";
 import {Settings} from "./src/Settings.js";
 import Util from "./src/Utils.js";
 import {IStringIndex} from "./src/core/IStringIndex.js";
+import {DexcaliburEngineMode} from "./src/DexcaliburEngineMode.js";
 
 // Classic expert-oriented view
 const DEFAULT_GUI:string = "dxc-web";
@@ -106,6 +107,14 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "To set the public key of the MASTER",
         hasVal:true,
         callback:(ctx,param)=>{ ctx.slaveNodeKey = param.value; } },
+    { name:"--self-registration",
+        help: "To enable self registration of slave node to master. Env : DXC_NODE_REG",
+        hasVal:false,
+        callback:(ctx,param)=>{ ctx.slaveReg = true; } },
+    { name:"--self-registration-secret",
+        help: "Secret to authenticate the slave node to master node during self registration. Env : DXC_NODE_REG_KEY",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.slaveRegSecret = param.value; } },
     { name:"--auth-settings",
         help: "To extend/override authentication settings ",
         hasVal:true,
@@ -222,6 +231,7 @@ if(projectArgs.slaveMode){
 // create an empty single (not yet initialiazed) instance of engine
 dxcInstance = DexcaliburEngine.getInstance(engineOpts);
 
+
 if(projectArgs.dryRun){
     dxcInstance.dryRun = true;
 }
@@ -289,6 +299,14 @@ if( !projectArgs.ipc
                 projectArgs.restore===true? true : false,
                 guiConfigString
             );
+
+            // configure registration
+            if(projectArgs.slaveReg==true){
+                dxcInstance.getNodeManager().enableSelfRegistration(true);
+            }
+            if(projectArgs.slaveRegSecret!=null){
+                dxcInstance.getNodeManager().setSelfRegKey(projectArgs.slaveRegSecret);
+            }
 
             if(ready){
                 if(projectArgs.wsPort!=null){

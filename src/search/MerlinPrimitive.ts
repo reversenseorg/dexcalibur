@@ -1,5 +1,6 @@
 import {FinderResult} from "./FinderResult.js";
 import {BusSubscriber} from "../Bus.js";
+import {MerlinError} from "./MerlinSearchRequest.js";
 
 export interface RuleOption {
     score?:number
@@ -34,4 +35,12 @@ export interface MerlinPrimitive {
     getSubscribeList():string[];
 
     toBusSubscriber(pContext:any):BusSubscriber;
+
+    hasErrors():boolean;
+
+    addError(pErr:MerlinError):void ;
+
+    getErrors():MerlinError[];
+
+    setErrors(pErrs:MerlinError[]):void;
 }

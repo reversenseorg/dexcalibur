@@ -17,6 +17,9 @@ import {AuditManager} from "../AuditManager.js";
 import {MerlinPrimitive} from "../../search/MerlinPrimitive.js";
 import {MerlinRule} from "../../search/MerlinRule.js";
 import {FinderResult} from "../../search/FinderResult.js";
+import {BusSubscriber} from "../../Bus.js";
+import {AuditManagerException} from "../errors/AuditManagerException.js";
+import {AssuranceScannerException} from "../errors/AssuranceScannerException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -47,7 +50,13 @@ export interface PrivacyScannerOpts {
 }
 
 /**
- * Main API to perform privacy scan
+ * Scanner instance
+ *
+ * Every scan has own instance of a scanner. Scanners can have several
+ * behaviours.
+ *
+ * GenericScanner offers all what most of referentials required to be assessed
+ *
  *
  * @class
  */
@@ -81,7 +90,7 @@ export class GenericScanner extends AssuranceScanner {
      *
      * @private
      */
-    public createMainDashboard(pOpts:DashBoardOpts):void {
+    private _createMainDashboard(pOpts:DashBoardOpts):void {
         this.dashboards[this._mainDB] = new DashBoard({
             name: this._mainDB,
             ... pOpts
@@ -112,6 +121,10 @@ export class GenericScanner extends AssuranceScanner {
                 if(Merlin.isRule(vRule)){
 
                     try{
+                        if(vRule.hasErrors()){
+                            Logger.error(`Rule [uid=${pCtrlNode.ctrl.id}#${vRuleOffset}] has errors (${vRule.getErrors().length}`);
+                            continue;
+                        }
                         res = await vRule.execute(this.project);
                         if(res.count()>0){
                             console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
@@ -137,6 +150,12 @@ export class GenericScanner extends AssuranceScanner {
                 }else{
 
                     try{
+
+                        if(vRule.hasErrors()){
+                            Logger.error(`Request [uid=${pCtrlNode.ctrl.id}#${vRuleOffset}] has errors (${vRule.getErrors().length}`);
+                            continue;
+                        }
+
                         (vRule as MerlinSearchRequest).setContext(this._searchContext);
                         res = await vRule.execute(this.project);
                         if(res.count()>0){
@@ -215,6 +234,7 @@ export class GenericScanner extends AssuranceScanner {
     private _subscribeControls(pControl:Control):BusBasedControl[] {
 
         let reqs:BusBasedControl[] = [];
+        let subscribers:BusSubscriber[] = [];
 
         if(pControl.hasChildren()){
             pControl.children.map( vCtrl => {
@@ -228,8 +248,12 @@ export class GenericScanner extends AssuranceScanner {
                             ctrl: vAssess,
                             rule: vRule
                         });
+
                         vRule.getSubscribeList().map( x => {
-                            this.project.getBus().subscribe(x, vRule.toBusSubscriber(vAssess));
+                            // we gather individual bus subscriber to be able to unsubscribe them later
+                            const bsub = vRule.toBusSubscriber(vAssess);
+                            this.project.getBus().subscribe(x, bsub);
+                            subscribers.push(bsub);
                         });
                     }
                 });
@@ -289,6 +313,8 @@ export class GenericScanner extends AssuranceScanner {
         // get atomic assessments
         const leafs = this.model.getControlLeafsFrom(CANONICALIZED_ROOT);
 
+        console.log(leafs);
+
         // build
         leafs.map((vNode)=>{
             if(vNode.ctrl.isControlAssessment()){
@@ -327,7 +353,7 @@ export class GenericScanner extends AssuranceScanner {
         console.log("FIRST SCAN");
 
         // 0. Create dashboard
-        this.createMainDashboard(pOptions.dashboard);
+        this._createMainDashboard(pOptions.dashboard);
 
 
         // TODO : prepare test plan by gathering, categorizing and prioritizing tests
@@ -428,6 +454,10 @@ export class GenericScanner extends AssuranceScanner {
 
     override async run( pContext:DexcaliburProject, pOptions:any = {}):Promise<void>{
 
+        if(this.model==null){
+            throw AssuranceScannerException.MODEL_UNDEFINED(this.name, pContext.getUID());
+        }
+
         if(this._searchContext==null){
             this._searchContext = new MerlinSearchAPI(pContext.getSearchEngine().getDatabase());
         }
@@ -439,9 +469,9 @@ export class GenericScanner extends AssuranceScanner {
         Logger.info(`[SCANNER][${this.name}] Start scan of model [model=${this.model.getUID()}][existingReports=${this.reports.length}]`);
 
 
-        if(this.reports.length==0){
+        //if(this.reports.length==0){
             await this._firstScan( this.project, pOptions);
-        }else{
+        /*}else{
 
             this.report = new AssuranceReport({
                 time:(new Date()).getTime(),
@@ -452,7 +482,7 @@ export class GenericScanner extends AssuranceScanner {
             //this._reScan( this.report, pOptions);
 
             //this.reports.push(this.report);
-        }
+        }*/
 
     }
 

@@ -1,4 +1,4 @@
-import DexcaliburEngine, {DexcaliburEngineMode} from "../DexcaliburEngine.js";
+import DexcaliburEngine from "../DexcaliburEngine.js";
 import {UserAccount} from "../user/UserAccount.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
@@ -32,6 +32,7 @@ import {AndroidPackageAnalyzerConfig} from "../android/analyzer/AndroidPackageAn
 import {IPackageAnalyzer} from "../analyzer/IPackageAnalyzer.js";
 import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
+import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -764,15 +765,21 @@ export class ProjectManager {
 
             // search free node or node for REVIEW / HOOK
             const remoteNode = await this._openRemotely(pUser,pProjectUID,pPurpose);
-            /*const res = await remoteNode.startScan(ScanOrder.fromScanOptions({
-                modelUID: null,
-                projectUID: pProjectUID,
-            }));*/
 
-            let scanOrders:ScanOrder[] = pExtraOpts.scanOrders;
+            let scanOrders:ScanOrder[] = pExtraOpts.scanOrders ;
+
+            if(scanOrders==null || !Array.isArray(scanOrders)){
+                scanOrders = [];
+            }
 
             // to subsribe to state changes
             remoteNode.nodeState$.subscribe((vChange  )=>{
+
+                // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per node
+                if(vChange.new==NodeState.REGISTERED && vChange.before==NodeState.NEW){
+                    //remoteNode.start("Slave registered");
+                }
+
                 // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per node
                 if(vChange.new==NodeState.IDLE && vChange.before==NodeState.STARTING){
                     // to open associated project
@@ -783,15 +790,16 @@ export class ProjectManager {
                 }
                 if(vChange.new==NodeState.IDLE && ([NodeState.BUSY,NodeState.IDLE].indexOf(vChange.before)>-1) ){
 
-                    if(scanOrders.length==0) return;
+                    if(scanOrders.length>0){
 
-                    let order = scanOrders.pop();
+                        let order = scanOrders.pop();
 
-                    // to open associated project
-                    remoteNode.startScan(order).then((r)=>{
-                        //remoteNode.nodeState$
-                        remoteNode.setState(NodeState.IDLE); //.then(()=>{});
-                    })
+                        // to open associated project
+                        remoteNode.startScan(order).then((r)=>{
+                            //remoteNode.nodeState$
+                            remoteNode.setState(NodeState.IDLE); //.then(()=>{});
+                        });
+                    }
                 }
             });
 

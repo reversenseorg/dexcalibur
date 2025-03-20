@@ -1,5 +1,5 @@
 import {randomUUID} from "crypto";
-
+import * as _fs_ from "fs";
 
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
@@ -15,6 +15,7 @@ import {ResourceThresholds} from "../billing/BusinessPlan.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {ValidationRule} from "../Validator.js";
+import {CryptoUtils} from "../CryptoUtils.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -42,8 +43,12 @@ export enum NodeState {
     STOPPED="stopped",
     // created but not started
     NEW="new",
+    // created but not started
+    QUEUED="queued",
     // starting but webhook never called
-    STARTING="starting"
+    STARTING="starting",
+    // when the node is registered (and started) but not assigned to a project
+    REGISTERED="registered"
 }
 
 /**
@@ -60,8 +65,11 @@ export enum NodeState {
  */
 export class EngineNodeManager {
 
-
+    static readonly DEFAULT_REG_KEY_NAME = "3f011d2b-e0b0-413f-a3de-9999b81f20a7";
     static readonly HEADER_NODE_UUID = 'x-dxc-nodeuid';
+    static readonly HEADER_NODE_HOST = 'x-dxc-nodehost';
+
+
     /**
      * UUID of this instance (engine node) into reversense pod
      *
@@ -72,6 +80,10 @@ export class EngineNodeManager {
     portRange: number[];
 
     portCounter: number = -1;
+
+    selfRegistration = false;
+
+    selfRegSecret = null;
 
     engine:DexcaliburEngine;
 
@@ -359,7 +371,9 @@ export class EngineNodeManager {
      * @param pTargetOs
      */
     async createNode(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose, pOUID:Nullable<OrganizationUnitUUID> = null):Promise<EngineNode> {
-        const uuid = randomUUID();
+
+        // generate Node UUID
+        const uuid = await this.engine.getEngineDB().generateFreeUuid(EngineNode.TYPE.getType());
 
         const node =  await EngineNode.newNode(uuid, this.uuid, pProjectUID, this.engine);
 
@@ -367,10 +381,20 @@ export class EngineNodeManager {
 
         node.setEngine(this.engine);
         node.setMasterUri(this.getLocalURI());
-        node.setState(NodeState.NEW)
-        node.setHttpPort(nextPorts.http);
-        node.setHttpsPort(nextPorts.https);
+        node.setState(NodeState.NEW);
         node.setPurpose(pPurpose);
+
+        // if self-registration mode  is enabled, the node will be queued and wait en engine start
+        // and registry himself to master
+        if(this.selfRegistration){
+            // remote host name and port will be set during registration
+            node.setState(NodeState.QUEUED);
+            node.allowSelfRegistration();
+        }else{
+            node.setHttpPort(nextPorts.http);
+            node.setHttpsPort(nextPorts.https);
+        }
+
 
         if(process.env.DXC_NODE_HEAP_SZ){
             node.setMaxHeapSize(parseInt(process.env.DXC_NODE_HEAP_SZ,10));
@@ -576,6 +600,40 @@ export class EngineNodeManager {
                 // this one is mandatory to be processed by master middleware of /api/node/** routes
                 [EngineNodeManager.HEADER_NODE_UUID]: this.uuid
                 // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
+            }
+        });
+
+        const raw = JSON.parse(response.body);
+        return raw;
+    }
+
+
+    /**
+     * SLAVE MODE
+     *
+     * To register this node to the master when self registration is enabled
+     *
+     * @param {NodeState} pState New state of the node
+     */
+    async registerMaster(pState:Nullable<NodeState> = null):Promise<void> {
+
+        if(this.masterURI==null){
+            throw EngineNodeException.INVALID_MASTER_URI('notify');
+        }
+
+        Logger.info("[ENGINE NODE][GOT] Register master  : "+this.masterURI+"/api/node/webhook/register");
+
+        const response = await GOT(this.masterURI+"/api/node/webhook/register", {
+            method: 'POST',
+            headers: {
+                // this one is mandatory to be processed by master middleware of /api/node/** routes
+                [EngineNodeManager.HEADER_NODE_HOST]: process.env.HOSTNAME,
+                [this.getRegistrationKeyName()]: this.getRegistrationKey()
+                // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
+            },
+            json: {
+                http: this.engine.getSettings().getWebserverSettings().getHttpPort(),
+                https: this.engine.getSettings().getWebserverSettings().getWsPort()
             }
         });
 
@@ -838,8 +896,6 @@ export class EngineNodeManager {
                 filter: pFilters
             },{ merlin:false, raw:true });
 
-        console.log(pFilters,nodes);
-
         return nodes.sort((a,b)=>{
             if(a.startedAt==-1 || a.startedAt <= b.startedAt){
                 return 1;
@@ -847,5 +903,110 @@ export class EngineNodeManager {
                 return -1;
             }
         })
+    }
+
+    enableSelfRegistration(pEnable:boolean):void {
+        this.selfRegistration = pEnable;
+    }
+
+    setSelfRegKey(pKeyPath:string):void {
+        this.selfRegSecret = pKeyPath;
+    }
+
+    /**
+     * To get the name of the registration key
+     *
+     * @returns {string} key name
+     * @method
+     */
+    getRegistrationKeyName():string {
+        return (process.env.DXC_NODE_RKNAME!=""?process.env.DXC_NODE_RKNAME : EngineNodeManager.DEFAULT_REG_KEY_NAME);
+    }
+
+    getRegistrationKeyPath() {
+        let path:string = this.selfRegSecret;
+
+        // path env override params
+        if(process.env.DXC_NODE_REG_KEY){
+            path = process.env.DXC_NODE_REG_KEY;
+        }
+
+        // check if file exists
+        if(!_fs_.existsSync(path)) {
+            throw EngineNodeException.REGISTRATION_SECRET_UNDEFINED();
+        }
+
+        return path;
+    }
+
+    getRegistrationKey():string {
+        let path:string = this.getRegistrationKeyPath();
+
+        // retrieve hash
+        return _fs_.readFileSync(path).toString();
+    }
+
+    private async _validateRegistrationKey(pKey:string):Promise<void> {
+
+        // retrieve hash
+        const hash = CryptoUtils.sha256(this.getRegistrationKey(),'hex', true);
+
+        // hash key
+        const given = CryptoUtils.sha256(pKey,'hex', true);
+
+        console.log(hash,given);
+    }
+
+    private async _getNextNode():Promise<Nullable<EngineNode>> {
+        let nodes = await this.getNodes({
+            state: NodeState.QUEUED,
+            createdAt: { $gt: (new Date()).getTime()-(3600*1000*24) }
+        });
+
+        nodes = nodes.sort((a,b)=>{
+            return (a.createdAt>b.createdAt)? -1 : 1;
+        });
+
+        nodes.map(x => console.log(x.getUID()+" "+x.createdAt));
+
+
+        if(nodes.length>0){
+            return nodes[0]
+        }else {
+            return null;
+        }
+    }
+    /**
+     * To register a new node and attribute a node UUID to it
+     *
+     * @param {string} pKey Registration key
+     */
+    async registerNode(pKey:string, pHostname:string, pOptions:any):Promise<EngineNodeUUID> {
+
+        // authenticate node
+        await this._validateRegistrationKey(pKey);
+
+        // get node from queued node request
+        const nextNode = await  this._getNextNode();
+
+        // assign remote slave to node
+        nextNode.setHostname(pHostname);
+
+        if(pOptions.http){
+            nextNode.setHttpPort(pOptions.http);
+        }else{
+            nextNode.setHttpPort(parseInt(process.env.DXP_SLAVE_HTTP_PORT));
+        }
+
+        if(pOptions.https){
+            nextNode.setHttpsPort(pOptions.https);
+        }else{
+            nextNode.setHttpPort(parseInt(process.env.DXP_SLAVE_HTTPS_PORT));
+        }
+
+        // change state
+        nextNode.setState(NodeState.REGISTERED);
+        
+        return nextNode.getUID();
     }
 }

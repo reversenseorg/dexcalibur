@@ -188,6 +188,7 @@ export default class ControlAssessment implements IControl {
     static fromJsonObject(pOpts:any):ControlAssessment {
         const a = new ControlAssessment(pOpts);
 
+
         if(a.rules.length>0){
             a.rules.map((vRule,vIndex)=>{
                 let type = vRule.TYPE!=null ? vRule.TYPE : (vRule as any)._type;
@@ -200,7 +201,6 @@ export default class ControlAssessment implements IControl {
                 }else{
                     a.rules[vIndex] = MerlinUnserializer.fromSerializedMerlinPrimitive(vRule as any);
                 }
-
             });
         }
 

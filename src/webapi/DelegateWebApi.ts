@@ -8,11 +8,11 @@ import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.j
 import {UserSession} from "../user/session/UserSession.js";
 import {IStringIndex} from "../core/IStringIndex.js";
 import {EngineNode, NodePurpose} from "../core/EngineNode.js";
-import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {EngineNodeManager, NodeState} from "../core/EngineNodeManager.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
+import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -23,6 +23,24 @@ export enum HTTP_VERB {
     PUT="put"
 }
 
+export interface RouteOptions {
+    lazyProject?: boolean;
+    /**
+     * To force the master node processing the request
+     * to handle the request even if a project UID is specified
+     * and a valid node slave is running.
+     *
+     * Alternatively, it can be used to activate a route only
+     * on SLAVE or STANDALONE node.
+     *
+     * @field
+     */
+    nodeAffinity?: DexcaliburEngineMode;
+    nodePurpose?: NodePurpose;
+    async?: boolean;
+    readProjectStrict?: boolean;
+    [ppt:string]:any;
+}
 
 export interface ExtraMiddlewareOptions {
     afterAuth:any[],
@@ -114,62 +132,6 @@ export class DelegateWebApi
         this.router = new Router();
         this.name = pName;
     }
-
-    /**
-     * To perform check if the current session is valid, get user info and retrieve active project
-     * instance
-     *
-     * TODO : to remove
-     *
-     * @param pRequest {Request} HTTP Request
-     * @param pWebServer {WebServer} WebServer instance
-     * @return {DexcaliburProject} Active dexcalibur project requested by user
-     * @throws {AuthenticationException | DexcaliburProjectException}
-     * @method
-     * @deprecated
-     * @public
-     */
-    /*doProjectSecurityChecks( pRequest:DelegateRequest, pWebServer:WebServer, pOptions:AuthenticatedRouteOptions):DexcaliburProject {
-
-        /*
-
-        Logger.debug("[AUTH ROUTE] doProjectSecurityChecks : check session, project & authorizations ");
-
-        if (pRequest.dxc == null || !pWebServer.context.getUserService().verifySession(pRequest.dxc.sess,'doProjectSecurityChecks')) {
-            throw AuthenticationException.AUTHENTICATION_FAILED();
-        }
-
-        let project = null;
-        let activeProjects = pWebServer.context.getActiveProjects(pRequest.dxc.sess.getUserAccount());
-
-        // TODO : check authorization
-
-        let insecureProjectUID:string;
-        if(pRequest.body['project']!=null){
-            insecureProjectUID = pRequest.body['project'];
-        }else if(pRequest.query['_puid']!=null){
-            insecureProjectUID = pRequest.query['_puid'] as string;
-        }
-
-        if(Object.keys(activeProjects).indexOf(insecureProjectUID)>-1){
-            project = activeProjects[insecureProjectUID];
-        }
-        else if(pRequest.dxc.project != null){
-            project = pRequest.dxc.project;
-        }
-
-        if(pOptions.readProjectStrict ) {
-            if(project == null && (pRequest.body.project==null && pRequest.query._puid==null )){
-                throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-            }
-            else if (project == null || !project.isReady()){
-                throw DexcaliburProjectException.PROJECT_NOT_READY(pRequest.body['project']);
-            }
-
-        }
-
-        return project;
-    }*/
 
     onInject( pCallback:any ) {
         this._l = pCallback;
@@ -333,7 +295,7 @@ export class DelegateWebApi
      * @param pHandlers
      * @param pOptions
      */
-    addAsyncAuthenticatedRoute( pRoute:string, pHandlers:any, pOptions:any = {} ):void{
+    addAsyncAuthenticatedRoute( pRoute:string, pHandlers:any, pOptions:RouteOptions = {} ):void{
         if(pOptions==null) pOptions = {};
         pOptions.async = true;
         this.addAuthenticatedRoute( pRoute, pHandlers, pOptions);
@@ -344,7 +306,7 @@ export class DelegateWebApi
     addAuthenticatedRoute(
         pRoute:string,
         pHandlers:RequestHandlers,
-        pOptions:AuthenticatedRouteOptions = {
+        pOptions:RouteOptions = {
             async:false,
             lazyProject: false,
             readProjectStrict:true
@@ -393,36 +355,29 @@ export class DelegateWebApi
                                  */
                                 switch (self.srv.context.getEngineMode()){
                                     case DexcaliburEngineMode.MASTER:
-                                        let targetNode:Nullable<EngineNode> = null;
-                                        nodes = await self.srv.context
-                                            .nodeManager
-                                            .getNodeByProject(
-                                                unsafePUID,
-                                                NodePurpose.REVIEW
-                                            );
 
-                                        if(nodes.length>0){
-                                            //targetNode = nodes[0];
+                                        if(pOptions!=null && pOptions.nodeAffinity==DexcaliburEngineMode.MASTER){
+                                            Logger.debug("[AUTH ROUTE | ASYNC] Process request");
+                                            pHandlers[httpVerb](req, res);
 
-                                            self.srv.context
-                                                .nodeManager
-                                                .forwardWebRequest(nodes[0], self.srv, req, res);
                                         }else{
-                                            throw ProjectManagerException.PROJECT_NOT_LOADED(unsafePUID,"middleware-auth(master)");
 
-                                            // check if
-                                            // create
-                                            /*
-                                            targetNode = self.srv.context
-                                                .nodeManager.createNode(unsafePUID, NodePurpose.REVIEW);
+                                            nodes = await self.srv.context
+                                                .nodeManager
+                                                .getNodeByProject(
+                                                    unsafePUID,
+                                                    (pOptions.nodePurpose!=null ? pOptions.nodePurpose : NodePurpose.ANY)
+                                                );
 
-                                            await targetNode.spawn(
-                                                "Request cannot be forwarded, because this project is not linked to a node",
-                                                false
-                                            );
-                                            nodes.push(targetNode);*/
+                                            if(nodes.length>0){
+                                                //targetNode = nodes[0];
+                                                self.srv.context
+                                                    .nodeManager
+                                                    .forwardWebRequest(nodes[0], self.srv, req, res);
+                                            }else if(pOptions.lazyProject===false){
+                                                throw ProjectManagerException.PROJECT_NOT_LOADED(unsafePUID,"middleware-auth(master)");
+                                            }
                                         }
-
                                         break;
                                     case DexcaliburEngineMode.STANDALONE:
                                     case DexcaliburEngineMode.SLAVE:

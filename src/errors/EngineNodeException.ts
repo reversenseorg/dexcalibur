@@ -1,9 +1,12 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {OperationType} from "../core/EngineNode.js";
+import {SecurityZone} from "../security/SecurityZone.js";
 
 
 export class EngineNodeException extends MonitoredError {
 
+
+    _zone = SecurityZone.PRIVATE;
 
     static MAX_PORT_REACHED = ()=>{
         return new EngineNodeException("Max port number reached. Node cannot be started. ",
@@ -47,7 +50,9 @@ export class EngineNodeException extends MonitoredError {
     static MISSING_NODE = (pUuid:string, pAction="")=>{
         return new EngineNodeException("Node ["+pUuid+"] is missing [action="+pAction+"]",
             ErrorCode.REMOTE_DEXCALIBUR + 414) };
-
+    static REGISTRATION_SECRET_UNDEFINED = ()=>{
+        return new EngineNodeException("Registration key not found",
+            ErrorCode.REMOTE_DEXCALIBUR + 415) };
 
 
 

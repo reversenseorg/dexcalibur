@@ -1,6 +1,6 @@
 import {MerlinSearchAPI} from "./MerlinSearchAPI.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {MerlinSearchRequest, Operation, OperationType, TaintOperationArgs} from "./MerlinSearchRequest.js";
+import {MerlinError, MerlinSearchRequest, Operation, OperationType, TaintOperationArgs} from "./MerlinSearchRequest.js";
 import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {FinderResult} from "./FinderResult.js";
 import {BusSubscriber} from "../Bus.js";
@@ -45,6 +45,7 @@ export interface MerlinRuleOptions {
     _sinks?:MerlinRule[];
     _sources?:MerlinRule[];
     _steps?:MerlinRule[];
+    _errors?:MerlinError[];
 }
 
 
@@ -91,6 +92,7 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
      */
     private _evt:string[] = []
 
+    private _errors:MerlinError[] = [];
 
     constructor(pTargetOS:OperatingSystem|undefined, pOpts:MerlinRuleOptions) {
         super();
@@ -101,6 +103,7 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         if(pOpts._sinks!=null) this._sinks = pOpts._sinks;
         if(pOpts._sources!=null) this._sources = pOpts._sources;
         if(pOpts._steps!=null) this._steps = pOpts._steps;
+        if(pOpts._errors!=null) this._errors = pOpts._errors;
 
 
         this.targetOS = pTargetOS;
@@ -431,7 +434,8 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
             _sources: this._sources.map(x => x.toJsonObject()),
             _steps: this._steps.map(x => x.toJsonObject()),
             _subs: this._subs.map(x => x.toJsonObject()),
-            _evt: this._evt
+            _evt: this._evt,
+            _errors: this._errors
         };
 
         if(this.request!=null){
@@ -463,6 +467,23 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
                 o._steps[vI] = MerlinUnserializer.fromSerializedMerlinPrimitive(vReq);
             });
         }*/
+    }
+
+
+    hasErrors():boolean {
+        return (this._errors.length>0);
+    }
+
+    addError(pErr:MerlinError):void {
+        this._errors.push(pErr);
+    }
+
+    getErrors():MerlinError[] {
+        return this._errors;
+    }
+
+    setErrors(pErrs:MerlinError[]):void {
+        this._errors = pErrs;
     }
 }
 

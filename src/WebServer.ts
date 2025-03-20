@@ -11,7 +11,7 @@ import * as _cookieParser_ from 'cookie-parser';
 import * as _openidconnect_ from 'passport-openidconnect';
 import WebTemplateEngine from "./WebTemplateEngine.js";
 import DexcaliburProject from "./DexcaliburProject.js";
-import DexcaliburEngine, {DexcaliburEngineMode} from "./DexcaliburEngine.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 import Uploader from "./Uploader.js";
 import PlatformManager from "./platform/PlatformManager.js";
 import InspectorManager from "./InspectorManager.js";
@@ -60,6 +60,7 @@ import {NODE_MGR_WEB_API} from "./webapi/node.web.api.js";
 import {ORG_WEB_API} from "./webapi/organization.web.api.js";
 import {HEALTH_WEB_API} from "./webapi/health.web.api.js";
 import {WEBHOOK_WEB_API} from "./webapi/webhook.web.api.js";
+import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;

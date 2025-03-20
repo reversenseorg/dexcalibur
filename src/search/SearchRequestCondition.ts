@@ -31,6 +31,7 @@ export class SearchRequestCondition implements IStringIndex<any>{
   field: string|null = null;
   raw = "";
   regexp:boolean = false;
+  error:any = null;
 
   opts:SearchOptions = { not:false };
 
@@ -146,5 +147,13 @@ export class SearchRequestCondition implements IStringIndex<any>{
 
 
     return match;
+  }
+
+  setError(pOptions:any):void {
+    this.error = pOptions;
+  }
+
+  hasError():boolean{
+    return (this.error != null);
   }
 }
