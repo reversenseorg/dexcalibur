@@ -60,7 +60,6 @@ export interface UserAccountOptions extends IStringIndex<any> {
     _tokens?:Token<any>[],
     _projects?:ProjectURI[],
     _history?:UserAccountEvent[],
-    _orgs?:OrganizationUnitUUID[],
     _groups?:UserGroupUUID[],
     _extra?:Record<string, any>
 }
@@ -75,7 +74,6 @@ export class UserAccount implements IPersistent, INode {
         _uid: ValidationRule.prefixedUuid("([0-9]"+UA_UUID_SEP+")?"),
         _roles: ValidationRule.asArrayOf([ValidationRule.uuid()]),
         _username: ValidationRule.utf8String(),
-        _orgs: ValidationRule.uuid(),
         _email:ValidationRule.email(),
         _extra:ValidationRule.structure({
             avatar: {
@@ -106,7 +104,7 @@ export class UserAccount implements IPersistent, INode {
     private _type:UserAccountType = UserAccountType.LOCAL;
     private _locked:boolean = false;
     private _membership:Record<OrganizationUnitUUID,Membership> = {};
-    private _orgs:OrganizationUnitUUID[] = [];
+
     private _activated:number = -1;
     private _history:UserAccountEvent[] =[];
     private _tokens:Token<any>[] =[];
@@ -378,17 +376,6 @@ export class UserAccount implements IPersistent, INode {
         return (this._authorized_ips.indexOf(pIpAddress)>-1);
     }
 
-    getOrgUnits():OrganizationUnitUUID[] {
-        return this._orgs;
-    }
-
-    addOrganization(pOrg:OrganizationUnit):void {
-        if(this._orgs==null){
-            this._orgs = [];
-        }
-
-        this._orgs.push(pOrg.getUID());
-    }
 
     /**
      * To update an account with unsafe data
@@ -445,7 +432,6 @@ export class UserAccount implements IPersistent, INode {
         o._time = this._time;
         o._locked = this._locked;
         o._type = this._type;
-        o._orgs = this._orgs;
         o._history = this._history;
         o._activated = this._activated;
         o._membership = this._membership;

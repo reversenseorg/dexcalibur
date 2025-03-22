@@ -215,13 +215,23 @@ export class UserService {
         return  await this._ctx.getEngineDB().save(user) as UserAccount;
     }
 
-    static getCommonOrganizations( pAccount1:UserAccount, pAccount2:UserAccount, ):OrganizationUnitUUID[] {
+    /**
+     *
+     * @param pAccount1
+     * @param pAccount2
+     */
+    static getCommonOrganizations( pAccount1:UserAccount, pAccount2:UserAccount):OrganizationUnitUUID[] {
         let same:OrganizationUnitUUID[] = [];
-        pAccount1.getOrgUnits().map(x => {
-            if(pAccount2.getOrgUnits().indexOf(x)>-1){
-                same.push(x);
+        const mss1 = pAccount1.getMemberships();
+        const mss2 = pAccount2.getMemberships();
+
+        for(let oid in mss1) {
+            if(mss1[oid].activated && !mss1[oid].locked){
+                if(mss2[oid]!=null && mss2[oid].activated  && !mss2[oid].locked){
+                    same.push(oid);
+                }
             }
-        });
+        }
 
         return same;
     }

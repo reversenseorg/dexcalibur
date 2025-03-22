@@ -543,7 +543,15 @@ export class AuthenticationService {
                             // TODO : email , ...
                             _username: profile.username
                         });
-                        acc.addOrganization(pOrg);
+
+                        acc.addMembership(pOrg.getUID(), {
+                            activated: false,
+                            _activateDate: -1,
+                            locked: false,
+                            _lockDate: -1,
+                            preferences: {},
+                            roles: []
+                        });
 
                         this._ctx.getUserService().find(acc, {
                             autoCreate: true,
