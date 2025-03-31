@@ -1,6 +1,7 @@
 import * as _path_ from 'path';
 import {Nullable} from "../core/IStringIndex.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {ProjectInput, ProjectInputLocation, ProjectInputType} from "../analyzer/ProjectInput.js";
 
 export enum AppFormatType {
     PACKAGE,
@@ -73,5 +74,13 @@ export default class TargetApp
         for(let i in this) o[i] = this[i];
         CoreDebug.checkJsonSerialize(o,"TargetApp");
         return o;
+    }
+
+    toProjectInput():ProjectInput {
+        return new ProjectInput({
+            type: ProjectInputType.REGULAR_FILE,
+            location: ProjectInputLocation.LOCAL,
+            data: this.path
+        })
     }
 }

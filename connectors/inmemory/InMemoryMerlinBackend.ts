@@ -128,6 +128,7 @@ export class InMemoryMerlinBackend {
                     break;
                 case OperationType.JOIN:
                     phaseRes[i] = this._search((phases[i][0].args as NestedRequestOperationArgs).request as MerlinSearchRequest, pResult);
+
                     break;
                 case OperationType.INNERJOIN:
                     phaseRes[i] = [];

@@ -1503,9 +1503,26 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             this.packageAnalyzer.setProject(this);
         }
 
-        this.inputs.push(pInput);
+        // if the project input is stored into temporary, out of project workspace,
+        // it must be copied first into project workspace
+        if(pInput.isFile()){
+            const inputDir = this.getWorkspace().getInputDir();
+            if(pInput.data.indexOf(inputDir)!==0){
+                // Input file is not located into project workspace
+                const inputPath = this.getWorkspace().getValidInputPath(pInput);
+                _fs_.copyFileSync(pInput.data, inputPath);
+                // update and save project input
+                pInput.setPath(inputPath);
+                this.inputs.push(pInput);
+            }
+        }else{
+            this.inputs.push(pInput);
+        }
 
         await this.packageAnalyzer.attachInput(pInput);
+
+        // save changes
+        await this.getContext().getEngineDB().saveProject(this, ['inputs']);
     }
 
     /**
@@ -1519,7 +1536,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      */
     async useApp( pInputs:ProjectInput[]):Promise<TargetApp>{
 
-        console.log(pInputs);
 
         // attach inputs
         for(let i=0; i<pInputs.length; i++){
@@ -1646,12 +1662,15 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     /**
      * To get information about a specified project
      *
+     * DEPRECATED : USE PROJECT MANAGER INSTEAD
+     *
      * @param {DexcaliburEngine} pEngine
      * @param {string} pProjectUID
      * @return {any} Project data
      * @method
      * @static
      * @since 1.0.0
+     * @deprecated
      */
     static async  getInformationOf(pEngine:DexcaliburEngine,
                                    pProjectUID:DexcaliburProjectUUID,
@@ -1860,7 +1879,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         try{
            project = await pEngine.getEngineDB().getProject(pProjectUID);
 
-           project.engineVersion = pEngine.version;
+           //project.engineVersion = pEngine.version;
            project.dirty();
             Logger.debug("[PROJECT] [LOADING] Project read from DB : "+(project as any)._id);
             //console.log("PROJECT FOUND > ",(project as any)._id);
@@ -2925,6 +2944,16 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @since 1.0.0
      */
     getWorkspace(): ProjectWorkspace {
+        if(this.workspace!=null){
+            return this.workspace;
+        }
+
+        this.workspace = new ProjectWorkspace(
+            _path_.join( this.getContext().workspace.getLocation(), this.getUID() )
+        );
+
+        this.workspace.init();
+
         return this.workspace;
     }
 
@@ -3125,6 +3154,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
 
     }
+
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);
 

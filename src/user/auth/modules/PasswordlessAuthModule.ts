@@ -297,6 +297,7 @@ export class PasswordlessAuthModule extends AuthModule {
                             vRep,
                             vNext);
                     }catch(e){
+                        Logger.error(e);
                         // redirect to message
                         vRep.status(200)
                             .redirect(

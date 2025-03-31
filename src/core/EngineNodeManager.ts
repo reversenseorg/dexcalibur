@@ -1,9 +1,8 @@
-import {randomUUID} from "crypto";
 import * as _fs_ from "fs";
 
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
-import {EngineNode, EngineNodeUUID, NodePurpose, Operation, StateChangeEvent} from "./EngineNode.js";
+import {EngineNode, EngineNodeUUID, NodePurpose, OperationType, StateChangeEvent} from "./EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import got from "got";
 import * as Log from "../Logger.js";
@@ -16,6 +15,9 @@ import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {ValidationRule} from "../Validator.js";
 import {CryptoUtils} from "../CryptoUtils.js";
+import Util from "../Utils.js";
+import {ProjectOrder} from "../project/ProjectOrder.js";
+import {ScanOrder} from "../audit/common/ScanOrder.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -381,7 +383,6 @@ export class EngineNodeManager {
 
         node.setEngine(this.engine);
         node.setMasterUri(this.getLocalURI());
-        node.setState(NodeState.NEW);
         node.setPurpose(pPurpose);
 
         // if self-registration mode  is enabled, the node will be queued and wait en engine start
@@ -390,7 +391,14 @@ export class EngineNodeManager {
             // remote host name and port will be set during registration
             node.setState(NodeState.QUEUED);
             node.allowSelfRegistration();
+
+            if(process.env.DXC_HOSTNAME==undefined || process.env.DXC_HOSTNAME=='localhost'){
+                node.setHttpPort(nextPorts.http);
+                node.setHttpsPort(nextPorts.https);
+            }
+
         }else{
+            node.setState(NodeState.NEW);
             node.setHttpPort(nextPorts.http);
             node.setHttpsPort(nextPorts.https);
         }
@@ -418,7 +426,9 @@ export class EngineNodeManager {
 
         // add listeners to event streams :
         node.nodeState$.subscribe((vEvent:StateChangeEvent    )=>{
-           this.onNodeStateChanged(vEvent);
+            // this.onNodeStateChanged(vEvent);
+
+            (async ()=>{ await this.onNodeStateChanged(vEvent); })();
         });
 
         // save node state
@@ -623,12 +633,25 @@ export class EngineNodeManager {
 
         Logger.info("[ENGINE NODE][GOT] Register master  : "+this.masterURI+"/api/node/webhook/register");
 
+        console.log({
+            method: 'POST',
+            headers: {
+                // this one is mandatory to be processed by master middleware of /api/node/** routes
+                [EngineNodeManager.HEADER_NODE_HOST]: (process.env.DXC_PRIV_IP!=null ? process.env.DXC_PRIV_IP:'127.0.0.1'),
+                ['x-dxc-'+this.getRegistrationKeyName()]: this.getRegistrationKey()
+                // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
+            },
+            json: {
+                http: this.engine.getSettings().getWebserverSettings().getHttpPort(),
+                https: this.engine.getSettings().getWebserverSettings().getWsPort()
+            }
+        });
         const response = await GOT(this.masterURI+"/api/node/webhook/register", {
             method: 'POST',
             headers: {
                 // this one is mandatory to be processed by master middleware of /api/node/** routes
-                [EngineNodeManager.HEADER_NODE_HOST]: process.env.HOSTNAME,
-                [this.getRegistrationKeyName()]: this.getRegistrationKey()
+                [EngineNodeManager.HEADER_NODE_HOST]: (process.env.DXC_PRIV_IP!=null ? process.env.DXC_PRIV_IP:'127.0.0.1'),
+                ['x-dxc-'+this.getRegistrationKeyName()]: this.getRegistrationKey()
                 // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
             },
             json: {
@@ -637,8 +660,9 @@ export class EngineNodeManager {
             }
         });
 
-        const raw = JSON.parse(response.body);
-        return raw;
+        console.log(response.body);
+        //const raw = JSON.parse(response.body);
+        return;
     }
 
     /**
@@ -702,36 +726,32 @@ export class EngineNodeManager {
      * @param {StateChangeEvent} vEvent Change event
      * @method
      */
-    onNodeStateChanged(vEvent: StateChangeEvent) {
+    async onNodeStateChanged(vEvent: StateChangeEvent):Promise<void> {
 
         Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
         let node:EngineNode = this.getNodeByUUID(vEvent.nodeUUID);
 
-        (async ()=>{
-            await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
-                .asyncUpdateEntry(node, { replace:false, $set:['running','state','pid']})
-        })();
+        if(vEvent.new==NodeState.REGISTERED){
+            node.state = NodeState.IDLE;
+        }
+
+        await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
+            .asyncUpdateEntry(node, { replace:false, $set:['running','state','pid']});
 
 
-        if(vEvent.new==NodeState.IDLE){
+        if(vEvent.new==NodeState.IDLE || vEvent.new==NodeState.REGISTERED){
 
             //console.log(node);
 
-            const ope:Nullable<Operation> = node.opeQueue.shift();
+            // retrieve the next operation from waiting queue
+            const o = await node.nextWaitingOpe();
 
-            if(ope==null){ return; }
+            if(o!=null){
+                node.operation$.next(o);
+            }else{
+                // no more order to process
+            }
 
-                node.execOperation2(ope).then(()=>{
-                    //console.log('onNodeStateChanged > OPE SUCCESS > ', ope.type);
-                    //
-                });
-            // next, check the queue of scan orders
-            /*if (node.waitingQueue.length > 0) {
-                (node.startNextQueuedScans())
-                    .then(() => {
-                        console.log("Next scan order has been launched");
-                    });
-            }*/
         }
     }
 
@@ -755,20 +775,24 @@ export class EngineNodeManager {
     async killNodes(pSignal: string, pFilters:any = { running:true }, pExclude:EngineNodeUUID[] = [], pLatest = false):Promise<void> {
         let nodes = await this.getNodes(pFilters);
 
-        console.log(nodes);
-        nodes = nodes.filter(x => (pExclude.indexOf(x.getUID())==-1) )
-        console.log(`[${this.engine.isSlaveNode()?'SLAVE':'MASTER'}] KILL NODES : `,nodes.map(x => `\t${(new Date(x.startedAt)).toUTCString()}\t${x.getUID()}`).join('\n'));
+        nodes = nodes.filter(x => (pExclude.indexOf(x.getUID())==-1));
+        //console.log(`[${this.engine.isSlaveNode()?'SLAVE':'MASTER'}] KILL NODES : \n`,nodes.map(x => `\t${(new Date(x.startedAt)).toUTCString()}\t${x.getUID()}`).join('\n'));
 
         if(pLatest && nodes.length>0){
             nodes = [nodes[0]];
         }
+
+        console.log(`[${this.engine.isSlaveNode()?'SLAVE':'MASTER'}] KILL LAST NODES ON CONFLICTING PORT : \n`,nodes.map(x => `\t${(new Date(x.startedAt)).toUTCString()}\t${x.getUID()}`).join('\n'));
+
 
         switch (pSignal){
             case 'SIGINT':
                 // controlled kill => kill children
                 for(let i=0; i<nodes.length; i++){
                     try{
-                        nodes[i].kill();
+                        if(nodes[i].running){
+                            nodes[i].kill();
+                        }
                         // save state
                         nodes[i].stopped(this.engine);
                     }catch (e){}
@@ -863,9 +887,25 @@ export class EngineNodeManager {
         if(pNode.running){
             const up = await pNode.getHcStatus(pEngine);
 
-            console.log(pNode.getUID(),up);
-            if(!up){
-                pNode.stopped(this.engine);
+            //console.log(pNode.getUID(),up,pNode.state);
+            if(up===false){
+                if([NodeState.QUEUED,NodeState.NEW].indexOf(pNode.state)==-1){
+                    pNode.stopped(this.engine);
+                }
+            }else if(up===null) {
+                // check/flush
+                const createdDelay = ((new Date()).getTime()-pNode.createdAt)/(3600*1000)
+                //console.log("Created since : ", createdDelay+" hours");
+                const startDelay = ((new Date()).getTime()-pNode.startedAt)/(3600*1000);
+                //console.log("Started since : ", (pNode.startedAt>-1 ? startDelay+" hours" : pNode.startedAt));
+
+                if([NodeState.QUEUED,NodeState.NEW].indexOf(pNode.state)==-1
+                    || (pNode.createdAt>-1 && createdDelay > 24)
+                    || (pNode.startedAt>-1 && startDelay > 24)
+                ) {
+                    // mark node as stopped and flush data for node running for more than 24 hours
+                    pNode.stopped(this.engine);
+                }
             }
         }
     }
@@ -920,7 +960,7 @@ export class EngineNodeManager {
      * @method
      */
     getRegistrationKeyName():string {
-        return (process.env.DXC_NODE_RKNAME!=""?process.env.DXC_NODE_RKNAME : EngineNodeManager.DEFAULT_REG_KEY_NAME);
+        return (process.env.DXC_NODE_RKNAME!=null ?process.env.DXC_NODE_RKNAME : EngineNodeManager.DEFAULT_REG_KEY_NAME);
     }
 
     getRegistrationKeyPath() {
@@ -943,23 +983,31 @@ export class EngineNodeManager {
         let path:string = this.getRegistrationKeyPath();
 
         // retrieve hash
-        return _fs_.readFileSync(path).toString();
+        let ctn = _fs_.readFileSync(path).toString('hex');
+        if(ctn[ctn.length-1]=="\n"){
+            return ctn.slice(0,ctn.length-1);
+        }else{
+            return ctn;
+        }
     }
 
-    private async _validateRegistrationKey(pKey:string):Promise<void> {
+    private async _validateRegistrationKey(pKey:Buffer):Promise<void> {
 
         // retrieve hash
         const hash = CryptoUtils.sha256(this.getRegistrationKey(),'hex', true);
 
         // hash key
-        const given = CryptoUtils.sha256(pKey,'hex', true);
+        const given = CryptoUtils.sha256(pKey.toString(),'hex', true);
 
-        console.log(hash,given);
+        if(!CryptoUtils.stringEqual(hash,given)){
+            throw EngineNodeException.WRONG_REGISTRATION_KEY()
+        }
     }
 
     private async _getNextNode():Promise<Nullable<EngineNode>> {
         let nodes = await this.getNodes({
             state: NodeState.QUEUED,
+            selfReg: true,
             createdAt: { $gt: (new Date()).getTime()-(3600*1000*24) }
         });
 
@@ -967,7 +1015,7 @@ export class EngineNodeManager {
             return (a.createdAt>b.createdAt)? -1 : 1;
         });
 
-        nodes.map(x => console.log(x.getUID()+" "+x.createdAt));
+        //nodes.map(x => console.log(x.getUID()+" "+x.createdAt));
 
 
         if(nodes.length>0){
@@ -981,7 +1029,7 @@ export class EngineNodeManager {
      *
      * @param {string} pKey Registration key
      */
-    async registerNode(pKey:string, pHostname:string, pOptions:any):Promise<EngineNodeUUID> {
+    async registerNode(pKey:Buffer, pHostname:string, pOptions:any):Promise<EngineNodeUUID> {
 
         // authenticate node
         await this._validateRegistrationKey(pKey);
@@ -989,20 +1037,45 @@ export class EngineNodeManager {
         // get node from queued node request
         const nextNode = await  this._getNextNode();
 
+
+        // if the queue is empty kill the fresh node
+        if(nextNode==null){
+            // kill;
+            return;
+        }
+
+        await nextNode.setEngine(this.engine);
+
+
         // assign remote slave to node
-        nextNode.setHostname(pHostname);
+        nextNode.setHostname(pHostname, true);
+
+        nextNode.startedAt = (new Date()).getTime();
 
         if(pOptions.http){
-            nextNode.setHttpPort(pOptions.http);
+            nextNode.setHttpPort(pOptions.http, true);
         }else{
-            nextNode.setHttpPort(parseInt(process.env.DXP_SLAVE_HTTP_PORT));
+            nextNode.setHttpPort(parseInt(process.env.DXP_SLAVE_HTTP_PORT), true);
         }
 
         if(pOptions.https){
-            nextNode.setHttpsPort(pOptions.https);
+            nextNode.setHttpsPort(pOptions.https, true);
         }else{
-            nextNode.setHttpPort(parseInt(process.env.DXP_SLAVE_HTTPS_PORT));
+            nextNode.setHttpPort(parseInt(process.env.DXP_SLAVE_HTTPS_PORT), true);
         }
+
+        // save node state
+        await nextNode.saveInternalState();
+
+        // retrieve the next operation from waiting queue
+        //const order = await nextNode.nextWaitingOpe();
+
+        // send order to slave node
+
+        console.log(nextNode);
+        nextNode.nodeState$.subscribe((vEvent:StateChangeEvent    )=>{
+            (async ()=>{ await this.onNodeStateChanged(vEvent); })();
+        });
 
         // change state
         nextNode.setState(NodeState.REGISTERED);

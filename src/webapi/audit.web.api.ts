@@ -717,6 +717,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 // ========== LOGIC
                 const am = $.context.getAuditManager();
 
+                console.log(req.body)
+
                 if(req.body.scheduled==0){
 
                     const scheduler = $.context.getScanScheduler(); //.getScanScheduler();
@@ -983,10 +985,17 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         order.setTargetFile(await $.uploader.getPathOf(req.body.fileUploadID));
                     }
 
-                    order.options = {
-                        cookie: req.cookies
-                    };
+                    order.addOption('extra', {
+                        cookie: req.cookies,
+                        owner: req.user.getUID()
+                    });
 
+                    // TODO : remove
+                    /*order.options = {
+                        cookie: req.cookies
+                    };*/
+
+                    // it will save order and push it to queue
                     await scheduler.newScan(order, {
                         cookie: req.cookies
                     });

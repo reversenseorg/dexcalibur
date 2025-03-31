@@ -53,6 +53,9 @@ export class EngineNodeException extends MonitoredError {
     static REGISTRATION_SECRET_UNDEFINED = ()=>{
         return new EngineNodeException("Registration key not found",
             ErrorCode.REMOTE_DEXCALIBUR + 415) };
+    static WRONG_REGISTRATION_KEY = ()=>{
+        return new EngineNodeException("Wrong registration key",
+            ErrorCode.REMOTE_DEXCALIBUR + 416) };
 
 
 

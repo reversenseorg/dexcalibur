@@ -98,13 +98,17 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
 
             try{
                 // retireve registration key
-                const unsafeKey = req.body[$.context.nodeManager.getRegistrationKeyName()];
+                let unsafeKey = req.headers['x-dxc-'+$.context.nodeManager.getRegistrationKeyName()];
+
+                if(Array.isArray(unsafeKey) && unsafeKey.length>0){
+                    unsafeKey = unsafeKey[0];
+                }
 
                 const unsafeHost = req.headers[EngineNodeManager.HEADER_NODE_HOST];
 
                 // validate
                 $.context.nodeManager.registerNode(
-                    unsafeKey,
+                    Buffer.from(unsafeKey as string),
                     unsafeHost as string,
                     {
                         http: req.body.http,
@@ -114,9 +118,13 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
 
                 $.sendSuccess(res, {});
             }catch(err){
-                Logger.error("[API][NODE] Node state cannot updated. Cause : UUID Header is missing : ",err.stack,err.message);
+                Logger.error("[API][NODE] Node cannot be registered.",err.stack);
                 //console.log(req.headers);
-                $.sendError(res, "");
+                $.sendErrorAfterException(
+                    res,
+                    NODE_MGR_WEB_API.name,
+                    "Node cannot be registered",
+                    err);
             }
         }
     }

@@ -313,8 +313,6 @@ export class GenericScanner extends AssuranceScanner {
         // get atomic assessments
         const leafs = this.model.getControlLeafsFrom(CANONICALIZED_ROOT);
 
-        console.log(leafs);
-
         // build
         leafs.map((vNode)=>{
             if(vNode.ctrl.isControlAssessment()){
@@ -401,7 +399,6 @@ export class GenericScanner extends AssuranceScanner {
 
         // 5. taint analysis
 
-        console.log(this.report);
 
         // 6. result
         this.report.terminated = (new Date()).getTime();

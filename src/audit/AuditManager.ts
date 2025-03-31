@@ -301,7 +301,6 @@ export class AuditManager {
             reports = all;
         }else{
             all.map(x => {
-                console.log("listReportsFromDB > filter >", x.project, pProjectUID);
                 if(x.project.uid==pProjectUID){
                     try{
                         reports.push(x);
@@ -470,7 +469,7 @@ export class AuditManager {
 
         // run scanner
         for(let i=0; i<scanners.length; i++){
-            console.log("Run scans ("+i+") : "+scanners[i].name);
+            //console.log("Run scans ("+i+") : "+scanners[i].name);
             flows.push(scheduler.newScan(scanners[i]));
             /*
             scanners[i].run(project, {});

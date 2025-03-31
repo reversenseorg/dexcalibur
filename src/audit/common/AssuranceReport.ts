@@ -382,7 +382,6 @@ export default class AssuranceReport implements INode {
                                 }catch(err){
                                     switch(x.node.__){
                                         case NodeInternalType.STRING:
-                                            console.log(x.node);
                                             node = {
                                                 __: x.node.__,
                                                 uid: (typeof x.node==='string')? x.node : x.node._uid

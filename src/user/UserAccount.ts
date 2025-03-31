@@ -346,14 +346,14 @@ export class UserAccount implements IPersistent, INode {
      *
      * @param pEngine
      */
-    async listProjects( pEngine:IDexcaliburEngine):Promise<string[]> {
+    /*async listProjects( pEngine:IDexcaliburEngine):Promise<string[]> {
         const l = await pEngine.listProjectsOf(this);
         let out:string[] = [];
         for(const i in l){
             out.push(i);
         }
         return out;
-    }
+    }*/
 
     addRole(pRole:Role):void {
         if(this._roles.indexOf(pRole.getUID())==-1){

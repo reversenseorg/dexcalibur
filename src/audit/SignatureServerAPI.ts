@@ -114,12 +114,9 @@ export class SignatureServerAPI {
         // prevent SSRF
         const safeModelUID = AssuranceModel.TYPE.getProperty('_uid').sanitize(pModelUID);
 
-        const url = this.baseURL+"api/signatures/model/"+safeModelUID.getValue();
-        console.log(url);
         const response = await GOT(this.baseURL+"api/signatures/model/"+safeModelUID.getValue());
 
         const raw = JSON.parse(response.body);
-        console.log(raw.data);
 
         if(raw.success){
             return AssuranceModel.fromJsonObject(raw.data);

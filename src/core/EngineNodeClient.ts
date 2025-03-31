@@ -55,18 +55,12 @@ export class EngineNodeClient extends HttpClient {
 
     async getHealthCheckResult():Promise<boolean> {
         try{
-
-            Logger.info("[ENGINE NODE][HEALTH] Request node healthcheck : "+this.baseURL+"api/health/status");
-
+            // Logger.info("[ENGINE NODE][HEALTH] Request node healthcheck : "+this.baseURL+"api/health/ready");
             const response = await this.perform("api/health/ready");
-
-            console.log("getHealthCheckResult > ",response.body);
-            return (response.body=='OK');
+            return (response.body==='OK');
         }catch(e){
             Logger.error(e.stack);
             return false;
         }
     }
-
-
 }

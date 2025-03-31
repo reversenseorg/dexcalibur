@@ -234,10 +234,10 @@ export default class HookSession extends WebsocketSession implements INode
         }
     }
 
-    setHookManager(pHM:HookManager){
+    async setHookManager(pHM:HookManager):Promise<any>{
         this.hookManager = pHM;
         this.evTags = this.hookManager.getMessageTags();
-        this.wsState = this.hookManager.getWorkspaceState();
+        this.wsState = await this.hookManager.getWorkspaceState();
     }
 
 

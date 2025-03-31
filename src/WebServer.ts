@@ -503,7 +503,6 @@ export default class WebServer
             // redirect to inspector delegated controllers
             if (req.path.startsWith("/inspectors/")) {
 
-                //console.log(req.path.substr(1,req.path.length-1))
                 let inspector:string[] = req.path.substr(1, req.path.length - 1).split("/");
 
                 let relPath:string = "";
@@ -1254,7 +1253,7 @@ export default class WebServer
 
             // AccessControlManager.BUILT_IN_DEFAULT_ROLE
             //((req as any).user as UserAccount).addRole(self.context.getAclManager().getRole(AccessControlManager.BUILT_IN_DEFAULT_ROLE));
-            //console.log((req as any).user);
+
 
             try{
                 if(req.session == null || (req as any).user ==null){
@@ -1272,12 +1271,12 @@ export default class WebServer
                             req.dxc.sess = vSession;
                             req.dxc.sess.setUserAccount((req as any).user);
 
-                            if(req.query._puid != null && req.dxc.sess != null){
+                            /*if(req.query._puid != null && req.dxc.sess != null){
                                 //if(self.context.)
-                                req.dxc.project = (req.dxc.sess as UserSession)
+                                /* req.dxc.project = (req.dxc.sess as UserSession)
                                     .getActiveProjectByUID(self.context, req.query._puid as string);
 
-                            }
+                            }*/
 
                             next();
                         }else{
@@ -1312,7 +1311,7 @@ export default class WebServer
 
             try{
 
-                if(!req.dxc.hasOwnProperty('filt')){
+                if(req.dxc != null && !req.dxc.hasOwnProperty('filt')){
                     if(req.query.hasOwnProperty('__f'))
                         req.dxc = { filt: JSON.parse(req.query.__f as string) } ;
                     else if(req.body.hasOwnProperty('__f'))
@@ -1324,10 +1323,11 @@ export default class WebServer
                     }else{
                         req.dxc.filt = new WebApiWindowing();
                     }
+
+                    Logger.debug("[WEBSERVER][HTTP] Parse windowing options : "+JSON.stringify(req.dxc.filt));
                 }
 
 
-                Logger.debug("[WEBSERVER][HTTP] Parse windowing options : "+JSON.stringify(req.dxc.filt));
 
             }catch(err){
                 Logger.error("[WEBSERVER][HTTP] Parse windowing options cannot be retrieved \n"+err.messgae+"\n"+err.stack)

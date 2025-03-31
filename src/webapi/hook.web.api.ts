@@ -683,7 +683,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 project = req.dxc.project;
-                project.getWorkspace().getHookWorkspace().updateHookLibs(true);
+                (await project.getWorkspace().getHookWorkspace()).updateHookLibs(true);
                 $.sendSuccess(res, true);
             }catch(err){
                 Logger.error("[API][HOOK] Hook libs cannot be updated. Cause : " + err.message + "\n\t" + err.stack);

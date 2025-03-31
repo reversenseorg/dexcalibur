@@ -379,7 +379,7 @@ export class SessionMiddleware {
 
         return function session(vReq:ExtendedIncomingMessage, vRes:ExtendedServerResponse, next) {
 
-            Logger.success(`[SESSION MIDDLEWARE][${vReq.url}] Enter In `)
+            //Logger.success(`[SESSION MIDDLEWARE][${vReq.url}] Enter In `)
             // self-awareness
             if (vReq.session) {
                 next()

@@ -741,12 +741,16 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject;
 
             try{
-                project = req.dxc.project;
+                project = req.project; //dxc.project;
+
+
+                const dm = $.context.getDeviceManager();
+                await dm.scan();
 
                 if (req.body.uid != null) {
-                    dev = $.context.getDeviceManager().getDevice(req.body.uid);
+                    dev = dm.getDevice(req.body.uid);
                 } else if (project != null){
-                    dev = project.getDevice();
+                    dev = dm.getDevice(project.getDevice().getUID());
                 } else{
                     throw DeviceManagerException.DEVICE_ID_NULL();
                 }

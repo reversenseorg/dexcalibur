@@ -11,8 +11,9 @@ import {UserService} from "./user/UserService.js";
 import DexcaliburProject from "./DexcaliburProject.js";
 import AccessControl from "./user/acl/AccessControl.js";
 import {AccessZone} from "./user/acl/Zones.js";
-import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
-import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
+import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
+import {HookManager} from "./hook/HookManager.js";
+import {EngineNodeUUID, NodePurpose, WebSocketClient} from "./core/EngineNode.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -26,6 +27,12 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
  */
 export class WebsocketServer
 {
+    /**
+     *
+     * @private
+     */
+    private _wsclients:Record<EngineNodeUUID, WebSocketClient> = {};
+
     /**
      * Dexcalibur engine instance (context)
      *
@@ -225,12 +232,44 @@ export class WebsocketServer
                                     case 'hookm':
                                         // TODO : check user permissions
                                         Logger.info('Received Message: ' + message.utf8Data);
-                                        const p = self.engine.getProject(unsafeJSON['prj']);
 
-                                        if(p!=null) {
-                                            Logger.info('Retrieving hook Message from project ' + p.uid);
-                                            p.hook.processCommand(user, conn, message.utf8Data);
+                                        if(self.engine.getEngineMode()==DexcaliburEngineMode.MASTER){
+                                            // TODO : retrieve node by its uuid
+                                            // target project is not local
+                                            // search node and forward websocket
+                                            try{
+                                                self.engine.getNodeManager().getReadySlave(
+                                                    unsafeJSON['prj'],
+                                                    NodePurpose.REVIEW
+                                                ).then((vNode)=>{
+                                                    if(vNode!=null){
+                                                        const nodeUID = vNode.getUID();
+                                                        try{
+                                                            if(self._wsclients[nodeUID]==null){
+                                                                self._wsclients[nodeUID] = vNode.createWebsocketClient();
+                                                                self._wsclients[nodeUID].connectWS('term-protocol');
+                                                            }
+                                                            self._wsclients[nodeUID].getWsInput().next(message.utf8Data);
+                                                        }catch(e2){
+                                                            console.log(e2);
+                                                        }
+
+                                                    }
+                                                });
+                                            }catch(eee){
+                                                console.log(eee);
+                                            }
+
+                                        }else{
+                                            const p = self.engine.getProject(unsafeJSON['prj']);
+
+                                            if(p!=null) {
+                                                Logger.info('Retrieving hook Message from project ' + p.uid);
+                                                (p.hook as HookManager).processCommand(user, conn, message.utf8Data);
+                                            }
                                         }
+
+
                                         break;
                                 }
                             }else{

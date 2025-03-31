@@ -1103,13 +1103,14 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
 
         },
         "app.permission.new": function(pEvent:BusEvent<any>):any{
+
                 let i = pEvent.data.name.lastIndexOf('.');
                 let p=false;
-        
+
                 // scan android built-in permissions
                 for(let i in Permissions){
         
-                    if(Permissions[i].name===pEvent.data.name){
+                    if(Permissions[i].name===pEvent.data.obj.name){
                         pEvent.data.update(Permissions[i]);
                         return;
                     }

@@ -27,12 +27,13 @@ import {IProfile} from "./device/profile/IProfile.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
-import {ProjectInput} from "./analyzer/ProjectInput.js";
+import {ProjectInput, ProjectInputType} from "./analyzer/ProjectInput.js";
 import {Architecture} from "./Architecture.js";
-
-const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 import Screenshot from "./platform/Screenshot.js";
 import {ImageFormat} from "./platform/ImageFormat.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
+
+const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
 enum ETransportType {
     USB     = 'U',
@@ -490,8 +491,7 @@ export default class AdbWrapper implements IBridge
      > let packages = adbWrapper.parsePackageList(`
     package:com.android.cts.priv.ctsshim
     ...
-    `) 
-     > console.log(packages)
+    `)
     [{
         packageIdentifier: 'com.android.cts.priv.ctsshim',
         packagePath: '...'
@@ -1480,8 +1480,23 @@ export default class AdbWrapper implements IBridge
             cmd += pOptions.opts.join(" ");
         }
 
-        let inputs = pPath.map(x => x.location)
-            .filter(x => x.endsWith('apk'));
+        let tmp:string[] = [];
+        let inputs:string[] = (pPath
+            .filter(x =>
+                (x.type===ProjectInputType.REGULAR_FILE)
+                && (typeof x.data==='string' && (x.data.endsWith('apk') || x.data.endsWith('bin')))
+            )
+            .map(x => {
+                let p = x.data as string;
+                if( p.endsWith('bin')){
+                    p = DexcaliburEngine.getInstance().getWorkspace()
+                        .createTempFile('apk_install',false)+'.apk';
+                    tmp.push(p);
+                    _fs_.copyFileSync(x.data, p);
+                }
+                return p;
+            }));
+
         inputs = inputs.sort((a,b)=>{
             if(a.endsWith("base.apk")){
                 return 1;
@@ -1503,7 +1518,14 @@ export default class AdbWrapper implements IBridge
             success = false;
         }*/
 
-        Logger.raw("\n"+out);
+        console.log(out)
+
+        // free temporary files
+        if(tmp.length>0){
+            tmp.map(x => {
+                _fs_.rm(x, ()=>{});
+            });
+        }
         return true;
     }
 

@@ -147,7 +147,8 @@ export class EngineDatabase {
         UploadedResource.TYPE,
         EngineNode.TYPE,
         AssuranceModel.TYPE,
-        AssuranceReport.TYPE
+        AssuranceReport.TYPE,
+        ScanOrder.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
@@ -605,9 +606,13 @@ export class EngineDatabase {
         return await db.asyncUpdateEntry(pReport, {upsert:true});
     }*/
 
-    async saveProject(pProject:DexcaliburProject):Promise<DexcaliburProject> {
+    async saveProject(pProject:DexcaliburProject, pAtomicPpts:string[] = []):Promise<DexcaliburProject> {
         const db = this.getCollectionOf(DexcaliburProject.TYPE.getType());
-        return await db.asyncUpdateEntry(pProject, {upsert:true});
+        if(pAtomicPpts.length>0){
+            return await db.asyncUpdateEntry(pProject, {replace:false, $set:pAtomicPpts});
+        }else{
+            return await db.asyncUpdateEntry(pProject, {upsert:true});
+        }
     }
 
     private _isSupported(pType:NodeInternalType):boolean {

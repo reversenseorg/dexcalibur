@@ -1148,9 +1148,17 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		manifest.usesPermissions.map(x => {
 			this.context.trigger({
 				type: "app.permission.new",
-				data: x
+				data: {
+					obj: x,
+					cause: pExtra.cause,
+					fresh: pExtra.fresh
+				},
 			});
-			codeAnal.db.permissions.insert(x, false);
+
+			if(pExtra.fresh){
+				codeAnal.db.permissions.insert(x, false);
+			}
+
 			//Logger.debug("[Manifest] Permission found : ",x.name);
 		});
 

@@ -186,8 +186,6 @@ class ResolverV2
     createMissingMethod(methodRef:ModelMethodReference, enclosingClass:ModelClass, internalDB:AnalyzerDatabase, modifiers:Modifier):ModelMethod{
         let missingMeth:ModelMethod = methodRef.toMethod(enclosingClass);
 
-        //console.log(enclosingClass.name,missingMeth);
-
         missingMeth.addTag(this._missingTag);
 
         missingMeth.modifiers = modifiers; // new Accessor.AccessFlags(modifiers);
@@ -1484,10 +1482,9 @@ export default class Analyzer
             pkg = this.db.packages.getEntry(pkgn);
         }else{
             pkg = new ModelPackage(pkgn);
-            //Logger.debug(pkg.toJsonObject(null).toString());
             this.db.packages.setEntry(pkgn, pkg);
         }
-        //console.log(pkgn,pkg, this.db.packages.hasEntry(pkgn));
+
         let cls:ModelClass = new ModelClass({
             fqcn: fqcn,
             name: fqcn, // deprecated

@@ -29,6 +29,7 @@ import Platform from "../../platform/Platform.js";
 import {AndroidManifest} from "../AndroidManifest.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
 import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
+import base = Mocha.reporters.base;
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -63,6 +64,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             this.state.setProperty(i, pConfig[i]);
         }
 
+        // todo to remove
         if(this.state.getProperty("base_apks")==null){
             this.state.setProperty("base_apks", ['base.apk']);
         }
@@ -133,7 +135,11 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         return path;
     }
 
-
+    /**
+     * To read a buffer-based project input and store it into a file
+     * @param pInput
+     * @async
+     */
     async writeBuffer(pInput:ProjectInput):Promise<string> {
         if((pInput.type!=ProjectInputType.BUFFER)||(!Buffer.isBuffer(pInput.data))){
             throw new Error("Project Input is not a buffer");
@@ -159,6 +165,8 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
     /**
      * The purpose of this function is to search split APK,
      * and merge all into a single workspace.
+     *
+     * IMPORTANT : don't use state based data (_base_apk, _extra) because this operation set the initial state
      *
      * Steps :
      * - Pull main APK from device
@@ -456,11 +464,15 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
     }
 
     /**
+     * To attach new input to an package analyzer instance
+     *
+     * It doesnt update state
      *
      * @param pInput
      */
     async attachInput(pInput: ProjectInput): Promise<any> {
 
+        // IMPORTANT => stateful , don't read from internal state (reserved for stateless action)
         switch (pInput.purpose){
             case ProjectInputPurpose.MAIN:
                 this._base_apk = pInput;
@@ -475,8 +487,26 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
     }
 
+    getBaseApkFromState():Nullable<ProjectInput> {
+        const data:any = this.state.getProperty('_base_apk');
+        if(data==null) return null;
+
+        const app = TargetApp.fromJsonObject(data);
+
+        return app.toProjectInput();
+    }
+
+    getExtraApkFromState():ProjectInput[] {
+        const data = this.state.getProperty('_extra_apk');
+        if(data==null) return [];
+
+        return data.map( x => new ProjectInput(x));
+    }
+
     /**
-     * To get the list APK to install in order to execute the app
+     * To gather the list of APKs/files to install in order to execute the app
+     *
+     * Files are restored from state
      *
      * @return
      */
@@ -484,13 +514,17 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         const o:{ role:string, path:string, tmp:boolean}[] = [];
 
-        if(typeof this._base_apk.data=='string'){
-            o.push({ role:"base", path:this._base_apk.data, tmp:false });
-        }else if(this._base_apk.data != null){
+        const baseAPK = this.getBaseApkFromState()
+        const extra = this.getExtraApkFromState()
+
+
+        if(typeof baseAPK.data=='string'){
+            o.push({ role:"base", path:baseAPK.data, tmp:false });
+        }else if(baseAPK.data != null){
             // write buffer into temporary location
             const basePath = this._project.getWorkspace().createTmpPath(".apk");
             try{
-                _fs_.writeFileSync(basePath,this._base_apk.data);
+                _fs_.writeFileSync(basePath,baseAPK.data);
                 o.push({ role:"base", path:basePath, tmp:true });
             }catch(err){
                 throw new Error("[PACKAGE ANALYZER] Base package cannot be prepared from buffer");
@@ -500,9 +534,9 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             throw new Error("[PACKAGE ANALYZER] Base package cannot be retrieved");
         }
 
-        if(this._extra!=null && this._extra.external !=null){
-            if(Array.isArray(this._extra.external)){
-                this._extra.external.map(x => {
+        if(extra!=null){
+            if(Array.isArray(extra)){
+                extra.map(x => {
                     if(typeof x.data=='string'){
                         o.push({ role:"extra", path:x.data, tmp:false });
                     }else if(x.data != null){
@@ -534,23 +568,35 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
     getInputsFor(pPurpose: InputSetPurpose): ProjectInput[] {
         let inputs:ProjectInput[] = [];
 
+
         switch (pPurpose){
             case InputSetPurpose.INSTALL:
-                if(this._base_apk==null){
+
+                const base = this.getBaseApkFromState()
+                const extra = this.getExtraApkFromState()
+
+                if(base==null){
                     throw PackageAnalyzerException.MAIN_INPUT_NOT_FOUND();
                 }
-                inputs.push(this._base_apk);
+                inputs.push(base);
 
-                if(this._extra.external==null){
-                    throw PackageAnalyzerException.EXTRA_INPUTS_NOT_FOUND();
+                if(extra.length>-1){
+                    inputs = inputs.concat(extra);
                 }
-                inputs = inputs.concat(this._extra.external);
                 break;
         }
 
         return  inputs;
     }
 
+    /**
+     * To extract metadata from temporary inputs
+     *
+     * Useful to pre-scan a file to preconfigure a project
+     *
+     * @returns {Promise<void>}
+     * @async
+     */
     async extractInputsTemporary():Promise<void> {
 
         this._data.extracted = false;
@@ -623,5 +669,4 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         const manifest = await this.getManifest();
         return manifest.getTargetSdkVersion();
     }
-
 }

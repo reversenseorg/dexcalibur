@@ -339,7 +339,17 @@ export class DelegateWebApi
                             // check session, user and if the user can access to project
 
                             // check if the current user is authorized to access to this project
-                            const unsafePUID = (httpVerb==="get"? req.query._puid : req.body._puid);
+                            let unsafePUID:Nullable<string> = null;
+                            if(req.query!=null && req.query._puid!=null && (typeof req.query._puid==='string')){
+                                unsafePUID = req.query._puid;
+                            }
+
+                            if(unsafePUID==null){
+                                unsafePUID = (httpVerb==="get"? req.query._puid : req.body._puid);
+                            }
+
+
+
                             if(unsafePUID!=null){
 
                                 // is user is not authorize, it throws an exception
@@ -371,7 +381,7 @@ export class DelegateWebApi
 
                                             if(nodes.length>0){
                                                 //targetNode = nodes[0];
-                                                self.srv.context
+                                                await self.srv.context
                                                     .nodeManager
                                                     .forwardWebRequest(nodes[0], self.srv, req, res);
                                             }else if(pOptions.lazyProject===false){

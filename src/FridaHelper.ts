@@ -240,7 +240,6 @@ export default class FridaHelper extends External.ExternalHelper
 
             });
 
-            console.log(cache);
             FridaHelper.binaryCache = cache;
         }
 

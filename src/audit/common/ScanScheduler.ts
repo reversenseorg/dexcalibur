@@ -1,6 +1,6 @@
 import {ScanFlow} from "./ScanFlow.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {ScanOrder} from "./ScanOrder.js";
+import {ScanOrder, ScanOrderUUID} from "./ScanOrder.js";
 import {Subject} from "rxjs";
 import {EngineNode, NodePurpose, OperationType, ScanState} from "../../core/EngineNode.js";
 import {AuditManager} from "../AuditManager.js";
@@ -84,7 +84,7 @@ export class ScanScheduler {
     }
 
     /**
-     *
+     * To perform a scan
      * @param pProject
      * @param pOrder
      */
@@ -112,32 +112,14 @@ export class ScanScheduler {
             wf = pProject.getWorkflow();
         }
 
-        console.log("order save NEW SCAN ORDER> ");
-        await edb.save(pOrder);
-        // to check if the organization is allowed to execute the scan order
-        /*if(pOrg!=null && pOrg.getBusinessPlan()==null){
-            pOrg.setBusinessPlan(BusinessPlan.newSubscription(pOrg,3{
-                concur
-            }));
-        }*/
+        if(pOrder.getUUID()==null){
+            await this._ctx.getScanScheduler().saveOrder(pOrder)
+        }
 
         this._ctx.getOrgManager().verifyScanBalance(pOrder);
 
-        const model = await am.getModelFor(pUser, project, pOrder.getModelUID());
-
-
-        //const scanner:AssuranceScanner = LicenceManager.getProduct(project,model.scannerID) as AssuranceScanner;
-
-        //const opts = scanner.validateOptions(pOrder.options);
-
-        //console.log(scanner);
-        //scanner.setModel(model);
-
         pOrder.setState(ScanState.RUNNING);
         pOrder.setDate( ACTION_DATE.START );
-
-
-        //await edb.save(pOrder);
 
         // check if the project is ready
         if(!project.isReady()){
@@ -160,6 +142,9 @@ export class ScanScheduler {
             report.application = pOrder.appUnit;
         }
 
+        report.setProject(project);
+
+
         //await scanner.run(project, opts);
         pOrder.setDate( ACTION_DATE.STOP );
         pOrder.setState(ScanState.GENERATE_REPORT);
@@ -171,7 +156,7 @@ export class ScanScheduler {
         // get report
         //const report = scanner.getReport();
         // save report
-        am.saveReport(project, report);
+        await am.saveReport(project, report);
         //pOrder.report = report;
         pOrder.setState(ScanState.TERMINATED);
         console.log("order save TERMINATED> ");
@@ -181,10 +166,24 @@ export class ScanScheduler {
         return report;
     }
 
+    /**
+     *
+     * @param pOrder
+     * @param pPpt
+     */
+    async saveOrder(pOrder:ScanOrder, pPpt:string[] = []):Promise<ScanOrder> {
+        if(pOrder.getUID()!=null){
+            let order = pOrder;
+            await this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType())
+                .asyncUpdateEntry(pOrder, { replace:false, upsert:true, $set:pPpt });
+            return order;
+        }else{
+            pOrder.uuid = await (this._ctx.getEngineDB()).generateFreeUuid(ScanOrder.TYPE.getType(), 'uuid');
 
-    async saveOrder(pOrder:ScanOrder):Promise<any> {
-        return await this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType())
-            .asyncAddEntry(pOrder.getUUID(), pOrder);
+            return await this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType())
+                .asyncAddEntry(pOrder.getUUID(), pOrder);
+        }
+
     }
 
     /**
@@ -195,6 +194,7 @@ export class ScanScheduler {
     async newScan(pOrder:ScanOrder, pExtraOpts:any = {}):Promise<any> {
 
         let node:EngineNode;
+        const orderOpts = pOrder.getOption('extra');
 
         // check
         if(pOrder.getProjectUID()!=null){
@@ -203,29 +203,39 @@ export class ScanScheduler {
                 NodePurpose.ANY
             );
 
-            console.log("READY SLAVE FROM newScan ",node)
+            console.log("READY SLAVE FROM newScan ",node);
+
+            if(node != null){
+                pOrder.slaveUID = node.getUID();
+            }
         }
 
         // save order
-        await this.saveOrder(pOrder);
+        await this.saveOrder(pOrder, ['slaveUID']);
+
+        console.log("NEW SCAN > ",pOrder,pOrder.getUUID());
 
         // check ressources quotas
         if(node == null){
 
+            // append scan order to the exec queue after project loading
             pExtraOpts.scanOrders = [pOrder];
+
+            const owner = await this._ctx.getUserService().getAccount(
+                this._ctx.getInternalAcc(), orderOpts.owner
+            );
+
             // search free node or node for REVIEW / HOOK
             node = await this._ctx.getProjectManager().open(
-                this._ctx.getInternalAcc(),
+                owner,
                 pOrder.getProjectUID(),
                 NodePurpose.ANY,
                 pExtraOpts);
-        }
 
-        if(!await node.isBusy()){
-            // send a request to order a scan to the node
-            node.startScan(pOrder);
-        }else {
-            // add scan to queue
+
+            pOrder.slaveUID = node.getUID();
+            pOrder = await this.saveOrder(pOrder, ['slaveUID']);
+        }else{
             node.appendToQueue(pOrder, OperationType.SCAN_ORDER);
         }
     }
@@ -267,6 +277,29 @@ export class ScanScheduler {
         // list projects in app unit
         return await (this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType()))
             .search({ filter: { 'settings.projectUID': { $in: pApp.getReleases() } } }, {raw:true});
+    }
+
+    /**
+     * To retrieve an order by its UUID
+     *
+     * @param pUserAccount
+     * @param pOrderUUID
+     */
+    async getOrder(pUserAccount:UserAccount, pOrderUUID:ScanOrderUUID):Promise<ScanOrder> {
+
+
+        const order = await (this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType()))
+            .search({ filter: {
+                'uuid':pOrderUUID
+            } }, {raw:true});
+
+        // todo : check ACL
+
+        if(order.length>0){
+            return order[0];
+        }else{
+            return null;
+        }
     }
 
 

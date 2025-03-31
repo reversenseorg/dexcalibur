@@ -254,6 +254,26 @@ export class ProjectOrder implements INode {
         return this.settings.options;
     }
 
+    /**
+     * To add an extra options to the project order
+     *
+     * @param {string} pKey
+     * @param {any} pValue
+     * @since 1.8.0
+     */
+    addOption(pKey:string, pValue:any):void {
+        this.options[pKey] = pValue;
+    }
+
+    /**
+     * To retrieve an extra options froml the project order
+     * @param {string} pKey
+     * @since 1.8.0
+     */
+    getOption(pKey:string):any {
+        return this.options[pKey];
+    }
+
     getState():ProjectState {
         return this.state;
     }

@@ -281,7 +281,6 @@ export default class Util {
         for(let k=0; k<body.length; k++){
             out+="| "+k+(" ".repeat(isize-2-(""+k).length))+"| ";
             for(let i in body[k]){
-                //console.log(maxwidth[header[i]], body[k][i].length)
                 v = (body[k][i] != undefined)?  body[k][i] : "";
 
                 out += v+(" ".repeat(maxwidth[header[i]]-v.length+6))+"| "

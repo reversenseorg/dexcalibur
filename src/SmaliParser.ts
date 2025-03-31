@@ -259,18 +259,14 @@ export default class SmaliParser
             pInStr.shift();
 
         this.obj = new ModelClass();
-        //console.log(src);
         // parse modifiers
         let match2:MatchCounter={c:0};
         this.obj.modifiers = SmaliParser.modifier(pInStr, match2);
-        //console.log(src);
-
 
         // clean src with identified modifier
         for(let i:number=0; i<match2.c; i++)
             pInStr.shift();
 
-        // console.log(src);
         // parse nam
         javaFqcn = SmaliParser.fqcn(pInStr);
         end = javaFqcn.lastIndexOf(".");
@@ -765,7 +761,6 @@ export default class SmaliParser
                     catchStmt.setTryEnd(sml[4].substr(0,sml[4].length-1));
                     catchStmt.setTarget(sml[5]);
 
-                    //console.log(sml);
                     tmp = this.__tmp_meth.getBasicBlocks();
                     tmp[tmp.length-1].addCatchStatement(catchStmt);
                     /*if(this.__tmp_block != null){

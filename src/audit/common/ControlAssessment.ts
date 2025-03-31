@@ -90,6 +90,7 @@ export enum MetadataTopic {
     CRITICITY="criticity"
 }
 
+
 export enum DataOperation {
     SOURCING,
     PROCESSING,
@@ -99,7 +100,6 @@ export enum DataOperation {
     DECRYPTING,
     HASHING
 }
-
 export enum DataOperationSource {
     UI,
     API

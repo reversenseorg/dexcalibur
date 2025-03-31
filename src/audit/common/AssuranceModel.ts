@@ -6,7 +6,7 @@ import Control from "./Control.js";
 import {Metadata, MetadataType} from "./Metadata.js";
 import {Auditable} from "../../Auditable.js";
 import {AuditAccessControl} from "../../user/acl/rbac/AuditAccessControl.js";
-import ControlAssessment, {MetadataTopic} from "./ControlAssessment.js";
+import ControlAssessment, {AnalysisType, DataOperation, MetadataTopic} from "./ControlAssessment.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Nullable} from "../../core/IStringIndex.js";
@@ -24,6 +24,8 @@ import {
 import {AccessAttribute, AccessAttributeMap} from "../../user/acl/AccessAttribute.js";
 import {Indicator, IndicatorUUID} from "./Indicator.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
+import {CycloneDX} from "../../bom/CycloneDX.js";
+import DataFlow = CycloneDX.DataFlow;
 
 export type AssuranceModelUUID = string;
 export enum AssuranceModelType {
@@ -425,6 +427,65 @@ export default class AssuranceModel extends Auditable implements INode {
         this.updateControlTree(this.controls);
     }*/
 
+    static stringifyDFlow(pType:DataOperation):string {
+        switch (pType){
+            case DataOperation.SOURCING:
+                return "sourcing";
+            case DataOperation.PROCESSING:
+                return "processing";
+            case DataOperation.STORING:
+                return "storing";
+            case DataOperation.SHARING:
+                return "sharing";
+            case DataOperation.ENCRYPTING:
+                return "encrypting";
+            case DataOperation.DECRYPTING:
+                return "decrypting";
+            case DataOperation.HASHING:
+                return "hashing";
+        }
+    }
+
+    static fromDFlowString(pType:string):DataOperation {
+        switch (pType){
+            case "sourcing":
+                return DataOperation.SOURCING;
+            case "processing":
+                return DataOperation.PROCESSING;
+            case "storing":
+                return DataOperation.STORING;
+            case "sharing":
+                return DataOperation.SHARING;
+            case "encrypting":
+                return DataOperation.ENCRYPTING;
+            case "decrypting":
+                return DataOperation.DECRYPTING;
+            case "hashing":
+                return DataOperation.HASHING;
+        }
+    }
+
+    static stringifyAnalType(pType:AnalysisType):string {
+        switch (pType){
+            case AnalysisType.SAST:
+                return "sast";
+            case AnalysisType.DAST:
+                return "dast";
+            case AnalysisType.IAST:
+                return "iast";
+        }
+    }
+
+    static fromAnalTypeString(pType:string):AnalysisType {
+        switch (pType){
+            case "sast":
+                return AnalysisType.SAST;
+            case "dast":
+                return AnalysisType.DAST;
+            case "iast":
+                return AnalysisType.IAST;
+        }
+    }
     /**
      * To update the internal control tree
      *
@@ -441,20 +502,25 @@ export default class AssuranceModel extends Auditable implements INode {
             if(vCtrl.id!=null){
                 canonicalID = current.canonicalID+CANONICAL_ID_SEPARATOR+vCtrl.id;
             }else{
-                // retrieve MetadataTopic.DFLOW_STEP
-                const dflow = vCtrl.metadata.find(x => x.key===MetadataTopic.DFLOW_STEP);
-                if(dflow!=null){
-                    canonicalID = current.canonicalID+CANONICAL_ID_SEPARATOR+dflow;
-                }
-                // retrieve analType
-                if(vCtrl.isControlAssessment()){
-                    if(dflow!=null){
-                        canonicalID += ":"+(vCtrl as ControlAssessment).analType;
-                    }else{
-                        canonicalID = current.canonicalID+CANONICAL_ID_SEPARATOR+(vCtrl as ControlAssessment).analType;
-                    }
+                canonicalID = current.canonicalID;
+            }
+
+            // retrieve MetadataTopic.DFLOW_STEP
+            const dflow = vCtrl.metadata.find(x => x.key===MetadataTopic.DFLOW_STEP);
+            if(dflow!=null){
+                canonicalID = canonicalID+":"+AssuranceModel.stringifyDFlow(dflow.value);
+            }
+
+            // retrieve analType
+            if(vCtrl.isControlAssessment()){
+                const strAT = AssuranceModel.stringifyAnalType((vCtrl as ControlAssessment).analType);
+                if((vCtrl as ControlAssessment).analType!=null){
+                    canonicalID = canonicalID+":"+strAT;
+                }else{
+                    canonicalID = canonicalID+CANONICAL_ID_SEPARATOR+"default";
                 }
             }
+
 
             const node:ControlNode = {
                 parent:current,
@@ -463,13 +529,20 @@ export default class AssuranceModel extends Auditable implements INode {
                 children: {}
             };
 
-            if(vCtrl.hasOwnProperty('children') && (vCtrl as Control)!=null && (vCtrl as Control).children.length>0){
+            /*if(vCtrl.hasOwnProperty('children') && (vCtrl as Control)!=null && (vCtrl as Control).children.length>0){
                 this.updateControlTree((vCtrl as Control).children as Control[], node);
+            }*/
+
+            if((vCtrl as Control)!=null){
+                if(vCtrl.isControl() && (vCtrl as Control).children.length>0){
+                    this.updateControlTree((vCtrl as Control).children as Control[], node);
+                }
+
+                if(vCtrl.hasOwnProperty('assessments') && (vCtrl as Control).assessments.length>0){
+                    this.updateControlTree((vCtrl as Control).assessments as ControlAssessment[], node);
+                }
             }
 
-            if(vCtrl.hasOwnProperty('assessments') && (vCtrl as Control)!=null && (vCtrl as Control).assessments.length>0){
-                this.updateControlTree((vCtrl as Control).assessments as ControlAssessment[], node);
-            }
 
 
             current.children[canonicalID] = node;

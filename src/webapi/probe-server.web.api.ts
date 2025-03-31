@@ -40,10 +40,11 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
                 }*/
 
                 // ==== LOGIC
+
                 if(req.body['dev']){
                     device = DeviceManager.getInstance().getDevice(req.body['dev']);
                 }else{
-                    project = req.dxc.project;
+                    project = req.project; //dxc.project;
                     if(project!=null){
                         device = project.getDevice();
                     }else{
@@ -90,8 +91,8 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                }else if(req.project != null){
+                    project = req.project;
                 }
 
                 if(project == null || !project.isReady()) {

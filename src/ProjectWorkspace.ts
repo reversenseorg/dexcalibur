@@ -12,6 +12,7 @@ import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
 import HookWorkspace from "./hook/HookWorkspace.js";
 import {Nullable} from "./core/IStringIndex.js";
 import TargetApp from "./common/TargetApp.js";
+import {ProjectInput} from "./analyzer/ProjectInput.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -236,7 +237,7 @@ export default class ProjectWorkspace
             _base:_path_.join(this.path, DIR_NAME.HKWS),
             _ws:this
         });
-        await this.hookWS.init();
+        //await this.hookWS.init();
 
         Logger.success("[*] Working directory : "+this.path);
     }
@@ -388,7 +389,12 @@ export default class ProjectWorkspace
         return this.mainApp;
     }
 
-    getHookWorkspace():HookWorkspace {
+    async getHookWorkspace():Promise<HookWorkspace> {
+
+        if(!this.hookWS.isReady()){
+            await this.hookWS.init();
+        }
+
         return this.hookWS;
     }
 
@@ -420,6 +426,33 @@ export default class ProjectWorkspace
 
     static getAuditDirFromPUID(pGloablWorkspace:string, pPUID:string):string {
         return _path_.join(pGloablWorkspace, pPUID, DIR_NAME.AUDIT);
+    }
+
+
+    getValidInputPath(pInput:ProjectInput):string {
+        let path:string;
+        if(pInput.purpose!=null){
+
+            if(!ProjectInput.VALIDATE.purpose.test(pInput.purpose)){
+                throw RuntimeSecurityException.PATH_TRAVERSAL_IS_FORBIDDEN();
+            }
+
+            const ext = (pInput.extractOpts.type!=null ? '.'+pInput.extractOpts.type : '');
+            path = _path_.join(this.getInputDir(),pInput.purpose);
+            if(!_fs_.existsSync(path+ext)){
+                return path+ext;
+            }
+
+            let newPath:string;
+            let i=1;
+            do{
+                newPath = path+"_"+i+ext;
+            }while(_fs_.existsSync(newPath));
+
+            return newPath;
+        }
+
+        return path;
     }
 
 }

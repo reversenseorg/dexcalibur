@@ -37,20 +37,12 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
             let user:UserAccount;
 
             try {
-                    /*user = (req.dxc.sess as UserSession).getUserAccount();
-
-                    $.sendSuccess( res, {
-                        projects: await user.listProjects($.context)
-                    });*/
-
                     $.sendSuccess( res, {
                         projects: (await $.context
                                         .getProjectManager()
                                         .listProjectByUser(req.user))
                                             .map(x => x.toJsonObject())
                     });
-
-
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Unable to list projects : "+err.message+"\n"+err.stack);
@@ -684,34 +676,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 const unsafePurpose = (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY);
 
                 // TODO check is user is authorized to access project
-                // search a running node for this project
-                /*
-                let nodes = await $.context.getNodeManager().listNodeByProject(req.user, unsafeUUID);
-
-
-                if(nodes.length>0){
-                    if(unsafePurpose!=NodePurpose.ANY){
-                        nodes = EngineNodeManager.filterNodesByPurpose(nodes, unsafePurpose);
-                    }
-
-                    if(nodes.length>0){
-                        nodes = EngineNodeManager.filterNodesByState(nodes, NodeState.IDLE);
-                        if(nodes.length>0){
-                            // search a free node and link it to user account
-                            const freshNode = await $.context.getNodeManager()
-                                .allocateNode(nodes, req.user);
-
-                            if(freshNode != null){
-                                $.sendSuccess( res, {
-                                    ready: true,
-                                    node: freshNode.getUID()
-                                });
-                                return;
-                            }
-                        }
-                    }
-                }*/
-
 
                 let candidate = await $.context.getNodeManager().getReadySlave( unsafeUUID, unsafePurpose);
                 if(candidate!=null){
@@ -739,6 +703,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 let nodeReady = false;
+
                 const subscription = targetNode.nodeState$.subscribe((vChange)=>{
                     if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
                         subscription.unsubscribe();
@@ -747,7 +712,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                             ready: true,
                             node: vChange.nodeUUID
                         });
-                        //pNext();
                     }else{
                         subscription.unsubscribe();
                         nodeReady = true;
@@ -755,94 +719,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                             ready: false,
                             node: vChange.nodeUUID
                         });
-                        //pNext();
                     }
                 });
-
-
-                /*if(!$.context.getNodeManager().isCurrentNode(targetNode)){
-                    // current node is standalone or slave node
-                    //$.context.getProjectManager().
-                    targetNode.appendRequestToQueue($, req, res);
-                    return;
-                }else{
-                    $.sendSuccess( res, {
-                        ready: nodeReady,
-                        node: targetNode.getUID()
-                    });
-                    return;
-                //}
-
-                /*
-                user = req.user;
-
-                // refresh connected device
-                await DeviceManager.getInstance().scan();
-
-                // get project info
-                project = $.context.getProject( req.query.uid as string);
-
-
-
-
-                if(project != null){
-
-                    AccessControl.check(
-                        AccessZone.PROJECT,
-                        AccessControl.access.PROJ_OPEN_OWN,
-                        project,
-                        req.dxc.sess.getUserAccount()
-                    );
-
-                    // if the project is already opened, it is set as active (foregrounf) project
-                    (req.dxc.sess as UserSession).setDefaultActiveProject(project);
-
-
-                    if(project.isReady()){
-                        $.sendSuccess( res, {});
-                    }else{
-                        $.sendError( res, "Project is open but not ready");
-                    }
-                    return ;
-                }
-
-
-
-                Logger.debug("["+$.context.nodeManager.uuid+"]Project OPEN request > ",$.context.engine_type,DexcaliburEngineMode.MASTER);
-                // todo : move into DexcaliburEngine class
-
-                if($.context.engine_type==DexcaliburEngineMode.MASTER){
-
-                    // list existing nodes mapped to project UID
-                    const nodes = $.context.nodeManager.getNodeByProject(req.query.uid as string);
-
-                    if(nodes.length==0){
-                        // create node
-                        const node = $.context.nodeManager.createNode(req.query.uid as string, NodePurpose.REVIEW);//, project.getDevice().getProfile().os);
-                        node.appendRequestToQueue($, req, res);
-                        await node.spawn("The user request to open an  existing project.",false);
-
-                    }else{
-                        nodes[0].appendRequestToQueue($, req, res);
-                    }
-
-                }else{
-
-                    wf = $.context.newWorkflow( req.query.uid  as string ).changeOwner(user);
-
-                    wf.pushStatus(new StatusMessage(5, "Opening project"));
-
-                    project = await $.context.openProject( user, req.query.uid as string);
-
-                    if(project!=null && project.isReady()){
-                        req.dxc.sess.setDefaultActiveProject(project);
-
-                        $.sendSuccess( res, {})
-                    }else{
-                        throw DexcaliburProjectException.OPEN_PROJECT_FAILURE(req.query.uid);
-                    }
-                }*/
-
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Opening project failed : "+err.message+"\n"+err.stack);

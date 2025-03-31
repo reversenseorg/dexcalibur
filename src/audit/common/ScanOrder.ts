@@ -164,9 +164,7 @@ export class ScanOrder implements INode {
             for(let i in pOptions) this[i] = pOptions[i];
         }
 
-        if(this.uuid==null){
-            this.uuid = randomUUID();
-        }
+
 
         if(this.dates[ACTION_DATE.START]==-1){
             this.setDate( ACTION_DATE.ORDER);
@@ -187,7 +185,7 @@ export class ScanOrder implements INode {
 
 
     getUID(): string {
-        return this._id;
+        return this.uuid; //_id;
     }
 
     getUUID():string {
@@ -280,6 +278,27 @@ export class ScanOrder implements INode {
         }
         CoreDebug.checkJsonSerialize(obj, "ScanOrder");
         return obj;
+    }
+
+
+    /**
+     * To add an extra options to the project order
+     *
+     * @param {string} pKey
+     * @param {any} pValue
+     * @since 1.8.0
+     */
+    addOption(pKey:string, pValue:any):void {
+        this.options[pKey] = pValue;
+    }
+
+    /**
+     * To retrieve an extra options froml the project order
+     * @param {string} pKey
+     * @since 1.8.0
+     */
+    getOption(pKey:string):any {
+        return this.options[pKey];
     }
 }
 ScanOrder.TYPE.builder(ScanOrder);

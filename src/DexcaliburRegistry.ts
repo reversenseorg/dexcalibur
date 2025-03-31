@@ -26,43 +26,8 @@ export default class DexcaliburRegistry
 
         this.url = pRegistryURL; //new URL(pRegistryURL);
         this.api = pRegistryApiURL; //new URL(pRegistryApiURL);
-
-        /*
-        this.cache = {
-            platforms: [],
-            devices: [],
-            inspectors: []
-        }*/
     }
 
-   
-
-    /*loadPlatforms( ){
-        
-        (async () => {
-            try {
-                var response = await _got_(this.api+"/platforms");
-
-                var version, name, source, vendor, model;
-
-                response = JSON.parse(response.body);
-
-                for(let i=0; i<response.length; i++){
-
-                    this.cache.platforms.push(
-                        new platform({
-
-                        })
-                    )
-                }
-                this.cache 
-                console.log(response.body);
-                //=> '<!doctype html> ...'
-            } catch (error) {
-                throw new Error("[REGISTRY] Unable to enumerate the remote registry");
-            }
-        })();
-    }*/
 
     /**
      * To enumerates downloadable platform

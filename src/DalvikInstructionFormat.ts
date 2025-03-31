@@ -196,7 +196,6 @@ export default class DalvikInstructionFormat {
         let instr:ModelInstruction = new ModelInstruction();
         let m:RegExpExecArray = RX.REG_TAG.exec(raw_src);
 
-        //if(raw_src.indexOf(":sswitch")>-1) console.log(m);
 
         instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
         //instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]);
@@ -279,7 +278,6 @@ export default class DalvikInstructionFormat {
 
         m = (new RegExp(PATTERN.CONST_CLASS_MULT_INSTR)).exec(raw_src);
 
-        //console.log(m,Core.PATTERN.CONST_CLASS_MULT_INSTR,raw_src);
         if(m==null) console.log(raw_src);
         instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
 

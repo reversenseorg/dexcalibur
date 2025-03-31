@@ -53,7 +53,6 @@ export default  class FridaGenerator
     }
 
     save(path:string):FridaGenerator{
-        //console.log(this.script);
         fs.writeFileSync(path, this.script);
         return this;
     }

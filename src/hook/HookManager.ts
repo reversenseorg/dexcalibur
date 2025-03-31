@@ -547,7 +547,7 @@ export class HookManager
      */
     async buildAgentScript(pOptions:ScriptBuilderOptions = {}, pSkipTS = false):Promise<ScriptCompilerOutput> {
         let script:string = null;
-        const ws:HookWorkspace = this.context.getWorkspace().getHookWorkspace();
+        const ws:HookWorkspace = await this.context.getWorkspace().getHookWorkspace();
         let compilerOutput:ScriptCompilerOutput;
 
         //try{
@@ -618,7 +618,7 @@ export class HookManager
             .sessions[this.sessions.length-1];
 
         const sess:HookSession =new HookSession();
-        sess.setHookManager(this);
+        await sess.setHookManager(this);
 
         // TODO : add configuration flush/keep previous
         if(last != null) last.active = false;
@@ -1857,9 +1857,9 @@ export class HookManager
 
         const sess:HookSession[] = await this.db.sessions.getAsList();
 
-        sess.map(x => {
-            x.setHookManager(this)
-        });
+        for(let i=0;i<sess.length; i++){
+            await sess[i].setHookManager(this);
+        }
 
         const lastSess = this.lastSession();
         if(lastSess!=null){
@@ -2159,16 +2159,6 @@ export class HookManager
     }
 
     /**
-     * To check if the hook workspace of the project is ready
-     *
-     * @private
-     */
-    private _isHookWsReady():boolean{
-        return this.context.getWorkspace().getHookWorkspace().isReady();
-    }
-
-
-    /**
      * To push the event into global pipe.
      *
      * The hook manager will complete object according to fragment / hook / strategies
@@ -2243,9 +2233,9 @@ export class HookManager
     /**
      * To get workspace state
      */
-    getWorkspaceState():HookWorkspaceState {
+    async getWorkspaceState():Promise<HookWorkspaceState> {
         return {
-            commit: this.context.getWorkspace().getHookWorkspace().getLastcommit()
+            commit: (await this.context.getWorkspace().getHookWorkspace()).getLastcommit()
         };
     }
 

@@ -334,7 +334,7 @@ export default class Hook
                 id: this.code.varID,
                 data: {}
             };
-            //console.log(this.variables);
+
             for(let i in this.variables){
                 o.variables.data[i] = this.variables[i].write();
             }
@@ -868,7 +868,6 @@ export default class Hook
         this.enable();
         this.script = script;
         return true;
-        //console.log(script);
     }
 
 

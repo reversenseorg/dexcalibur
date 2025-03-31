@@ -1,7 +1,8 @@
 import {expect} from 'chai';
 import {before} from "mocha";
-import DexcaliburEngine, {DexcaliburEngineMode} from "../src/DexcaliburEngine.js";
+import DexcaliburEngine from "../src/DexcaliburEngine.js";
 import {Settings} from "../src/Settings.js";
+import {DexcaliburEngineMode} from "../src/DexcaliburEngineMode";
 
 describe('OrganizationManager', function() {
 

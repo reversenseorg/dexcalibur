@@ -97,7 +97,6 @@ export default class HookPrimitive
 
         if(method==undefined){
             Logger.error("[HOOK] Method not found by signature");
-            console.log(this);
         }
         //hook.setID( context.hook.nextHookIdFor(method));
         hook.setID( CryptoUtils.md5(context.hook.nextHookIdFor(method)));

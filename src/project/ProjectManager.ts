@@ -33,6 +33,7 @@ import {IPackageAnalyzer} from "../analyzer/IPackageAnalyzer.js";
 import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
+import * as _fs_ from "node:fs";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -104,9 +105,58 @@ export class ProjectManager {
      * @private
      */
     private async _listAllProjects():Promise<DexcaliburProject[]> {
-        return await this._ctx.getEngineDB()
+        const projects = await this._ctx.getEngineDB()
             .getCollectionOf(DexcaliburProject.TYPE.getType())
             .getAsList();
+
+        return projects.map(x => { x.setEngine(this._ctx);  return x; });
+    }
+
+    /**
+     * FIX ROUTINE
+     *
+     * To repair project inputs with wrong path located into temporaru folder
+     * instead of project workspace. This routine updates every project created before 1.2.0
+     *
+     * @private
+     */
+    async _fix_projectInput_less_1_2():Promise<any> {
+        // read all projects
+        const projects = await this._listAllProjects();
+        let base:string;
+        let inputs:ProjectInput[];
+        let proj:DexcaliburProject;
+
+        for(let i=0; i<projects.length; i++){
+            proj = projects[i];
+            base = proj.getWorkspace().getInputDir();
+            inputs = proj.inputs.filter(x => {
+                return (x.type===ProjectInputType.REGULAR_FILE)
+                    && (x.location===ProjectInputLocation.LOCAL)
+                    && (x.data!=null)
+                    && (x.data.indexOf(base)!=0);
+            });
+
+            if(inputs.length>0){
+                Logger.error(`Project [${proj.getUID()}] has ${inputs.length} misconfigured project inputs. Start to repair ... (${inputs.map(x =>x.data).join(',')})`);
+                inputs.map( inp => {
+                    try{
+                        // copy file
+                        // Input file is not located into project workspace
+                        const inputPath = proj.getWorkspace().getValidInputPath(inp);
+                        _fs_.copyFileSync(inp.data, inputPath);
+
+                        // update and save project input
+                        inp.setPath(inputPath);
+                    }catch (e){
+                        Logger.error(e.stack);
+                    }
+                });
+                // save modifying
+                await this._ctx.getEngineDB().saveProject(proj, ['inputs']);
+                Logger.success(`Repaired [${proj.getUID()}]`);
+            }
+        }
     }
 
     /**
@@ -120,73 +170,49 @@ export class ProjectManager {
      * @returns {Promise<DexcaliburProject[]>} List of projects
      * @method
      */
-    async listProjectByUser( pAccount:UserAccount):Promise<DexcaliburProject[]> {
+    async listProjectByUser( pAccount:UserAccount, pPurpose:NodePurpose = NodePurpose.ANY):Promise<DexcaliburProject[]> {
 
+        let projects:DexcaliburProject[] = [];
         try{
             AccessControl.isAuthorized(
                 AccessControl.access.SRV_INSTANCE_MGT,
                 pAccount
             );
 
-            return await this._listAllProjects();
+            projects = await this._listAllProjects();
         }catch (e){
             AccessControl.isAuthorized(
                 AccessControl.access.PROJ_META_READ,
                 pAccount
             );
+
+            // retrieve every membships
+            const mss = pAccount.getMemberships();
+            let org:OrganizationUnit;
+
+            for(let oid in mss){
+                org = await this._ctx.getOrgManager().getOrganization(pAccount, oid);
+                projects = projects.concat( await this.listProjectByOrgUnit(pAccount, org));
+            }
         }
 
-        // retrieve every membships
-        const mss = pAccount.getMemberships();
-        let projects:DexcaliburProject[] = [];
-        let org:OrganizationUnit;
-
-        for(let oid in mss){
-            org = await this._ctx.getOrgManager().getOrganization(pAccount, oid);
-            projects = projects.concat( await this.listProjectByOrgUnit(pAccount, org));
+        let nodes:EngineNode[] = [];
+        // refresh projects status
+        for(let i=0; i<projects.length; i++){
+            nodes = await this._ctx.getNodeManager().getNodeByProject(projects[i].getUID(), pPurpose, true);
+            if(nodes.length > 0){
+                projects[i].ready = true;
+            }
         }
-
-        // if the user as admin role, he can open all projects
-        /*
-
-        const all:DexcaliburProject[] = await this._ctx.getEngineDB()
-            .getCollectionOf(DexcaliburProject.TYPE.getType())
-            .getAsList();
-
-        const authorizedApps = await this._ctx.getOrgManager().listApplicationsByUser(pAccount);
-
-        let authorizedPUID: DexcaliburProjectUUID[] = [];
-        authorizedApps.map(x =>{
-            authorizedPUID = authorizedPUID.concat(x.getReleases())
-        });
-
-        const filtered:DexcaliburProject[] = [];
-
-        // direct search by attributes
-        all.map(vProj => {
-            try{
-                if(authorizedPUID.indexOf(vProj.getUID())>-1){
-                    filtered.push(vProj);
-                    return;
-                }
-
-                AccessControl.isAuthorized(
-                    AccessControl.access.PROJ_META_READ,
-                    pAccount,
-                    vProj,
-                    [
-                        ProjectAccessControl.attr.OWNER,
-                        ProjectAccessControl.attr.TESTER
-                    ]
-                );
-
-                filtered.push(vProj);
-            }catch (e){  }
-        });*/
 
         return projects;
     }
 
+    /**
+     *
+     * @param pAccount
+     * @param pOrg
+     */
     async listProjectByOrgUnit( pAccount:UserAccount, pOrg:OrganizationUnit):Promise<DexcaliburProject[]> {
 
         let projUIDs:DexcaliburProjectUUID[] = [];
@@ -198,11 +224,13 @@ export class ProjectManager {
             projUIDs = projUIDs.concat(apps[i].getReleases());
         }
 
-        return await this._ctx.getEngineDB()
+        const projects = await this._ctx.getEngineDB()
             .getCollectionOf(DexcaliburProject.TYPE.getType())
             .search(
                 { filter:{ uid: { $in: projUIDs } }},
                 { merlinRequest:false, raw:true });
+
+        return projects.map(x => { x.setEngine(this._ctx);  return x; });
     }
 
     /**
@@ -213,8 +241,10 @@ export class ProjectManager {
      */
     async listProjectByAppUnit( pAccount:UserAccount, pApp:ApplicationUnit):Promise<DexcaliburProject[]> {
 
-       return await (this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()))
+       const projects = await (this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()))
             .search({ filter: { uid: { $in: pApp.getReleases() } } }, {raw:true});
+
+        return projects.map(x => { x.setEngine(this._ctx);  return x; });
     }
 
     /**
@@ -258,18 +288,10 @@ export class ProjectManager {
             NodePurpose.NEW_PRJ
         );
 
-        // start a new node
-        if(node == null){
-            // check ressources quotas
-            node = await this._ctx.nodeManager.createNode(proj.getUID(), NodePurpose.NEW_PRJ, pOrg.getUID()); //, pOrder.settings.targetOS);
-            node.start("New project created");
-        }
-
         // create workflow
         const wf = new Workflow({
             uid: pOrg.getUID()+":exec"
         });
-        wf.start();
 
         // build project order
         let newPrjOrder= new ProjectOrder({
@@ -281,7 +303,7 @@ export class ProjectManager {
             orgUnit: pOrg.getUID(),
             appUnit: pAppUnit.getUID(),
             owner: pAccount.getUID(),
-            slaveUID: node.getUID(),
+            slaveUID: (node!=null? node.getUID() : null),
             settings: {
                 projectUID: proj.getUID(),
                 options: pOptions
@@ -289,14 +311,28 @@ export class ProjectManager {
             wf: wf
         });
 
+        newPrjOrder.addOption('extra', {
+            owner: pAccount.getUID(),
+            ...pExtraOwnerOpts
+        });
 
-        // save (create) project
         newPrjOrder = (await this._ctx.getEngineDB().save(newPrjOrder) as ProjectOrder);
+        wf.start();
 
-        if(!await node.isBusy()){
-            // send a request to order a scan to the node
-            node.startProject(pAccount,newPrjOrder,pExtraOwnerOpts);
+        // start a new node
+        if(node == null){
+            // check ressources quotas
+            node = await this._ctx.nodeManager.createNode(proj.getUID(), NodePurpose.NEW_PRJ, pOrg.getUID()); //, pOrder.settings.targetOS)
+
+            newPrjOrder.slaveUID = node.getUID();
+            // update project order
+            await this._ctx.getEngineDB().updateOrder(newPrjOrder, ['slaveUID']);
+
+            // add scan to queue
+            node.appendToQueue(newPrjOrder, OperationType.NEW_PROJ, pAccount,pExtraOwnerOpts);
+            node.start("New project created");
         }else{
+
             // add scan to queue
             node.appendToQueue(newPrjOrder, OperationType.NEW_PROJ, pAccount,pExtraOwnerOpts);
         }
@@ -661,9 +697,12 @@ export class ProjectManager {
         );
 
         try{
-            return await (this._ctx.getEngineDB()
+            const proj = await (this._ctx.getEngineDB()
                 .getCollectionOf(DexcaliburProject.TYPE.getType()) as MongodbDbCollection)
-                .asyncGetEntry({ uid: pProjectUID });
+                .asyncGetEntry({ uid: pProjectUID }) as DexcaliburProject;
+
+            proj.setEngine(this._ctx)
+            return proj;
         }catch (err){
             throw ProjectManagerException.PROJECT_NOT_FOUND(pProjectUID);
         }
@@ -772,12 +811,52 @@ export class ProjectManager {
                 scanOrders = [];
             }
 
+            let openOrder = new ProjectOrder({
+                slaveUID: remoteNode.getUID(),
+                settings: {
+                    projectUID: pProjectUID
+                },
+                options: {
+                    type: OperationType.OPEN_PROJ
+                }
+            });
+
+            openOrder.addOption('extra',{
+                owner: pUser.getUID(),
+                cookie: pExtraOpts.cookie
+            });
+
+            openOrder = await this.saveProjectOrder(openOrder);
+
+            // TODO : append operation to remote node
+            await remoteNode.appendToQueue(openOrder, OperationType.OPEN_PROJ, pUser);
+
+            if(scanOrders.length>0){
+                for(let i=0;i<scanOrders.length; i++){
+
+                    if(scanOrders[i].getUID()===null){
+                        scanOrders[i] = await (this._ctx.getScanScheduler()
+                            .saveOrder(scanOrders[i]) as Promise<ScanOrder>);
+                    }
+
+                    await remoteNode.appendToQueue(scanOrders[i], OperationType.SCAN_ORDER, pUser);
+                }
+            }
+
+            console.log("REMOTE NODE : ", remoteNode);
             // to subsribe to state changes
             remoteNode.nodeState$.subscribe((vChange  )=>{
 
-                // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per node
-                if(vChange.new==NodeState.REGISTERED && vChange.before==NodeState.NEW){
+                // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per nod
+
+                console.log(" ProjectManager > open > nodeState$ = "+vChange.new);
+                if(vChange.new==NodeState.REGISTERED){
                     //remoteNode.start("Slave registered");
+                    // to open associated project
+                    remoteNode.open(pExtraOpts).then((r)=>{
+                        //remoteNode.nodeState$
+                        remoteNode.setState(NodeState.IDLE); //.then(()=>{});
+                    })
                 }
 
                 // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per node
@@ -1062,5 +1141,33 @@ export class ProjectManager {
             throw DexcaliburProjectException.PROJECT_NOT_READY(pProject);
         }
         return local;
+    }
+
+    /**
+     * To save (create or uopdat) a project order
+     *
+     * @param {ProjectOrder} pOrder
+     * @param {string[]} pUpdated Updated fields
+     * @method
+     * @async
+     * @since 1.8.0
+     */
+    async saveProjectOrder(pOrder:ProjectOrder, pUpdated:string[] = []):Promise<ProjectOrder>{
+        let exists = true;
+        if(pOrder.getUID()==null){
+            pOrder.uuid = await this._ctx.getEngineDB()
+                .generateFreeUuid(ProjectOrder.TYPE.getType());
+
+            exists = false;
+        }
+
+        let order = pOrder;
+        if(exists){
+            await this._ctx.getEngineDB().updateOrder(pOrder,pUpdated);
+        }else{
+            order = await (this._ctx.getEngineDB().save(pOrder) as Promise<ProjectOrder>);
+        }
+
+        return order;
     }
 }

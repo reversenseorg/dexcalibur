@@ -90,7 +90,7 @@ export class MerlinUnserializer {
             case OperationType.INTERSECT:
             case OperationType.JOIN:
                 ope = {
-                    type: OperationType.VALIDATE,
+                    type: pObject.type, //OperationType.VALIDATE,
                     args: {
                         request: MerlinUnserializer.fromSerializedSearchRequest((pObject.args as any).request) //request
                     }
@@ -184,8 +184,6 @@ export class MerlinUnserializer {
                     pattern: MerlinSearchRequest.parseCondition2(pRequest.pattern, reqOpts)
                 }
             });
-
-
         }
 
         if(pRequest.oper != null){

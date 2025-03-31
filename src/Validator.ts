@@ -216,7 +216,6 @@ export class ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
 
             function isObj(v):boolean{
-                //console.log(v,"isObj > ",(v==null) || (typeof v != 'object'));
                 return (v!=null) && (typeof v === 'object');
             }
 

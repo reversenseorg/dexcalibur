@@ -40,7 +40,8 @@ export interface ProjectInputOptions {
     type?: ProjectInputType,
     extractOpts?: InputExtractOptions,
     purpose?: ProjectInputPurpose,
-    originalName?: string
+    originalName?: string,
+    path?:string;
 }
 
 export class ProjectInputViewer {
@@ -70,6 +71,7 @@ export class ProjectInput implements IProjectInput{
     extractOpts: Nullable<InputExtractOptions> = null;
     purpose: ProjectInputPurpose;
     originalName: Nullable<string> = null;
+    path: string
 
     constructor(pOptions:ProjectInputOptions = {}) {
         if(pOptions!=null){
@@ -83,6 +85,14 @@ export class ProjectInput implements IProjectInput{
 
     getOriginalName():Nullable<string> {
         return this.originalName;
+    }
+
+    isFile():boolean{
+        return (this.type===ProjectInputType.REGULAR_FILE);
+    }
+
+    setPath(pPath:string):void {
+        this.data = pPath;
     }
 
     toJsonObject(pZone = SecurityZone.PUBLIC):any {

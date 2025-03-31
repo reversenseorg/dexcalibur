@@ -232,7 +232,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @static
      * @since 1.1.0
      */
-    static VERSION = "1.1.0";
+    static VERSION = "1.2.0";
 
     /**
      * @type {string}
@@ -533,6 +533,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         if(pEngineOptions!=null && pEngineOptions.master_opts!=null){
             this.nodeManager.setMasterURI(pEngineOptions.master_opts.uri, pEngineOptions.master_opts);
+        }else if(process.env.DXC_MASTER_URI!="" && process.env.DXC_MASTER_URI!=null){
+            this.nodeManager.setMasterURI(process.env.DXC_MASTER_URI, {
+                ssl: (process.env.DXC_MASTER_SSL? (process.env.DXC_MASTER_SSL==="true") : false),
+                uri: process.env.DXC_MASTER_URI
+            });
         }
 
         this.scanScheduler = new ScanScheduler(this);
@@ -1020,6 +1025,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // init AuditManager singleton
         await this.getAuditManager().init();
 
+        // run fixes
+        await this.runFixes();
+
         // restart child ADB server
         (async function(){
             self.deviceMgr.getBridgeFactory('adb').newGenericWrapper().kill();
@@ -1032,6 +1040,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
 
+    async runFixes():Promise<void> {
+
+        await this.getProjectManager()._fix_projectInput_less_1_2();
+    }
     /**
      * To get engine global settings
      *
@@ -1207,6 +1219,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     start( pWebPort:string|number=null, pUI:string=null){
 
+
         const s =this.getSettings().getWebserverSettings();
         let ports = {web:-1, ws:-1};
 
@@ -1242,7 +1255,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     /**
      *
+     * DEPRECATED : USE PROJECT MANAGER INSTEAD
+     *
      * @param pUser
+     * @deprecated
      */
     async listProjectsOf( pUser:UserAccount):Promise<Record<string,DexcaliburProject>> {
         const PUIDS = this.workspace.listProjects();
@@ -1694,7 +1710,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         let f:Workflow = null;
         const name = (pExternal? '' : 'de:')+pUID;
 
-        console.log(this.workflows);
         this.workflows.map( (pWF:Workflow)=>{
             if(pWF.getUID()===name){
                 f = pWF;

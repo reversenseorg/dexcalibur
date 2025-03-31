@@ -19,6 +19,9 @@ export interface ScanFlowState {
     cost: number
 }
 
+/**
+ * Draft
+ */
 export class ScanFlow {
 
     scheduler:ScanSchedulerProject;

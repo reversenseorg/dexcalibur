@@ -201,7 +201,6 @@ The Reversense Team
                     _username:pEmails[k],
                     _email:pEmails[k],
                 });
-                usrAcc.addOrganization(pOrg);
 
                 // create account and perform various init ops
                 usrAcc = await this._ctx.getUserService().createUser(usrAcc, pOrg);
@@ -210,8 +209,6 @@ The Reversense Team
                 if(grp!=null){
                     grp.addMember(usrAcc.getUID());
                 }
-
-
 
                 // send acount activation link
                 await this.sendActivationMail(usrAcc, 3600*2, pOrg);

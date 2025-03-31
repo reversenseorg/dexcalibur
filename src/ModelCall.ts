@@ -6,16 +6,18 @@ import {EOL} from "os";
 import ModelClass from "./ModelClass.js";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {NodeType, DataSourceHelper,  NodeProperty, DbDataType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, DataSourceHelper, NodeProperty, DbDataType, TagUUID} from "@dexcalibur/dexcalibur-orm";
 
 import {CoreDebug} from "./core/CoreDebug.js";
+import {INode} from "./INode.js";
+import {CryptoUtils} from "./CryptoUtils.js";
 
 /**
  * Represents a call to a method, a field or a class
  * @param {Object} cfg Optional, an object wich can be used in order to initialize the instance
  * @constructor
  */
-export default class ModelCall extends Savable
+export default class ModelCall extends Savable implements INode
 {
     static TYPE:NodeType = (new NodeType( "call", NodeInternalType.CALL, [
         (new NodeProperty("instr")).volatile().single(ModelInstruction.TYPE),
@@ -28,6 +30,8 @@ export default class ModelCall extends Savable
 
     __:NodeInternalType = NodeInternalType.CALL;
 
+    _uid:string;
+
     instr:ModelInstruction = null;
     caller:ModelMethod = null;
     calleed:ModelMethod = null;
@@ -37,6 +41,7 @@ export default class ModelCall extends Savable
     object:any = null;
     subject:any = null;
 
+    tags:TagUUID[] = [];
 
     constructor(pConfig:any=null){
         super(STUB_TYPE.CALL);
@@ -44,6 +49,13 @@ export default class ModelCall extends Savable
         if(pConfig !== undefined)
             for(let i in pConfig)
                 this[i] = pConfig[i];
+    }
+
+    getUID(): string {
+        if(this._uid==null){
+            this._uid = CryptoUtils.sha256(`${this.instr.opcode}:${this.caller.getUID()}=>${this.calleed.getUID()}`)
+        }
+        return super.getUID();
     }
 
     print(){
@@ -90,6 +102,9 @@ export default class ModelCall extends Savable
             }
             else if(i == "instr"){
                 obj.instr = this.instr.exportType(); //toJsonObject(["name"]);
+            }
+            else if(i == "_uid"){
+                obj._uid = this.getUID(); //toJsonObject(["name"]);
             }
         }
         CoreDebug.checkJsonSerialize(obj, "ModelCall");
