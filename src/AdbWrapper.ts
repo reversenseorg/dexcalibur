@@ -375,18 +375,25 @@ export default class AdbWrapper implements IBridge
             throw new Error('Device is offline');
 
         let id:string[] = null;
-        const  {stdout, stderr} = await this.shellAsync('getprop ro.serialno');
 
-        if(stderr != ''){
-            throw new Error(stderr);
+        try{
+            const  {stdout, stderr} = await this.shellAsync('getprop ro.serialno');
+
+            if(stderr != ''){
+                throw new Error(stderr);
+            }
+
+            id = stdout.split(EOL);
+            if(id[0] != undefined){
+                pDev.id = id[0];
+            }else{
+                Logger.debug('[DEVICE] DeviceID retrieved from device : ',id.join(''));
+            }
+        }catch(e){
+            Logger.error('[DEVICE] Device is probably offline ');
+            console.log(e);
         }
 
-        id = stdout.split(EOL);
-        if(id[0] != undefined){
-            pDev.id = id[0];
-        }else{
-            Logger.debug('[DEVICE] DeviceID retrieved from device : ',id.join(''));
-        }
 
         return true;
     }
@@ -621,134 +628,140 @@ export default class AdbWrapper implements IBridge
                 continue;
             }
 
-            device = new Device();
 
-            // create a bridge instance contextualized with Device serial number
-            id = UT.parseIPv4(data[1], true);
-            if(id.valid == false){
-                // USB device, Device ID is returned by ADB 
+            try{
+                device = new Device();
+
+                // create a bridge instance contextualized with Device serial number
+                id = UT.parseIPv4(data[1], true);
+                if(id.valid == false){
+                    // USB device, Device ID is returned by ADB
+                    id = data[1];
+                    device.id = id;
+
+                    bridge = new AdbWrapper(this.path, id);
+                    bridge.transport = AdbWrapper.USB_TRANSPORT;
+                    bridge.shortname = 'adb+usb';
+
+                    Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over USB : ', id);
+                }else{
+                    // TCP device, unknow Device ID
+                    device.id = "<pending...>";
+                    bridge = new AdbWrapper(this.path, data[1]);
+
+                    bridge.transport = AdbWrapper.TCP_TRANSPORT;
+                    bridge.ip = id.ip;
+                    bridge.port = id.port;
+                    bridge.shortname = 'adb+tcp';
+
+                    Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over TCP : ',data[1]);
+                }
+
+                bridge.up = true;
+                device.addBridge(bridge);
+                device.setDefaultBridge(bridge.shortname);
+
+
                 id = data[1];
-                device.id = id;
-                
-                bridge = new AdbWrapper(this.path, id);
-                bridge.transport = AdbWrapper.USB_TRANSPORT;
-                bridge.shortname = 'adb+usb';
-
-                Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over USB : ', id);
-            }else{
-                // TCP device, unknow Device ID
-                device.id = "<pending...>";
-                bridge = new AdbWrapper(this.path, data[1]);
-
-                bridge.transport = AdbWrapper.TCP_TRANSPORT;
-                bridge.ip = id.ip;
-                bridge.port = id.port;
-                bridge.shortname = 'adb+tcp';
-
-                Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over TCP : ',data[1]);
-            }
-
-            bridge.up = true;
-            device.addBridge(bridge);
-            device.setDefaultBridge(bridge.shortname);
-
-
-            id = data[1];
-            data = data[2].split(" ");
+                data = data[2].split(" ");
 
 //            device.setUID( 'adb:'+device.bridge.deviceID);
-            //device.setUID( device.bridge.deviceID);
+                //device.setUID( device.bridge.deviceID);
 
-            // TODO : do it while profiling step
-            device.type = OperatingSystem.ANDROID;
+                // TODO : do it while profiling step
+                device.type = OperatingSystem.ANDROID;
 
-            // use Device Profile instead of isEmulated flag
-            // device.isEmulated = data[0].match(emuRE);
-            Logger.info("DEVICE ID :: ",id);
-            Logger.info("DEVICE ID :: data ",data.join("#"));
+                // use Device Profile instead of isEmulated flag
+                // device.isEmulated = data[0].match(emuRE);
+                Logger.info("DEVICE ID :: ",id);
+                Logger.info("DEVICE ID :: data ",data.join("#"));
 
-            device.connected = true;
-            device.getDefaultBridge().up = true;
+                device.connected = true;
+                device.getDefaultBridge().up = true;
 
-            // basic emulator detection based on device name (emulator-XXXX)
-            if(id.match(emuRE)){
-                device.setEmulatedFlag();
-                // emulated device use TCP transport instead of USB by default
-                //device.bridge.setTransport(AdbWrapper.TCP_TRANSPORT);
-                (device.bridge as AdbWrapper).addEmulatorStrategy();
-            }
+                // basic emulator detection based on device name (emulator-XXXX)
+                if(id.match(emuRE)){
+                    device.setEmulatedFlag();
+                    // emulated device use TCP transport instead of USB by default
+                    //device.bridge.setTransport(AdbWrapper.TCP_TRANSPORT);
+                    (device.bridge as AdbWrapper).addEmulatorStrategy();
+                }
 
 
 
-            for(let i=0; i<data.length; i++){
-                Logger.debug(`[DEVICE MANAGER] Parsing device list : ${data[i]}`);
-                if(data[i].indexOf(':')>-1){
-                    token = data[i].split(':',2);
-                    switch(token[0]){
-                        case 'usb':
-                            (device.bridge as AdbWrapper).usbQualifier = token[1];
-                            break;
-                        case 'model':
-                            device.setModel(token[1]);
-                            break;
-                        case 'device':
-                            device.setDevice(token[1]);
-                            break;
-                        case 'product':
-                            device.setProduct(token[1]);
-                            break;
-                        case 'transport_id':
-                            device.setTransportId(token[1]);
-                            break;
-                        default:
-                            Logger.debug("Unrecognized key (dual token): "+token[0]);
-                            break;
-                    }
+                for(let i=0; i<data.length; i++){
+                    Logger.debug(`[DEVICE MANAGER] Parsing device list : ${data[i]}`);
+                    if(data[i].indexOf(':')>-1){
+                        token = data[i].split(':',2);
+                        switch(token[0]){
+                            case 'usb':
+                                (device.bridge as AdbWrapper).usbQualifier = token[1];
+                                break;
+                            case 'model':
+                                device.setModel(token[1]);
+                                break;
+                            case 'device':
+                                device.setDevice(token[1]);
+                                break;
+                            case 'product':
+                                device.setProduct(token[1]);
+                                break;
+                            case 'transport_id':
+                                device.setTransportId(token[1]);
+                                break;
+                            default:
+                                Logger.debug("Unrecognized key (dual token): "+token[0]);
+                                break;
+                        }
 
-                }else{
-                    switch(data[i]){
-                        case 'unauthorized':
-                            device.flagAsUnauthorized();
-                            break;
-                        case 'offline':
-                            device.offline = true;
-                            device.connected = false;
-                            device.getDefaultBridge().up = false;
-                            break;
-                        case 'device':
-                        default:
-                            Logger.debug("Unrecognized key (single token) : "+data[i]);
-                            break;
+                    }else{
+                        switch(data[i]){
+                            case 'unauthorized':
+                                device.flagAsUnauthorized();
+                                break;
+                            case 'offline':
+                                device.offline = true;
+                                device.connected = false;
+                                device.getDefaultBridge().up = false;
+                                break;
+                            case 'device':
+                            default:
+                                Logger.debug("Unrecognized key (single token) : "+data[i]);
+                                break;
 
+                        }
                     }
                 }
-            }
 
 
-            device.setFingerprint({
-                serialno: await bridge.readProp('ro.serialno'),
-                builddate: await bridge.readProp('ro.build.date.utc'),
-                prodfp: await bridge.readProp('ro.build.fingerprint'),
-                vbmeta: await bridge.readProp('ro.boot.vbmeta.digest'),
-                vdev: await bridge.readProp('vendor.dxc.uuid')
-            });
+                device.setFingerprint({
+                    serialno: await bridge.readProp('ro.serialno'),
+                    builddate: await bridge.readProp('ro.build.date.utc'),
+                    prodfp: await bridge.readProp('ro.build.fingerprint'),
+                    vbmeta: await bridge.readProp('ro.boot.vbmeta.digest'),
+                    vdev: await bridge.readProp('vendor.dxc.uuid')
+                });
 
-            // by default OS is retrieved from bridge results
-            device.os = OperatingSystem.ANDROID;
-            // on Android device, arch if guessed from properties
-            device.arch = this._guessArch(device);
+                // by default OS is retrieved from bridge results
+                device.os = OperatingSystem.ANDROID;
+                // on Android device, arch if guessed from properties
+                device.arch = this._guessArch(device);
 
 
-            if(device.bridge.shortname=='adb+tcp' && device.id == null){
-                try{
-                    await this.retrieveUIDfromDevice(device);
-                }catch(err){
-                    // catch Device offline but nothing to do
-                    Logger.error("[ADB WRAPPER] List Devices : "+err.message);
+                if(device.bridge.shortname=='adb+tcp' && device.id == null){
+                    try{
+                        await this.retrieveUIDfromDevice(device);
+                    }catch(err){
+                        // catch Device offline but nothing to do
+                        Logger.error("[ADB WRAPPER] List Devices : "+err.message);
+                    }
                 }
+
+                dev.push(device);
+            }catch (e){
+                continue;
             }
 
-            dev.push(device);
         }
 
         return dev;

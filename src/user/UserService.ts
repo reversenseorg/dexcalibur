@@ -29,7 +29,7 @@ import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {randomUUID} from "crypto";
 import {Person} from "./Person.js";
-import {TokenOptions, TokenPurpose} from "../core/secrets/Token.js";
+import {Token, TokenOptions, TokenPurpose} from "../core/secrets/Token.js";
 import Util from "../Utils.js";
 import {RoleUpdate} from "../organization/OrganizationManager.js";
 import {AccessControlManager} from "./acl/AccessControlManager.js";
@@ -890,11 +890,27 @@ export class UserService {
     async updateMembership(pAccount: UserAccount, pOrg:OrganizationUnit, pUpdatedUser: UserAccount) {
 
         AccessControl.isAuthorized(
-            AccessControl.access.ORG_USER_MGT,
+            AccessControl.access.ORG_USR_MGT,
             pAccount,
             pOrg
         );
 
         await this._coll.asyncUpdateEntry(pUpdatedUser, {replace:false, $set:['_membership']})
+    }
+
+
+    async updateTokens(pAccount: UserAccount) {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_USR_MGT,
+            pAccount
+        );
+
+        await this._coll.asyncUpdateEntry(pAccount, {replace:false, $set:['_tokens']})
+    }
+
+
+    async restoreSocketSessions():Promise<any>{
+        return [];
     }
 }

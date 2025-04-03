@@ -492,6 +492,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
 
     projectScheduler: ProjectScheduler;
+
+    private _updateMode = false;
     /**
      * To instanciate DexcaliburEngine.
      *
@@ -607,6 +609,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }else{
             this.engine_type = DexcaliburEngineMode.STANDALONE;
         }
+    }
+
+
+    enableUpdateRoutines(){
+        this._updateMode = true;
     }
 
 
@@ -921,6 +928,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
 
+
+
     /**
      * To get user / session / authentication services
      */
@@ -1026,7 +1035,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         await this.getAuditManager().init();
 
         // run fixes
-        await this.runFixes();
+        if(this._updateMode===true){
+            await this.runFixes();
+        }
+
 
         // restart child ADB server
         (async function(){

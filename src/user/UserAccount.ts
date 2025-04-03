@@ -466,6 +466,10 @@ export class UserAccount implements IPersistent, INode {
         });
     }
 
+
+    addToken(pToken:Token<any>):void {
+        this._tokens.push(pToken);
+    }
     /**
      * To verify is a token match a valid token associated to this account.
      *
@@ -572,6 +576,7 @@ export class UserAccount implements IPersistent, INode {
     getMemberships():Record<OrganizationUnitUUID,Membership> {
         return this._membership;
     }
+
 }
 
 UserAccount.TYPE.builder(UserAccount);

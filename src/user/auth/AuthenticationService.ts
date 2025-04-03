@@ -4,7 +4,7 @@ import got, {Options} from "got";
 import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./AuthTypes.js";
 import {AuthenticationPolicy} from "./AuthenticationPolicy.js";
 import {AuthenticationResult, PasswordAuthenticator} from "./PasswordAuthenticator.js";
-import {UA_UUID_SEP, UserAccount, UserAccountType} from "../UserAccount.js";
+import {UA_UUID_SEP, UserAccount, UserAccountType, UserAccountUUID} from "../UserAccount.js";
 import {AuthenticationSettings} from "./AuthenticationSettings.js";
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
@@ -35,10 +35,11 @@ import {SameSite} from "../session/Cookie.js";
 import {UserSession} from "../session/UserSession.js";
 import {ValidationRule} from "../../Validator.js";
 import {UserServiceException} from "../../errors/UserServiceException.js";
-import {TokenPurpose} from "../../core/secrets/Token.js";
+import {Token, TokenPurpose} from "../../core/secrets/Token.js";
 import {PasswordlessAuthenticator} from "./PasswordlessAuthenticator.js";
 import {OrganizationEmailBuilder} from "../../organization/OrganizationEmailBuilder.js";
 import {PasswordlessAuthModule} from "./modules/PasswordlessAuthModule.js";
+import {CryptoUtils} from "../../CryptoUtils.js";
 
 const GOT = got.default;
 const BodyParser = (_bodyparser_ as any).default;
@@ -102,8 +103,15 @@ export interface AuthModuleRouting {
     module:  AuthModule
 }
 
+export interface WebSocketAuthTicket{
+    created: number,
+    user: UserAccountUUID,
+    ip?: string;
+}
+
 export class AuthenticationService {
 
+    private _wstCache:Record<string, any>
     settings:AuthenticationSettings;
 
     policy:AuthenticationPolicy;
@@ -1234,4 +1242,23 @@ export class AuthenticationService {
             OrganizationEmailBuilder.buildPasswordlessAuthEmail(pAccount, link, pTokenTTL)
         );
     }
+
+    /**
+     *
+     * @param user
+     * @param ip
+     */
+    async generateWsAuthTicket(user: UserAccount, ip: string):Promise<string> {
+        const tok = await this.getUserService().createAccountToken(user, {
+            ttl: 24*60*60*1000,
+            purpose: TokenPurpose.WS_AUTH_TICKET,
+            token: Buffer.from(CryptoUtils.randomChunk(64)).toString('base64')
+        });
+
+        await this.getUserService().updateTokens(user);
+
+        this._ctx.getWebsocketServer().addSession(user.getUID(), tok);
+        return tok;
+    }
+
 }

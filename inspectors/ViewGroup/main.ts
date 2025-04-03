@@ -8,7 +8,7 @@ var ViewGroupInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.1",
+    version: "1.0.2",
     hookSet: {
         id: "ViewGroup",
         name: "ViewGroup inspector",
@@ -40,7 +40,7 @@ var ViewGroupInspector:InspectorFactory = new InspectorFactory({
                       "@@__FRAG_ID__@@",
                       eventData
                   );
-                  DXC.mods.last _dumpView = end_time;
+                  DXC.mods.last._dumpView = end_time;
                 } 
             `
         },

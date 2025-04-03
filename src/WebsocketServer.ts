@@ -14,9 +14,17 @@ import {AccessZone} from "./user/acl/Zones.js";
 import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import {HookManager} from "./hook/HookManager.js";
 import {EngineNodeUUID, NodePurpose, WebSocketClient} from "./core/EngineNode.js";
+import {UserAccountUUID} from "./user/UserAccount.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+
+export interface SocketSession {
+    created: number;
+    user?:any;
+    socket: any;
+}
 
 /**
  * This class creates a websocket server and it dispatches requests
@@ -32,6 +40,8 @@ export class WebsocketServer
      * @private
      */
     private _wsclients:Record<EngineNodeUUID, WebSocketClient> = {};
+
+    private _usrSockets:Record<UserAccountUUID, Record<string, SocketSession>> = {};
 
     /**
      * Dexcalibur engine instance (context)
@@ -69,7 +79,9 @@ export class WebsocketServer
      */
     httpServer:http.Server|https.Server = null;
 
-    // TODO
+    /**
+     * @deprecated
+     */
     user: User = new User({});
 
 
@@ -95,6 +107,21 @@ export class WebsocketServer
         return true;
     }
 
+    /**
+     *
+     * @param pUUID
+     * @param pToken
+     */
+    isTokenValid(pUUID:string, pToken:string):boolean {
+        return (this._usrSockets[pUUID]!=null) && (this._usrSockets[pUUID][pToken]!=null)
+            && (((new Date()).getTime() - this._usrSockets[pUUID][pToken].created) < 48*3600*1000);
+    }
+
+
+    async restoreSession():Promise<void> {
+        const sess = await this.engine.getUserService().restoreSocketSessions();
+        // todo
+    }
 
     /**
      * To initialize web socket server.
@@ -161,6 +188,24 @@ export class WebsocketServer
                         if (message.type === 'utf8') {
                             let unsafeJSON = JSON.parse(message.utf8Data);
 
+                            if(self.engine.getEngineMode()!==DexcaliburEngineMode.SLAVE){
+                                // check token
+                                if(!self.isTokenValid(unsafeJSON.user,unsafeJSON.token)){
+                                    // reject
+                                    conn.sendUTF(JSON.stringify({action:'_ping', data:{ success: false, msg:'rejected' }}));
+                                    return;
+                                }
+
+
+                                const socksess = self._usrSockets[unsafeJSON.user][unsafeJSON.token];
+                                if(socksess.socket==null){
+                                    socksess.socket = conn;
+                                }
+
+                            }
+
+
+
                             // do authent / retieve user session
                             let sess:UserSession = null;
                             if(unsafeJSON[usrSvc.getQueryParam()]!=null){
@@ -169,6 +214,11 @@ export class WebsocketServer
                                     unsafeJSON[usrSvc.getQueryParam()]
                                 );
                                 Logger.info("[SESSION] Opening session from websocket msg : Done");
+                            }
+
+
+                            if(self.engine.getEngineMode()==DexcaliburEngineMode.SLAVE){
+                                console.log(unsafeJSON,sess);
                             }
 
                             // retrieve target project
@@ -180,6 +230,8 @@ export class WebsocketServer
 
 
                             if(unsafeJSON['svc']!==undefined){
+
+
                                 switch(unsafeJSON.svc){
                                     case 'stat':
 
@@ -247,8 +299,23 @@ export class WebsocketServer
                                                         try{
                                                             if(self._wsclients[nodeUID]==null){
                                                                 self._wsclients[nodeUID] = vNode.createWebsocketClient();
+                                                                self._wsclients[nodeUID].setNodeUid(nodeUID);
                                                                 self._wsclients[nodeUID].connectWS('term-protocol');
+                                                                self._wsclients[nodeUID].getWsOutput().subscribe((vMsg:any)=>{
+
+                                                                    // INSECURE ZONE :
+                                                                    // Ensure the reponse is forwarded to the right issuer
+                                                                    const sss = self.getSocketOf(unsafeJSON.user, unsafeJSON.token);
+
+                                                                    console.log(vMsg,sss.socket);
+                                                                    if(sss.socket!=null){
+                                                                        sss.socket.sendUTF(vMsg);
+                                                                    }
+                                                                })
                                                             }
+
+
+                                                            //this.getSocket(conn)
                                                             self._wsclients[nodeUID].getWsInput().next(message.utf8Data);
                                                         }catch(e2){
                                                             console.log(e2);
@@ -261,7 +328,10 @@ export class WebsocketServer
                                             }
 
                                         }else{
+
+                                            console.log("HOOK > ProcessCommand > ",self.engine.engine_type,unsafeJSON);
                                             const p = self.engine.getProject(unsafeJSON['prj']);
+                                            console.log("HOOK > ProcessCommand > project ",self.engine.engine_type, p);
 
                                             if(p!=null) {
                                                 Logger.info('Retrieving hook Message from project ' + p.uid);
@@ -335,5 +405,23 @@ export class WebsocketServer
         }
 
         return wwwPort;
+    }
+
+    getSocketOf(pUUID:UserAccountUUID, pTok:string):any {
+        const s = this._usrSockets[pUUID];
+        if(s==null) return null;
+        return s[pTok];
+    }
+
+    addSession(pUUID:UserAccountUUID,pTok:string): void {
+        if(this._usrSockets[pUUID] == null){
+            this._usrSockets[pUUID] = {};
+        }
+
+        this._usrSockets[pUUID][pTok] = {
+            created: (new Date()).getTime(),
+            user: pUUID,
+            socket: null
+        };
     }
 }

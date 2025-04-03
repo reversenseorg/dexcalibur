@@ -2,7 +2,8 @@
 export enum TokenPurpose {
     NONE='none',
     ACCOUNT_VERIFY='accver',
-    ACCOUNT_PWDL_AUTH='accpwdl'
+    ACCOUNT_PWDL_AUTH='accpwdl',
+    WS_AUTH_TICKET='wstckt'
 }
 export interface Token<T> {
     token: string,

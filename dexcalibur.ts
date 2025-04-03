@@ -127,6 +127,10 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "Dry run mode (skip Project DB persistence)",
         hasVal:false,
         callback:(ctx)=>{ ctx.dryRun = true; } },
+    { name:"--update",
+        help: "Run fixes and update routines.",
+        hasVal:false,
+        callback:(ctx)=>{ ctx.update = true; } },
 
     { name:"--repair-ws",
         help: "To repair WS. When this option is set, any project missing in Engine DB are removed. To move projects to '<BACKUP>' folder, set it as follow --repair-ws[=<BACKUP>] ",
@@ -276,7 +280,9 @@ if( !projectArgs.ipc
             await dxcInstance.loadConfiguration(cfg);
 
 
-
+            if(projectArgs.update === true){
+                dxcInstance.enableUpdateRoutines();
+            }
 
             if(projectArgs.repairWS != null){
                 dxcInstance.repairMode({

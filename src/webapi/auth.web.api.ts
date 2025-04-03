@@ -12,6 +12,8 @@ import ConnectionSettings = Settings.ConnectionSettings;
 import {Nullable} from "../core/IStringIndex.js";
 import {UserSession} from "../user/session/UserSession.js";
 import {UserAccount} from "../user/UserAccount.js";
+import {Access} from "../user/acl/Access.js";
+import AccessControl from "../user/acl/AccessControl.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -217,3 +219,4 @@ AUTH_WEB_API.addPublicRoute(
         }
     }
 );
+

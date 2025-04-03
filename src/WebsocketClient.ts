@@ -28,9 +28,13 @@ export class WebsocketClient {
 
     private _wsConn:any = null;
 
+    private _wsClosed = false;
+
     private _wsResponse$:Subject<any>;
 
     private _wsRequest$:Subject<any>;
+
+    private _protocol:string = "";
 
     constructor(pHost: string, pPort: number, pSecure:any = null) {
         this._port = pPort;
@@ -61,11 +65,15 @@ export class WebsocketClient {
 
             this._wsConn = vConnection;
 
-            vConnection.on('error', ()=> {
+            vConnection.on('error', (e)=> {
+                console.log(e);
                 Logger.error(`[node=${this._node}][WEBSOCKET] Connection Error`);
+                this._wsReady = false;
             });
             vConnection.on('close', ()=> {
                 Logger.error(`[node=${this._node}][WEBSOCKET] Connection closed`);
+                this._wsReady = false;
+                this._wsClosed = true;
             });
             vConnection.on('message', (vMsg)=> {
                 Logger.info(`[node=${this._node}][WEBSOCKET] Message received`);
@@ -74,8 +82,11 @@ export class WebsocketClient {
 
 
             this._wsRequest$.subscribe((vMsg)=>{
-                if(this._wsConn!=null){
+                if(this._wsReady && this._wsConn!=null){
                     this._wsConn.sendUTF(vMsg);
+                }else if(this._wsClosed == true){
+                    Logger.info(`[node=${this._node}][WEBSOCKET] Connection is close. Re-open ... ${this._protocol}`);
+                    this.connectWS(this._protocol);
                 }
             });
         });
@@ -85,6 +96,7 @@ export class WebsocketClient {
 
     connectWS(pProtocol:string){
         if(this._ws!=null && this._wsReady==false){
+            this._protocol = pProtocol;
             this._ws.connect("ws://"+this._hostname+':'+this._port+'/',pProtocol);
             this._wsReady = true;
         }

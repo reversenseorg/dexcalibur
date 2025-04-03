@@ -4,6 +4,7 @@ import * as Log from "../Logger.js";
 import {UserSession} from "../user/session/UserSession.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {SecurityZone} from "../security/SecurityZone.js";
+import {AUTH_WEB_API} from "./auth.web.api.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const USER_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -142,4 +143,25 @@ USER_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
+USER_WEB_API.addAsyncAuthenticatedRoute(
+    '/account/wsticket',
+    {
+        'post': async  (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
 
+            let $:WebServer = req.dxc.$;
+
+            try{
+                console.log(req.user.getUID(), req.ip);
+                const authTicket = await $.context.getUserService()
+                    .getAuthenticationService()
+                    .generateWsAuthTicket(req.user, req.ip);
+
+                $.sendSuccess(res, authTicket);
+            }catch(err){
+                Logger.error("[API][AUTHENTICATION] An error occured : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message)
+            }
+
+        }
+    }
+);
