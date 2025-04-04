@@ -217,7 +217,7 @@ export class EngineNode implements INode {
             (new NodeProperty("_outputBuffer")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_errBuffer")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_pid")).type(DbDataType.NUMERIC).def(-1),
-            (new NodeProperty("purpose")).type(DbDataType.STRING).def(NodePurpose.REVIEW),
+            (new NodeProperty("purpose")).type(DbDataType.STRING).def(NodePurpose.ANY),
             (new NodeProperty("state")).type(DbDataType.STRING).def(NodeState.UNKNOW),
             (new NodeProperty("masterURI")).type(DbDataType.STRING).def(null),
             (new NodeProperty("_hostname")).type(DbDataType.STRING).def(null),
@@ -359,7 +359,7 @@ export class EngineNode implements INode {
      */
     nodeState$:Subject<StateChangeEvent> = new Subject<StateChangeEvent>();
 
-    purpose:NodePurpose = NodePurpose.REVIEW;
+    purpose:NodePurpose = NodePurpose.ANY;
 
     state:NodeState = NodeState.UNKNOW;
 

@@ -66,7 +66,10 @@ export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfi
 
         if(s[1]==='lib' && s[2]!=null){
             const top = pAbiList.length-1;
+
             for(let i=0; i<=top; i++){
+                if(pAbiList[i]==null) continue;
+
                 alt = AndroidNativeAnalyzerProfile.abiFolders[pAbiList[i].name];
                 if(alt==null) continue;
                 for(let j=0; j<alt.length; j++){

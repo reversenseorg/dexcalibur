@@ -2,7 +2,7 @@ import * as _fs_ from "fs";
 
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
-import {EngineNode, EngineNodeUUID, NodePurpose, OperationType, StateChangeEvent} from "./EngineNode.js";
+import {EngineNode, EngineNodeUUID, NodePurpose, StateChangeEvent} from "./EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import got from "got";
 import * as Log from "../Logger.js";
@@ -15,9 +15,6 @@ import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {ValidationRule} from "../Validator.js";
 import {CryptoUtils} from "../CryptoUtils.js";
-import Util from "../Utils.js";
-import {ProjectOrder} from "../project/ProjectOrder.js";
-import {ScanOrder} from "../audit/common/ScanOrder.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -318,7 +315,9 @@ export class EngineNodeManager {
                 });
 
         console.log('Ready slave before filtering : ',nodes.length,' '+nodes.map(x => x.purpose).join(','));
-        nodes = nodes.filter(x => (x.purpose==pPurpose || x.purpose==NodePurpose.ANY));
+        if(pPurpose!=NodePurpose.ANY){
+            nodes = nodes.filter(x => (x.purpose==pPurpose || x.purpose==NodePurpose.ANY));
+        }
         console.log('Ready slave after filtering : ',nodes.length);
 
         if(nodes.length>0){
