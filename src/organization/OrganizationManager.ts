@@ -1953,6 +1953,40 @@ The Reversense Team
         return true;
     }
 
+
+    async activateMember(pUserAccount: UserAccount,
+                         pOrg: OrganizationUnit,
+                         pUserUID: UserAccountUUID):Promise<boolean> {
+
+        // if account is not activated, activate it
+        const useracc = await this._ctx.getUserService().getAccount(
+            this._ctx.getInternalAcc(),
+            pUserUID
+        )
+
+        if(useracc==null){
+            throw UserServiceException.USER_NOT_FOUND();
+        }
+
+        // unlock account
+        if(useracc.isLocked()){
+            useracc.unlock();
+        }
+
+        const mb = useracc.getMembership(pOrg.getUID());
+
+        if(mb!=null && mb.activated==false){
+            mb.locked = false;
+            mb._lockDate = -1;
+            mb.activated = true;
+            mb._activateDate = Util.time();
+        }
+
+        await this._ctx.getEngineDB().save(useracc);
+
+        return true;
+    }
+
     /**
      * To drop a user account
      *

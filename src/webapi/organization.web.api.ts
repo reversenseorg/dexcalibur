@@ -935,6 +935,26 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/member/:uid/activate',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+
+                $.sendSuccess( pRes, {
+                    sent: await $.context.getOrgManager().activateMember(pReq.user, org, pReq.params.uid)
+                });
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot sent unlock mail", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:oid/member/:uid/roles',
     {
         'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
