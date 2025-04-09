@@ -116,12 +116,17 @@ RUN apt-get update && apt install -y curl ca-certificates gnupg wget unzip  \
     bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3  \
     libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
     wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils \
-    sudo libfontconfig1-dev libfreetype6-dev
+    sudo libfontconfig1-dev libfreetype6-dev apt-transport-https
 
 
 RUN mkdir -p /etc/apt/keyrings && \
     (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
     (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list)
+
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+        && chmod +x kubectl \
+        && mv kubectl /usr/local/bin/
+
 
 
 
