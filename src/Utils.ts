@@ -9,7 +9,7 @@ import * as _os_ from "os";
 
 import * as Got from "got";
 
-import {TestExecHelper} from "./tests/TestExecHelper.js";
+import {TestExecHelper, TestExecHelperClass} from "./tests/TestExecHelper.js";
 import * as Log from "./Logger.js";
 
 
@@ -342,12 +342,16 @@ export default class Util {
         return ret;
     }
 
+    /**
+     *
+     * @param command
+     */
     static async  execAsync(command:string):Promise<any>{
         let ret:Promise<any>;
 
         if(process.env.DEXCALIBUR_TEST){
             Logger.info("[UTIL] execAsync <TEST>in : "+command);
-            ret = await TestExecHelper.execAsync(command);
+            ret = await TestExecHelperClass.getInstance().execAsync(command);
             Logger.info("[UTIL] execAsync <TEST>out : "+ret);
         }else{
             Logger.info("[UTIL] execAsync : "+command);

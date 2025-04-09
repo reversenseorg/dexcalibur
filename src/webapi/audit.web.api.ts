@@ -314,7 +314,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     if(projectAlive != null){
                         reports = await am.listReports(req.user, projectAlive);
                     }else{
-                        reports = await am.listReportsFromDB(req.user, null);
+                        reports = []; //await am.listReportsFromDB(req.user, null);
                     }
                 }
 

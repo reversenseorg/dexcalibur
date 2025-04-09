@@ -1035,6 +1035,7 @@ AssuranceReport.TYPE.updateProperties([
     (new NodeProperty("globalThreats")).type(DbDataType.BLOB).def(null),
     (new NodeProperty("primaryAssets")).type(DbDataType.BLOB).def(null),
     (new NodeProperty("tags")).type(DbDataType.STRING),
+    (new NodeProperty("_proj")).volatile().single(DexcaliburProject.TYPE).def(null),
     (new NodeProperty("project")).type(DbDataType.STRING).def(null),//.single(DexcaliburProject.TYPE),
     /*
     (new NodeProperty("project"))

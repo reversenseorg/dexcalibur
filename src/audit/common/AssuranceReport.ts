@@ -3,7 +3,7 @@ import Asset from "./Asset.js";
 import Threat from "./Threat.js";
 import {ConstraintMatch} from "./ConstraintMatch.js";
 import CodeConstraint from "./CodeConstraint.js";
-import DexcaliburProject from "../../DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../../DexcaliburProject.js";
 import AssuranceModel, {AssuranceModelUUID, ControlNode, ControlNodeCanonicalUID} from "./AssuranceModel.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
@@ -27,6 +27,8 @@ import {CryptoUtils} from "../../CryptoUtils.js";
 import {randomUUID} from "crypto";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {DeviceUUID} from "../../Device.js";
+import ModelStringValue from "../../ModelStringValue.js";
+import {AssuranceScanner} from "./AssuranceScanner.js";
 
 
 export interface Match {
@@ -53,7 +55,8 @@ export interface AssuranceReportOptions {
     _model?:Nullable<AssuranceModel>;
     model?:AssuranceModelUUID;
 
-    project?:DexcaliburProject;
+    project?:DexcaliburProjectUUID;
+    _proj?:Nullable<DexcaliburProject>;
 
     primaryAssets?:ConstraintMatch<Asset>[];
     secondaryAssets?:ConstraintMatch<Asset>[];
@@ -95,7 +98,8 @@ export default class AssuranceReport implements INode {
 
     device:Nullable<DeviceUUID> = null;
 
-    project:DexcaliburProject;
+    project:Nullable<DexcaliburProjectUUID> = null;
+    private _proj:Nullable<DexcaliburProject> = null;
 
     _dirty = false;
 
@@ -137,7 +141,7 @@ export default class AssuranceReport implements INode {
         if(this.model==null){
             throw AuditManagerException.REPORT_UID_CANNOT_BE_GENERATED("assurance model is missing");
         }
-        this.uid = CryptoUtils.sha256(this.project.getUID()+":"+this.model+":"+this.time);
+        this.uid = CryptoUtils.sha256(this.project+":"+this.model+":"+this.time);
     }
 
     getAssets():ConstraintMatch<Asset>[] {
@@ -155,8 +159,10 @@ export default class AssuranceReport implements INode {
     }
 
     setProject(pProject:DexcaliburProject):void {
-        this.project = pProject;
-
+        if(this.project==null) {
+            this.project = pProject.getUID();
+        }
+        this._proj = pProject;
     }
 
     addCodeMatch( pConstraint:CodeConstraint, pSubject:any):void {
@@ -226,24 +232,24 @@ export default class AssuranceReport implements INode {
      *
      * @private
      */
-    private _projectToJsonObject():any {
+    projectToJsonObject(pProject:DexcaliburProject):any {
 
         const project:any = {
-            uid: this.project.getUID(),
-            app: this.project.pkg,
+            uid: pProject.getUID(),
+            app: pProject.pkg,
             platform: null,
             device: null
         };
 
-        if(this.project.getPlatform()!=null){
+        if(pProject.getPlatform()!=null){
             project.platform = {
-                api: this.project.getPlatform().getApiVersion(),
-                uid: this.project.getPlatform().getUID()
+                api: pProject.getPlatform().getApiVersion(),
+                uid: pProject.getPlatform().getUID()
             };
         }
 
-        if(this.project.getDevice()!=null){
-            const dev = this.project.getDevice();
+        if(pProject.getDevice()!=null){
+            const dev = pProject.getDevice();
             project.device = {
                 uid: dev.getUID(),
                 os: null,
@@ -283,11 +289,14 @@ export default class AssuranceReport implements INode {
             }
 
             switch (i){
+                case "_proj":
+                    if(this._proj!=null){
+                        o.project = this.projectToJsonObject(this._proj);
+                    }
+                    break;
                 case "project":
-                    if(this.project.toJsonObject==null){
-                        o.project = (this.project as any)
-                    }else{
-                        o.project = this._projectToJsonObject();
+                    if(this._proj==null){
+                        o.project = this.project;
                     }
                     break;
                 case "uid":
@@ -321,12 +330,21 @@ export default class AssuranceReport implements INode {
             }
 
             switch (i){
+                case "_proj":
+                    if(this._proj!=null){
+                        o.project = this.projectToJsonObject(this._proj);
+                    }
+                    break;
                 case "project":
-                    if(this.project.toJsonObject==null){
+                    if(this._proj==null){
+                        o.project = this.project;
+                    }
+                    /*if(this.project.toJsonObject==null){
                         o.project = (this.project as any)
                     }else{
                         o.project = this._projectToJsonObject();
                     }
+                    break;*/
                     break;
                 case "uid":
                 case "time":
@@ -374,7 +392,8 @@ export default class AssuranceReport implements INode {
                                 try{
                                     node = {
                                         __: x.node.__,
-                                        uid: (x.node.getUID!=null)? x.node.getUID() : x.node.uid
+                                        uid: (x.node.getUID!=null)? x.node.getUID() : x.node.uid,
+                                        val: AssuranceReport._extractNodeValue(canonicalUID,x)
                                     };
                                     if(node.uid==null){
                                         throw new Error();
@@ -384,7 +403,8 @@ export default class AssuranceReport implements INode {
                                         case NodeInternalType.STRING:
                                             node = {
                                                 __: x.node.__,
-                                                uid: (typeof x.node==='string')? x.node : x.node._uid
+                                                uid: (typeof x.node==='string')? x.node : x.node._uid,
+                                                val: AssuranceReport._extractNodeValue(canonicalUID,x)
                                             };
                                             break;
                                         default:
@@ -451,7 +471,7 @@ export default class AssuranceReport implements INode {
 
                     try{
                         meth = MerlinSearchAPI.getMethodFromNodeType(vMatch.node.__);
-                        result = this.project.getSearchEngine().byID()[meth].apply(this.project.getSearchEngine(),[vMatch.node.uid]);
+                        result = this._proj.getSearchEngine().byID()[meth].apply(this._proj.getSearchEngine(),[vMatch.node.uid]);
                         if(result.count()>0){
                             vMatch.node = result.get(0);
                         }
@@ -490,9 +510,10 @@ export default class AssuranceReport implements INode {
             s.match.push({
                 node: {
                     __:  v.node.__,
-                    uid: (v.node.getUID!=null)? v.node.getUID() : v.node.uid
+                    uid: (v.node.getUID!=null)? v.node.getUID() : v.node.uid,
+                    value: (v.node.getUID!=null)? AssuranceReport._extractNodeValue("",v) : null
                 },
-                ruleIdx: pMatch.ruleIdx
+                ruleIdx: v.ruleIdx //pMatch.ruleIdx
             })
         });
 
@@ -554,5 +575,13 @@ export default class AssuranceReport implements INode {
 
         return s as Match;
     }*/
+    static _extractNodeValue(pCanonicalUID: string, pMatch:any) {
+        switch (pMatch.node.__){
+            case NodeInternalType.STRING:
+                return (pMatch.node as ModelStringValue).value;
+            default:
+                return null;
+        }
+    }
 }
 AssuranceReport.TYPE.builder(AssuranceReport);

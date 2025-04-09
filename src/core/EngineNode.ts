@@ -1,7 +1,6 @@
 import got from "got";
 import * as _ps_ from "process";
 import * as _path_ from "path";
-import * as _ws_ from "websocket";
 
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
@@ -33,8 +32,8 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 import {ValidationRule} from "../Validator.js";
 import {EngineNodeClient} from "./EngineNodeClient.js";
-import {DeviceTemplate} from "../device/template/DeviceTemplate.js";
 import {WebsocketClient} from "../WebsocketClient.js";
+import {K8ResourceType, K8sHelper} from "./k8s/K8sHelper.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const GOT = got.default;
@@ -662,8 +661,13 @@ export class EngineNode implements INode {
 
         this.startedAt = (new Date()).getTime();
 
+        if(process.env.KUBERNETES_PORT!=null){
+            return await K8sHelper.scale(K8ResourceType.STATEFULSET, 'dxcslaves', 4, "default");
+        }else{
+            return await this.spawn(pCause, false, pNodeOpts);
+        }
 
-        return await this.spawn(pCause, false, pNodeOpts);
+
 
     }
 

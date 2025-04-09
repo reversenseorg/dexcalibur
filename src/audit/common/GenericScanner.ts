@@ -368,7 +368,7 @@ export class GenericScanner extends AssuranceScanner {
         this.report = new AssuranceReport({
             time:(new Date()).getTime(),
             started:(new Date()).getTime(),
-            project: pContext,
+            project: pContext.getUID(),
             model: this.model.getID()
         });
 

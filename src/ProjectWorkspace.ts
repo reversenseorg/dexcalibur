@@ -13,6 +13,7 @@ import HookWorkspace from "./hook/HookWorkspace.js";
 import {Nullable} from "./core/IStringIndex.js";
 import TargetApp from "./common/TargetApp.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -237,7 +238,10 @@ export default class ProjectWorkspace
             _base:_path_.join(this.path, DIR_NAME.HKWS),
             _ws:this
         });
-        //await this.hookWS.init();
+
+        if(DexcaliburEngine.getInstance().isUpdateMode()){
+            await this.hookWS.init();
+        }
 
         Logger.success("[*] Working directory : "+this.path);
     }

@@ -278,6 +278,8 @@ export class AuditManager {
                  }
              },{raw:true});
 
+
+
         return reports;
     }
 
@@ -301,7 +303,7 @@ export class AuditManager {
             reports = all;
         }else{
             all.map(x => {
-                if(x.project.uid==pProjectUID){
+                if(x.project==pProjectUID){
                     try{
                         reports.push(x);
                     }catch (e){

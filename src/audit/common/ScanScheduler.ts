@@ -150,7 +150,10 @@ export class ScanScheduler {
         pOrder.setState(ScanState.GENERATE_REPORT);
 
         console.log("order save BEFORE REPORT SAVING> ");
-        await edb.save(pOrder);
+        await this.saveOrder(pOrder, ['dates','state','stateDates'])
+        //await edb.save(pOrder);
+
+        console.log("report save BEFORE REPORT SAVING> ");
         //await edb.save(pOrder);
 
         // get report
@@ -159,7 +162,7 @@ export class ScanScheduler {
         await am.saveReport(project, report);
         //pOrder.report = report;
         pOrder.setState(ScanState.TERMINATED);
-        console.log("order save TERMINATED> ");
+        console.log("report & order SAVED ");
         await edb.save(pOrder);
         //await edb.save(pOrder);
         // get hook instance by ID

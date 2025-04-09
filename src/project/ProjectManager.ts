@@ -907,6 +907,9 @@ export class ProjectManager {
         project = await this._openLocally(pUser, pProjectUID, currNode);
 
         console.log("PROJ OPEN done, changing state ");
+        if(currNode.purpose===NodePurpose.NEW_PRJ){
+            currNode.purpose = NodePurpose.ANY;
+        }
         currNode.setState(NodeState.IDLE);
 
         return currNode;

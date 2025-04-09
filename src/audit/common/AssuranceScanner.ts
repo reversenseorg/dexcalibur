@@ -96,7 +96,8 @@ export class AssuranceScanner extends Product {
         this.report = new AssuranceReport({
             time:(new Date()).getTime(),
             started:(new Date()).getTime(),
-            project: pContext
+            project: pContext.getUID(),
+            _proj: pContext
         });
 
         const plan:CodeConstraintMap = {};

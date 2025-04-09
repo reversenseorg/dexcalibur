@@ -771,6 +771,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     Logger.info(`[API][PROJECT MGT] Open project from slave : state of local node changed ${vChange.before} to ${vChange.new}`);
                     if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
                         subscription.unsubscribe();
+
+
                         nodeReady = true;
 
                         Logger.info(`[API][PROJECT MGT] Open project from slave : Terminated`);
