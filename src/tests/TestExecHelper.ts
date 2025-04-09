@@ -4,6 +4,7 @@ import * as _path_ from "path";
 import * as _child_process_ from "child_process";
 import * as _util_ from "util";
 import {IStringIndex} from "../core/IStringIndex.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
 
 
 let _exec_ = _util_.promisify(_child_process_.exec);
@@ -31,7 +32,7 @@ interface HelperState {
 }
 
 
-class TestExecHelperClass {
+export class TestExecHelperClass {
 
     private _map:IStringIndex<InterceptorOptions> = {};
 
@@ -43,8 +44,18 @@ class TestExecHelperClass {
 
     constructor(){
         this.interceptors = {
-            exec: []
+            exec: [],
+            execAsync: [],
+            spawn: []
         };
+    }
+
+    static getInstance(){
+        if(gInstance==null){
+            gInstance = new TestExecHelperClass();
+        }
+
+        return gInstance;
     }
 
     /**
@@ -68,6 +79,10 @@ class TestExecHelperClass {
      */
     intercept( pType:InterceptorType, pInterceptorOptions:InterceptorOptions ):void {
         const uid = `${pType}:${pInterceptorOptions.name}`;
+        if(this.interceptors[pType]==null){
+            this.interceptors[pType] = [];
+        }
+
         this.interceptors[pType].push(
             this._map[uid] = pInterceptorOptions
         )
@@ -121,7 +136,7 @@ class TestExecHelperClass {
      * @param {*} pCmd
      */
     execSync( pCmd:string){
-        let res:any = this.filterInterceptor( "exec", pCmd);
+        let res:any = this.filterInterceptor( InterceptorType.EXEC, pCmd);
         if(res.success){
             return res.ret;
         }else{
@@ -135,11 +150,11 @@ class TestExecHelperClass {
      * @param {*} pCmd
      */
     async execAsync( pCmd:string):Promise<any>{
-        let res:any = this.filterInterceptor( "exec", pCmd);
+        let res:any = this.filterInterceptor( InterceptorType.EXEC_ASYNC, pCmd);
         if(res.success){
             return res.ret;
         }else{
-            return await _exec_(pCmd);;
+            return await _exec_(pCmd);
         }
     }
 
@@ -153,6 +168,6 @@ class TestExecHelperClass {
 
 }
 
-
+let gInstance:Nullable<TestExecHelperClass> = null;
 
 export var TestExecHelper = new TestExecHelperClass();
