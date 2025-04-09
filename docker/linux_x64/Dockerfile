@@ -116,7 +116,7 @@ RUN apt-get update && apt install -y curl ca-certificates gnupg wget unzip  \
     bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3  \
     libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
     wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils \
-    sudo libfontconfig1-dev libfreetype6-dev apt-transport-https
+    sudo libfontconfig1-dev libfreetype6-dev
 
 
 RUN mkdir -p /etc/apt/keyrings && \
