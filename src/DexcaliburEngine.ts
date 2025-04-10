@@ -533,7 +533,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.nodeManager = new EngineNodeManager(this,
             (pEngineOptions!=null && pEngineOptions.node_uid!=null) ? pEngineOptions.node_uid : this.UID);
 
-        if(pEngineOptions!=null && pEngineOptions.master_opts!=null){
+        if(pEngineOptions!=null && pEngineOptions.master_opts!=null && pEngineOptions.master_opts.uri!=null){
             this.nodeManager.setMasterURI(pEngineOptions.master_opts.uri, pEngineOptions.master_opts);
         }else if(process.env.DXC_MASTER_URI!="" && process.env.DXC_MASTER_URI!=null){
             this.nodeManager.setMasterURI(process.env.DXC_MASTER_URI, {
