@@ -124,7 +124,7 @@ export class SessionStore /*extends expressSession.Store*/ {
                 if(expired){
                     //Logger.error(`[SESSION STORE][get] Read session : failure [sid=${pSID}] : session is expired`);
                     pCallback.apply(null, [{ expire:true }, null ]);
-                }else{
+                }else if(pSession.getUserAccount()!=null){
 
                     this._engine.getUserService().getAccount(
                         this._engine.getInternalAcc(),
@@ -137,6 +137,8 @@ export class SessionStore /*extends expressSession.Store*/ {
                         pCallback.apply(null, [ vE1, null ]);
                     })
                     //Logger.success(`[SESSION STORE][get] Read session : success [sid=${pSID}] `);
+                }else{
+                    pCallback.apply(null, [ null, pSession ]);
                 }
             }).catch((vErr:any)=>{
                 Logger.error(`[SESSION STORE][get] Read session : failure [sid=${pSID}] : ${vErr}`);
