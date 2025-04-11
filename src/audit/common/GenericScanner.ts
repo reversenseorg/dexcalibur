@@ -347,9 +347,6 @@ export class GenericScanner extends AssuranceScanner {
      */
     private async _firstScan(pContext:DexcaliburProject, pOptions:GenericScanOptions):Promise<void>{
 
-
-        console.log("FIRST SCAN");
-
         // 0. Create dashboard
         this._createMainDashboard(pOptions.dashboard);
 
@@ -377,11 +374,11 @@ export class GenericScanner extends AssuranceScanner {
             let next = true;
             switch (vStep.type){
                 case TestType.STATIC_SCAN:
-                    console.log("SAST",vStep.controls);
+                    console.log("SAST : "+vStep.controls.length);
                     await this._staticScan( this.report, vStep.controls, pOptions);
                     break;
                 case TestType.IAST:
-                    console.log("IAST",vStep.controls);
+                    console.log("IAST : "+vStep.controls.length);
                     await this._iastScan( this.report, vStep.controls, pOptions);
                     break;
                 default:

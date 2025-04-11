@@ -34,6 +34,7 @@ import {ValidationRule} from "../Validator.js";
 import {EngineNodeClient} from "./EngineNodeClient.js";
 import {WebsocketClient} from "../WebsocketClient.js";
 import {K8ResourceType, K8sHelper} from "./k8s/K8sHelper.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const GOT = got.default;
@@ -481,21 +482,49 @@ export class EngineNode implements INode {
                 // sort by time, get oldest (the first entry of the list)
                 // const oldest = this.waitingQueue.shift();
 
-                console.log("READ WAITING ORDER IN QUEUE : ");
 
                 let oldest:Order;
                 if(pOrder!=null){
                     console.log("NEW ORDER SPECIFIED : ")
                     oldest = pOrder;
+                    Logger.info(`[ENGINE NODE][${this.UUID}] Execute operation direct : ${oldest.type} ${new Date(oldest.created)}`);
+                    this.execOperation2(oldest)
+                        .then((vRes)=>{
+                            Logger.error("[ENGINE NODE] Operation execution done : ",vRes);
+                            this.opeTerminated.push(oldest);
+                        },(err)=>{
+                            Logger.error("[ENGINE NODE] Operation execution failed : ",err);
+                            console.log(err.stack);
+                        })
                 }else{
                     console.log("NEW ORDER NOT SPECIFIED, RETRIEVE FROM WAITING QUEUE : ")
-                   oldest = this.waitingQueue.shift();
+                    this.nextWaitingOpe().then((vOrder)=>{
+                        if(vOrder==null){
+                            if(this.isReady()){
+                                this.setState(NodeState.IDLE);
+                            }
+                            return;
+                        }
+
+                        Logger.info(`[ENGINE NODE][${this.UUID}] Execute operation from waiting queue : ${oldest.type} ${new Date(oldest.created)}`);
+                        this.execOperation2(oldest)
+                            .then((vRes)=>{
+                                Logger.error("[ENGINE NODE] Operation execution done : ",vRes);
+                                this.opeTerminated.push(oldest);
+                            },(err)=>{
+                                Logger.error("[ENGINE NODE] Operation execution failed : ",err);
+                                console.log(err.stack);
+                            })
+
+                    }); //waitingQueue.shift();
+
                 }
 
                 // execute, state will changed,
                 // when node will finished to process request, it will notifiy
                 // master of state changes and it will come back to IDLE, then the queue will be consumed again
 
+                /*
                 if(oldest!=null){
                     Logger.info(`[ENGINE NODE][${this.UUID}] Execute operation from queue : ${oldest.type} ${new Date(oldest.created)}`);
                     this.execOperation2(oldest)
@@ -505,7 +534,7 @@ export class EngineNode implements INode {
                             Logger.error("[ENGINE NODE] Operation execution failed : ",err);
                             console.log(err.stack);
                         })
-                }
+                }*/
             }else{
                 console.log("NEW ORDER CREATED BU NODE IS NOT READY, WAITING ...");
             }
@@ -1550,10 +1579,17 @@ export class EngineNode implements INode {
      * @since 1.8.0
      */
     async nextWaitingOpe():Promise<Nullable<Order>> {
-        let nextOpe = this.waitingQueue.shift();
+
+        const self = await (this._engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry({ UUID: this.getUID() });
+
+        if(self==null) return null;
+
+        let nextOpe = self.waitingQueue.shift();
+
         if(nextOpe!=null){
             this.activeOpe = nextOpe;
-            await this.save(["activeOpe","waitingQueue"]);
+            await self.save(["activeOpe","waitingQueue"]);
         }
 
         return nextOpe;
@@ -1571,5 +1607,6 @@ export class EngineNode implements INode {
         c.init('term-control');
         return c;
     }
+
 }
 EngineNode.TYPE.builder(EngineNode);
