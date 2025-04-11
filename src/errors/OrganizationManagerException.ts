@@ -198,16 +198,29 @@ export class OrganizationManagerException extends MonitoredError {
         return new OrganizationManagerException(`Duplicated group name in the same organization [oid=${pOUID}][grp=${pName}] `,
             ErrorCode.ORGANIZATION + 45) };
 
+
+
     static MISSING_GRP_BYNAME = (pOUID: OrganizationUnitUUID, pName:string) =>{
-        return new OrganizationManagerException(`Missing user group (by name) in the organization [oid=${pOUID}][grp=${pName}] `,
-            ErrorCode.ORGANIZATION + 46) };
+        return new OrganizationManagerException(`Missing user group (by name) in the organization `,
+            ErrorCode.ORGANIZATION + 46, {
+                oid: pOUID,
+                name:pName
+            }) };
 
     static CANNOT_DETROY_DEV = (pDev:DeviceUUID, pOUID: Nullable<OrganizationUnitUUID> =null) =>{
         return new OrganizationManagerException(
             `Cannot destroy the device. This device is not a part of organization.`,
-            ErrorCode.ORGANIZATION + 46, {
+            ErrorCode.ORGANIZATION + 47, {
                 oid: pOUID,
                 did: pDev
+            }) };
+
+
+    static USER_GROUP_ALREADY_EXISTS = (pOUID: OrganizationUnitUUID, pName:string) =>{
+        return new OrganizationManagerException(`A user group already exists in the organization with this name.`,
+            ErrorCode.ORGANIZATION + 48, {
+                oid: pOUID,
+                name:pName
             }) };
 
 

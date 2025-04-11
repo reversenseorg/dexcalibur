@@ -928,7 +928,27 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     sent: await $.context.getOrgManager().lockMember(pReq.user, org, pReq.params.uid)
                 });
             } catch (err) {
-                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot sent unlock mail", err);
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot lock user account", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/member/:uid/unlock',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+
+                $.sendSuccess( pRes, {
+                    sent: await $.context.getOrgManager().unlockMember(pReq.user, org, pReq.params.uid)
+                });
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot unlock unlock user account", err);
             }
         }
     }
@@ -1146,7 +1166,9 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess( pRes, { created: true });
             } catch (err) {
-                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Cannot retrieve the list of roles supported by organization", err);
             }
         }
     }

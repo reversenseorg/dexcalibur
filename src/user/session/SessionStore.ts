@@ -9,6 +9,7 @@ import expressSession from "express-session";
 import {Cookie, CookieOptions} from "./Cookie.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
 import {SessionEnvelope} from "./SessionEnvelope.js";
+import {UserAccount} from "../UserAccount.js";
 
 
 
@@ -124,8 +125,18 @@ export class SessionStore /*extends expressSession.Store*/ {
                     //Logger.error(`[SESSION STORE][get] Read session : failure [sid=${pSID}] : session is expired`);
                     pCallback.apply(null, [{ expire:true }, null ]);
                 }else{
+
+                    this._engine.getUserService().getAccount(
+                        this._engine.getInternalAcc(),
+                        pSession.getUserAccount().getUID()
+                    ).then((vUA:UserAccount)=>{
+                        pSession.setUserAccount(vUA);
+                        pCallback.apply(null, [ null, pSession ]);
+                    }).catch((vE1)=>{
+                        Logger.error(`[SESSION STORE][get] Read session : failure : user account cannot be refreshed [sid=${pSID}] : ${vE1}`);
+                        pCallback.apply(null, [ vE1, null ]);
+                    })
                     //Logger.success(`[SESSION STORE][get] Read session : success [sid=${pSID}] `);
-                    pCallback.apply(null, [ null, pSession ]);
                 }
             }).catch((vErr:any)=>{
                 Logger.error(`[SESSION STORE][get] Read session : failure [sid=${pSID}] : ${vErr}`);
@@ -278,6 +289,12 @@ export class SessionStore /*extends expressSession.Store*/ {
 
         // keep originalMaxAge intact
         pExistingSess.cookie.originalMaxAge = originalMaxAge
+
+        if(pExistingSess.passport!=null){
+            if(pExistingSess.passport.user!=null){
+                pExistingSess.passport.user = pExistingSess.getUserAccount();
+            }
+        }
 
         pReq.session = new UserSession({
             _uid: pExistingSess.getUID(),

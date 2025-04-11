@@ -616,16 +616,18 @@ export class EngineNode implements INode {
         // const ssl = this._engine.getSettings().getServerSettings().getSslSettings();
         if(process.env.DXC_NODE_SSL=="1"){
             // HTTP only comm mode ( port can change)
-            return `https://${this.getHostname()}:${this.httpsPort}`;
+            return `https://${this.getHostname()}:${this.httpsPort>-1?this.httpsPort:8443}`;
         }else{
             // HTTPS ( port can change)
-            return `http://${this.getHostname()}:${this.httpPort}`;
+            return `http://${this.getHostname()}:${this.httpPort>-1?this.httpPort:8080}`;
         }
     }
 
 
     async setEngine(pEngine:IDexcaliburEngine):Promise<void> {
-        this._engine = pEngine;
+        if(this._engine==null){
+            this._engine = pEngine;
+        }
         await this.loadInternalState();
     }
 
@@ -684,7 +686,7 @@ export class EngineNode implements INode {
             throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node : '+this.state);
         }
 
-        Logger.info("[ENGINE NODE] [OPEN] uri : "+this.getHost()+"/api/workspace/open?=");
+        Logger.info("[ENGINE NODE] [OPEN] uri : "+this.getHost()+"/api/workspace/open_slave?");
 
 
         let cookie="";
@@ -975,8 +977,17 @@ export class EngineNode implements INode {
                         },
                         body: JSON.stringify({})
                     }
-                ).then(()=>{
-                    console.log("Scan ordered successfully");
+                ).then((vRes)=>{
+                    console.log("Project ordered successfully");
+                    console.log(vRes.body);
+                    const r = JSON.parse(vRes.body);
+                    if(r.success==true){
+                        this.setPurpose(NodePurpose.ANY);
+                        this.setState(NodeState.IDLE);
+                    }else{
+                        // kill node ?
+                        this.kill();
+                    }
                 });
                 break;
             case NodeState.STARTING:
@@ -1282,6 +1293,10 @@ export class EngineNode implements INode {
         }catch(e){
             Logger.error(`[ENGINE NODE][NODE=${this.UUID}] Cannot be killed : ${e.message} ${e.stack}`);
         }
+    }
+
+    setProject(pUID:DexcaliburProjectUUID):void {
+        this._projectUID = pUID;
     }
 
     getProjectUID():Nullable<DexcaliburProjectUUID> {

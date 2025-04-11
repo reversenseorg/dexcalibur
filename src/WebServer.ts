@@ -61,6 +61,7 @@ import {ORG_WEB_API} from "./webapi/organization.web.api.js";
 import {HEALTH_WEB_API} from "./webapi/health.web.api.js";
 import {WEBHOOK_WEB_API} from "./webapi/webhook.web.api.js";
 import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
+import {SecurityZone} from "./security/SecurityZone.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -299,7 +300,15 @@ export default class WebServer
      */
     sendErrorAfterException( pRes:ExpressResponse, pPrefix:string, pMessage:any, pErr:Error, pOptions:any = null){
         Logger.error(`[API]${pPrefix} ${pMessage} . Cause: ${pErr.message} \n\t ${pErr.stack} `);
-        SEND_ERROR_RESPONSE( pRes, pMessage, pOptions);
+        if(pErr.hasOwnProperty('_zone')){
+            if((pErr as any)._zone==SecurityZone.PRIVATE){
+                SEND_ERROR_RESPONSE( pRes, pMessage, pOptions);
+            }else{
+                SEND_ERROR_RESPONSE( pRes, pErr.message, pOptions);
+            }
+        }else{
+            SEND_ERROR_RESPONSE( pRes, pMessage, pOptions);
+        }
     }
 
     /**

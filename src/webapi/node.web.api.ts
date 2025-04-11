@@ -107,7 +107,7 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
                 const unsafeHost = req.headers[EngineNodeManager.HEADER_NODE_HOST];
 
                 // validate
-                $.context.nodeManager.registerNode(
+                const nodeUUID = await $.context.nodeManager.registerNode(
                     Buffer.from(unsafeKey as string),
                     unsafeHost as string,
                     {
@@ -116,7 +116,9 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
                     }
                 );
 
-                $.sendSuccess(res, {});
+                $.sendSuccess(res, {
+                    uuid: nodeUUID
+                });
             }catch(err){
                 Logger.error("[API][NODE] Node cannot be registered.",err.stack);
                 //console.log(req.headers);

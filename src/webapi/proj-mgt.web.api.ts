@@ -22,7 +22,7 @@ import {ValidationRule} from "../Validator.js";
 import {UploadedResource} from "../common/UploadedResource.js";
 import {EngineNode, NodePurpose} from "../core/EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
-import {EngineNodeManager, NodeState} from "../core/EngineNodeManager.js";
+import {NodeState} from "../core/EngineNodeManager.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -755,37 +755,40 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 // TODO check is user is authorized to access project
                 // search a running node for this project
 
+
+                let nodeReady = false;
+                let sent = false;
+
+
+
                 Logger.info("[API][PROJECT MGT] Open project from slave : start ");
                 // else : allocate a node , start it and open the project
                 const targetNode = await $.context.getProjectManager().open(
                     req.user,
                     unsafeUUID,
-                    unsafePurpose
+                    unsafePurpose,
+                    null,
+                    (vNode)=>{
+
+                        const subscription = vNode.nodeState$.subscribe((vChange)=>{
+
+                            Logger.info(`[API][PROJECT MGT] Open project from slave : state of local node changed ${vChange.before} to ${vChange.new}`);
+                            if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
+                                subscription.unsubscribe();
+                                nodeReady = true;
+                                Logger.info(`[API][PROJECT MGT] Open project from slave : Terminated`);
+                                if(!sent){
+                                    sent = true;
+                                    $.sendSuccess(res, {
+                                        ready: true,
+                                        node: vNode.getUID()
+                                    });
+                                }
+                            }
+                        })
+                    }
                 );
 
-
-                let nodeReady = false;
-                let sent = false;
-                const subscription = targetNode.nodeState$.subscribe((vChange)=>{
-
-                    Logger.info(`[API][PROJECT MGT] Open project from slave : state of local node changed ${vChange.before} to ${vChange.new}`);
-                    if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
-                        subscription.unsubscribe();
-
-
-                        nodeReady = true;
-
-                        Logger.info(`[API][PROJECT MGT] Open project from slave : Terminated`);
-                        if(!sent){
-                            $.sendSuccess(res, {
-                                ready: true,
-                                node: targetNode.getUID()
-                            });
-
-                        }
-                        //pNext();
-                    }
-                })
 
                 Logger.info(`[API][PROJECT MGT] Open project from slave : waiting ...`);
                 if(!sent){
@@ -1084,16 +1087,48 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
             try {
 
+                let sent = false;
                 // target org
                 const po = await $.context.getProjectManager().getProjectOrder(
                     (pReq as any).user,
                     pReq.params.pid
                 );
 
-                $.sendSuccess(pRes, (await $.context.getProjectManager().executeProjectOrder(
+                const res = await $.context.getProjectManager().executeProjectOrder(
                     (pReq as any).user,
-                    po
-                )).toJsonObject());
+                    po,
+                    (vNode)=>{
+
+                        const subscription = vNode.nodeState$.subscribe((vChange)=>{
+
+                            Logger.info(`[API][PROJECT MGT] New project from slave : state of local node changed ${vChange.before} to ${vChange.new}`);
+                            if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
+                                subscription.unsubscribe();
+                                Logger.info(`[API][PROJECT MGT] Nex project from slave : Terminated`);
+                                if(!sent){
+                                    sent = true;
+                                    $.sendSuccess(pRes, {
+                                        ready: true,
+                                        node: vNode.getUID()
+                                    });
+                                }
+                            }
+                        })
+                    }
+                );
+
+
+
+                if(!sent){
+                    const node = $.context.getNodeManager().getNodeByUUID(
+                        $.context.getNodeUUID()
+                    );
+                    console.log(node);
+                    node.setPurpose(NodePurpose.ANY);
+                    node.setState(NodeState.IDLE);
+                    sent = true;
+                    $.sendSuccess(pRes, res.toJsonObject());
+                }
 
             } catch (err) {
 

@@ -361,7 +361,8 @@ export class ProjectManager {
      * @param {ProjectOrder} pOrder The project order
      * @method
      */
-    async executeProjectOrder(pAccount:UserAccount, pOrder:ProjectOrder):Promise<DexcaliburProject>  {
+    async executeProjectOrder(pAccount:UserAccount, pOrder:ProjectOrder,pOnBefore:(vNode:EngineNode)=>void = null):Promise<DexcaliburProject>  {
+
 
         // retrieve app from order
         const app = await this._ctx.getOrgManager()
@@ -376,6 +377,14 @@ export class ProjectManager {
                 OrganizationAccessControl.attr.APP_MEMBER,
             ]
         );
+
+        // get current node
+        const currNode = this._ctx.getNodeManager().getNodeByUUID(this._ctx.getNodeUUID());
+        Logger.info("NODE >>> ",this._ctx.getNodeUUID());
+
+        if(pOnBefore!=null){
+            (pOnBefore)(currNode);
+        }
 
         const orderOpts = pOrder.settings.options;
         const PLATFORM_MODE = ['dev','min','max'];
@@ -412,11 +421,15 @@ export class ProjectManager {
 
             // set project name
             let projectUID:string;
+
+            projectUID = pOrder.getUID();
+
+            /*
             if(orderOpts.projectName == null){
                 projectUID = orderOpts.projectName = pOrder.getUID();
             }else{
                 projectUID = DexcaliburProject.sanitizeUID(orderOpts.projectName);
-            }
+            }*/
 
             if(orderOpts.analyzerOpts != null){
                 anal = orderOpts.analyzerOpts;
@@ -601,6 +614,10 @@ export class ProjectManager {
                 pOrder.getWorflow()//.getUID()
             );
 
+            if(orderOpts.projectName!=null){
+                project.meta.tag = orderOpts.projectName;
+            }
+
             if(project == null){
                 throw DexcaliburProjectException.STEP2_FAILURE();
             }
@@ -641,10 +658,17 @@ export class ProjectManager {
                 workflow.pushStatus(StatusMessage.newSuccess("Project has been created successfully."))
             }
 
+
+            if(currNode.purpose===NodePurpose.NEW_PRJ){
+                currNode.purpose = NodePurpose.ANY;
+            }
+
             if(!success){
                 throw DexcaliburProjectException.NEW_PROJECT_FAIL();
             }
 
+
+            currNode.setState(NodeState.IDLE);
 
             return project;
         }catch(err){
@@ -790,7 +814,8 @@ export class ProjectManager {
      * @param pProjectUID
      */
     async open( pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
-                pPurpose:NodePurpose = NodePurpose.HOOK, pExtraOpts:any = {}):Promise<EngineNode> {
+                pPurpose:NodePurpose = NodePurpose.HOOK, pExtraOpts:any = {},
+                pOnBefore:(vNode:EngineNode)=>void = null):Promise<EngineNode> {
         // validate project UID format
         if(!DexcaliburProject.VALIDATE.uid.test(pProjectUID)){
             throw DexcaliburProjectException.INVALID_UUID_FMT(pProjectUID);
@@ -804,6 +829,10 @@ export class ProjectManager {
 
             // search free node or node for REVIEW / HOOK
             const remoteNode = await this._openRemotely(pUser,pProjectUID,pPurpose);
+
+            if(pOnBefore!=null){
+                (pOnBefore)(remoteNode);
+            }
 
             let scanOrders:ScanOrder[] = pExtraOpts.scanOrders ;
 
@@ -900,11 +929,16 @@ export class ProjectManager {
             return currNode;
         }
 
+        if(pOnBefore!=null){
+            (pOnBefore)(currNode);
+        }
+
         // create a new workflow for this opening
         this._ctx.newWorkflow(pProjectUID).changeOwner(pUser);
 
         // if project not loaded, open it locally
         project = await this._openLocally(pUser, pProjectUID, currNode);
+
 
         console.log("PROJ OPEN done, changing state ");
         if(currNode.purpose===NodePurpose.NEW_PRJ){

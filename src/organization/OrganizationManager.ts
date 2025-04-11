@@ -221,9 +221,9 @@ The Reversense Team
 
         // save group
         if(grp != null){
-            await this.updateOrganization(pUserAccount, pOrg, {
-                groups: pOrg.groups
-            });
+
+            await (this._ctx.getEngineDB().getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+                .asyncUpdateEntry(pOrg, { replace:false, $set:['groups']});
         }
 
         return (success==pEmails.length);
@@ -643,10 +643,11 @@ The Reversense Team
 
         // add parent organization as attribute (required to perform ABAC
         // with custom org-level user groups)
-        pOrg.appendToAccessAttribute(
+        pApp.appendToAccessAttribute(
             GlobalAccessControl.attr.ORG,
             pApp.getParentOrganization()
         );
+
 
 
         // add app member group to org
@@ -691,7 +692,7 @@ The Reversense Team
 
         return await this._ctx.getEngineDB()
             .getCollectionOf(ApplicationUnit.TYPE.getType())
-            .asyncUpdateEntry(pAppUnit, {replace:false});
+            .asyncUpdateEntry(pAppUnit, {replace:false, $set:[Object.keys(pChanges)]}) as boolean;
     }
 
 
@@ -856,6 +857,27 @@ The Reversense Team
         // filter app list by attribute
         all.map(( vApp:ApplicationUnit)=>{
             try {
+
+                // Fix missing GlobalAccessControl.attr.ORG attributes for existing apps
+                if(vApp.getAccessAttribute(GlobalAccessControl.attr.ORG)==null){
+
+                    // append user to member list
+                    vApp.appendToAccessAttribute(
+                        GlobalAccessControl.attr.ORG,
+                        pOrg.getUID()
+                    );
+
+                    (async ()=>{
+                        await this.updateApplication(
+                            this._ctx.getInternalAcc(),
+                            pOrg,
+                            vApp,
+                            { '_attr':true }
+                        );
+                        Logger.success(`[ORG MGR] Application [pkg=${vApp.packageID}] ; missing Org_unit attr fixed.`);
+                    })();
+                }
+
                 // check if user can list applications
                 AccessControl.isAuthorized(
                     AccessControl.access.ORG_AU_READ,
@@ -916,9 +938,8 @@ The Reversense Team
 
         pOrg.removeUserGroup(pGrpUUID);
 
-        return await this.updateOrganization(pUserAccount, pOrg, {
-            groups: pOrg.groups
-        })
+        return await (this._ctx.getEngineDB().getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['groups']});
     }
 
     async updateUserGroup(pUserAccount:UserAccount, pOrg:OrganizationUnit, pGrpUUID:UserGroupUUID, pData:any):Promise<boolean> {
@@ -941,9 +962,8 @@ The Reversense Team
 
         grp.update(pData);
 
-        return await this.updateOrganization(pUserAccount, pOrg, {
-            groups: pOrg.groups
-        })
+        return await (this._ctx.getEngineDB().getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['groups']});
     }
 
 
@@ -998,6 +1018,11 @@ The Reversense Team
                 OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
+
+        // detect duplicated group by name
+        if(pOrg.getUserGroupByName(pUserGroup.name)!=null){
+            throw OrganizationManagerException.USER_GROUP_ALREADY_EXISTS(pOrg.getUID(),pUserGroup.name);
+        }
 
         // uid must be unique organization-wide
         let uid:UserGroupUUID;
@@ -1906,9 +1931,11 @@ The Reversense Team
         pOrg.addMember(account);
         await this._ctx.getUserService().addMembership(account, pOrg, false);
 
-        if(await this.updateOrganization(pUserAccount, pOrg, {
-            members: pOrg.members
-        })){
+
+        const updateRes = await (this._ctx.getEngineDB().getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['members']});
+
+        if(updateRes){
 
             // send activation email
             await this.sendActivationMail(account, 3600*2, pOrg);
@@ -2094,6 +2121,21 @@ The Reversense Team
                          pOrg: OrganizationUnit,
                          pUserUID: UserAccountUUID):Promise<boolean> {
 
+        return await this._lockMember(pUserAccount,pOrg,pUserUID,true);
+    }
+
+    async unlockMember(pUserAccount: UserAccount,
+                     pOrg: OrganizationUnit,
+                     pUserUID: UserAccountUUID):Promise<boolean> {
+
+        return await this._lockMember(pUserAccount,pOrg,pUserUID, false);
+    }
+
+    private async _lockMember(pUserAccount: UserAccount,
+                     pOrg: OrganizationUnit,
+                     pUserUID: UserAccountUUID,
+                              pLocked:boolean):Promise<boolean> {
+
         AccessControl.isAuthorized(
             AccessControl.access.ORG_USR_MGT,
             pUserAccount,
@@ -2116,14 +2158,14 @@ The Reversense Team
             account.addMembership(pOrg.getUID(), {
                 activated: false,
                 _activateDate: -1,
-                locked: true,
-                _lockDate: Util.time(),
+                locked: pLocked,
+                _lockDate: (pLocked==true ? Util.time() : -1),
                 preferences: {},
                 roles: []
             });
         }else{
-            ms.locked = true;
-            ms._lockDate = Util.time();
+            ms.locked = pLocked;
+            ms._lockDate = (pLocked==true ? Util.time() : -1);
         }
 
         await this._ctx.getEngineDB().save(account);

@@ -16,7 +16,6 @@ import {AccessAttribute} from "./AccessAttribute.js";
 import {UserGroup, UserGroupUUID} from "./common/UserGroup.js";
 import {OrganizationUnit, OrganizationUnitUUID} from "../../organization/OrganizationUnit.js";
 import {Auditable} from "../../Auditable.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
 import {OrganizationManagerException} from "../../errors/OrganizationManagerException.js";
 
 export type AclMatrix = Record<AccessUID, Role[]>;
@@ -567,7 +566,7 @@ export class AccessControlManager {
      * @param pUser
      * @param pSubject
      */
-    isAuthorized(pAccess:Access, pIssuer:UserAccount|UserGroup, pResource?:Nullable<Auditable>, pAttributes?:AccessAttribute<any>[] ):void {
+    isAuthorized(pAccess:Access, pIssuer:UserAccount|UserGroup, pResource?:Nullable<Auditable>, pAttributes?:AccessAttribute<any>[], pQuiet = false ):void {
 
         if(pAccess==null || this._matrix[pAccess.getUID()]==null){
             throw AccessControlException.MISSING_ACCESS(pAccess);
@@ -580,19 +579,19 @@ export class AccessControlManager {
         let success:boolean = false;
 
         // start by checking if pIssuer has a role required by pAccess
-        success = this._isRbacOk(pAccess,pIssuer,pResource,pAttributes);
+        success = this._isRbacOk(pAccess,pIssuer,pResource,pAttributes,pQuiet);
 
         if(!success){
-            Logger.error(`[ACCESS MANAGER] User [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by roles`);
+            if(!pQuiet) Logger.error(`[ACCESS MANAGER] ${pIssuer.__==NodeInternalType.USER_GROUP?'User group "'+(pIssuer as any).name+'" ':'User'} [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by roles`);
             throw AccessControlException.NOT_AUTHORIZED(pAccess,pIssuer);
         }
 
         // next, check attributes
-        if(pResource!=null && pAttributes!=null && pAttributes.length>0){
-            success = this._isAbacOk(pAccess,pIssuer,pResource,pAttributes);
+        if(success && pResource!=null && pAttributes!=null && pAttributes.length>0){
+            success = this._isAbacOk(pAccess,pIssuer,pResource,pAttributes,pQuiet);
 
             if(!success){
-                Logger.error(`[ACCESS MANAGER] User [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by attributes`);
+                Logger.error(`[ACCESS MANAGER] ${pIssuer.__==NodeInternalType.USER_GROUP?'User group "'+(pIssuer as any).name+'" ':'User'} [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by attributes`);
                 throw AccessControlException.NOT_AUTHORIZED(pAccess,pIssuer);
             }
         }
@@ -609,7 +608,7 @@ export class AccessControlManager {
      * @param pSubject
      */
     private _isRbacOk(pAccess:Access, pIssuer:UserAccount|UserGroup,
-                                pResource?:Nullable<Auditable>, pAttributes?:AccessAttribute<any>[] ):boolean {
+                                pResource?:Nullable<Auditable>, pAttributes?:AccessAttribute<any>[], pQuiet = false ):boolean {
 
         if(pAccess==null || this._matrix[pAccess.getUID()]==null){
             throw AccessControlException.MISSING_ACCESS(pAccess);
@@ -625,10 +624,10 @@ export class AccessControlManager {
         if(pIssuer.__===NodeInternalType.USER_ACCOUNT){
 
             // check roles inherited by groups (universal and org-level groups)
-            authorized = this.isAuthorizedByGroups(pAccess,pIssuer as UserAccount,pResource,pAttributes);
+            authorized = this.isAuthorizedByGroups(pAccess,pIssuer as UserAccount,pResource,pAttributes,pQuiet);
 
             if(authorized){
-                return;
+                return true;
             }
         }
 
@@ -676,7 +675,9 @@ export class AccessControlManager {
      * @param pSubject
      */
     private _isAbacOk(pAccess:Access, pIssuer:UserAccount|UserGroup,
-                                pResource:Nullable<Auditable>, pAttributes:AccessAttribute<any>[] ):boolean {
+                                pResource:Nullable<Auditable>,
+                      pAttributes:AccessAttribute<any>[],
+                      pQuiet = false):boolean {
 
         if(pResource==undefined || pAttributes==undefined){
             return false;
@@ -774,7 +775,8 @@ export class AccessControlManager {
     isAuthorizedByGroups(pAccess:Access,
                          pIssuer:UserAccount,
                          pResource?:Nullable<any>,
-                         pAttributes?:AccessAttribute<any>[] ):boolean {
+                         pAttributes?:AccessAttribute<any>[],
+                         pQuiet = false):boolean {
 
         let authorized = false;
 
@@ -785,7 +787,7 @@ export class AccessControlManager {
                     pAccess,
                     this.getUserGroup(vGrpUID),
                     pResource,
-                    pAttributes);
+                    pAttributes, pQuiet);
                 authorized = true;
             }catch (e){}
         });
@@ -814,7 +816,8 @@ export class AccessControlManager {
                             pAccess,
                             this.getUserGroup(vGrpUID,oid),
                             pResource,
-                            pAttributes);
+                            pAttributes,
+                            pQuiet);
                         authorized = true;
                     }catch (e){}
                 });

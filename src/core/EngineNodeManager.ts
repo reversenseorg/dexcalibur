@@ -325,7 +325,29 @@ export class EngineNodeManager {
             await nodes[0].loadInternalState();
             return nodes[0];
         }else{
-            return null;
+
+            nodes = await
+                this.getNodes( {
+                    _projectUID: null,
+                    state: NodeState.IDLE,
+                    running: true
+                });
+
+            console.log('Ready slave before filtering 2 : ',nodes.length,' '+nodes.map(x => x.purpose).join(','));
+            if(pPurpose!=NodePurpose.ANY){
+                nodes = nodes.filter(x => (x.purpose==pPurpose || x.purpose==NodePurpose.ANY));
+            }
+            console.log('Ready slave after filtering 2 : ',nodes.length);
+
+            if(nodes.length>0){
+                nodes.map(x => x.setEngine(this.engine));
+                nodes[0].setProject(pProjectUID);
+                await nodes[0].loadInternalState();
+                await nodes[0].save(['_projectUID', 'state']);
+                return nodes[0];
+            }else{
+                return null;
+            }
         }
     }
 
@@ -429,6 +451,58 @@ export class EngineNodeManager {
 
             (async ()=>{ await this.onNodeStateChanged(vEvent); })();
         });
+
+        // save node state
+        await node.saveInternalState();
+
+        // save node
+        await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
+            .asyncAddEntry(node.getUID(),node);
+
+        // update node manager state
+        await this.saveInternalState();
+
+        return node; //this.slaves[uuid];
+    }
+
+
+    async createFreeNode():Promise<EngineNode> {
+
+        // generate Node UUID
+        const uuid = await this.engine.getEngineDB().generateFreeUuid(EngineNode.TYPE.getType());
+
+        const node =  await EngineNode.newNode(uuid, this.uuid, null, this.engine);
+
+        const nextPorts = await this.getNextPorts();
+
+        node.setEngine(this.engine);
+        node.setMasterUri(this.getLocalURI());
+        node.setPurpose(NodePurpose.ANY);
+
+        // if self-registration mode  is enabled, the node will be queued and wait en engine start
+        // and registry himself to master
+        if(this.selfRegistration){
+            // remote host name and port will be set during registration
+            node.setState(NodeState.QUEUED);
+            node.allowSelfRegistration();
+
+            if(process.env.DXC_HOSTNAME==undefined || process.env.DXC_HOSTNAME=='localhost'){
+                node.setHttpPort(nextPorts.http);
+                node.setHttpsPort(nextPorts.https);
+            }
+
+        }else{
+            node.setState(NodeState.NEW);
+            node.setHttpPort(nextPorts.http);
+            node.setHttpsPort(nextPorts.https);
+        }
+
+
+        if(process.env.DXC_NODE_HEAP_SZ){
+            node.setMaxHeapSize(parseInt(process.env.DXC_NODE_HEAP_SZ,10));
+        }
+
+        this.slaves[uuid] = node;
 
         // save node state
         await node.saveInternalState();
@@ -659,7 +733,13 @@ export class EngineNodeManager {
             }
         });
 
-        console.log(response.body);
+        if(response.body!=null){
+            const repData  = JSON.parse(response.body);
+            if((repData as any).success==true){
+                Logger.success("[NODE MGR] Node registered : "+repData.data.uuid);
+                this.uuid = repData.data.uuid;
+            }
+        }
         //const raw = JSON.parse(response.body);
         return;
     }
@@ -733,6 +813,8 @@ export class EngineNodeManager {
         if(vEvent.new==NodeState.REGISTERED){
             node.state = NodeState.IDLE;
         }
+
+        node.setEngine(this.engine);
 
         await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
             .asyncUpdateEntry(node, { replace:false, $set:['running','state','pid']});
@@ -1030,19 +1112,20 @@ export class EngineNodeManager {
      */
     async registerNode(pKey:Buffer, pHostname:string, pOptions:any):Promise<EngineNodeUUID> {
 
+        Logger.info(`[NODE MGR][REGISTER] Start registration of [host=${pHostname}]`);
         // authenticate node
         await this._validateRegistrationKey(pKey);
+        Logger.success(`[NODE MGR][REGISTER][host=${pHostname}] Registration key verified`);
 
         // get node from queued node request
-        const nextNode = await  this._getNextNode();
-
+        let nextNode = await  this._getNextNode();
 
         // if the queue is empty kill the fresh node
         if(nextNode==null){
             // kill;
-            return;
+            nextNode = await this.createFreeNode();
+            //return;
         }
-
         await nextNode.setEngine(this.engine);
 
 

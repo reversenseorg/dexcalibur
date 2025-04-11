@@ -473,10 +473,10 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess(res, (rap!=null ? rap.toJsonObject(): null));
             }catch(err){
-                $.sendErrorWithLog(res,
+                $.sendErrorAfterException(res,
                     AUDIT_WEB_API.name,
                     "Latest report of this application unit cannot be retrieved.",
-                    err.message);
+                    err);
             }
         }
     },{
@@ -506,10 +506,10 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess(res, (rap!=null ? rap.toJsonObject(): null));
             }catch(err){
-                $.sendErrorWithLog(res,
+                $.sendErrorAfterException(res,
                     AUDIT_WEB_API.name,
                     "Latest report of this application unit cannot be retrieved.",
-                    err.message);
+                    err);
             }
         }
     },{
