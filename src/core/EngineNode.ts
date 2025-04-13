@@ -35,6 +35,7 @@ import {EngineNodeClient} from "./EngineNodeClient.js";
 import {WebsocketClient} from "../WebsocketClient.js";
 import {K8ResourceType, K8sHelper} from "./k8s/K8sHelper.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const GOT = got.default;
@@ -485,34 +486,37 @@ export class EngineNode implements INode {
 
                 let oldest:Order;
                 if(pOrder!=null){
-                    console.log("NEW ORDER SPECIFIED : ")
+                    // NEW ORDER SPECIFIED
                     oldest = pOrder;
-                    Logger.info(`[ENGINE NODE][${this.UUID}] Execute operation direct : ${oldest.type} ${new Date(oldest.created)}`);
+                    Logger.info(`[ENGINE NODE][${this.UUID}][1] Execute operation direct : ${oldest.type} ${new Date(oldest.created)}`);
                     this.execOperation2(oldest)
                         .then((vRes)=>{
-                            Logger.error("[ENGINE NODE] Operation execution done : ",vRes);
+                            Logger.error(`[ENGINE NODE][${this.UUID}][1] Operation execution done : `);
                             this.opeTerminated.push(oldest);
+                            this.operation$.next(null);
                         },(err)=>{
-                            Logger.error("[ENGINE NODE] Operation execution failed : ",err);
+                            Logger.error(`[ENGINE NODE][${this.UUID}][1] Operation execution failed : `,err);
                             console.log(err.stack);
                         })
                 }else{
                     console.log("NEW ORDER NOT SPECIFIED, RETRIEVE FROM WAITING QUEUE : ")
                     this.nextWaitingOpe().then((vOrder)=>{
                         if(vOrder==null){
-                            if(this.isReady()){
+                            if(!this.isReady()){
                                 this.setState(NodeState.IDLE);
                             }
                             return;
                         }
 
-                        Logger.info(`[ENGINE NODE][${this.UUID}] Execute operation from waiting queue : ${oldest.type} ${new Date(oldest.created)}`);
-                        this.execOperation2(oldest)
+                        Logger.info(`[ENGINE NODE][${this.UUID}][2] Execute operation from waiting queue : ${vOrder.type} ${new Date(vOrder.created)}`);
+                        this.execOperation2(vOrder)
                             .then((vRes)=>{
-                                Logger.error("[ENGINE NODE] Operation execution done : ",vRes);
-                                this.opeTerminated.push(oldest);
+                                Logger.success(`[ENGINE NODE][${this.UUID}][2] Operation execution done : `);
+                                //console.log(vRes,vOrder);
+                                this.opeTerminated.push(vOrder);
+                                this.operation$.next(null);
                             },(err)=>{
-                                Logger.error("[ENGINE NODE] Operation execution failed : ",err);
+                                Logger.error(`[ENGINE NODE][${this.UUID}][2] Operation execution failed : `,err);
                                 console.log(err.stack);
                             })
 
@@ -536,7 +540,7 @@ export class EngineNode implements INode {
                         })
                 }*/
             }else{
-                console.log("NEW ORDER CREATED BU NODE IS NOT READY, WAITING ...");
+                console.log("NEXT OPERATION BUT NODE IS NOT READY, WAITING ...",this.state,pOrder);
             }
         });
 
@@ -571,7 +575,13 @@ export class EngineNode implements INode {
 
         node.nodeState$.subscribe((vEvent:any)=>{
             (async ()=>{
-                await node.save(['_pid','state','purpose','spawnCmd','_hostname','httpPort','httpsPort','selfReg', '_projectUID','startedAt','stoppedAt','createdAt']);
+                await node.save([
+                    '_pid','state','purpose','spawnCmd',
+                    '_hostname','httpPort','httpsPort',
+                    'selfReg', '_projectUID','startedAt',
+                    'stoppedAt','createdAt','waitingQueue',
+                    'activeOpe'
+                ]);
             })();
         });
 
@@ -692,8 +702,12 @@ export class EngineNode implements INode {
 
         this.startedAt = (new Date()).getTime();
 
+        // gather current statefulset size
+        const size = await (this._engine as DexcaliburEngine).getNodeManager().countRunningNode();
+        Logger.info("[ENGINE NODE] There are "+size+" nodes running, increasing by one ....");
+
         if(process.env.KUBERNETES_PORT!=null){
-            return await K8sHelper.scale(K8ResourceType.STATEFULSET, 'dxcslaves', 4, "default");
+            return await K8sHelper.scale(K8ResourceType.STATEFULSET, 'dxcslaves', size+1, "default");
         }else{
             return await this.spawn(pCause, false, pNodeOpts);
         }
@@ -728,7 +742,7 @@ export class EngineNode implements INode {
             cookie = cookie.slice(0,-1);
         }
 
-        const resp = await GOT(
+        const data = await GOT(
             this.getHost()+"/api/workspace/open_slave?",{
                 searchParams: {
                     uid: this._projectUID
@@ -739,11 +753,12 @@ export class EngineNode implements INode {
             }
         );
 
-        if(process.env.DXC_DEBUG=="1"){
-            Logger.raw('open_slave RESULT ',resp.body);
-        }
 
-        this.setState(NodeState.IDLE);
+        const resp:any = JSON.parse(data.body);
+        Logger.raw('open_slave RESULT ',data.body);
+        if(resp.success){
+
+        }
 
         return this;
     }
@@ -862,7 +877,6 @@ export class EngineNode implements INode {
                 this.history.push(this.activeScanSession);
             }
 
-
             // create new scan session
             this.activeScanSession = pOrder;
             this.activeScanSession.setState(ScanState.RUNNING);
@@ -918,37 +932,48 @@ export class EngineNode implements INode {
         // save order, to make it accessible from slave Node
         //(this._engine as DexcaliburEngine).getScanScheduler().saveOrder(pOrder);
 
-        Logger.info("[ENGINE NODE][GOT] Send command to slave node : "+this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start");
+        if((this._engine as DexcaliburEngine).isSlaveNode()){
+            const opts = pOrder.getOption('extra');
 
-        if(this.activeScanSession.hasModel()){
-            return GOT(
-                this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start",{
-                    method: 'POST',
-                    json: {
-                        order: this.activeScanSession.getUUID(),
-                        project: this._projectUID,
-                        _puid: this._projectUID,
-                        models: [this.activeScanSession.getModelUID()],
-                        scheduled: 0
-                    },
-                    headers: {
-                        'Cookie': this._prepareCookieHeader(pOrder.getOption('extra').cookie)
-                    },
-                }
-            ).then(()=>{
-                console.log("Scan ordered successfully");
-            })
+            const issuer = await (this._engine as DexcaliburEngine).getUserService().getAccount(
+                (this._engine as DexcaliburEngine).getInternalAcc(),
+                opts.owner
+            );
+
+            try{
+                await this._startLocalScan(issuer, pOrder);
+                this.setState(NodeState.IDLE);
+            }catch(err){
+                console.log(err);
+            }
+
+            return;
         }else{
-            // done
-            return true;
+            Logger.info("[ENGINE NODE][GOT] Send command to slave node : "+this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start");
+
+            if(this.activeScanSession.hasModel()){
+                return GOT(
+                    this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start",{
+                        method: 'POST',
+                        json: {
+                            order: this.activeScanSession.getUUID(),
+                            project: this._projectUID,
+                            _puid: this._projectUID,
+                            models: [this.activeScanSession.getModelUID()],
+                            scheduled: 0
+                        },
+                        headers: {
+                            'Cookie': this._prepareCookieHeader(pOrder.getOption('extra').cookie)
+                        },
+                    }
+                ).then(()=>{
+                    console.log("Scan ordered successfully");
+                })
+            }else{
+                // done
+                return true;
+            }
         }
-
-
-
-
-        // method: 'POST', url:'/audit/project/:uid/scan/start'
-        // { uid: pProjectUID, project:pProjectUID, models: pModelIds  }
-
     }
 
 
@@ -1570,6 +1595,20 @@ export class EngineNode implements INode {
         return this.selfReg;
     }
 
+
+    /**
+     *
+     */
+    async refreshWaitingQueue():Promise<any> {
+        const self = await (this._engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry({ UUID: this.getUID() });
+
+        if(self==null) return ;
+
+        this.waitingQueue = self.waitingQueue;
+        this.activeOpe = self.activeOpe;
+        //console.log("REFRESH > ACTIVE > ",this.activeOpe);
+    }
     /**
      * To pop the next queued order from the waiting queue,
      * set it at active ope, update in DB and return order (or NULL)
@@ -1586,10 +1625,11 @@ export class EngineNode implements INode {
         if(self==null) return null;
 
         let nextOpe = self.waitingQueue.shift();
+        this.waitingQueue = self.waitingQueue;
 
         if(nextOpe!=null){
             this.activeOpe = nextOpe;
-            await self.save(["activeOpe","waitingQueue"]);
+            await this.save(["activeOpe","waitingQueue"]);
         }
 
         return nextOpe;
@@ -1608,5 +1648,53 @@ export class EngineNode implements INode {
         return c;
     }
 
+    /**
+     * To check if a node is ready
+     *
+     */
+    async checkReadyness() {
+        if(this.state==NodeState.QUEUED){
+            // if queued since more than 1 min, add to flush/kill queue
+            return !((Util.now()-this.createdAt) > 60*1000);
+        }
+
+        return true;
+    }
+
+    /**
+     *
+     */
+    async isWaitingQueueEmpty():Promise<boolean> {
+
+        const self = await (this._engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry({ UUID: this.getUID() });
+
+        if(self==null){
+          return true;
+        }
+
+        return (self.waitingQueue.length==0);
+    }
+
+    private async _startLocalScan(pUser:UserAccount, pOrder:ScanOrder) {
+
+        // get project and user ACL
+        const project = await (this._engine as DexcaliburEngine).getProjectManager()
+                .getLocalActiveProject(pUser,pOrder.getProjectUID());
+
+        // ========== LOGIC
+        const am = (this._engine as DexcaliburEngine).getAuditManager();
+        const scheduler = (this._engine as DexcaliburEngine).getScanScheduler(); //.getScanScheduler();
+
+        let org:OrganizationUnit = null;
+        if(pOrder.orgUnit!=null){
+            org = await (this._engine as DexcaliburEngine).getOrgManager().getOrganization(pUser, pOrder.orgUnit);
+        }
+
+        //console.log(project);
+        const report = await scheduler.newStandaloneScan(pUser, project, pOrder, org);
+
+        console.log("SERIALIZE REPORT TO SEND TO WEB");
+    }
 }
 EngineNode.TYPE.builder(EngineNode);

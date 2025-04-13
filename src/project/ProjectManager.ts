@@ -830,16 +830,19 @@ export class ProjectManager {
             // search free node or node for REVIEW / HOOK
             const remoteNode = await this._openRemotely(pUser,pProjectUID,pPurpose);
 
+            // attach callback on node init
             if(pOnBefore!=null){
                 (pOnBefore)(remoteNode);
             }
 
+            // prepare scan orders (queues) attached to this node
             let scanOrders:ScanOrder[] = pExtraOpts.scanOrders ;
 
             if(scanOrders==null || !Array.isArray(scanOrders)){
                 scanOrders = [];
             }
 
+            // create a project order with optionnaly attached scan order (in queue)
             let openOrder = new ProjectOrder({
                 slaveUID: remoteNode.getUID(),
                 settings: {
@@ -855,9 +858,12 @@ export class ProjectManager {
                 cookie: pExtraOpts.cookie
             });
 
+            // save order
             openOrder = await this.saveProjectOrder(openOrder);
 
             // TODO : append operation to remote node
+            // append project order to queue, project order should inject scan order into node waiting queue
+            // later
             await remoteNode.appendToQueue(openOrder, OperationType.OPEN_PROJ, pUser);
 
             if(scanOrders.length>0){
@@ -874,7 +880,7 @@ export class ProjectManager {
 
             console.log("REMOTE NODE : ", remoteNode);
             // to subsribe to state changes
-            remoteNode.nodeState$.subscribe((vChange  )=>{
+            /*remoteNode.nodeState$.subscribe((vChange  )=>{
 
                 // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per nod
 
@@ -905,14 +911,19 @@ export class ProjectManager {
                         // to open associated project
                         remoteNode.startScan(order).then((r)=>{
                             //remoteNode.nodeState$
-                            remoteNode.setState(NodeState.IDLE); //.then(()=>{});
+                            //remoteNode.setState(NodeState.IDLE); //.then(()=>{});
                         });
                     }
                 }
-            });
+            });*/
+
+            console.log(remoteNode.state);
 
             // to start the node
-            await remoteNode.start("Opening project");
+            if([NodeState.NEW,NodeState.UNKNOW,NodeState.QUEUED].indexOf(remoteNode.state)>-1){
+                await remoteNode.start("Opening project");
+            }
+
 
             return remoteNode;
         }
@@ -922,7 +933,7 @@ export class ProjectManager {
         let project = this._ctx.getProject(pProjectUID);
         const currNode = await this._ctx.getNodeManager().getEngineNodeByUUID(this._ctx.getNodeUUID());
 
-        console.log("PROJ OPEN currNode ",currNode.getUID());
+        console.log("PROJ OPEN currNode ",currNode.getUID(),project!=null, project!=null && project.isReady());
 
         // if project is loaded, return it
         if(project!=null && project.isReady()){
@@ -941,9 +952,12 @@ export class ProjectManager {
 
 
         console.log("PROJ OPEN done, changing state ");
+
+        // change Node purpose if it was "new_project"
         if(currNode.purpose===NodePurpose.NEW_PRJ){
             currNode.purpose = NodePurpose.ANY;
         }
+        // change and save state, start to consume waiting queue locally
         currNode.setState(NodeState.IDLE);
 
         return currNode;
@@ -961,31 +975,15 @@ export class ProjectManager {
 
 
         let assignedNode = await this._ctx.getNodeManager().getReadySlave(pProjectUID,pPurpose);
-        // search nodes already assigned to this project
-        /*let assignedNodes = await this._ctx.getNodeManager().getNodeByProject(pProjectUID);
 
-
-
-        if(assignedNodes.length>0){
-            // filter by purpose
-            assignedNodes = EngineNodeManager.filterNodesByPurpose(assignedNodes, pPurpose);
-
-            if(assignedNodes.length>0){
-                // filter by state
-                assignedNodes = EngineNodeManager.filterNodesByState(assignedNodes, NodeState.IDLE);
-
-                if(assignedNodes.length>0){
-                    // open it
-                    return assignedNodes[0];
-                }
-            }
-        }*/
-
+        // if a node is already assigned to project for specific purpose, and is ready (idle state), return it
         if(assignedNode!=null){
             return assignedNode;
         }
 
-        // no assigned nodes => allocate a new one
+        // if there is no ready node (not assigned or not free) nodes => allocate a new one
+        // TODO : if a node is already opening the project, return it
+
         // if project is assigned to an application unit, check organization quotas
         const prj = await this.getProject(pUser, pProjectUID);
         if(prj.getAppUnit()!=null){
@@ -1001,7 +999,7 @@ export class ProjectManager {
             }
         }
 
-
+        // if the project is not attached to aan app unit, then there is no quota
         return await this._ctx.getNodeManager().createNode(pProjectUID,pPurpose);
     }
 
@@ -1030,6 +1028,9 @@ export class ProjectManager {
             if(currNode==null){
                 throw EngineNodeException.MISSING_NODE(this._ctx.getNodeUUID(),"_openLocally");
             }
+
+            // nextOpe should be new/open proj
+            //const ope = await  currNode.nextWaitingOpe();
 
             currNode.setState(NodeState.BUSY);
         }

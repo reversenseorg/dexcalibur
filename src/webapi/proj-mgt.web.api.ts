@@ -759,9 +759,9 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 let nodeReady = false;
                 let sent = false;
 
-
-
                 Logger.info("[API][PROJECT MGT] Open project from slave : start ");
+
+
                 // else : allocate a node , start it and open the project
                 const targetNode = await $.context.getProjectManager().open(
                     req.user,
@@ -770,20 +770,37 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     null,
                     (vNode)=>{
 
-                        const subscription = vNode.nodeState$.subscribe((vChange)=>{
+                        const subscription = vNode.nodeState$.subscribe(async(vChange)=>{
 
                             Logger.info(`[API][PROJECT MGT] Open project from slave : state of local node changed ${vChange.before} to ${vChange.new}`);
                             if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
-                                subscription.unsubscribe();
+
                                 nodeReady = true;
                                 Logger.info(`[API][PROJECT MGT] Open project from slave : Terminated`);
-                                if(!sent){
-                                    sent = true;
-                                    $.sendSuccess(res, {
-                                        ready: true,
-                                        node: vNode.getUID()
-                                    });
+
+                                // remove "project order" from waiting queue
+                                await vNode.refreshWaitingQueue();
+
+                                if(await vNode.isWaitingQueueEmpty()){
+                                    console.log("WAITING QUEUE IS EMPTY ",vNode.getUID());
+                                    if(!sent){
+                                        subscription.unsubscribe();
+                                        sent = true;
+
+                                        Logger.info(`[API][PROJECT MGT] Open project from slave : send state checnged response ...`);
+                                        $.sendSuccess(res, {
+                                            ready: true,
+                                            node: vNode.getUID()
+                                        });
+                                    }
+                                }else{
+                                    console.log("WAITING QUEUE IS NOT EMPTY ",vNode.getUID());
+                                    console.log(vNode.waitingQueue);
+                                    // start next ope
+                                    vNode.operation$.next(null);
                                 }
+
+
                             }
                         })
                     }
@@ -793,6 +810,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 Logger.info(`[API][PROJECT MGT] Open project from slave : waiting ...`);
                 if(!sent){
                     sent = true;
+                    Logger.info(`[API][PROJECT MGT] Open project from slave : send default response ...`);
                     $.sendSuccess( res, {
                         ready: nodeReady,
                         node: targetNode.getUID()

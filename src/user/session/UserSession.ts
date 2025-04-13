@@ -19,6 +19,7 @@ import {Cookie, CookieOptions} from "./Cookie.js";
 import {SessionMiddlewareOptions} from "./SessionMiddleware.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
+import {OrganizationAccessControl} from "../acl/rbac/OrganizationAccessContol.js";
 
 
 
@@ -330,7 +331,8 @@ export class UserSession implements IPersistent, INode {
             project, // the resource
             [
                 ProjectAccessControl.attr.OWNER,
-                ProjectAccessControl.attr.TESTER
+                ProjectAccessControl.attr.TESTER,
+                OrganizationAccessControl.attr.APP_MEMBER
             ]
         );
 

@@ -19,13 +19,6 @@ export class DeviceAccessControl extends DelegateAccessControl {
 
     boot():void{
         if(!DeviceAccessControl.ready){
-            /*AccessControl.getInstance().assignAccess(
-                AccessZone.PROJECT,
-                [
-                    AccessControl.access.PROJ_OPEN_OWN,
-                    AccessControl.access.PROJ_OPEN_ANY
-                ]
-            );*/
             DeviceAccessControl.ready = true;
         }
     }

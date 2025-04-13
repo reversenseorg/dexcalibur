@@ -376,8 +376,12 @@ export class DelegateWebApi
                                                 .nodeManager
                                                 .getNodeByProject(
                                                     unsafePUID,
-                                                    (pOptions.nodePurpose!=null ? pOptions.nodePurpose : NodePurpose.ANY)
+                                                    (pOptions.nodePurpose!=null ? pOptions.nodePurpose : NodePurpose.ANY),
+                                                    true,
+                                                    [NodeState.IDLE]
                                                 );
+
+
 
                                             if(nodes.length>0){
                                                 //targetNode = nodes[0];

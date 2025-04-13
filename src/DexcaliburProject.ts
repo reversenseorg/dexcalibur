@@ -1790,6 +1790,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             [
                 ProjectAccessControl.attr.OWNER,
                 ProjectAccessControl.attr.TESTER,
+                OrganizationAccessControl.attr.APP_MEMBER
             ]
         );
 

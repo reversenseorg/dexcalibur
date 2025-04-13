@@ -34,6 +34,7 @@ import DatabaseSettings = Settings.DatabaseSettings;
 import {UploadedResource} from "../common/UploadedResource.js";
 import {EngineNode} from "../core/EngineNode.js";
 import AssuranceModel, {AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
+import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -391,6 +392,7 @@ export class EngineDatabase {
                 [
                     ProjectAccessControl.attr.OWNER,
                     ProjectAccessControl.attr.TESTER,
+                    OrganizationAccessControl.attr.APP_MEMBER
                 ]
             )
             //project[0].isOwnedBy(pUserAccount);

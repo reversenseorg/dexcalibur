@@ -326,6 +326,8 @@ export class EngineNodeManager {
             return nodes[0];
         }else{
 
+            // node with self-registration enabled, are created before to be assigned to
+            // a project. In such scenario, the function must search for IDLE node with empty project UID
             nodes = await
                 this.getNodes( {
                     _projectUID: null,
@@ -343,6 +345,7 @@ export class EngineNodeManager {
                 nodes.map(x => x.setEngine(this.engine));
                 nodes[0].setProject(pProjectUID);
                 await nodes[0].loadInternalState();
+                // save changes
                 await nodes[0].save(['_projectUID', 'state']);
                 return nodes[0];
             }else{
@@ -398,8 +401,10 @@ export class EngineNodeManager {
         // generate Node UUID
         const uuid = await this.engine.getEngineDB().generateFreeUuid(EngineNode.TYPE.getType());
 
+        // create node object but don't start it
         const node =  await EngineNode.newNode(uuid, this.uuid, pProjectUID, this.engine);
 
+        // get next http and ws ports
         const nextPorts = await this.getNextPorts();
 
         node.setEngine(this.engine);
@@ -613,12 +618,23 @@ export class EngineNodeManager {
      * @returns {EngineNode[]} The list of node linked to a project by its UID. If there is not node, the list is empty.
      * @method
      */
-    async getNodeByProject(pProjectUID:DexcaliburProjectUUID,pPurpose:Nullable<NodePurpose> = null, pRunning:Nullable<boolean> = true):Promise<EngineNode[]> {
+    async getNodeByProject(pProjectUID:DexcaliburProjectUUID,pPurpose:Nullable<NodePurpose> = null, pRunning:Nullable<boolean> = true, pState:Nullable<NodeState[]> =null):Promise<EngineNode[]> {
 
-        let extra:any = undefined;
+        let extra:any = {};
         if(ValidationRule.bool().test(pRunning)){
-            extra = { running:pRunning };
+            extra.running = pRunning ;
         }
+
+        if(pState!=null && pState.length>0){
+            extra.state = { $in: pState };
+        }
+        /*
+        this.getNodes({
+            _projectUID: { $in: [pProjectUID] },
+            state: NodeState.IDLE,
+            running: true,
+            ...extra
+        })*/
 
         let nodes = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
             .search({
@@ -632,6 +648,8 @@ export class EngineNodeManager {
         if(pPurpose!=null){
             nodes = EngineNodeManager.filterNodesByPurpose(nodes, pPurpose);
         }
+
+        nodes.map(x => x.setEngine(this.engine));
 
         return nodes;
     }
@@ -822,6 +840,8 @@ export class EngineNodeManager {
 
         if(vEvent.new==NodeState.IDLE || vEvent.new==NodeState.REGISTERED){
 
+            node.operation$.next(null);
+            /*
             //console.log(node);
 
             // retrieve the next operation from waiting queue
@@ -831,7 +851,7 @@ export class EngineNodeManager {
                 node.operation$.next(o);
             }else{
                 // no more order to process
-            }
+            }*/
 
         }
     }
@@ -1154,7 +1174,6 @@ export class EngineNodeManager {
 
         // send order to slave node
 
-        console.log(nextNode);
         nextNode.nodeState$.subscribe((vEvent:StateChangeEvent    )=>{
             (async ()=>{ await this.onNodeStateChanged(vEvent); })();
         });
@@ -1163,5 +1182,12 @@ export class EngineNodeManager {
         nextNode.setState(NodeState.REGISTERED);
         
         return nextNode.getUID();
+    }
+
+    /**
+     * To count running node
+     */
+    async countRunningNode():Promise<number> {
+        return (await this.getNodes({ running: true })).length;
     }
 }

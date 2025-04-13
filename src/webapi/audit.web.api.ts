@@ -934,6 +934,11 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     app = await $.context.getOrgManager().getDirectApplication(req.user, req.body.aid);
                 }
 
+                let bundled = false;
+                if(req.body.bundle=="1"){
+                    bundled = true;
+                }
+
                 if($.context.isStandaloneMode()){
 
 
@@ -971,6 +976,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     targetOS =
                 }*/
 
+                const orders:ScanOrder[] = [];
                 // else, schedule a new scan on slave
                 for(let i=0; i<req.body.modelUID.length; i++){
                     const order = ScanOrder.fromScanOptions({
@@ -995,10 +1001,28 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         cookie: req.cookies
                     };*/
 
+                    orders.push(order);
+
                     // it will save order and push it to queue
-                    await scheduler.newScan(order, {
+                    /*await scheduler.newScan(order, {
                         cookie: req.cookies
-                    });
+                    });*/
+                }
+
+                if(!bundled){
+                    for(let i=0;i<orders.length;i++){
+                        await scheduler.newScan(orders[i], {
+                            cookie: req.cookies
+                        });
+                    }
+                }else{
+                    await  scheduler.newScanBundle(
+                        req.user,
+                        req.body.projectUID,
+                        orders,{
+                            cookie: req.cookies
+                        }
+                    );
                 }
 
                 $.sendSuccess(res,{ });

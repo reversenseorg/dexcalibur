@@ -4,7 +4,7 @@ import {ScanOrder, ScanOrderUUID} from "./ScanOrder.js";
 import {Subject} from "rxjs";
 import {EngineNode, NodePurpose, OperationType, ScanState} from "../../core/EngineNode.js";
 import {AuditManager} from "../AuditManager.js";
-import DexcaliburProject from "../../DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../../DexcaliburProject.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
 import {LicenceManager} from "../../credit/LicenceManager.js";
 import AssuranceReport from "./AssuranceReport.js";
@@ -194,6 +194,58 @@ export class ScanScheduler {
      *
      * @param pOrder
      */
+    async newScanBundle(pUser:UserAccount, pProj:DexcaliburProjectUUID, pOrders:ScanOrder[], pExtraOpts:any = {}):Promise<any> {
+
+        let node:EngineNode;
+
+        // search node
+        node = await this._ctx.nodeManager.getReadySlave(
+            pProj,
+            NodePurpose.ANY
+        );
+
+        console.log("NODE READY FOUND : ",node);
+
+        // no ready node, search running, budy, node
+        if(node==null){
+            const projNodes = await this._ctx.getNodeManager()
+                .getNodeByProject(pProj,NodePurpose.ANY,true);
+
+            if(projNodes.length>0){
+                if(await projNodes[0].checkReadyness()){
+                    node = projNodes[0];
+                }
+            }
+        }
+
+        // if always no node, create a new one
+        if(node==null){
+            // search free node or node for REVIEW / HOOK
+            node = await this._ctx.getProjectManager().open(
+                pUser,
+                pProj,
+                NodePurpose.ANY,
+                pExtraOpts);
+        }
+
+        node.setEngine(this._ctx);
+
+        console.log("NEW BUNDLED SCAN > ", pProj, pOrders.map(x => x.getModelUID()).join(','));
+
+        for(let i=0; i<pOrders.length; i++){
+            pOrders[i].slaveUID=node.getUID();
+            await this.saveOrder(pOrders[i], ['slaveUID']);
+            await node.appendToQueue(pOrders[i], OperationType.SCAN_ORDER);
+        }
+
+        return node;
+    }
+
+    /**
+     * To start a new scan
+     *
+     * @param pOrder
+     */
     async newScan(pOrder:ScanOrder, pExtraOpts:any = {}):Promise<any> {
 
         let node:EngineNode;
@@ -201,6 +253,7 @@ export class ScanScheduler {
 
         // check
         if(pOrder.getProjectUID()!=null){
+
             node = await this._ctx.nodeManager.getReadySlave(
                 pOrder.getProjectUID(),
                 NodePurpose.ANY
