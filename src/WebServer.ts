@@ -263,7 +263,7 @@ export default class WebServer
     }
 
     /**
-     * To get port number where the server is listening
+     * To get port number where the server is actively listening
      *
      * @returns {number} Port number
      * @metho

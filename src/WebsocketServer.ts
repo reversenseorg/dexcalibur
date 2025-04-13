@@ -243,14 +243,14 @@ export class WebsocketServer
                                                     if (unsafeJSON.data.hasOwnProperty('opts')) {
                                                         const wf= self.engine.getWorkflow(unsafeJSON.data.opts);
                                                         // TODO : bind user to localsessid to avoid security issue
-
+/*
 
                                                         AccessControl.check(
                                                             AccessZone.PROJECT,
                                                             AccessControl.access.PROJ_OPEN_OWN,
                                                             prj,
                                                             sess.getUserAccount()
-                                                        );
+                                                        );*/
 
                                                         if(wf!=null){
                                                             AccessControl.check(
@@ -374,9 +374,26 @@ export class WebsocketServer
         });
     }
 
-
+    /**
+     * To specify the port number to use
+     *
+     * TODO : should not be modifed after start, or change should restart the websocket server
+     *
+     * @param pNumber
+     */
     setPort(pNumber:number):void {
         this.port = pNumber;
+    }
+
+    /**
+     * To retrieve the port number used by the websocket server
+     *
+     * It is the real final port. If the websocket server didn't start, the port may be wrong.
+     *
+     * @since 1.8.10
+     */
+    getPort():number {
+        return this.port;
     }
 
     /**
