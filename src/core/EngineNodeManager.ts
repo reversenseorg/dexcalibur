@@ -733,10 +733,12 @@ export class EngineNodeManager {
                 // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
             },
             json: {
-                http: this.engine.getSettings().getWebserverSettings().getHttpPort(),
-                https: this.engine.getSettings().getWebserverSettings().getWsPort()
+                http: this.engine.getWebserver().getPort(),
+                https: this.engine.getWebsocketServer().getPort(),
+                ws: this.engine.getWebsocketServer().getPort(),
             }
         });
+
         const response = await GOT(this.masterURI+"/api/node/webhook/register", {
             method: 'POST',
             headers: {
@@ -746,8 +748,9 @@ export class EngineNodeManager {
                 // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
             },
             json: {
-                http: this.engine.getSettings().getWebserverSettings().getHttpPort(),
-                https: this.engine.getSettings().getWebserverSettings().getWsPort()
+                http: this.engine.getWebserver().getPort(),
+                https: this.engine.getWebsocketServer().getPort(),
+                ws: this.engine.getWebsocketServer().getPort(),
             }
         });
 
@@ -1146,8 +1149,11 @@ export class EngineNodeManager {
             nextNode = await this.createFreeNode();
             //return;
         }
+
         await nextNode.setEngine(this.engine);
 
+        // tag as running
+        nextNode.running = true;
 
         // assign remote slave to node
         nextNode.setHostname(pHostname, true);
@@ -1178,9 +1184,13 @@ export class EngineNodeManager {
             (async ()=>{ await this.onNodeStateChanged(vEvent); })();
         });
 
+
+        // save
+        nextNode.save([ 'running', 'state']);
+
         // change state
         nextNode.setState(NodeState.REGISTERED);
-        
+
         return nextNode.getUID();
     }
 
@@ -1188,6 +1198,12 @@ export class EngineNodeManager {
      * To count running node
      */
     async countRunningNode():Promise<number> {
-        return (await this.getNodes({ running: true })).length;
+        return (await this.getNodes({
+            running: true,
+            state: { $in: [
+                NodeState.IDLE,
+                NodeState.REGISTERED,
+            ] }
+        })).length;
     }
 }

@@ -499,9 +499,10 @@ export class EngineNode implements INode {
                             console.log(err.stack);
                         })
                 }else{
-                    console.log("NEW ORDER NOT SPECIFIED, RETRIEVE FROM WAITING QUEUE : ")
+                    Logger.info(`[ENGINE NODE][${this.UUID}][2] Retrieve next operation from waiting queue. State = ${this.isReady()}, Queue = ${this.waitingQueue.length}`)
                     this.nextWaitingOpe().then((vOrder)=>{
                         if(vOrder==null){
+                            Logger.info(`[ENGINE NODE][${this.UUID}][2] Waiting queue is empty. State = ${this.isReady()}`)
                             if(!this.isReady()){
                                 this.setState(NodeState.IDLE);
                             }
@@ -576,11 +577,13 @@ export class EngineNode implements INode {
         node.nodeState$.subscribe((vEvent:any)=>{
             (async ()=>{
                 await node.save([
-                    '_pid','state','purpose','spawnCmd',
-                    '_hostname','httpPort','httpsPort',
-                    'selfReg', '_projectUID','startedAt',
-                    'stoppedAt','createdAt','waitingQueue',
-                    'activeOpe'
+                    '_pid','state','purpose',
+                    'spawnCmd',
+                    '_hostname','httpPort','httpsPort','masterURI',
+                    'selfReg', '_projectUID',
+                    'startedAt','stoppedAt','createdAt',
+                    'waitingQueue','activeOpe',
+                    'running','parentUUID','nodeOpts','activeScanSession'
                 ]);
             })();
         });
