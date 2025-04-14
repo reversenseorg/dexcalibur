@@ -113,6 +113,7 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
                     {
                         http: req.body.http,
                         https: req.body.https,
+                        ws: req.body.ws,
                     }
                 );
 

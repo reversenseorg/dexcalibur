@@ -35,8 +35,10 @@ import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 import * as _fs_ from "node:fs";
 
+const API_NAME = "PROJ_MGT";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
+//Logger.push(` [${API_NAME}] `);
 
 export enum NewProjectFlowType {
     SELECT='select',
@@ -92,6 +94,8 @@ export type NewProjectWorkflowOptions = NewProjectFromfsWfOptions
  * @class
  */
 export class ProjectManager {
+
+    static API_NAME = API_NAME;
 
     private _ctx:DexcaliburEngine;
 
@@ -283,10 +287,15 @@ export class ProjectManager {
         proj = await this._ctx.getEngineDB().createProject(proj);
 
         // search slave ready
-        let node:EngineNode = await this._ctx.nodeManager.getReadySlave(
+        let node:Nullable<EngineNode> = await this._ctx.nodeManager.getReadySlave(
             proj.getUID(),
             NodePurpose.NEW_PRJ
         );
+
+        // search
+        if(node==null){
+            node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, pOrg.getUID());
+        }
 
         // create workflow
         const wf = new Workflow({
@@ -332,6 +341,8 @@ export class ProjectManager {
             node.appendToQueue(newPrjOrder, OperationType.NEW_PROJ, pAccount,pExtraOwnerOpts);
             node.start("New project created");
         }else{
+
+            await node.saveAll();
 
             // add scan to queue
             node.appendToQueue(newPrjOrder, OperationType.NEW_PROJ, pAccount,pExtraOwnerOpts);
@@ -816,6 +827,9 @@ export class ProjectManager {
     async open( pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
                 pPurpose:NodePurpose = NodePurpose.HOOK, pExtraOpts:any = {},
                 pOnBefore:(vNode:EngineNode)=>void = null):Promise<EngineNode> {
+
+        Logger.debug(`[mode=${this._ctx.getEngineMode()}][open] Opening a project... `);
+
         // validate project UID format
         if(!DexcaliburProject.VALIDATE.uid.test(pProjectUID)){
             throw DexcaliburProjectException.INVALID_UUID_FMT(pProjectUID);
@@ -861,24 +875,28 @@ export class ProjectManager {
             // save order
             openOrder = await this.saveProjectOrder(openOrder);
 
+            remoteNode.suspendQueue(true);
+
             // TODO : append operation to remote node
             // append project order to queue, project order should inject scan order into node waiting queue
             // later
             await remoteNode.appendToQueue(openOrder, OperationType.OPEN_PROJ, pUser);
 
+            // if scan orders are passed in args
             if(scanOrders.length>0){
                 for(let i=0;i<scanOrders.length; i++){
-
-                    if(scanOrders[i].getUID()===null){
-                        scanOrders[i] = await (this._ctx.getScanScheduler()
-                            .saveOrder(scanOrders[i]) as Promise<ScanOrder>);
-                    }
-
+                    scanOrders[i].slaveUID=remoteNode.getUID();
+                    scanOrders[i] = await (this._ctx.getScanScheduler().saveOrder(scanOrders[i]) as Promise<ScanOrder>);
                     await remoteNode.appendToQueue(scanOrders[i], OperationType.SCAN_ORDER, pUser);
                 }
             }
 
-            console.log("REMOTE NODE : ", remoteNode);
+            remoteNode.suspendQueue(false);
+            remoteNode.resumeQueue();
+
+
+
+            //console.log("REMOTE NODE : ", remoteNode);
             // to subsribe to state changes
             /*remoteNode.nodeState$.subscribe((vChange  )=>{
 
@@ -917,10 +935,13 @@ export class ProjectManager {
                 }
             });*/
 
-            console.log(remoteNode.state);
 
             // to start the node
-            if([NodeState.NEW,NodeState.UNKNOW,NodeState.QUEUED].indexOf(remoteNode.state)>-1){
+            /*if([NodeState.NEW,NodeState.UNKNOW,NodeState.QUEUED].indexOf(remoteNode.state)>-1){
+                await remoteNode.start("Opening project");
+            }*/
+
+            if(!remoteNode.isRunning()){
                 await remoteNode.start("Opening project");
             }
 
@@ -973,34 +994,64 @@ export class ProjectManager {
     private async _openRemotely(pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
                                 pPurpose:NodePurpose):Promise<EngineNode> {
 
+        Logger.debug(`[proj=${pProjectUID}][openRemotely] Opening a project remotely ... `);
 
-        let assignedNode = await this._ctx.getNodeManager().getReadySlave(pProjectUID,pPurpose);
+        const assignedNode = await this._ctx.getNodeManager().getReadySlave(pProjectUID,pPurpose);
 
         // if a node is already assigned to project for specific purpose, and is ready (idle state), return it
         if(assignedNode!=null){
+            Logger.debug(`[proj=${pProjectUID}][openRemotely] A slave is ready for this project, return it `);
             return assignedNode;
         }
+
+        // search free slave
+        let freeNode:Nullable<EngineNode> = null;
+
 
         // if there is no ready node (not assigned or not free) nodes => allocate a new one
         // TODO : if a node is already opening the project, return it
 
         // if project is assigned to an application unit, check organization quotas
         const prj = await this.getProject(pUser, pProjectUID);
+
         if(prj.getAppUnit()!=null){
             // check org unit quota
             const app = await this._ctx.getOrgManager()
                 .getDirectApplication(pUser, prj.getAppUnit());
             const oid = app.getParentOrganization();
 
-            if( await this._ctx.getNodeManager().canCreateNode(oid)){
+            // search a free slave authorized for this org
+            freeNode = await this._ctx.getNodeManager().getFreeSlave(pPurpose, oid);
+
+            if(freeNode != null){
+                freeNode.setProject(pProjectUID);
+                await freeNode.saveAll();
+                Logger.debug(`[proj=${pProjectUID}][org=${oid}][openRemotely] A free slave has been assigned to proj+org, return it `);
+                return freeNode;
+            }else if( await this._ctx.getNodeManager().canCreateNode(oid)){
+                Logger.debug(`[proj=${pProjectUID}][org=${oid}][openRemotely] No free slave ready for proj+org, create a new slave node `);
                 return await this._ctx.getNodeManager().createNode(pProjectUID, pPurpose, oid);
             }else{
                 throw ProjectManagerException.NO_MORE_RESOURCES(pProjectUID);
             }
         }
 
-        // if the project is not attached to aan app unit, then there is no quota
-        return await this._ctx.getNodeManager().createNode(pProjectUID,pPurpose);
+
+        freeNode = await this._ctx.getNodeManager().getFreeSlave(pPurpose);
+
+        if(freeNode!=null){
+            freeNode.setProject(pProjectUID);
+            await freeNode.saveAll();
+
+            Logger.debug(`[proj=${pProjectUID}][openRemotely] A free slave has been assigned to proj, return it `);
+            return freeNode;
+        }else{
+            Logger.debug(`[proj=${pProjectUID}][openRemotely] No free slave ready for proj, create a new slave node `);
+            // if the project is not attached to aan app unit, then there is no quota
+            return await this._ctx.getNodeManager().createNode(pProjectUID,pPurpose);
+        }
+
+
     }
 
     /**

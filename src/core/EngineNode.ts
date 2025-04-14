@@ -224,6 +224,8 @@ export class EngineNode implements INode {
             (new NodeProperty("_hostname")).type(DbDataType.STRING).def(null),
             (new NodeProperty("httpPort")).type(DbDataType.STRING).def(-1),
             (new NodeProperty("httpsPort")).type(DbDataType.STRING).def(-1),
+            (new NodeProperty("wsPort")).type(DbDataType.STRING).def(-1),
+            (new NodeProperty("wssPort")).type(DbDataType.STRING).def(-1),
             (new NodeProperty("running")).type(DbDataType.BOOLEAN).def(false),
             (new NodeProperty("createdAt")).type(DbDataType.NUMERIC).def(-1),
             (new NodeProperty("startedAt")).type(DbDataType.NUMERIC).def(-1),
@@ -372,6 +374,10 @@ export class EngineNode implements INode {
 
     httpsPort:number = -1;
 
+    wsPort:number = -1;
+
+    wssPort:number = -1;
+
     running:boolean = false;
 
     // errPipe:Nullable<string>;
@@ -423,6 +429,13 @@ export class EngineNode implements INode {
     selfReg = false;
 
     /**
+     * Local
+     * @private
+     */
+    private _suspendQueue = false;
+
+
+    /**
      *
      * @param {EngineNodeOptions} pOptions
      * @constructor
@@ -471,22 +484,10 @@ export class EngineNode implements INode {
                 console.log(" NODE MAIN HANDLER TRIGGED ",pOrder, this.isReady());
             }
 
-
             if(this.isReady()){
-
-                // append at the end of list
-                //console.log('push ope  (old ope):',pOrder);
-                //console.log(this.opeQueue);
-
-                //this.opeQueue.push(pOperation);
-
-                // sort by time, get oldest (the first entry of the list)
-                // const oldest = this.waitingQueue.shift();
-
 
                 let oldest:Order;
                 if(pOrder!=null){
-                    // NEW ORDER SPECIFIED
                     oldest = pOrder;
                     Logger.info(`[ENGINE NODE][${this.UUID}][1] Execute operation direct : ${oldest.type} ${new Date(oldest.created)}`);
                     this.execOperation2(oldest)
@@ -521,25 +522,8 @@ export class EngineNode implements INode {
                                 console.log(err.stack);
                             })
 
-                    }); //waitingQueue.shift();
-
+                    });
                 }
-
-                // execute, state will changed,
-                // when node will finished to process request, it will notifiy
-                // master of state changes and it will come back to IDLE, then the queue will be consumed again
-
-                /*
-                if(oldest!=null){
-                    Logger.info(`[ENGINE NODE][${this.UUID}] Execute operation from queue : ${oldest.type} ${new Date(oldest.created)}`);
-                    this.execOperation2(oldest)
-                        .then((vRes)=>{
-                            this.opeTerminated.push(oldest);
-                        },(err)=>{
-                            Logger.error("[ENGINE NODE] Operation execution failed : ",err);
-                            console.log(err.stack);
-                        })
-                }*/
             }else{
                 console.log("NEXT OPERATION BUT NODE IS NOT READY, WAITING ...",this.state,pOrder);
             }
@@ -576,21 +560,25 @@ export class EngineNode implements INode {
 
         node.nodeState$.subscribe((vEvent:any)=>{
             (async ()=>{
-                await node.save([
-                    '_pid','state','purpose',
-                    'spawnCmd',
-                    '_hostname','httpPort','httpsPort','masterURI',
-                    'selfReg', '_projectUID',
-                    'startedAt','stoppedAt','createdAt',
-                    'waitingQueue','activeOpe',
-                    'running','parentUUID','nodeOpts','activeScanSession'
-                ]);
+                await node.saveAll();
             })();
         });
 
         return node;
     }
 
+
+    async saveAll():Promise<void>{
+        return await this.save([
+            '_pid','state','purpose',
+            'spawnCmd',
+            '_hostname','httpPort','httpsPort','masterURI',
+            'selfReg', '_projectUID',
+            'startedAt','stoppedAt','createdAt',
+            'waitingQueue','activeOpe',
+            'running','parentUUID','nodeOpts','activeScanSession'
+        ]);
+    }
     /**
      *
      * @param pPpt
@@ -683,6 +671,10 @@ export class EngineNode implements INode {
     async remoteStart():Promise<any> {
         // notify kube api, ...
         return;
+    }
+
+    isRunning():boolean {
+        return this.running;
     }
 
     /**
@@ -1101,22 +1093,31 @@ export class EngineNode implements INode {
     }
 
     setHttpPort(pPort:number, pForce = false):void {
-        if(this.running && !pForce){
-            throw EngineNodeException.NODE_ALREADY_RUNNING(this.UUID,"HTTP port cannot be changed because this node is running");
-        }
-
-        this.httpPort = pPort;
+        this._setPort('httpPort', 'HTTP', pPort, pForce);
     }
-
 
     setHttpsPort(pPort:number, pForce = false):void {
-        if(this.running && !pForce){
-            throw EngineNodeException.NODE_ALREADY_RUNNING(this.UUID,"HTTPS port cannot be changed because ths node is running.");
-        }
-
-        this.httpsPort = pPort;
+        this._setPort('httpsPort', 'HTTPS', pPort, pForce);
     }
 
+    setWsPort(pPort:number, pForce = false):void {
+        this._setPort('wsPort', 'WS', pPort, pForce);
+    }
+
+    setWssPort(pPort:number, pForce = false):void {
+        this._setPort('wssPort', 'WSS', pPort, pForce);
+    }
+
+    private _setPort(pPpt:string, pShort:string, pPort:number, pForce = false):void {
+        if(this.running && !pForce){
+            throw EngineNodeException.NODE_ALREADY_RUNNING(this.UUID,pShort+" port cannot be changed because ths node is running.");
+        }
+
+        // TODO : add port nbumber check based on property rule
+        // if(EngineNode.TYPE.getProperty(pPpt).validate())
+        this[pPpt] = pPort;
+
+    }
     setMaxHeapSize(pSize:number):void {
         this.nodeOpts.heap_size = pSize;
     }
@@ -1301,10 +1302,11 @@ export class EngineNode implements INode {
             // this.startProject(pAccount,newPrjOrder,pExtraOwnerOpts);
         }*/
 
-        console.log(this.getUID()+" => "+((this._engine as DexcaliburEngine).isSlaveNode()?"SLAVE":"MASTER"));
+        console.log(this);
 
-        //
-        this.operation$.next(null);
+        if(!this._suspendQueue){
+            this.operation$.next(null);
+        }
     }
 
 
@@ -1698,6 +1700,14 @@ export class EngineNode implements INode {
         const report = await scheduler.newStandaloneScan(pUser, project, pOrder, org);
 
         console.log("SERIALIZE REPORT TO SEND TO WEB");
+    }
+
+    suspendQueue(pStatus:boolean) {
+        this._suspendQueue = pStatus;
+    }
+
+    resumeQueue() {
+        this.operation$.next(null);
     }
 }
 EngineNode.TYPE.builder(EngineNode);

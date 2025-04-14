@@ -679,6 +679,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 let candidate = await $.context.getNodeManager().getReadySlave( unsafeUUID, unsafePurpose);
                 if(candidate!=null){
+                    // a slave is ready for this project
                     const freshNode = await $.context.getNodeManager()
                         .allocateNode([candidate], req.user);
 

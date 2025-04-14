@@ -204,10 +204,9 @@ export class ScanScheduler {
             NodePurpose.ANY
         );
 
-        console.log("NODE READY FOUND : ",node);
-
         // no ready node, search running, budy, node
         if(node==null){
+
             const projNodes = await this._ctx.getNodeManager()
                 .getNodeByProject(pProj,NodePurpose.ANY,true);
 
@@ -220,22 +219,25 @@ export class ScanScheduler {
 
         // if always no node, create a new one
         if(node==null){
+
             // search free node or node for REVIEW / HOOK
             node = await this._ctx.getProjectManager().open(
                 pUser,
                 pProj,
                 NodePurpose.ANY,
-                pExtraOpts);
-        }
+                {
+                    scanOrders: pOrders,
+                    ...pExtraOpts
+                });
 
-        node.setEngine(this._ctx);
+        }else{
+            node.setEngine(this._ctx);
 
-        console.log("NEW BUNDLED SCAN > ", pProj, pOrders.map(x => x.getModelUID()).join(','));
-
-        for(let i=0; i<pOrders.length; i++){
-            pOrders[i].slaveUID=node.getUID();
-            await this.saveOrder(pOrders[i], ['slaveUID']);
-            await node.appendToQueue(pOrders[i], OperationType.SCAN_ORDER);
+            for(let i=0; i<pOrders.length; i++){
+                pOrders[i].slaveUID=node.getUID();
+                await this.saveOrder(pOrders[i], ['slaveUID']);
+                await node.appendToQueue(pOrders[i], OperationType.SCAN_ORDER);
+            }
         }
 
         return node;

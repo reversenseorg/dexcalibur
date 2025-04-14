@@ -325,32 +325,38 @@ export class EngineNodeManager {
             await nodes[0].loadInternalState();
             return nodes[0];
         }else{
+            return null;
+        }
+    }
 
-            // node with self-registration enabled, are created before to be assigned to
-            // a project. In such scenario, the function must search for IDLE node with empty project UID
-            nodes = await
-                this.getNodes( {
-                    _projectUID: null,
-                    state: NodeState.IDLE,
-                    running: true
-                });
+    /**
+     *
+     * @param pProject
+     */
+    async getFreeSlave(pPurpose:NodePurpose, pOrg:Nullable<OrganizationUnitUUID> = null):Promise<Nullable<EngineNode>>{
 
-            console.log('Ready slave before filtering 2 : ',nodes.length,' '+nodes.map(x => x.purpose).join(','));
-            if(pPurpose!=NodePurpose.ANY){
-                nodes = nodes.filter(x => (x.purpose==pPurpose || x.purpose==NodePurpose.ANY));
-            }
-            console.log('Ready slave after filtering 2 : ',nodes.length);
 
-            if(nodes.length>0){
-                nodes.map(x => x.setEngine(this.engine));
-                nodes[0].setProject(pProjectUID);
-                await nodes[0].loadInternalState();
-                // save changes
-                await nodes[0].save(['_projectUID', 'state']);
-                return nodes[0];
-            }else{
-                return null;
-            }
+        // node with self-registration enabled, are created before to be assigned to
+        // a project. In such scenario, the function must search for IDLE node with empty project UID
+        let nodes = await
+            this.getNodes( {
+                _projectUID: null,
+                state: NodeState.IDLE,
+                running: true
+            });
+
+        console.log('Free slave before filtering : ',nodes.length,' '+nodes.map(x => x.purpose).join(','));
+        if(pPurpose!=NodePurpose.ANY){
+            nodes = nodes.filter(x => (x.purpose==pPurpose || x.purpose==NodePurpose.ANY));
+        }
+        console.log('Free slave after filtering : ',nodes.length);
+
+        if(nodes.length>0){
+            nodes.map(x => x.setEngine(this.engine));
+            await nodes[0].loadInternalState();
+            return nodes[0];
+        }else{
+            return null;
         }
     }
 
@@ -1160,17 +1166,32 @@ export class EngineNodeManager {
 
         nextNode.startedAt = (new Date()).getTime();
 
-        if(pOptions.http){
+        if(pOptions.http!=null){
             nextNode.setHttpPort(pOptions.http, true);
-        }else{
+        }else if(process.env.DXP_SLAVE_HTTP_PORT!=null){
             nextNode.setHttpPort(parseInt(process.env.DXP_SLAVE_HTTP_PORT), true);
         }
 
-        if(pOptions.https){
+        if(pOptions.https!=null){
             nextNode.setHttpsPort(pOptions.https, true);
-        }else{
+        }else if(process.env.DXP_SLAVE_HTTPS_PORT!=null){
             nextNode.setHttpPort(parseInt(process.env.DXP_SLAVE_HTTPS_PORT), true);
         }
+
+
+        if(pOptions.ws!=null){
+            nextNode.setWsPort(pOptions.ws, true);
+        }else if(process.env.DXP_SLAVE_WS_PORT!=null){
+            nextNode.setWsPort(parseInt(process.env.DXP_SLAVE_WS_PORT), true);
+        }
+
+
+        if(pOptions.wss!=null){
+            nextNode.setWssPort(pOptions.wss, true);
+        }else if(process.env.DXP_SLAVE_WSS_PORT!=null){
+            nextNode.setWssPort(parseInt(process.env.DXP_SLAVE_WSS_PORT), true);
+        }
+
 
         // save node state
         await nextNode.saveInternalState();
@@ -1186,7 +1207,7 @@ export class EngineNodeManager {
 
 
         // save
-        nextNode.save([ 'running', 'state']);
+        await nextNode.saveAll(); //([ 'running', 'state']);
 
         // change state
         nextNode.setState(NodeState.REGISTERED);
@@ -1199,11 +1220,7 @@ export class EngineNodeManager {
      */
     async countRunningNode():Promise<number> {
         return (await this.getNodes({
-            running: true,
-            state: { $in: [
-                NodeState.IDLE,
-                NodeState.REGISTERED,
-            ] }
+            running: true
         })).length;
     }
 }
