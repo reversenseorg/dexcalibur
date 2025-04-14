@@ -1139,7 +1139,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 if(!sent){
-                    const node = $.context.getNodeManager().getNodeByUUID(
+                    const node = await $.context.getNodeManager().getNodeByUUID(
                         $.context.getNodeUUID()
                     );
                     console.log(node);

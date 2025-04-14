@@ -392,7 +392,7 @@ export class EngineNodeManager {
      * @param pState
      */
     async updateState(pNodeUID:EngineNodeUUID, pState:NodeState):Promise<void> {
-        const node = this.getNodeByUUID(pNodeUID);
+        const node = await this.getNodeByUUID(pNodeUID);
 
         Logger.info("[NODE MANAGER] Update state of [node="+pNodeUID+"][state="+pState+"]");
 
@@ -528,15 +528,17 @@ export class EngineNodeManager {
         // update node manager state
         await this.saveInternalState();
 
-        return node; //this.slaves[uuid];
+        return node;
     }
 
     /**
      *
      * @param pNodeUUID
      */
-    getNodeByUUID(pNodeUUID:EngineNodeUUID):EngineNode {
-        return this.slaves[pNodeUUID];
+    async getNodeByUUID(pNodeUUID:EngineNodeUUID):Promise<Nullable<EngineNode>> {
+        return await (this.engine.getEngineDB()
+            .getCollectionOf(EngineNode.TYPE.getType())as MongodbDbCollection)
+            .asyncGetEntry({ UUID: pNodeUUID });
     }
 
     /**
@@ -793,9 +795,6 @@ export class EngineNodeManager {
         ].indexOf(pState as NodeState)>-1);
     }
 
-    getSlaves():EngineNode[] {
-        return Object.values(this.slaves);
-    }
 
     toJsonObject(pProjectUID:Nullable<string> = null):any {
         const o = {
@@ -806,22 +805,6 @@ export class EngineNodeManager {
             slaves: []
         };
 
-        if(pProjectUID!=null){
-            /*this.getNodeByProject(pProjectUID)
-
-            nod.map(x => {
-                o.slaves.push(x.toJsonObject());
-            });*/
-            // TODO
-
-            Object.values(this.slaves).map(x => {
-                o.slaves.push(x.toJsonObject());
-            });
-        }else{
-            Object.values(this.slaves).map(x => {
-                o.slaves.push(x.toJsonObject());
-            });
-        }
 
 
         return o;
@@ -838,7 +821,7 @@ export class EngineNodeManager {
     async onNodeStateChanged(vEvent: StateChangeEvent):Promise<void> {
 
         //Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
-        let node:EngineNode = this.getNodeByUUID(vEvent.nodeUUID);
+        let node:EngineNode = await this.getNodeByUUID(vEvent.nodeUUID);
 
         if(vEvent.new==NodeState.REGISTERED){
             node.state = NodeState.IDLE;

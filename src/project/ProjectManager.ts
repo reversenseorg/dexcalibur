@@ -390,7 +390,7 @@ export class ProjectManager {
         );
 
         // get current node
-        const currNode = this._ctx.getNodeManager().getNodeByUUID(this._ctx.getNodeUUID());
+        const currNode = await this._ctx.getNodeManager().getNodeByUUID(this._ctx.getNodeUUID());
         Logger.info("NODE >>> ",this._ctx.getNodeUUID());
 
         if(pOnBefore!=null){
