@@ -569,10 +569,11 @@ export class EngineNode implements INode {
 
 
     async saveAll():Promise<void>{
+        console.log('SAVE ALL > ',this);
         return await this.save([
             '_pid','state','purpose',
             'spawnCmd',
-            '_hostname','httpPort','httpsPort','masterURI',
+            '_hostname','httpPort','httpsPort','wsPort','wssPort','masterURI',
             'selfReg', '_projectUID',
             'startedAt','stoppedAt','createdAt',
             'waitingQueue','activeOpe',
@@ -597,6 +598,7 @@ export class EngineNode implements INode {
             .asyncUpdateEntry(this, { replace:false, $set:pPpt});
 
         Logger.info(`[ENGINE][node=${this.UUID}] Node saved`);
+        console.log(this);
     }
 
     getUID():EngineNodeUUID {
@@ -1253,9 +1255,12 @@ export class EngineNode implements INode {
             });
 
             child.on('close', (code) => {
-                Logger.info("Stopped slave ...")
-                this.running = false;
-                this.setState(NodeState.STOPPED);
+                Logger.info("Stopped slave ...");
+                (async ()=>{
+                    this.running = false;
+                    await this.save(['running']);
+                    this.setState(NodeState.STOPPED);
+                })();
             });
 
             console.log( `[ENGINE NODE] node spawned [PID=${this._pid}]:   ${args.join(' ')}  (opts)`);

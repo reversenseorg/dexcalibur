@@ -850,7 +850,7 @@ export class ProjectManager {
             }
 
             // prepare scan orders (queues) attached to this node
-            let scanOrders:ScanOrder[] = pExtraOpts.scanOrders ;
+            let scanOrders:ScanOrder[] = (pExtraOpts!=null ? pExtraOpts.scanOrders : []);
 
             if(scanOrders==null || !Array.isArray(scanOrders)){
                 scanOrders = [];

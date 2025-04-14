@@ -235,8 +235,11 @@ export class EngineNodeManager {
      *
      */
     getLocalURI():string {
-
-        return '127.0.0.1:'+this.engine.getWebserver().getPort();
+        if(process.env.DXC_LOCAL_URI!=null){
+            return process.env.DXC_LOCAL_URI;
+        }else{
+            return '127.0.0.1:'+this.engine.getWebserver().getPort();
+        }
     }
 
     /**
@@ -834,7 +837,7 @@ export class EngineNodeManager {
      */
     async onNodeStateChanged(vEvent: StateChangeEvent):Promise<void> {
 
-        Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
+        //Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
         let node:EngineNode = this.getNodeByUUID(vEvent.nodeUUID);
 
         if(vEvent.new==NodeState.REGISTERED){
@@ -842,6 +845,8 @@ export class EngineNodeManager {
         }
 
         node.setEngine(this.engine);
+
+        Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}][${node!=null?node.getHostname():'-'}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
 
         await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
             .asyncUpdateEntry(node, { replace:false, $set:['running','state','pid']});
@@ -1148,6 +1153,7 @@ export class EngineNodeManager {
 
         // get node from queued node request
         let nextNode = await  this._getNextNode();
+
 
         // if the queue is empty kill the fresh node
         if(nextNode==null){
