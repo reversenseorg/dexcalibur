@@ -44,6 +44,11 @@ export class ProjectManagerException extends MonitoredError {
         return new ProjectManagerException(`Project is mandatory [src=${pSource}]`,
             ErrorCode.PROJ_MGT + 7) };
 
+    static GRID_WS_NOT_READY = (pUID:DexcaliburProjectUUID)=>{
+        return new ProjectManagerException("Grid of workspace is not ready",
+            ErrorCode.PROJ_MGT + 8, {
+                project: pUID
+            }).zone(SecurityZone.PRIVATE) };
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

@@ -404,6 +404,7 @@ The Reversense Team
             [
                 OrganizationAccessControl.attr.OWNER,
                 OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
 
@@ -442,6 +443,7 @@ The Reversense Team
             [
                 OrganizationAccessControl.attr.OWNER,
                 OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
 
@@ -713,6 +715,7 @@ The Reversense Team
             [
                 OrganizationAccessControl.attr.OWNER,
                 OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
 
@@ -886,6 +889,7 @@ The Reversense Team
                     [
                         OrganizationAccessControl.attr.OWNER,
                         OrganizationAccessControl.attr.APP_MEMBER,
+                        OrganizationAccessControl.attr.MEMBER_GRP,
                     ]
                 );
 
@@ -1141,6 +1145,7 @@ The Reversense Team
                 OrganizationAccessControl.attr.OWNER,
                 OrganizationAccessControl.attr.APP_MEMBER,
                 OrganizationAccessControl.attr.APP_MEMBER_GRP,
+                OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
 
@@ -1530,7 +1535,8 @@ The Reversense Team
             pAppUnit,
             [
                 OrganizationAccessControl.attr.OWNER,
-                OrganizationAccessControl.attr.APP_MEMBER
+                OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
 
@@ -1570,6 +1576,7 @@ The Reversense Team
             [
                 OrganizationAccessControl.attr.OWNER,
                 OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP
             ]
         );
 

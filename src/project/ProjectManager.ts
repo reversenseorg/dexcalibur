@@ -386,6 +386,7 @@ export class ProjectManager {
             [
                 OrganizationAccessControl.attr.OWNER,
                 OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
             ]
         );
 
