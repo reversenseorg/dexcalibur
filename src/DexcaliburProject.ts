@@ -95,6 +95,7 @@ import {GuiTypesManager} from "./graphics/GuiTypesManager.js";
 import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
 import {ApplicationUnit, ApplicationUnitUUID} from "./organization/ApplicationUnit.js";
 import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
+import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -632,6 +633,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     initAccessAttributes(){
         this.setAccessAttribute(ProjectAccessControl.attr.OWNER);
         this.setAccessAttribute(ProjectAccessControl.attr.TESTER);
+
+        //this.setAccessAttribute(GlobalAccessControl.attr.ORG);
     }
 
 
@@ -1790,7 +1793,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             [
                 ProjectAccessControl.attr.OWNER,
                 ProjectAccessControl.attr.TESTER,
-                OrganizationAccessControl.attr.APP_MEMBER
+                OrganizationAccessControl.attr.APP_MEMBER,
+                GlobalAccessControl.attr.ORG
             ]
         );
 
@@ -3147,13 +3151,27 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);
         }
 
+        if(this.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER_GRP)==null){
+            this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER_GRP);
+        }
+
+        if(this.getAccessAttribute(GlobalAccessControl.attr.ORG)==null){
+            this.setAccessAttribute(GlobalAccessControl.attr.ORG);
+        }
+
         // set or replace list of app_member in project
         this.setAccessAttribute(
             OrganizationAccessControl.attr.APP_MEMBER,
             pAppUnit.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER).value
         );
-
-
+        this.setAccessAttribute(
+            OrganizationAccessControl.attr.APP_MEMBER_GRP,
+            pAppUnit.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER_GRP).value
+        );
+        this.setAccessAttribute(
+            GlobalAccessControl.attr.ORG,
+            pAppUnit.getAccessAttribute(GlobalAccessControl.attr.ORG).value
+        );
     }
 
 }

@@ -20,6 +20,7 @@ import {SessionMiddlewareOptions} from "./SessionMiddleware.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
 import {OrganizationAccessControl} from "../acl/rbac/OrganizationAccessContol.js";
+import {GlobalAccessControl} from "../acl/rbac/GlobalAccessContol.js";
 
 
 
@@ -332,7 +333,8 @@ export class UserSession implements IPersistent, INode {
             [
                 ProjectAccessControl.attr.OWNER,
                 ProjectAccessControl.attr.TESTER,
-                OrganizationAccessControl.attr.APP_MEMBER
+                OrganizationAccessControl.attr.APP_MEMBER,
+                GlobalAccessControl.attr.ORG
             ]
         );
 

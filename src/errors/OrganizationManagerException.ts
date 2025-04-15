@@ -224,6 +224,12 @@ export class OrganizationManagerException extends MonitoredError {
             }) };
 
 
+    static INVALID_SETTINGS_FMT = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`Invalid organization or application settings format.`,
+            ErrorCode.ORGANIZATION + 49, {
+                oid:pOUID
+            }) };
+
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

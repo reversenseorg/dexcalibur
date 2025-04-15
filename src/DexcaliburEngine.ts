@@ -1319,7 +1319,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         // TODO : add ACL which allows non-owner but authorized auditor (group/team) to work on this project
 
-        for(let k in this.active) console.log(k,'ACTIVE');
+        // for(let k in this.active) console.log(k,'ACTIVE');
 
         if(pUser === null){
             return this.active;

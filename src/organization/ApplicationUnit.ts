@@ -133,7 +133,11 @@ export class ApplicationUnit extends Auditable implements INode {
      * @method
      */
     initAccessAttributes(){
+        // a list of user allowed
         this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);
+        // a list a user group allowed
+        this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER_GRP);
+        // the Org UUID
         this.setAccessAttribute(GlobalAccessControl.attr.ORG);
     }
 

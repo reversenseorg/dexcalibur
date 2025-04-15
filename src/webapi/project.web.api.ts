@@ -218,7 +218,9 @@ PROJECT_WEB_API.addAsyncAuthenticatedRoute(
                     return;
                 }
 
-                $.sendSuccess( res, await DexcaliburProject.getInformationOf( $.context, req.params.uid, req.dxc.sess.getUserAccount()));
+                const project = await $.context.getProjectManager().getProject(req.user, req.params.uid);
+                $.sendSuccess( res, project!=null ? project.toJsonObject() : null);
+                //$.sendSuccess( res, await DexcaliburProject.getInformationOf( $.context, req.params.uid, req.dxc.sess.getUserAccount()));
             } catch (err) {
                 Logger.error("[API][PROJECT][project="+req.params.uid+"] Project meta data cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Project meta data cannot be retrieved. Cause : " + err.message);

@@ -762,6 +762,16 @@ export class UserService {
         await this._coll.asyncUpdateEntry(pUserAccount, {replace:false, $set:['_membership','_locked','_activated']});
     }
 
+    /**
+     * To set organisation roles (intermediate level)
+     *
+     * Org-specific but attribute-free
+     *
+     * @param pIssuer
+     * @param pOrg
+     * @param pTargetAcc
+     * @param pRoles
+     */
     async updateOrgRoles(pIssuer: UserAccount, pOrg:OrganizationUnitUUID,
                          pTargetAcc:UserAccountUUID, pRoles:RoleUUID[]):Promise<boolean> {
 
@@ -773,7 +783,6 @@ export class UserService {
             throw OrganizationManagerException.NOT_A_MEMBER(pTargetAcc, pOrg);
         }
 
-        const results:RoleUpdate[] = [];
         const requestPerms = AccessControl.mergePermissions(pRoles);
 
         // IMPORTANT :
@@ -782,18 +791,58 @@ export class UserService {
             throw UserServiceException.CANNOT_GRANT_TO_LOCAL_ADMIN(pIssuer.getUID(), pOrg, pTargetAcc)
         }
 
-        // TODO : remove later
         target.updateMembershipRoles(pOrg, pRoles);
-        target.updateRoles(pRoles);
 
         // save
         if(await this._coll.asyncUpdateEntry(
-            target, { replace:false, $set:['_membership','_roles']}
+            target, { replace:false, $set:['_membership']}
         )){
             return true;
         }else{
             return false;
-            //throw UserServiceException.CANNOT_GRANT_TO_LOCAL_ADMIN(pIssuer.getUID(), pOrg, pTargetAcc)
+        }
+    }
+
+    /**
+     * To set Global role (highest level)
+     *
+     * Cross-organization and attribute-free
+     *
+     * @param pIssuer
+     * @param pOrg
+     * @param pTargetAcc
+     * @param pRoles
+     */
+    async updateGlobalRoles(pIssuer: UserAccount, pOrg:OrganizationUnitUUID,
+                         pTargetAcc:UserAccountUUID, pRoles:RoleUUID[]):Promise<boolean> {
+
+        // the issuer MUST be internal dxengine account or server admin
+        if(!this._ctx.getInternalAcc().uuidEquals(pIssuer.getUID())){
+            AccessControl.isAuthorized(
+                AccessControl.access.SRV_INSTANCE_MGT,
+                pIssuer
+            );
+        }
+
+        // check if the target user is a part of the target organization
+        const target = await this.getAccount(pIssuer, pTargetAcc);
+
+        if(!target.isMemberOf(pOrg)){
+            throw OrganizationManagerException.NOT_A_MEMBER(pTargetAcc, pOrg);
+        }
+
+        const requestPerms = AccessControl.mergePermissions(pRoles);
+
+        // change global roles
+        target.updateRoles(pRoles);
+
+        // save
+        if(await this._coll.asyncUpdateEntry(
+            target, { replace:false, $set:['_roles']}
+        )){
+            return true;
+        }else{
+            return false;
         }
     }
 

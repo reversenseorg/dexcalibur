@@ -140,6 +140,18 @@ export class ValidationRule {
         });
     }
 
+    /**
+     * @param {number} pMin Minimum value include in the range of valid values
+     * @param {number} pMax Maximum value include in the range of valid values
+     * @since 1.8.14
+     */
+    static number(pMin:number, pMax:number):ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return (typeof vValue==='number' &&  vValue>=pMin && vValue<=pMax);
+        });
+    }
+
+
     static prefixedUuid(pPrefix:string):ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
             return new RegExp("^"+pPrefix+"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$").test(vValue);

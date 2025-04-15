@@ -85,7 +85,8 @@ export class OrganizationManager {
                     vOrgUnit,
                     [
                         OrganizationAccessControl.attr.MEMBER_GRP,
-                        OrganizationAccessControl.attr.OWNER
+                        OrganizationAccessControl.attr.OWNER,
+                        GlobalAccessControl.attr.ORG
                     ]
                 );
 
@@ -327,6 +328,7 @@ The Reversense Team
             [
                 OrganizationAccessControl.attr.OWNER,
                 OrganizationAccessControl.attr.MEMBER_GRP,
+                GlobalAccessControl.attr.ORG
             ]
         );
 
@@ -2261,5 +2263,32 @@ The Reversense Team
         }
 
         return orgs.map( o => o.getUID());
+    }
+
+    /**
+     * To update organization settings
+     *
+     * @param pUser
+     * @param pOrg
+     * @param pUnsafeSettings
+     * @since 1.8.14
+     */
+    async updateOrgSettings(pUser: UserAccount, pOrg: OrganizationUnit, pUnsafeSettings:any) {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_MODIFY,
+            pUser,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.MEMBER_GRP
+            ]
+        );
+
+        if(!OrganizationUnit.VALIDATE.settings.test(pUnsafeSettings)){
+            throw OrganizationManagerException.INVALID_SETTINGS_FMT(pOrg.getUID());
+        }
+
+        pOrg.settings = pUnsafeSettings;
+        return await this.updateOrganization(pUser, pOrg, {settings:pUnsafeSettings});
     }
 }

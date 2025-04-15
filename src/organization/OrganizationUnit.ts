@@ -30,6 +30,9 @@ import {AccessControlException} from "../errors/AccessControlException.js";
 import Role from "../user/acl/common/Role.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 import {OrganizationManager} from "./OrganizationManager.js";
+import {AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
+import {UploadedResource} from "../common/UploadedResource.js";
+import {ProjectInput} from "../analyzer/ProjectInput.js";
 
 export type OrganizationUnitUUID = string;
 
@@ -49,6 +52,17 @@ export interface OrganizationUnitOptions {
     secrets?:Secret[];
     groups?:UserGroup[];
     _attr?:AccessAttributeMap;
+    settings?:SettingPolicy;
+}
+
+/**
+ * @since 1.8.14
+ */
+export interface SettingPolicy {
+    starredModels: AssuranceModelUUID[],
+    inputTTL: number,
+    traceTTL: number,
+    reportTTL: number
 }
 
 export interface AttachedDevice {
@@ -58,6 +72,15 @@ export interface AttachedDevice {
 }
 
 export class OrganizationUnit extends Auditable implements INode {
+    /**
+     * @since 1.8.14
+     */
+    static DEFAULT_POLICY:SettingPolicy = {
+        starredModels: [],
+        reportTTL: -1,
+        inputTTL: 365,
+        traceTTL: -1
+    };
 
     static SEED_SUID = '8162b327-e7a9-4342-a688-f515ae1c8664';
     static MK_SUID = '8162b327-e7a9-4342-a689-f515ae1c8664';
@@ -67,7 +90,13 @@ export class OrganizationUnit extends Auditable implements INode {
         name: ValidationRule.utf8String(),
         companyName: ValidationRule.utf8String(),
         packageID: ValidationRule.utf8String(),
-        devices: ValidationRule.uuidList()
+        devices: ValidationRule.uuidList(),
+        settings: ValidationRule.structure({
+            starredModels: ValidationRule.uuidList(),
+            reportTTL: ValidationRule.number(-1, 365*10),
+            inputTTL: ValidationRule.number(-1, 365*10),
+            traceTTL: ValidationRule.number(-1, 365*10)
+        })
     }
 
     static TYPE:NodeType = (new NodeType( "organization_unit", NodeInternalType.ORG_UNIT, [
@@ -76,6 +105,7 @@ export class OrganizationUnit extends Auditable implements INode {
         (new NodeProperty("companyName")).type(DbDataType.STRING),
         (new NodeProperty("description")).type(DbDataType.STRING).def(""),
         (new NodeProperty("owner")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("settings")).type(DbDataType.BLOB).def(OrganizationUnit.DEFAULT_POLICY),
         (new NodeProperty("members")).type(DbDataType.STRING).def([]),
         (new NodeProperty("devices")).type(DbDataType.STRING).def([]),
         (new NodeProperty("businessPlan"))
@@ -244,6 +274,11 @@ export class OrganizationUnit extends Auditable implements INode {
     businessPlan: Nullable<BusinessPlan> = null;
     deviceTpls: DeviceTemplate[] = [];
 
+    /**
+     * @since 1.8.14
+     */
+    settings: SettingPolicy = OrganizationUnit.DEFAULT_POLICY;
+
     tags:TagUUID[] = [];
 
     constructor(pOptions:Nullable<OrganizationUnitOptions>) {
@@ -257,6 +292,7 @@ export class OrganizationUnit extends Auditable implements INode {
             this.description = pOptions.description!;
             this.owner = pOptions.owner!;
             this.tags = pOptions.tags!;
+            this.settings = (pOptions.settings!=null ? pOptions.settings : OrganizationUnit.DEFAULT_POLICY);
             this.authModules =  (pOptions.authModules!=null ? pOptions.authModules : []);
             this.businessPlan =  (pOptions.businessPlan!=null ? pOptions.businessPlan : null);
             this.connections =  (pOptions.connections!=null ? pOptions.connections : []);
@@ -459,6 +495,7 @@ export class OrganizationUnit extends Auditable implements INode {
             groups: [],
             secrets: [],
             _attr: this._attr,
+            settings: this.settings,
             businessPlan: (this.businessPlan!=null? this.businessPlan.toJsonObject() : null)
         };
 
@@ -712,12 +749,19 @@ export class OrganizationUnit extends Auditable implements INode {
         if(res.length>1){
             throw OrganizationManagerException.DUPLICATED_GRP_NAME(this.getUID(),pName);
         }
-
+/*
         if(res.length==0){
             throw OrganizationManagerException.MISSING_GRP_BYNAME(this.getUID(),pName);
-        }
+        }*/
 
         return res[0];
+    }
+
+    /**
+     * @since 1.8.14
+     */
+    getSettings():SettingPolicy {
+        return this.settings;
     }
 }
 OrganizationUnit.TYPE.builder(OrganizationUnit);

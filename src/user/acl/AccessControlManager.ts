@@ -581,20 +581,25 @@ export class AccessControlManager {
         // start by checking if pIssuer has a role required by pAccess
         success = this._isRbacOk(pAccess,pIssuer,pResource,pAttributes,pQuiet);
 
+        if(success){
+            // if global and org-roles don't match
+            return ;
+        }
+
         if(!success){
             if(!pQuiet) Logger.error(`[ACCESS MANAGER] ${pIssuer.__==NodeInternalType.USER_GROUP?'User group "'+(pIssuer as any).name+'" ':'User'} [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by roles`);
             throw AccessControlException.NOT_AUTHORIZED(pAccess,pIssuer);
         }
 
         // next, check attributes
-        if(success && pResource!=null && pAttributes!=null && pAttributes.length>0){
+        /*if(success && pResource!=null && pAttributes!=null && pAttributes.length>0){
             success = this._isAbacOk(pAccess,pIssuer,pResource,pAttributes,pQuiet);
 
             if(!success){
                 Logger.error(`[ACCESS MANAGER] ${pIssuer.__==NodeInternalType.USER_GROUP?'User group "'+(pIssuer as any).name+'" ':'User'} [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by attributes`);
                 throw AccessControlException.NOT_AUTHORIZED(pAccess,pIssuer);
             }
-        }
+        }*/
     }
 
 
@@ -638,22 +643,28 @@ export class AccessControlManager {
         // check is user group or account has a role with required permissions
         let usrRoles:RoleUUID[] = [];
 
+
+        // get GLOBAL ROLES
         pIssuer.getRoles().map(x => usrRoles.push(x));
 
+
+        // check ORG-level roles if a resource is specified
         if(pIssuer.__===NodeInternalType.USER_ACCOUNT && pResource!=null){
+            usrRoles = [];
             // gather also org-level roles inherited from membership
             const oid_attr = pResource.getAccessAttribute<OrganizationUnitUUID>(GlobalAccessControl.attr.ORG);
             if(oid_attr!=null){
                 const ms = (pIssuer as UserAccount).getMembership(oid_attr.value[0]);
-                if(ms!=null && ms.roles!=null){
+                if(ms!=null && ms.roles!=null && !ms.locked){
                     ms.roles.map(r => {
                         if(usrRoles.indexOf(r)==-1){
                             usrRoles.push(r);
                         }
-                    })
+                    });
                 }
             }
         }
+
 
         for(let i=0; i<this._matrix[pAccess.getUID()].length; i++){
             // authorized by role
@@ -780,8 +791,24 @@ export class AccessControlManager {
 
         let authorized = false;
 
+        // gather groups supported by attributes
+        let attrGrps:UserAccountUUID[] = [];
+        if(pAttributes!=null){
+            pAttributes.map(x => {
+                if(x.is(NodeInternalType.USER_GROUP)){
+                    attrGrps = attrGrps.concat(x.value);
+                }
+            });
+        }
+
         // check universal groups
         pIssuer.getUserGroups().map((vGrpUID)=>{
+
+            if(attrGrps.length>0 && attrGrps.indexOf(vGrpUID)==-1){
+                // skip groups not authorized by attributes
+                return;
+            }
+
             try{
                 this.isAuthorized(
                     pAccess,
@@ -808,9 +835,14 @@ export class AccessControlManager {
             const oid = orgUUIDAttr.value[0] as OrganizationUnitUUID;
             const ms = pIssuer.getMembership(oid);
 
+
             if(ms!=null){
                 // check org-level groups
                 ms.groups.map((vGrpUID)=>{
+
+                    // skip group not supported by attributes
+                    if(attrGrps.length>0 && attrGrps.indexOf(vGrpUID)==-1) return;
+
                     try{
                         this.isAuthorized(
                             pAccess,

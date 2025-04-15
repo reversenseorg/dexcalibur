@@ -244,6 +244,39 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/settings',
+    {
+        'post':  async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any>=>{
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                $.sendSuccess( pRes, await $.context.getOrgManager().updateOrgSettings(
+                    pReq.user,
+                    org,
+                    pReq.body.settings
+                ));
+
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization keychain cannot be reroll.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
 ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:oid/au/create',
     {
@@ -984,9 +1017,16 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
             try {
                 const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
 
-                $.sendSuccess( pRes, {
-                    sent: await $.context.getOrgManager().updateMemberRoles(pReq.user, org, pReq.params.uid, pReq.body.roles)
-                });
+                if(pReq.body.global===true){
+                    $.sendSuccess( pRes, {
+                        sent: await $.context.getUserService().updateGlobalRoles(pReq.user, org.getUID(), pReq.params.uid, pReq.body.roles)
+                    });
+                }else{
+                    $.sendSuccess( pRes, {
+                        sent: await $.context.getOrgManager().updateMemberRoles(pReq.user, org, pReq.params.uid, pReq.body.roles)
+                    });
+                }
+
             } catch (err) {
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot changed roles of this user", err);
             }
