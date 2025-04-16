@@ -592,14 +592,14 @@ export class AccessControlManager {
         }
 
         // next, check attributes
-        /*if(success && pResource!=null && pAttributes!=null && pAttributes.length>0){
+        if(success && pResource!=null && pAttributes!=null && pAttributes.length>0){
             success = this._isAbacOk(pAccess,pIssuer,pResource,pAttributes,pQuiet);
 
             if(!success){
                 Logger.error(`[ACCESS MANAGER] ${pIssuer.__==NodeInternalType.USER_GROUP?'User group "'+(pIssuer as any).name+'" ':'User'} [uuid=${pIssuer.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by attributes`);
                 throw AccessControlException.NOT_AUTHORIZED(pAccess,pIssuer);
             }
-        }*/
+        }
     }
 
 
@@ -694,13 +694,14 @@ export class AccessControlManager {
             return false;
         }
 
+        /*
         if(pAccess==null || this._matrix[pAccess.getUID()]==null){
             throw AccessControlException.MISSING_ACCESS(pAccess);
         }
 
         if(this._matrix[pAccess.getUID()]==null){
             throw AccessControlException.MISSING_ACCESS(pAccess);
-        }
+        }*/
 
         // check each attribute
         for(let k=0; k<pAttributes.length; k++){
@@ -739,7 +740,7 @@ export class AccessControlManager {
         const authorizedUIDs:string[] = pResource.getAccessAttribute<UserAccountUUID|UserGroupUUID>(pAttr).value;
 
         if(authorizedUIDs==null || !Array.isArray(authorizedUIDs)){
-            throw AccessControlException.UNKNOWN_ACL_ATTRIBUTE(pAttr);
+            throw AccessControlException.UNKNOWN_ACL_ATTRIBUTE(pAttr.name);
         }
 
         if(pAttr.is(NodeInternalType.USER_GROUP)){

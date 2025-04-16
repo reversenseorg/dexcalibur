@@ -1,7 +1,3 @@
-
-import * as _path_ from "path";
-import * as _fs_ from "fs";
-
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {UserAccount, UserAccountOptions, UserAccountType, UserAccountUUID} from "../user/UserAccount.js";
 import AccessControl from "../user/acl/AccessControl.js";
@@ -43,6 +39,9 @@ import Util from "../Utils.js";
 import {UserServiceException} from "../errors/UserServiceException.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 import {OrganizationEmailBuilder} from "./OrganizationEmailBuilder.js";
+import {AccessAttribute} from "../user/acl/AccessAttribute.js";
+import {AccessControlException} from "../errors/AccessControlException.js";
+import {Auditable} from "../Auditable.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -660,7 +659,13 @@ The Reversense Team
         }))
 
         // attach group UID
-        pOrg.appendToAccessAttribute(
+        /*pOrg.appendToAccessAttribute(
+            OrganizationAccessControl.attr.APP_MEMBER_GRP,
+            appGrp.getUID()
+        );*/
+
+        // attach group UID
+        pApp.appendToAccessAttribute(
             OrganizationAccessControl.attr.APP_MEMBER_GRP,
             appGrp.getUID()
         );
@@ -890,8 +895,9 @@ The Reversense Team
                     vApp,
                     [
                         OrganizationAccessControl.attr.OWNER,
-                        OrganizationAccessControl.attr.APP_MEMBER,
-                        OrganizationAccessControl.attr.MEMBER_GRP,
+                        //OrganizationAccessControl.attr.APP_MEMBER,
+                        OrganizationAccessControl.attr.APP_MEMBER_GRP,
+                        //OrganizationAccessControl.attr.MEMBER_GRP,
                     ]
                 );
 
@@ -984,13 +990,17 @@ The Reversense Team
             ]
         );
 
-        // check if the group is a part of the organization
-        const grp = pOrg.getUserGroup(pGrpUUID);
-        if(grp==null){
-            throw OrganizationManagerException.USER_GROUP_NOT_FOUND(pGrpUUID);
-        }
-
-        return await this.getUsers(pUserAccount,pOrg, grp.members);
+        return  await (this._ctx.getEngineDB()
+            .getCollectionOf(UserAccount.TYPE.getType()) as MongodbDbCollection)
+            .search(
+                {
+                    filter: {
+                        ["_membership."+pOrg.getUID()+".groups"]: {
+                            $in: [pGrpUUID]
+                        }
+                    }
+                },
+                { merlinRequest:false, raw:true }) as UserAccount[];
     }
 
     async listGroupRoles(pUserAccount: UserAccount, pOrg: OrganizationUnit, pGrpUUID: string) {
@@ -1086,6 +1096,13 @@ The Reversense Team
 
     }
 
+    /**
+     * @deprecated
+     * @param pUserAccount
+     * @param pOrg
+     * @param pUserGroupUID
+     * @param pAccount
+     */
     async addMembersToGroup(pUserAccount: UserAccount, pOrg: OrganizationUnit,
                           pUserGroupUID: UserGroupUUID, pAccount:UserAccountUUID[]):Promise<boolean> {
 
@@ -2290,5 +2307,154 @@ The Reversense Team
 
         pOrg.settings = pUnsafeSettings;
         return await this.updateOrganization(pUser, pOrg, {settings:pUnsafeSettings});
+    }
+
+    async updateAttr(pUser: UserAccount,
+                     pNodeType:NodeInternalType,
+                     pObj:(ApplicationUnit|OrganizationUnit),
+                     pAttr:AccessAttribute<any>,
+                     pValues:any[]):Promise<boolean> {
+
+        if([NodeInternalType.APP_UNIT, NodeInternalType.ORG_UNIT].indexOf(pNodeType)==-1){
+            // not supported
+            throw AccessControlException.CHATTR_NOT_SUPPORTED_FOR_TYPE(pNodeType);
+        }
+
+        let org:OrganizationUnit;
+
+
+        switch (pNodeType){
+            case NodeInternalType.APP_UNIT:
+
+                org = await this.getOrganization(pUser, (pObj as ApplicationUnit).orgUnit);
+
+                AccessControl.isAuthorized(
+                    AccessControl.access.ORG_ACL_MGT,
+                    pUser,
+                    org,
+                    [
+                        OrganizationAccessControl.attr.OWNER,
+                        OrganizationAccessControl.attr.MEMBER_GRP
+                    ]
+                );
+
+                AccessControl.isAuthorized(
+                    AccessControl.access.ORG_AU_MODIFY,
+                    pUser,
+                    pObj,
+                    [
+                        OrganizationAccessControl.attr.OWNER,
+                        OrganizationAccessControl.attr.APP_MEMBER,
+                        OrganizationAccessControl.attr.APP_MEMBER_GRP,
+                        OrganizationAccessControl.attr.MEMBER_GRP
+                    ]
+                );
+
+                break;
+            case NodeInternalType.ORG_UNIT:
+
+                AccessControl.isAuthorized(
+                    AccessControl.access.ORG_ACL_MGT,
+                    pUser,
+                    pObj,
+                    [
+                        OrganizationAccessControl.attr.OWNER,
+                        OrganizationAccessControl.attr.MEMBER_GRP
+                    ]
+                );
+
+                AccessControl.isAuthorized(
+                    AccessControl.access.ORG_AU_MODIFY,
+                    pUser,
+                    pObj,
+                    [
+                        OrganizationAccessControl.attr.OWNER,
+                        OrganizationAccessControl.attr.MEMBER_GRP
+                    ]
+                );
+
+                org = pObj as OrganizationUnit;
+
+                break;
+        }
+
+        (pObj as Auditable).setAccessAttribute(
+            pAttr,
+            pValues
+        );
+
+        switch (pNodeType){
+            case NodeInternalType.APP_UNIT:
+                return await this.updateApplication(pUser, org, pObj as ApplicationUnit, { _attr: true });
+                break;
+            case NodeInternalType.ORG_UNIT:
+                return await this.updateOrganization(pUser, org, { _attr: {} });
+                break;
+        }
+
+
+
+    }
+
+    async updateOrgGrpMembers(pUser: UserAccount,
+                              pOrg: OrganizationUnit,
+                              pGroup: UserGroup,
+                              pUsers: UserAccountUUID[]):Promise<{ added:UserAccountUUID[], removed:UserAccountUUID[] }> {
+
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_ACL_MGT,
+            pUser,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.MEMBER_GRP,
+                OrganizationAccessControl.attr.OWNER
+            ]
+        );
+
+        const currentUsr = (await this.listGroupMembers(pUser, pOrg, pGroup.getUID()));
+        const curr:Record<UserAccountUUID, UserAccount> = {};
+
+        currentUsr.map(x => {
+            curr[x.getUID()] = x;
+        });
+
+        const ch = {
+            added:[],
+            removed:[]
+        };
+
+        // removed from group
+        Object.keys(curr).map(x => {
+            if(pUsers.indexOf(x)==-1){
+                let grp = curr[x].getMembership(pOrg.getUID()).groups;
+                if(grp!=null)  grp = grp.filter(g => (g!=pGroup.getUID()));
+                curr[x].updateMembershipGroups(pOrg.getUID(), grp);
+                ch.removed.push(x);
+                (async ()=>{
+                    await this._ctx.getUserService().updateMembership(pUser, pOrg, curr[x]);
+                })();
+            }
+        });
+
+        // added to group
+        pUsers.map(x => {
+            if(curr[x]==null){
+                ch.added.push(x);
+
+                (async ()=>{
+                    let acc = await this._ctx.getUserService().getAccount(this._ctx.getInternalAcc(), x);
+                    let ms = acc.getMembership(pOrg.getUID());
+                    if(ms==null) return null;
+                    ms.groups.push(pGroup.getUID());
+                    acc.updateMembershipGroups(pOrg.getUID(), ms.groups);
+                    await this._ctx.getUserService().updateMembership(pUser, pOrg, acc);
+                })();
+
+            }
+        });
+
+        return ch;
+
     }
 }

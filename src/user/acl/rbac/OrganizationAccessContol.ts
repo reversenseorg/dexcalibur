@@ -6,6 +6,8 @@ import {AccessZone} from "../Zones.js";
 import {UserServiceException} from "../../../errors/UserServiceException.js";
 import {UserGroupUUID} from "../common/UserGroup.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {ValidationRule} from "../../../Validator.js";
+import {AccessControlException} from "../../../errors/AccessControlException.js";
 
 
 export class OrganizationAccessControl extends DelegateAccessControl {
@@ -16,8 +18,8 @@ export class OrganizationAccessControl extends DelegateAccessControl {
     static uid:string = 'ORG';
 
     static attr:AccessAttributeMap = {
-        ORG_MEMBER: new AccessAttribute<UserAccountUUID>( 'org_member'),
-        APP_MEMBER: new AccessAttribute<UserAccountUUID>( 'app_member'),
+        ORG_MEMBER: new AccessAttribute<UserAccountUUID>( 'org_member',[], NodeInternalType.USER_ACCOUNT),
+        APP_MEMBER: new AccessAttribute<UserAccountUUID>( 'app_member',[], NodeInternalType.USER_ACCOUNT),
         OWNER: new AccessAttribute<UserAccountUUID>( 'owner',[], NodeInternalType.USER_ACCOUNT),
 
         MEMBER_GRP: new AccessAttribute<UserGroupUUID>( 'members', [], NodeInternalType.USER_GROUP),
@@ -26,8 +28,21 @@ export class OrganizationAccessControl extends DelegateAccessControl {
 
     constructor() {
         super();
+    }
 
+    static override getAttr<T>(pName:string):AccessAttribute<T> {
 
+        if(ValidationRule.newPinklistAssert([
+            OrganizationAccessControl.attr.APP_MEMBER_GRP.name,
+            OrganizationAccessControl.attr.APP_MEMBER.name,
+            OrganizationAccessControl.attr.ORG_MEMBER.name,
+            OrganizationAccessControl.attr.MEMBER_GRP.name,
+            OrganizationAccessControl.attr.OWNER.name,
+        ]).test( pName)==false){
+            throw AccessControlException.UNKNOWN_ACL_ATTRIBUTE(pName)
+        }
+
+        return Object.values(OrganizationAccessControl.attr).find(x => x.name==pName);
     }
 
     static getOwnerFilter(pUserAccountUID:UserAccountUUID):any {

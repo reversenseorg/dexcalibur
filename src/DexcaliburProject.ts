@@ -86,7 +86,7 @@ import {IPackageAnalyzer} from "./analyzer/IPackageAnalyzer.js";
 import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
 import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
 import {GenericPackageAnalyzer} from "./analyzer/GenericPackageAnalyzer.js";
-import {ProjectInput} from "./analyzer/ProjectInput.js";
+import {ProjectInput, ProjectInputLocation} from "./analyzer/ProjectInput.js";
 import {Subject} from "rxjs";
 import * as _fs_ from "node:fs";
 import {ModelAPI} from "./ModelAPI.js";
@@ -1506,17 +1506,37 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             this.packageAnalyzer.setProject(this);
         }
 
-        // if the project input is stored into temporary, out of project workspace,
-        // it must be copied first into project workspace
         if(pInput.isFile()){
-            const inputDir = this.getWorkspace().getInputDir();
-            if(pInput.data.indexOf(inputDir)!==0){
-                // Input file is not located into project workspace
+
+            if(pInput.location==ProjectInputLocation.LOCAL){
+
+                // if the project input is stored into temporary, out of project workspace,
+                // it must be copied first into project workspace
+                const inputDir = this.getWorkspace().getInputDir();
+                if(pInput.data.indexOf(inputDir)!==0){
+                    // Input file is not located into project workspace
+                    const inputPath = this.getWorkspace().getValidInputPath(pInput);
+                    _fs_.copyFileSync(pInput.data, inputPath);
+                    // update and save project input
+                    pInput.setPath(inputPath);
+                    this.inputs.push(pInput);
+                }
+            }
+            else if(pInput.location==ProjectInputLocation.DB_UPL){
+
+                // if the project input is stored into DB, out of project workspace,
+                // it must be downloaded first into project workspace
                 const inputPath = this.getWorkspace().getValidInputPath(pInput);
-                _fs_.copyFileSync(pInput.data, inputPath);
+                await this.getContext()
+                    .getEngineDB()
+                    .getFileManager()
+                    .readFileTo('uploads', pInput.data as string, inputPath)
+
                 // update and save project input
                 pInput.setPath(inputPath);
+                pInput.location = ProjectInputLocation.LOCAL;
                 this.inputs.push(pInput);
+
             }
         }else{
             this.inputs.push(pInput);
@@ -3160,18 +3180,32 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
 
         // set or replace list of app_member in project
-        this.setAccessAttribute(
-            OrganizationAccessControl.attr.APP_MEMBER,
-            pAppUnit.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER).value
-        );
-        this.setAccessAttribute(
-            OrganizationAccessControl.attr.APP_MEMBER_GRP,
-            pAppUnit.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER_GRP).value
-        );
-        this.setAccessAttribute(
-            GlobalAccessControl.attr.ORG,
-            pAppUnit.getAccessAttribute(GlobalAccessControl.attr.ORG).value
-        );
+        let aam = pAppUnit.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);
+        if(aam!=null){
+            this.setAccessAttribute(
+                OrganizationAccessControl.attr.APP_MEMBER,
+                aam.value
+            );
+        }
+
+
+        aam = pAppUnit.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER_GRP);
+        if(aam!=null){
+            this.setAccessAttribute(
+                OrganizationAccessControl.attr.APP_MEMBER_GRP,
+                aam.value
+            );
+        }
+
+
+        aam = pAppUnit.getAccessAttribute(GlobalAccessControl.attr.ORG);
+        if(aam!=null){
+            this.setAccessAttribute(
+                GlobalAccessControl.attr.ORG,
+                aam.value
+            );
+        }
+
     }
 
 }

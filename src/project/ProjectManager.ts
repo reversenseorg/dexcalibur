@@ -520,8 +520,8 @@ export class ProjectManager {
                         do{
                             try{
                                 projInputs.push(new ProjectInput({
-                                    data: await this._ctx.getWebserver().uploader.getPathOf(orderOpts.inputTpls[i].uploadID),
-                                    location: ProjectInputLocation.LOCAL,
+                                    data:  orderOpts.inputTpls[i].uploadID, // await this._ctx.getWebserver().uploader.getPathOf(orderOpts.inputTpls[i].uploadID),
+                                    location: ProjectInputLocation.DB_UPL,// ProjectInputLocation.LOCAL,
                                     type: ProjectInputType.REGULAR_FILE,
                                     extractOpts: {type:'bin'},
                                     purpose: orderOpts.inputTpls[i].purpose
@@ -545,6 +545,8 @@ export class ProjectManager {
                             if(bin==null){
                                 bin = projInputs[0];
                             }
+
+
                             platform = await  this._extractPlatformFromBin(bin, orderOpts.targetOS, workflow);
                         }
                     }
@@ -1153,19 +1155,58 @@ export class ProjectManager {
         return project;
     }
 
+    private async _createTempLocalInput(pInput:ProjectInput):Promise<ProjectInput> {
+         const path = this._ctx.getWorkspace().createTempFile( "tmp_extr");
+
+         if(pInput.location==ProjectInputLocation.DB_UPL){
+             await this._ctx.getEngineDB().getFileManager().readFileTo('uploads', pInput.data as string, path);
+         }else{
+             throw new Error("Canot create tmp project iunput")
+         } /*if(pInput.location==ProjectInputLocation.LOCAL){
+             _fs_.copyFileSync(
+                 pInput.data as string,
+                 path
+             )
+         }*/
+
+
+         return new ProjectInput({
+             data: path,
+             location: ProjectInputLocation.LOCAL,
+             type: ProjectInputType.REGULAR_FILE,
+             extractOpts: {type:'bin'},
+             purpose: pInput.purpose
+         });
+    }
+
     private async _extractPlatformFromBin(
                 pInput: ProjectInput, pTargetOS: OperatingSystem,
                 pWorkflow: Workflow):Promise<Platform> {
 
          let platform:Platform;
          let anal:IPackageAnalyzer;
+
+         let tmpInput = pInput;
+         if(pInput.location==ProjectInputLocation.DB_UPL){
+             // create temp input
+             tmpInput = await this._createTempLocalInput(pInput);
+             console.log('modificed',tmpInput);
+         }else{
+             console.log('not temp', tmpInput);
+
+         }
+
+
+
          switch (pTargetOS){
              case OperatingSystem.ANDROID:
                  let anal = new AndroidPackageAnalyzer(
                      new AndroidPackageAnalyzerConfig(
                          { msa_auto: false, ssa_auto:false }));
+
+
                  // add input to analyzer
-                 anal.attachInput(pInput);
+                 anal.attachInput(tmpInput);
 
                  let min:any = await anal.getMinPlatform();
                  let minplt = DexcaliburEngine.getInstance()

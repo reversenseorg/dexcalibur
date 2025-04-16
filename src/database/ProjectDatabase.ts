@@ -8,7 +8,8 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {IDbCollection, IDbIndex, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";;
+from "@dexcalibur/dxc-core-api";
+
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {AnalyzerState} from "../AnalyzerState.js";
 import ModelFile from "../ModelFile.js";
@@ -52,6 +53,10 @@ import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
 import {FinderResult} from "../search/FinderResult.js";
 import InMemoryDbIndex from "../../connectors/inmemory/InMemoryDbIndex.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
+import {GridFSBucket} from "mongodb";
+import {ProjectManagerException} from "../errors/ProjectManagerException.js";
+import {IFileDatabase} from "../core/commons.js";
+import {FileManager} from "../core/FileManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -81,14 +86,17 @@ const PROJECT_DB_PREFIX = "dxc_";
  *
  * @class
  */
-export class ProjectDatabase {
+export class ProjectDatabase implements IFileDatabase {
 
     name:string = "";
 
     private _ctx:DexcaliburEngine;
     private _opts:DatabaseSettings;
+    private _fmgr:FileManager;
     private _connector: MongodbAdapter;
     private _ready = false;
+
+    private _wsBucket:Nullable<GridFSBucket> = null;
 
     private _db:Nullable<MongodbDb> = null;
 
@@ -154,6 +162,7 @@ export class ProjectDatabase {
 
     setEngine(pContext:DexcaliburEngine){
         this._ctx = pContext;
+        this._fmgr = new FileManager(pContext, this);
     }
 
     setProject(pProject:DexcaliburProject):void {
@@ -225,6 +234,46 @@ export class ProjectDatabase {
      *
      * @private
      */
+    private _initWorkspace(){
+        // create or open the workspace bucket in gridFS
+        this._wsBucket = new GridFSBucket(this._db.db, {bucketName: 'ws' });
+
+        this._fmgr
+    }
+
+    /**
+     *
+     * @param pBuffer
+     * @param pPath
+     * @param pMetadata
+     */
+    async writeFileContent(pBuffer:Buffer, pPath:string, pMetadata:any){
+
+        if(this._wsBucket==null){
+            throw ProjectManagerException.GRID_WS_NOT_READY(this._project.getUID());
+        }
+
+        /*Readable.from(pBuffer).pipe(this._wsBucket.openUploadStream(pPath, {
+            chunkSizeBytes: pBuffer.length,
+            metadata: pMetadata
+        }));*/
+    }
+
+    /**
+     *
+     * @param pFile
+     */
+    async readFileContent(pFile:string):Promise<any> {
+        if(this._wsBucket==null){
+            throw ProjectManagerException.GRID_WS_NOT_READY(this._project.getUID());
+        }
+
+    }
+
+    /**
+     *
+     * @private
+     */
     private _initSubscriptions():void {
         this._project.getBus().subscribe("data.file.parsed",  BusSubscriber.from( (pEvent:BusEvent<any>)=>{
             Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.parsed> Save parsed data [fmt="
@@ -280,6 +329,15 @@ export class ProjectDatabase {
                 collType: nodeType
             };
         }
+
+        // prepare Workspace FS
+        if(this._fmgr!=null){
+            this._fmgr.open('ws');
+        }
+
+
+        // init ws
+        this._initWorkspace();
     }
 
 
@@ -688,5 +746,9 @@ export class ProjectDatabase {
     async getAppResource(pResUID:string):Promise<ModelResource> {
         return await (this.getCollectionOf(ModelResource.TYPE.getType()) as MongodbDbCollection)
             .asyncGetEntry({ _uid:pResUID });
+    }
+
+    getFileManager():FileManager {
+        return this._fmgr;
     }
 }

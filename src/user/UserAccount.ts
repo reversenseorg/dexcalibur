@@ -544,6 +544,13 @@ export class UserAccount implements IPersistent, INode {
         this._membership[pOUID].roles = pRoles;
     }
 
+    updateMembershipGroups(pOUID:OrganizationUnitUUID, pGroups: UserGroupUUID[]) {
+        if(this._membership[pOUID]==null){
+            throw OrganizationManagerException.NOT_A_MEMBER(this.getUID(), pOUID);
+        }
+        this._membership[pOUID].groups = pGroups;
+    }
+
     getMembershipRoles(pOUID:OrganizationUnitUUID ):RoleUUID[] {
         if(this._membership[pOUID]==null){
             throw OrganizationManagerException.NOT_A_MEMBER(this.getUID(), pOUID);

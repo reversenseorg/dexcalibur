@@ -607,6 +607,8 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         this._data.dir = DexcaliburEngine.getInstance().getWorkspace().createTempFolder('prj-new-');
 
+        console.log(this._base_apk);
+
         const success = await AndroidPackageAnalyzer.extractApk(
             this._base_apk.data as string,
             this._data.dir, {

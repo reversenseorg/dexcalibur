@@ -1,6 +1,7 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {InternalStateUUID} from "../core/InternalState.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {SecurityZone} from "../security/SecurityZone.js";
 
 export class EngineDatabaseException extends MonitoredError {
 
@@ -51,6 +52,22 @@ export class EngineDatabaseException extends MonitoredError {
     static ORDER_TYPE_NOT_SUPPORTED = (pType:NodeInternalType,pOpe:string)=>{
         return new EngineDatabaseException(`Cannot ${pOpe} order : Order type not supported [type=${pType}]`,
             ErrorCode.GENERIC + 29) };
+
+    static UPLOAD_BUCKET_NOT_READY = ()=>{
+        return new EngineDatabaseException(`Upload bucket is not ready.`,
+            ErrorCode.GENERIC + 30).zone(SecurityZone.PRIVATE) };
+
+    static BUCKET_NOT_READY = (pBucket:string)=>{
+        return new EngineDatabaseException(`Bucket is not ready.`,
+            ErrorCode.GENERIC + 31, { bucket:pBucket }).zone(SecurityZone.PRIVATE) };
+
+    static FILE_NOT_FOUND_IN_BUCKET = (pBucket:string, pFile:string)=>{
+        return new EngineDatabaseException(`File not found in bucket.`,
+            ErrorCode.GENERIC + 32, { bucket:pBucket, file:pFile }).zone(SecurityZone.PRIVATE) }
+
+    static FILE_NOT_UNIQUE_IN_BUCKET = (pBucket:string, pFile:string)=>{
+        return new EngineDatabaseException(`File not unique in bucket.`,
+            ErrorCode.GENERIC + 33, { bucket:pBucket, file:pFile }).zone(SecurityZone.PRIVATE) }
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

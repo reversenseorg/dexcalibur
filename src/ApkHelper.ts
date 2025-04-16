@@ -140,7 +140,7 @@ export default class ApkHelper extends External.ExternalHelper
      */
     static async extract(pApkPath:string, pDestination:string, pOptions:ApkExtractGlobalOptions={extractOpts:{},javaOpts:{}}){
         if(_fs_.existsSync(pApkPath)==false){
-            throw new Error("[APK HELPER] APK not found ");
+            throw new Error("[APK HELPER] APK not found : "+pApkPath);
         }
 
         let cmd:IExternalCommand = ApkHelper.getApktoolCommand(

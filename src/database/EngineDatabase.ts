@@ -1,8 +1,10 @@
+import {Readable} from "stream"
+
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {DatabaseSettingType, Settings} from "../Settings.js";
 import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
-import {AuthMechanism, MongoCredentialsOptions} from "mongodb";
+import {AuthMechanism, Db, GridFSBucket, GridFSBucketReadStream, MongoCredentialsOptions} from "mongodb";
 import * as Log from "../Logger.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
@@ -36,6 +38,10 @@ import {EngineNode} from "../core/EngineNode.js";
 import AssuranceModel, {AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
+import {ProjectManagerException} from "../errors/ProjectManagerException.js";
+import {ReadableStreamLike} from "rxjs";
+import {FileManager} from "../core/FileManager.js";
+import {IFileDatabase} from "../core/commons.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -96,7 +102,7 @@ interface AttachedProject {
  *
  * @class
  */
-export class EngineDatabase {
+export class EngineDatabase implements IFileDatabase {
 
     static DEFAULT_CONN_STR = "master:master123:admin:DEFAULT:";
     // static DEFAULT_HOST = "127.0.0.1";
@@ -112,6 +118,7 @@ export class EngineDatabase {
     private _ctx:DexcaliburEngine;
     private _opts:DatabaseSettings;
     private _connector: MongodbAdapter;
+    private _fmgr: FileManager;
     private _ready = false;
 
     private _db:Nullable<MongodbDb> = null;
@@ -280,6 +287,10 @@ export class EngineDatabase {
         };
     }
 
+    getDb(): MongodbDb {
+        return this._db;
+    }
+
 
     async connect():Promise<void> {
         this._db = await this._connector.asyncConnect(null,INTERNAL_DB);
@@ -327,8 +338,17 @@ export class EngineDatabase {
         }
 
 
+        if(this._fmgr==null){
+            this._fmgr = new FileManager(this._ctx, this);
+        }
+
+
+        // prepare Global FS
+        await this._fmgr.open('uploads');
+
         Logger.info("[ENGINE] [DB] Connection successful");
     }
+
 
     /**
      * To get instance of a internal db.
@@ -952,5 +972,13 @@ export class EngineDatabase {
                 $set:['state','modified']
             }
         );
+    }
+
+    async openFileBucket(pBucketID:string):Promise<GridFSBucket> {
+        return
+    }
+
+    getFileManager():FileManager {
+        return this._fmgr;
     }
 }

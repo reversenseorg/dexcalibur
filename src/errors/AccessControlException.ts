@@ -32,9 +32,11 @@ export class AccessControlException extends MonitoredError {
         return new AccessControlException(`The required zone [${pZone}] is not ready.`,
             ErrorCode.SECURITY_ACL + 5) };
 
-    static UNKNOWN_ACL_ATTRIBUTE = (pAttr:AccessAttribute<any>)=>{
-        return new AccessControlException(`The engine try to modify an unknown access attribute [name=${pAttr.name}]`,
-            ErrorCode.SECURITY_ACL + 6) };
+    static UNKNOWN_ACL_ATTRIBUTE = (pAttr:string)=>{
+        return new AccessControlException(`The engine try to modify an unknown access attribute`,
+            ErrorCode.SECURITY_ACL + 6, {
+                attr: pAttr
+            }).zone(SecurityZone.PRIVATE) };
 
     static CANNOT_SETUP_ROLE = (pRole:Role)=>{
         return new AccessControlException(`The role cannot be set up [name=${pRole.getUID()}]`,
@@ -56,6 +58,12 @@ export class AccessControlException extends MonitoredError {
     static UNKNOWN_ACCESS = (pRoleUID:RoleUUID, pName:string)=>{
         return new AccessControlException(`The role [${pName},${pRoleUID}] require unknown permissions.`,
             ErrorCode.SECURITY_ACL + 11).zone(SecurityZone.PRIVATE) };
+
+    static CHATTR_NOT_SUPPORTED_FOR_TYPE = (pType:NodeInternalType)=>{
+        return new AccessControlException(`Change of attribute is not supported for this node type.`,
+            ErrorCode.SECURITY_ACL + 11,{
+                type: pType
+            }).zone(SecurityZone.PRIVATE) };
 
 
 

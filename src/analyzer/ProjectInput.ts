@@ -12,7 +12,8 @@ export enum ProjectInputType {
 export enum ProjectInputLocation {
     DEVICE="device",
     REMOTE="remote",
-    LOCAL="local"
+    LOCAL="local",
+    DB_UPL="db_upl"
 }
 
 export enum ProjectInputPurpose{

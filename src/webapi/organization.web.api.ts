@@ -14,6 +14,9 @@ import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
 import {ProjectState} from "../ProjectState.js";
 import {ProductType} from "../billing/Purchase.js";
 import {UserServiceException} from "../errors/UserServiceException.js";
+import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
+import {AccessControlException} from "../errors/AccessControlException.js";
+import AccessControl from "../user/acl/AccessControl.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi("ORG");
@@ -1302,7 +1305,23 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess( pRes, data);
             } catch (err) {
-                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of members from the user group", err);
+            }
+        },
+        'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.uid);
+
+                $.sendSuccess( pRes, await $.context.getOrgManager().updateOrgGrpMembers(
+                    pReq.user,
+                    org,
+                    org.getUserGroup(pReq.params.grp),
+                    pReq.body.users));
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot update the list of members of user group", err);
             }
         }
     }
@@ -1534,6 +1553,70 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
             }catch(err){
                 Logger.error("[API][ORG] App Unit : Scans orders cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "App Unit : Scans orders cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/app/:aid/attr/:attr',
+    {
+        'get': async function (pReq:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = pReq.dxc.$;
+
+            try{
+                // target app
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                const attr = OrganizationAccessControl.getAttr(pReq.params.attr);
+
+                AccessControl.isAuthorized(
+                    AccessControl.access.ORG_ACL_MGT,
+                    pReq.user,
+                    await $.context.getOrgManager().getOrganization(
+                        (pReq as any).user,
+                        app.orgUnit
+                    ),
+                    [
+                        OrganizationAccessControl.attr.OWNER,
+                        OrganizationAccessControl.attr.MEMBER_GRP,
+                    ]
+                );
+
+                $.sendSuccess(res, app.getAccessAttribute(attr));
+            }catch(err){
+                $.sendErrorAfterException(
+                    res, ORG_WEB_API.name,
+                    "Cannot modify attributes of this object.",
+                    err,{cause:err.message});
+            }
+        },
+        'put': async function (pReq:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = pReq.dxc.$;
+
+            try{
+                // target app
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                $.sendSuccess(res, await $.context.getOrgManager().updateAttr(
+                    pReq.user,
+                    ApplicationUnit.TYPE.getType(),
+                    app,
+                    OrganizationAccessControl.getAttr(pReq.params.attr),
+                    pReq.body.values
+                ));
+            }catch(err){
+                $.sendErrorAfterException(
+                    res, ORG_WEB_API.name,
+                    "Cannot modify attributes of this object.",
+                    err,{cause:err.message});
             }
         }
     }

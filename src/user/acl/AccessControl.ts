@@ -276,7 +276,7 @@ export default class AccessControl {
         const authorizedUIDs:string[] = pResource.getAccessAttribute<UserAccountUUID|UserGroupUUID>(pAttr).value;
 
         if(authorizedUIDs==null || !Array.isArray(authorizedUIDs)){
-            throw AccessControlException.UNKNOWN_ACL_ATTRIBUTE(pAttr);
+            throw AccessControlException.UNKNOWN_ACL_ATTRIBUTE(pAttr.name);
         }
 
         if(pAttr.is(NodeInternalType.USER_GROUP)){
