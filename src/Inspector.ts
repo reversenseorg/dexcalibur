@@ -404,9 +404,9 @@ export default class Inspector
 
         if(this.hookSet != null){
             this.hookSet.injectContext(ctx);
-            Logger.info("[Inspector::injectContext][HookSet] "+this.id+" registered !");
+            Logger.debug("[Inspector::injectContext][HookSet] "+this.id+" registered !");
         }else{
-            Logger.info("[Inspector::injectContext] "+this.id+" has not hook set.");
+            Logger.debug("[Inspector::injectContext] "+this.id+" has not hook set.");
         }
 
         // register front controller
@@ -414,7 +414,7 @@ export default class Inspector
         if(_fs_.existsSync(path)){
             import(path).then((vModule)=>{
                 this.frontController = vModule.default.injectContext(ctx);
-                Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");
+                Logger.debug("[Inspector::injectContext][FrontController] "+this.id+" registered !");
             })
             //this.frontController = require(path).default.injectContext(ctx);
             //Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");

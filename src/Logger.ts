@@ -175,6 +175,9 @@ export class TestLogger implements Logger
     }
 }
 
+function time(){
+    return `[${(new Date()).toISOString()}]`;
+}
 
 export class ProdLogger implements Logger
 {
@@ -191,13 +194,13 @@ export class ProdLogger implements Logger
     }
 
     error(...args :any[]):LoggerAction{
-        PRINT(chalk.bold.red('[ERROR] '+this.prefix.join("")+multi_concat(args)));
+        PRINT(chalk.bold.red(time()+'[ERROR] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     debug(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            PRINT(chalk.bold.blue('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+            PRINT(chalk.bold.blue(time()+'[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
@@ -213,30 +216,30 @@ export class ProdLogger implements Logger
      */
     debugPink(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            PRINT(chalk.bold.magenta('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+            PRINT(chalk.bold.magenta(time()+'[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
 
     debugBgRed(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            PRINT(chalk.white.bgRed.bold('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+            PRINT(chalk.white.bgRed.bold(time()+'[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     warn(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            PRINT(chalk.bold.yellow('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+            PRINT(chalk.bold.yellow(time()+'[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     success(...args :any[]):LoggerAction{
-        PRINT(chalk.bold.green(this.prefix.join("")+multi_concat(args)));
+        PRINT(chalk.bold.green(time()+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     info(...args :any[]):LoggerAction{
-        PRINT('[INFO] '+this.prefix.join("")+multi_concat(args));
+        PRINT(time()+'[INFO] '+this.prefix.join("")+multi_concat(args));
         return LoggerAction;
     }
 

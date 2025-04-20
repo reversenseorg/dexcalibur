@@ -101,7 +101,7 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.1.3",
+    version: "1.1.4",
 
     db: {
         dbms: 'inmemory',
@@ -179,7 +179,7 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
     eventListenerSources: {
         "model.string.new": {
             source: `
-            
+            // <t1?a:i;
             if(pEvent.data==null) return;
             
             var tag=null;
@@ -274,10 +274,10 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
             
             var isAdminBin = [
                 /^[sS][uU]$/
-            ].indexOf(pEvent.data.value);
+            ];
             
             for(let i=0; i<isAdminBin.length; i++){
-                if(pEvent.data.value!=null && isAdminBin[i].test(pEvent.data.value) )){
+                if(pEvent.data.value!=null && isAdminBin[i].test(pEvent.data.value)){
                     tag = pCtx.getTagManager().getTag('security.detection.root.admin-bin');
                     pEvent.data.addTag(tag);
                     break;

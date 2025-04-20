@@ -553,10 +553,9 @@ export default class InspectorManager
         // detect if there is missing inspector
         const newInspectors:Record<string, Inspector> = {};
         for(let k in this.locals){
-            console.log(restored.join(":"),k);
             if( restored.indexOf(k)==-1){
                 newInspectors[k] = await this.createInspector(this.locals[k], pProject);
-                console.log("Create inspector : "+ newInspectors[k].getUID()+" "+ newInspectors[k].getID())
+                Logger.debug("[INSPECTOR MGR] Create inspector : "+ newInspectors[k].getUID()+" "+ newInspectors[k].getID())
             }
         }
 
