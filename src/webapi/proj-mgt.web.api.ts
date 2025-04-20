@@ -795,8 +795,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                                         });
                                     }
                                 }else{
-                                    console.log("WAITING QUEUE IS NOT EMPTY ",vNode.getUID());
-                                    console.log(vNode.waitingQueue);
+                                    console.log("WAITING QUEUE IS NOT EMPTY ",vNode.getUID(),", waiting queue = ",vNode.waitingQueue.length);
                                     // start next ope
                                     vNode.operation$.next(null);
                                 }
