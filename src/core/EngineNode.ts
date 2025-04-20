@@ -35,7 +35,7 @@ import {EngineNodeClient} from "./EngineNodeClient.js";
 import {WebsocketClient} from "../WebsocketClient.js";
 import {K8ResourceType, K8sHelper} from "./k8s/K8sHelper.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
-import {OrganizationUnit} from "../organization/OrganizationUnit.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const GOT = got.default;
@@ -181,6 +181,7 @@ export interface EngineNodeOptions {
     _state?:InternalState;
     nodeOpts?: Record<string, any>;
     selfReg?:boolean;
+    _orgUUID?:OrganizationUnitUUID;
 }
 
 
@@ -215,6 +216,7 @@ export class EngineNode implements INode {
         [
             (new NodeProperty("UUID")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("_projectUID")).type(DbDataType.STRING),
+            (new NodeProperty("_orgUUID")).type(DbDataType.STRING).def(null),
             (new NodeProperty("_outputBuffer")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_errBuffer")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_pid")).type(DbDataType.NUMERIC).def(-1),
@@ -339,6 +341,13 @@ export class EngineNode implements INode {
     private _projectUID:DexcaliburProjectUUID;
 
     /**
+     * Aorganization unit
+     * @private
+     * @since 1.8.16
+     */
+    private _orgUUID:Nullable<OrganizationUnitUUID> = null;
+
+    /**
      * Buffer where STDOUT is written
      * @private
      */
@@ -445,6 +454,7 @@ export class EngineNode implements INode {
         if(pOptions.UUID != null) this.UUID = pOptions.UUID;
         if(pOptions._engine != null) this._engine = pOptions._engine;
         if(pOptions._projectUID != null) this._projectUID = pOptions._projectUID;
+        if(pOptions._orgUUID != null) this._orgUUID = pOptions._orgUUID;
         if(pOptions._outputBuffer != null) this._outputBuffer = pOptions._outputBuffer;
         if(pOptions._errBuffer != null) this._errBuffer = pOptions._errBuffer;
         if(pOptions._pid != null) this._pid = pOptions._pid;
@@ -481,7 +491,7 @@ export class EngineNode implements INode {
          */
         this.operation$.subscribe((pOrder:Order)=>{
             if(pOrder!=null && pOrder.type!=OperationType.USER_WEB_REQUEST){
-                console.log(" NODE MAIN HANDLER TRIGGED ",pOrder, this.isReady());
+                Logger.info(" NODE MAIN HANDLER TRIGGED : "+pOrder+", is ready : "+this.isReady());
             }
 
             if(this.isReady()){
@@ -569,16 +579,33 @@ export class EngineNode implements INode {
 
 
     async saveAll():Promise<void>{
-        console.log('SAVE ALL > ',this);
         return await this.save([
             '_pid','state','purpose',
             'spawnCmd',
             '_hostname','httpPort','httpsPort','wsPort','wssPort','masterURI',
-            'selfReg', '_projectUID',
+            'selfReg', '_projectUID','_orgUUID',
             'startedAt','stoppedAt','createdAt',
             'waitingQueue','activeOpe',
             'running','parentUUID','nodeOpts','activeScanSession'
         ]);
+    }
+
+    /**
+     *
+     * @param pOID
+     * @since 1.8.15
+     */
+    async attachToOrg(pOID:OrganizationUnitUUID):Promise<void> {
+        this._orgUUID = pOID;
+        await this.save(['_orgUUID']);
+    }
+
+    /**
+     *
+     * @since 1.8.15
+     */
+    getOrganization():OrganizationUnitUUID {
+        return this._orgUUID;
     }
     /**
      *
@@ -598,7 +625,6 @@ export class EngineNode implements INode {
             .asyncUpdateEntry(this, { replace:false, $set:pPpt});
 
         Logger.info(`[ENGINE][node=${this.UUID}] Node saved`);
-        console.log(this);
     }
 
     getUID():EngineNodeUUID {
@@ -1029,7 +1055,7 @@ export class EngineNode implements INode {
                         body: JSON.stringify({})
                     }
                 ).then((vRes)=>{
-                    console.log("Project ordered successfully");
+                    Logger.info("Project ordered successfully");
                     console.log(vRes.body);
                     const r = JSON.parse(vRes.body);
                     if(r.success==true){
@@ -1159,7 +1185,7 @@ export class EngineNode implements INode {
         let opts:any = {};
 
 
-        console.log( `[ENGINE NODE] Start to spawn new node [node=${this.UUID}] because : ${pCause}`);
+        Logger.info( `[ENGINE NODE] Start to spawn new node [node=${this.UUID}] because : ${pCause}`);
         try{
             let args:string[] = pNodeOpts;
             const ws:DexcaliburWorkspace =  DexcaliburWorkspace.getInstance();
@@ -1198,8 +1224,6 @@ export class EngineNode implements INode {
             }
 
             Logger.info('[NODE] Spawn command : node '+args.join(' '));
-            //console.log('OUT FILE : '+this.outPipe);
-            //console.log('ERR FILE : '+this.errPipe);
 
             // TODO : remove ? secret leak ?
             this.spawnCmd = args.join(' ');
@@ -1263,9 +1287,9 @@ export class EngineNode implements INode {
                 })();
             });
 
-            console.log( `[ENGINE NODE] node spawned [PID=${this._pid}]:   ${args.join(' ')}  (opts)`);
+            Logger.info( `[ENGINE NODE] node spawned [PID=${this._pid}]:   ${args.join(' ')}  (opts)`);
         }catch(err){
-            console.error('[ENGINE NODE] Detached node error :'+err.message);
+            Logger.info('[ENGINE NODE] Detached node error :'+err.message);
         }
 
         return true;
@@ -1307,7 +1331,8 @@ export class EngineNode implements INode {
             // this.startProject(pAccount,newPrjOrder,pExtraOwnerOpts);
         }*/
 
-        console.log(this);
+        //console.log(this);
+        Logger.info(`[appendToQueue] [node=${this.UUID}] [suspended=${this._suspendQueue?'true':'false'}] ${pOpeType} : Order = ${pOrder!=null? pOrder.getUID() : "NULL"}`)
 
         if(!this._suspendQueue){
             this.operation$.next(null);
@@ -1441,7 +1466,7 @@ export class EngineNode implements INode {
      * @method
      */
     async forwardWebRequest(pServer:WebServer, pRequest:any, pResponse?:any ):Promise<any> {
-        console.log(`[ASYNC] Forward request from [node=${this.parentUUID}] to [node=${this.UUID}][uri=${this.getHost()}][url=${pRequest.url}]`)
+        Logger.info(`[ASYNC] Forward request from [node=${this.parentUUID}] to [node=${this.UUID}][uri=${this.getHost()}][url=${pRequest.url}]`)
        /*console.log({
            hostname: this.getHostname(),
            port: this.httpPort,
@@ -1462,7 +1487,6 @@ export class EngineNode implements INode {
             headers: pRequest.headers
         }, (proxyRes) => {
                 // Copier les headers de la réponse proxy
-                //console.log("RESPONSE HEADERS > ",proxyRes.statusCode, proxyRes.headers);
                 proxyRes.setEncoding('utf8');
                 let rawData = '';
 
@@ -1505,7 +1529,7 @@ export class EngineNode implements INode {
     }
 
     forwardWebRequestSync(pServer:WebServer, pRequest:any, pResponse?:any ):any {
-        console.log(`[SYNC] Forward request from [node=${this.parentUUID}] to [node=${this.UUID}][uri=${this.getHost()}]`)
+        Logger.info(`[SYNC] Forward request from [node=${this.parentUUID}] to [node=${this.UUID}][uri=${this.getHost()}]`)
         const proxyReq = http.request({
             hostname: this.getHost(),
             port: this.httpPort,
@@ -1557,7 +1581,7 @@ export class EngineNode implements INode {
      * @method
      */
     stopped(pEngine:DexcaliburEngine) {
-        console.log("STOPPING "+this.getUID());
+        Logger.info("STOPPING "+this.getUID());
         /*
         try{
             throw new Error('STOOPING');
@@ -1617,7 +1641,6 @@ export class EngineNode implements INode {
 
         this.waitingQueue = self.waitingQueue;
         this.activeOpe = self.activeOpe;
-        //console.log("REFRESH > ACTIVE > ",this.activeOpe);
     }
     /**
      * To pop the next queued order from the waiting queue,
@@ -1701,10 +1724,9 @@ export class EngineNode implements INode {
             org = await (this._engine as DexcaliburEngine).getOrgManager().getOrganization(pUser, pOrder.orgUnit);
         }
 
-        //console.log(project);
         const report = await scheduler.newStandaloneScan(pUser, project, pOrder, org);
 
-        console.log("SERIALIZE REPORT TO SEND TO WEB");
+        Logger.info("SERIALIZE REPORT TO SEND TO WEB");
     }
 
     suspendQueue(pStatus:boolean) {

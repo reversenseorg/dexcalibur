@@ -93,11 +93,6 @@ export class EngineNodeManager {
      */
     slaves:Record<EngineNodeUUID, EngineNode> = {};
 
-    /**
-     Replace by DB request => stateless
-     * @deprecated
-     */
-    projectMapping:Record<DexcaliburProjectUUID, EngineNode[]> = {};
 
     /**
      * Replace by DB request => stateless
@@ -161,8 +156,11 @@ export class EngineNodeManager {
             slavesUuids = this._state.getProperty('slaves');
         }
 
-        // refresh node pool before to reload
-        await this.refreshPool();
+        // avoid to try to detect itself when a new slave node is not yet registered
+        if(!this.engine.isSlaveNode()){
+            // refresh node pool before to reload
+            await this.refreshPool();
+        }
 
         let tmpNode:Nullable<EngineNode> = null;
         if(slavesUuids!=null){
@@ -177,17 +175,6 @@ export class EngineNodeManager {
             }
         }
         this.slaves = slaves;
-
-        let projectMapping = this._state.getProperty('projectMapping');
-        for(let puid in projectMapping){
-            this.projectMapping[puid] = [];
-            for(let i=0; i<projectMapping[puid].length; i++){
-                tmpNode = this.slaves[projectMapping[puid][i]];
-                if(tmpNode!=null){
-                    this.projectMapping[puid].push(tmpNode);
-                }
-            }
-        }
 
         let orgMapping = this._state.getProperty('orgMapping');
         for(let ouid in orgMapping){
@@ -208,11 +195,6 @@ export class EngineNodeManager {
         let orgMapping:Record<OrganizationUnitUUID, EngineNodeUUID[]> = {};
         let slaves:Record<EngineNodeUUID, EngineNodeUUID[]> = {};
 
-        for(let prj in this.projectMapping){
-            prjMapping[prj] = this.projectMapping[prj].map(x => {
-                return x.getUID()
-            });
-        }
         for(let o in this.orgMapping){
             orgMapping[o] = this.orgMapping[o].map(x => {
                 return x.getUID()
@@ -221,7 +203,6 @@ export class EngineNodeManager {
 
         this._state.setProperty('portRange', this.portRange);
         this._state.setProperty('portCounter', this.portCounter);
-        this._state.setProperty('projectMapping', prjMapping);
         this._state.setProperty('orgMapping', orgMapping);
         this._state.setProperty('slaves', Object.keys(this.slaves));
         this._state.setProperty('states', this.states);
@@ -363,29 +344,6 @@ export class EngineNodeManager {
         }
     }
 
-    /*
-     * To check if there is an existing node for this project
-     * @param pProjectUID
-     */
-    /*isStarted(pProjectUID:string):boolean {
-
-        const nodes = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
-            .search({
-                filter: {
-                    _projectUID: { $in: [pProjectUID] }
-                }
-            },{ merlin:false, raw:true });
-
-        const proj = this.projectMapping[pProjectUID];
-        let exists = false;
-
-        proj.map(x => {
-            exists = exists || x.isStarted();
-        });
-
-        return exists;
-    }*/
-
     /**
      *
      * @param pNodeUID
@@ -444,10 +402,6 @@ export class EngineNodeManager {
         }
 
 
-        if(this.projectMapping[pProjectUID]==null){
-            this.projectMapping[pProjectUID] = [];
-        }
-
         if(pOUID!=null){
             if(this.orgMapping[pOUID]==null){
                 this.orgMapping[pOUID] = [];
@@ -457,8 +411,6 @@ export class EngineNodeManager {
         }
 
         this.slaves[uuid] = node;
-        this.projectMapping[pProjectUID].push(node);
-
         // add listeners to event streams :
         node.nodeState$.subscribe((vEvent:StateChangeEvent    )=>{
             // this.onNodeStateChanged(vEvent);
@@ -604,7 +556,6 @@ export class EngineNodeManager {
                 }
             },{merlin:false, raw:true});
 
-        //let nodes = this.projectMapping[pProjectUID];
         if(nodes==null || !Array.isArray(nodes)){
             return [];
         }
@@ -672,25 +623,13 @@ export class EngineNodeManager {
      * @returns {EngineNode[]} The list of node linked to a project by its UID. If there is not node, the list is empty.
      * @method
      */
-    getNodeByOrganizationUUID(pOUID:OrganizationUnitUUID):EngineNode[] {
-        const nodes = this.orgMapping[pOUID];
-        if(nodes==null || !Array.isArray(nodes)){
-            return []
-        }else{
-            return nodes;
-        }
+    async getNodeByOrganizationUUID(pOUID:OrganizationUnitUUID, pRunning = true):Promise<EngineNode[]> {
+        return await this.getNodes({
+            _orgUUID: pOUID,
+            running: pRunning
+        });
     }
 
-    /**
-     * To check if there are one or more nodes linked to a project
-     *
-     * @param {string} pProjectUID
-     * @returns {boolean} TRUE if there are nodes, else FALSE
-     * @method
-     */
-    hasNode(pProjectUID:DexcaliburProjectUUID):boolean {
-        return (this.projectMapping[pProjectUID]!=null && this.projectMapping[pProjectUID].length>0);
-    }
 
     /**
      * SLAVE MODE
@@ -915,7 +854,7 @@ export class EngineNodeManager {
             pOrgUUID
         );
 
-        const nodes = this.getNodeByOrganizationUUID(pOrgUUID);
+        const nodes = await this.getNodeByOrganizationUUID(pOrgUUID);
 
         return (nodes.length<thr.concurrentNodes);
     }
@@ -983,7 +922,13 @@ export class EngineNodeManager {
     async refreshRunningStatus(pNode:EngineNode, pEngine:DexcaliburEngine):Promise<void> {
 
         if(pNode.running){
-            const up = await pNode.getHcStatus(pEngine);
+            let up:boolean;
+
+            if(pNode.getUID()===this.uuid){
+                up = true;
+            }else{
+                up = await pNode.getHcStatus(pEngine);
+            }
 
             //console.log(pNode.getUID(),up,pNode.state);
             if(up===false){
@@ -1016,8 +961,11 @@ export class EngineNodeManager {
         let nodes:EngineNode[] = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                                     .getAsList();
 
+        // if the node is not registered, "this.uuid" is always equal to "local:dxc"
         for(let i=0; i<nodes.length; i++){
-            await this.refreshRunningStatus(nodes[i], this.engine);
+            if(nodes[i].UUID!=this.uuid){
+                await this.refreshRunningStatus(nodes[i], this.engine);
+            }
         }
 
     }

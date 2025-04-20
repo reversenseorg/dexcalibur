@@ -476,6 +476,15 @@ export class ProjectDatabase implements IFileDatabase {
         return obj;
     }
 
+    async updateMany(pObjects:INode[], pNodeType:NodeInternalType, pOptions:any):Promise<any> {
+
+        const info = this._getCollectionInfo(pNodeType);
+        const coll = this._db.getCollection(info.collName, info.collType);
+
+        const rawColl = this._db.db.collection(info.collName);
+        await rawColl.updateMany({ }, { $set:[] }, { upsert: true })
+    }
+
     /**
      * To save an object to corresponding collection
      *
@@ -508,7 +517,7 @@ export class ProjectDatabase implements IFileDatabase {
 
         if(hasUpdate){
             try{
-                obj = await coll.updateMany(toUpdate) as any;
+                obj = await coll.updateMany(pObjects) as any;
             }catch(e){
                 console.log(e.stack,e.msg);
                 //const filterId:any = {};
@@ -686,10 +695,15 @@ export class ProjectDatabase implements IFileDatabase {
      * To save only CLASS/METHOD/FIELD/PACKAGE tagged with pTag
      * and stored in AnalyzerDB
      *
+     * Importoant : TODO : only if dexcalibur engine version checked or if the node is new
+     *
      * @param {AnalyzerDatabase} pDB The analyzer DB
      * @param {Tag} pTag Tag
      */
     async savePartialAnalyzerDB(pDB: AnalyzerDatabase, pTag:Tag):Promise<void>  {
+
+        // TODO : update nodes / track updated fields in nodes /
+        // TODO : avoid to update nodes not modified since last project open or since last update
 
         if(this._ctx.dryRun){
             Logger.success("[PROJECT DB] Analyzer DB didnt  save : dry run mode");
@@ -716,12 +730,21 @@ export class ProjectDatabase implements IFileDatabase {
                 req,
                 result
             ); //.getAsList();
-
+/*
+            let filters:any[] = [];
+            let updt:any[] = [];
+            result.map(x => {
+                const pk = types[i].getPrimaryKey().getName();
+                filters.push({ [pk]: x[pk] });
+                updt.push({ $set: result[i] });
+                return { $set: };
+            });*/
 
             try{
                 Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
                 if(result.size()>0){
-                    await this.saveMany(result.getAsList(), types[i].getType());
+                    await ((this.getCollectionOf(types[i].getType()) as MongodbDbCollection).updateMany(result.getAsList(), {upsert:true}));
+                    //await this.saveMany(result.getAsList(), types[i].getType());
                 }
             }catch (e){
                 Logger.error(e.message);
