@@ -62,6 +62,7 @@ ENV DXC_WS_PORT=${dxc_ws_port}
 ENV DXC_HEAP_SZ=${dxc_heap_size}
 ENV DXC_REL_PATH=""
 
+ENV DXC_NODE_HEAP_SZ=4096
 
 ENV DXC_DB_PORT=${dxc_db_port}
 ENV DXC_DB_HOST=${dxc_db_host}
@@ -307,4 +308,4 @@ EXPOSE ${DXC_HTTP_PORT} ${DXC_WS_PORT}
 # Dexcalibur HTTPS
 EXPOSE 8443
 
-ENTRYPOINT [ "node", "./dexcalibur.js" ]
+ENTRYPOINT [ "node", "--max-old-space-size=$DXC_NODE_HEAP_SZ", "./dexcalibur.js" ]
