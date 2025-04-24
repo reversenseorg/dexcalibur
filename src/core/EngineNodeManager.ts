@@ -15,6 +15,7 @@ import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {ValidationRule} from "../Validator.js";
 import {CryptoUtils} from "../CryptoUtils.js";
+import {Subject} from "rxjs";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -29,6 +30,18 @@ export interface MasterNodeOptions {
 export interface NodeLockTimeout {
     user: number,
     node: number
+}
+
+export interface RegisterNodeOptions {
+    masterURI:string;
+    regKeyName:string;
+    regKey:string;
+    http:number;
+    https:number;
+    ws:number;
+    hostIP:string;
+    timeout:number;
+    pollLimit:number;
 }
 
 
@@ -116,12 +129,24 @@ export class EngineNodeManager {
      */
     masterURI:Nullable<string> = null;
 
+    updateUUID$:Subject<EngineNodeUUID> = new Subject();
+
 
     constructor(pMasterEngine:DexcaliburEngine, pCurrentUID:EngineNodeUUID) {
         // UUID of this engine node
         this.uuid = pCurrentUID;
         this.engine = pMasterEngine;
         this.setPortRange(10200,10300);
+
+        this.updateUUID$.subscribe((vUUID:EngineNodeUUID)=>{
+
+            this.uuid = vUUID;
+            this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
+                .asyncUpdateEntry(this, { replace:false, $set:['uuid']})
+                .then(()=>{
+                    console.log('Saved UUID');
+                })
+        })
     }
 
     async recoverRunningSlaves():Promise<EngineNodeUUID[]> {
@@ -660,6 +685,55 @@ export class EngineNodeManager {
 
 
     /**
+     * TODO : move to a worker
+     * @param pOptions
+     */
+     async registerMasterRunner(pOptions:RegisterNodeOptions):Promise<EngineNodeUUID> {
+
+
+        if(pOptions.masterURI==null){
+            throw EngineNodeException.INVALID_MASTER_URI('notify');
+        }
+
+        let uuid:EngineNodeUUID;
+        let intervalID:any;
+        let i = 0;
+
+        intervalID = setInterval(()=>{
+
+            Logger.info(` [${i}] Try to register node. URI :`+pOptions.masterURI+"/api/node/webhook/register");
+            GOT(pOptions.masterURI+"/api/node/webhook/register", {
+                method: 'POST',
+                headers: {
+                    // this one is mandatory to be processed by master middleware of /api/node/** routes
+                    [EngineNodeManager.HEADER_NODE_HOST]: pOptions.hostIP,
+                    ['x-dxc-'+pOptions.regKeyName]: pOptions.regKey
+                    // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
+                },
+                json: {
+                    http: pOptions.http,
+                    https: pOptions.https,
+                    ws: pOptions.ws,
+                }
+            }).then((response)=>{
+                if(response.body!=null){
+                    const repData  = JSON.parse(response.body);
+                    if((repData as any).success==true){
+                        Logger.success("[NODE MGR] Node registered : "+repData.data.uuid);
+                        clearInterval(intervalID);
+                        this.updateUUID$.next(repData.data.uuid);
+                    }
+                }
+            }).catch((err)=>{ });
+
+
+        }, pOptions.timeout);
+
+        return;
+    }
+
+
+    /**
      * SLAVE MODE
      *
      * To register this node to the master when self registration is enabled
@@ -672,6 +746,20 @@ export class EngineNodeManager {
             throw EngineNodeException.INVALID_MASTER_URI('notify');
         }
 
+         await this.registerMasterRunner({
+            masterURI: this.masterURI,
+            hostIP:(process.env.DXC_PRIV_IP!=null ? process.env.DXC_PRIV_IP:'127.0.0.1'),
+            regKeyName: this.getRegistrationKeyName(),
+            regKey:  this.getRegistrationKey(),
+            http: this.engine.getWebserver().getPort(),
+            https: this.engine.getWebsocketServer().getPort(),
+            ws: this.engine.getWebsocketServer().getPort(),
+            timeout: 1000,
+            pollLimit: -1
+        });
+
+        return ;
+/*
         Logger.info("[ENGINE NODE][GOT] Register master  : "+this.masterURI+"/api/node/webhook/register");
 
         console.log({
@@ -712,7 +800,7 @@ export class EngineNodeManager {
             }
         }
         //const raw = JSON.parse(response.body);
-        return;
+        return;*/
     }
 
     /**
