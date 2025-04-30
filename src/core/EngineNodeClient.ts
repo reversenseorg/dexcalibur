@@ -63,4 +63,15 @@ export class EngineNodeClient extends HttpClient {
             return false;
         }
     }
+
+    async stop():Promise<boolean> {
+        try{
+            // Logger.info("[ENGINE NODE][HEALTH] Request node healthcheck : "+this.baseURL+"api/health/ready");
+            const response = await this.perform("api/node/stop");
+            return (response.body==='OK');
+        }catch(e){
+            Logger.error(e.stack);
+            return false;
+        }
+    }
 }

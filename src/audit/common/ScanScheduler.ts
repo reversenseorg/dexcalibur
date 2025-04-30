@@ -204,7 +204,7 @@ export class ScanScheduler {
             NodePurpose.ANY
         );
 
-        // no ready node, search running, budy, node
+        // no ready node, search running, busy, node
         if(node==null){
 
             const projNodes = await this._ctx.getNodeManager()
@@ -216,6 +216,8 @@ export class ScanScheduler {
                 }
             }
         }
+
+
 
         // if always no node, create a new one
         if(node==null){
@@ -232,6 +234,11 @@ export class ScanScheduler {
 
         }else{
             node.setEngine(this._ctx);
+
+
+            if(pExtraOpts.orgUnit!=null){
+                await node.attachToOrg(pExtraOpts.orgUnit);
+            }
 
             for(let i=0; i<pOrders.length; i++){
                 pOrders[i].slaveUID=node.getUID();
@@ -266,6 +273,11 @@ export class ScanScheduler {
             if(node != null){
                 pOrder.slaveUID = node.getUID();
             }
+        }
+
+
+        if(pOrder.orgUnit!=null){
+            await node.attachToOrg(pOrder.orgUnit);
         }
 
         // save order

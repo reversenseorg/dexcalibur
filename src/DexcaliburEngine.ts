@@ -62,7 +62,6 @@ import {OrganizationManager} from "./organization/OrganizationManager.js";
 import {AccessControlManager} from "./user/acl/AccessControlManager.js";
 import {randomUUID} from "crypto";
 import {ProjectManager} from "./project/ProjectManager.js";
-import ts from "typescript/lib/tsserverlibrary.js";
 import {InternalSecretManager} from "./core/InternalSecretManager.js";
 import {ApplicationUnit} from "./organization/ApplicationUnit.js";
 import {Device} from "./Device.js";
@@ -494,6 +493,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     projectScheduler: ProjectScheduler;
 
     private _updateMode = false;
+
+    private _engOpts:DexcaliburEngineOptions = {};
+
     /**
      * To instanciate DexcaliburEngine.
      *
@@ -516,6 +518,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         if(pEngineOptions!=null){
             this.setEngineMode(pEngineOptions.engine_mode);
             this.offline = (pEngineOptions.offline===true);
+            this._engOpts = pEngineOptions;
         }
 
         NodeSchema.init();
@@ -977,7 +980,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @returns {Boolean} TRUE if ready to start
      * @method
      */
-    async boot( pRestore=false, pGuiCfgStr:string = DexcaliburEngine.DEFAULT_GUI):Promise<any>{
+    async boot( pRestore=false, pGuiCfgStr:string = DexcaliburEngine.DEFAULT_GUI, pNoCtrl = false):Promise<any>{
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self:DexcaliburEngine=this;
 
@@ -1046,6 +1049,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             Logger.debug('PASS4');
         })();
+
+        // start engine controller
+        if(!pNoCtrl && this.engine_type===DexcaliburEngineMode.MASTER){
+            await this.getNodeManager().startController();
+        }
 
 
         return true;
@@ -1230,6 +1238,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @param pUI {Path} (Optional) Web root of the UI
      */
     start( pWebPort:string|number=null, pUI:string=null){
+
+
 
 
         const s =this.getSettings().getWebserverSettings();
@@ -1829,12 +1839,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             // kill children nodes
             (async ()=>{
-                if(!this.isSlaveNode()){
-                    await this.nodeManager.killNodes('SIGINT');
-                }
-
-                Logger.success('DxEngine has been stopped successfully');
-                process.exit(0);
+                await this.exit(true);
             })();
 
         });
@@ -1897,6 +1902,33 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     isUpdateMode():boolean {
         return this._updateMode;
+
+    }
+
+    /**
+     * @since 1.8.16
+     * @method
+     */
+    getOptions():DexcaliburEngineOptions {
+        return this._engOpts;
+    }
+
+    async exit(pKillAll = false):Promise<void> {
+
+        if(!this.isSlaveNode()){
+            if(pKillAll){
+                await this.nodeManager.killNodes('SIGINT');
+            }
+        }else{
+           const node = await this.nodeManager.getEngineNodeByUUID(this.nodeManager.uuid);
+
+            if(node!=null){
+                await node.stopped(this);
+            }
+        }
+
+        Logger.success('DxEngine has been stopped successfully');
+        process.exit(0);
     }
 }
 

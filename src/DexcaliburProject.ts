@@ -96,6 +96,7 @@ import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js
 import {ApplicationUnit, ApplicationUnitUUID} from "./organization/ApplicationUnit.js";
 import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
+import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -3206,6 +3207,23 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             );
         }
 
+    }
+
+    /**
+     * Get orgUID from owner attr
+     */
+    getOrgUID():Nullable<OrganizationUnitUUID> {
+        try{
+            let attr = this.getAccessAttribute(GlobalAccessControl.attr.ORG);
+            if(attr.value.length==1){
+                return attr.value[0];
+            }
+        }
+        catch (e){
+            console.log(e);
+        }
+
+        return null;
     }
 
 }

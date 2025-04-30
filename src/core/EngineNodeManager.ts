@@ -16,11 +16,16 @@ import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {ValidationRule} from "../Validator.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {Subject} from "rxjs";
+import {EngineNodeManagerWorker} from "./controller/EngineNodeManagerWorker.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const GOT = got.default;
 
+export interface EngineNodeInfo {
+    idleTime: number;
+    node: EngineNode;
+}
 
 export interface MasterNodeOptions {
     uri: string;
@@ -82,6 +87,8 @@ export class EngineNodeManager {
     static readonly HEADER_NODE_HOST = 'x-dxc-nodehost';
 
 
+    private _self:Nullable<EngineNode> = null;
+
     /**
      * UUID of this instance (engine node) into reversense pod
      *
@@ -132,6 +139,9 @@ export class EngineNodeManager {
     updateUUID$:Subject<EngineNodeUUID> = new Subject();
 
 
+    private _ctrl:Nullable<EngineNodeManagerWorker> = null;
+
+
     constructor(pMasterEngine:DexcaliburEngine, pCurrentUID:EngineNodeUUID) {
         // UUID of this engine node
         this.uuid = pCurrentUID;
@@ -141,6 +151,8 @@ export class EngineNodeManager {
         this.updateUUID$.subscribe((vUUID:EngineNodeUUID)=>{
 
             this.uuid = vUUID;
+            //this.p
+
             this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
                 .asyncUpdateEntry(this, { replace:false, $set:['uuid']})
                 .then(()=>{
@@ -199,18 +211,6 @@ export class EngineNodeManager {
                 }
             }
         }
-        this.slaves = slaves;
-
-        let orgMapping = this._state.getProperty('orgMapping');
-        for(let ouid in orgMapping){
-            this.orgMapping[ouid] = [];
-            for(let i=0; i<orgMapping[ouid].length; i++){
-                tmpNode = this.slaves[orgMapping[ouid][i]];
-                if(tmpNode!=null){
-                    this.orgMapping[ouid].push(tmpNode);
-                }
-            }
-        }
     }
 
 
@@ -218,7 +218,6 @@ export class EngineNodeManager {
 
         let prjMapping:Record<DexcaliburProjectUUID, EngineNodeUUID[]> = {};
         let orgMapping:Record<OrganizationUnitUUID, EngineNodeUUID[]> = {};
-        let slaves:Record<EngineNodeUUID, EngineNodeUUID[]> = {};
 
         for(let o in this.orgMapping){
             orgMapping[o] = this.orgMapping[o].map(x => {
@@ -229,7 +228,6 @@ export class EngineNodeManager {
         this._state.setProperty('portRange', this.portRange);
         this._state.setProperty('portCounter', this.portCounter);
         this._state.setProperty('orgMapping', orgMapping);
-        this._state.setProperty('slaves', Object.keys(this.slaves));
         this._state.setProperty('states', this.states);
         this._state.setProperty('masterURI', this.masterURI);
 
@@ -316,12 +314,16 @@ export class EngineNodeManager {
     async getReadySlave(pProjectUID:DexcaliburProjectUUID, pPurpose:NodePurpose,
                         pOrg:Nullable<OrganizationUnitUUID> = null):Promise<Nullable<EngineNode>>{
 
-        let nodes = await
-                this.getNodes( {
-                    _projectUID: { $in: [pProjectUID] },
-                    state: NodeState.IDLE,
-                    running: true
-                });
+        let filter:any = {
+            _projectUID: { $in: [pProjectUID] },
+            state: NodeState.IDLE,
+            running: true
+        };
+
+        if(pOrg!=null){
+            filter._orgUUID = { $in: [pOrg] };
+        }
+        let nodes = await this.getNodes( filter);
 
         console.log('Ready slave before filtering : ',nodes.length,' '+nodes.map(x => x.purpose).join(','));
         if(pPurpose!=NodePurpose.ANY){
@@ -347,18 +349,25 @@ export class EngineNodeManager {
 
         // node with self-registration enabled, are created before to be assigned to
         // a project. In such scenario, the function must search for IDLE node with empty project UID
-        let nodes = await
-            this.getNodes( {
-                _projectUID: null,
-                state: NodeState.IDLE,
-                running: true
-            });
+        let filter:any = {
+            _projectUID: null,
+            state: NodeState.IDLE,
+            running: true
+        };
 
-        console.log('Free slave before filtering : ',nodes.length,' '+nodes.map(x => x.purpose).join(','));
+        if(pOrg!=null){
+            filter._orgUUID = { $in: [pOrg] };
+        }else{
+            filter._orgUUID = null;
+
+        }
+        let nodes = await this.getNodes( filter);
+
+        console.log(`Free slave before filtering [org=${pOrg}]: `,nodes.length,' '+nodes.map(x => x.purpose).join(','));
         if(pPurpose!=NodePurpose.ANY){
             nodes = nodes.filter(x => (x.purpose==pPurpose || x.purpose==NodePurpose.ANY));
         }
-        console.log('Free slave after filtering : ',nodes.length);
+        console.log('Free slave after filtering [org=${pOrg}]: ',nodes.length);
 
         if(nodes.length>0){
             nodes.map(x => x.setEngine(this.engine));
@@ -403,6 +412,10 @@ export class EngineNodeManager {
         node.setMasterUri(this.getLocalURI());
         node.setPurpose(pPurpose);
 
+        if(pOUID!=null){
+            await node.attachToOrg(pOUID, false);
+        }
+
         // if self-registration mode  is enabled, the node will be queued and wait en engine start
         // and registry himself to master
         if(this.selfRegistration){
@@ -427,15 +440,8 @@ export class EngineNodeManager {
         }
 
 
-        if(pOUID!=null){
-            if(this.orgMapping[pOUID]==null){
-                this.orgMapping[pOUID] = [];
-            }
 
-            this.orgMapping[pOUID].push(node);
-        }
 
-        this.slaves[uuid] = node;
         // add listeners to event streams :
         node.nodeState$.subscribe((vEvent:StateChangeEvent    )=>{
             // this.onNodeStateChanged(vEvent);
@@ -453,7 +459,7 @@ export class EngineNodeManager {
         // update node manager state
         await this.saveInternalState();
 
-        return node; //this.slaves[uuid];
+        return node;
     }
 
 
@@ -493,8 +499,6 @@ export class EngineNodeManager {
             node.setMaxHeapSize(parseInt(process.env.DXC_NODE_HEAP_SZ,10));
         }
 
-        this.slaves[uuid] = node;
-
         // save node state
         await node.saveInternalState();
 
@@ -525,19 +529,19 @@ export class EngineNodeManager {
    async getEngineNodeByUUID(pNodeUUID:EngineNodeUUID):Promise<Nullable<EngineNode>> {
 
        if(pNodeUUID==DexcaliburEngine.DEFAULT_UID){
-           this.slaves[pNodeUUID] = new EngineNode({ parentUUID:null, UUID:DexcaliburEngine.DEFAULT_UID });
-           if(this.slaves[pNodeUUID]!=null){
-               return this.slaves[pNodeUUID];
+           if(this._self!=null){
+               return this._self;
            }else{
-               return new EngineNode({ parentUUID:null, UUID:DexcaliburEngine.DEFAULT_UID });
+               return this._self = new EngineNode({ parentUUID:null, UUID:DexcaliburEngine.DEFAULT_UID });
            }
        }
-        const node = await (this.engine.getEngineDB()
-            .getCollectionOf(EngineNode.TYPE.getType())as MongodbDbCollection)
-            .asyncGetEntry({ UUID: pNodeUUID });
 
-        node.setEngine(this.engine);
-       await node.loadInternalState();
+        const node = await this.getNodeByUUID(pNodeUUID);
+
+       if(node!=null){
+           node.setEngine(this.engine);
+           await node.loadInternalState();
+       }
 
        return node;
    }
@@ -669,7 +673,7 @@ export class EngineNodeManager {
             throw EngineNodeException.INVALID_MASTER_URI('notify');
         }
 
-        Logger.info("[ENGINE NODE][GOT] Notify master  : "+this.masterURI+"/api/node/webhook/state/"+pState);
+        Logger.info("[NODE MANAGER][GOT] Notify master  : "+this.masterURI+"/api/node/webhook/state/"+pState);
 
         const response = await GOT(this.masterURI+"/api/node/webhook/state/"+pState, {
             headers: {
@@ -701,7 +705,7 @@ export class EngineNodeManager {
 
         intervalID = setInterval(()=>{
 
-            Logger.info(` [${i}] Try to register node. URI :`+pOptions.masterURI+"/api/node/webhook/register");
+            Logger.info(`[NODE MANAGER]  [${i}] Try to register node. URI :`+pOptions.masterURI+"/api/node/webhook/register");
             GOT(pOptions.masterURI+"/api/node/webhook/register", {
                 method: 'POST',
                 headers: {
@@ -719,7 +723,7 @@ export class EngineNodeManager {
                 if(response.body!=null){
                     const repData  = JSON.parse(response.body);
                     if((repData as any).success==true){
-                        Logger.success("[NODE MGR] Node registered : "+repData.data.uuid);
+                        Logger.success("[NODE MANAGER] Node registered : "+repData.data.uuid);
                         clearInterval(intervalID);
                         this.updateUUID$.next(repData.data.uuid);
                     }
@@ -919,7 +923,7 @@ export class EngineNodeManager {
                             nodes[i].kill();
                         }
                         // save state
-                        nodes[i].stopped(this.engine);
+                        await nodes[i].stopped(this.engine);
                     }catch (e){}
                 }
                 break;
@@ -991,7 +995,7 @@ export class EngineNodeManager {
      */
     async printNodes(pAccount:UserAccount):Promise<void> {
 
-        await this.refreshPool();
+        await this.refreshPool(false);
 
         const nodes:EngineNode[] = await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
             .getAsList();
@@ -1007,7 +1011,7 @@ export class EngineNodeManager {
      *
      * @param pNode
      */
-    async refreshRunningStatus(pNode:EngineNode, pEngine:DexcaliburEngine):Promise<void> {
+    async refreshRunningStatus(pNode:EngineNode, pEngine:DexcaliburEngine, pRemove = true):Promise<boolean> {
 
         if(pNode.running){
             let up:boolean;
@@ -1021,7 +1025,12 @@ export class EngineNodeManager {
             //console.log(pNode.getUID(),up,pNode.state);
             if(up===false){
                 if([NodeState.QUEUED,NodeState.NEW].indexOf(pNode.state)==-1){
-                    pNode.stopped(this.engine);
+                    await pNode.stopped(this.engine);
+                    if(pRemove){
+                        await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
+                            .asyncRemoveEntry(pNode);
+                    }
+                    return false;
                 }
             }else if(up===null) {
                 // check/flush
@@ -1035,27 +1044,53 @@ export class EngineNodeManager {
                     || (pNode.startedAt>-1 && startDelay > 24)
                 ) {
                     // mark node as stopped and flush data for node running for more than 24 hours
-                    pNode.stopped(this.engine);
+                    await pNode.stopped(this.engine);
+                    if(pRemove==true){
+                        await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
+                            .asyncRemoveEntry(pNode);
+                    }
+
+                    return false;
                 }
             }
+            return true;
+        }else{
+            if(pNode.getUID()!=this.uuid && pRemove==true){
+                    await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
+                        .asyncRemoveEntry(pNode);
+
+            }
+
+            // remove
+            /*await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
+                .asyncRemoveEntry(pNode);*/
         }
     }
 
     /**
      * To refresh the state of all nodes, update pools
      */
-    async refreshPool():Promise<void> {
+    async refreshPool(pRemove = true):Promise<EngineNodeInfo[]> {
 
         let nodes:EngineNode[] = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                                     .getAsList();
 
+        let info:EngineNodeInfo[] = [];
         // if the node is not registered, "this.uuid" is always equal to "local:dxc"
+        let up = false;
         for(let i=0; i<nodes.length; i++){
             if(nodes[i].UUID!=this.uuid){
-                await this.refreshRunningStatus(nodes[i], this.engine);
+                up = await this.refreshRunningStatus(nodes[i], this.engine, pRemove);
+                if(up){
+                    info.push({
+                        node: nodes[i],
+                        idleTime: -1 // (nodes[i].state===NodeState.IDLE ? )
+                    })
+                }
             }
         }
 
+        return info;
     }
 
     /**
@@ -1247,5 +1282,31 @@ export class EngineNodeManager {
         return (await this.getNodes({
             running: true
         })).length;
+    }
+
+    async startController():Promise<void> {
+        if(!this.engine.isStandaloneMode() && !this.engine.isSlaveNode()){
+            this._ctrl = await EngineNodeManagerWorker.newNodeController(
+                this.engine,
+                (vMessage:any)=>{
+                    console.log("FROM THREAD > ",vMessage);
+                },15000);
+
+            await this._ctrl.start();
+        }
+    }
+
+    async stopController():Promise<void> {
+        if(this._ctrl==null) return ;
+
+        await this._ctrl.stop();
+    }
+
+    async getSelfNode():Promise<Nullable<EngineNode>> {
+        if(this.uuid===DexcaliburEngine.DEFAULT_UID){
+            return new EngineNode({ UUID:DexcaliburEngine.DEFAULT_UID });
+        }else{
+            return await this.getEngineNodeByUUID(this.uuid);
+        }
     }
 }

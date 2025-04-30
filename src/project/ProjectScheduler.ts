@@ -145,7 +145,7 @@ export class ProjectScheduler {
         );
 
         // check ressources quotas
-        if(await this._ctx.nodeManager.canCreateNode(pOrder.getOrganizationUnit())){
+        if(node==null && await this._ctx.nodeManager.canCreateNode(pOrder.getOrganizationUnit())){
             // start a new node
             node = await this._ctx.nodeManager.createNode(pOrder.settings.projectUID, NodePurpose.NEW_PRJ, pOrder.getOrganizationUnit());
             node.start("New project ordered");

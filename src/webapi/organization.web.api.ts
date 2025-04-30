@@ -280,6 +280,66 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/runners',
+    {
+        'get':  async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any>=>{
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                const runners = await $.context.getOrgManager().getRunners(pReq.user,org);
+
+                $.sendSuccess( pRes, runners.map(x => x.toJsonObject(null, SecurityZone.PUBLIC)));
+
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization keychain cannot be reroll.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/runner/:nid/stop',
+    {
+        'post':  async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any>=>{
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                $.sendSuccess( pRes, { done: await $.context.getOrgManager().stopRunner(pReq.user, org, pReq.params.nid) });
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization keychain cannot be reroll.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
 ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:oid/au/create',
     {

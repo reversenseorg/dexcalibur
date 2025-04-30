@@ -42,6 +42,7 @@ import {OrganizationEmailBuilder} from "./OrganizationEmailBuilder.js";
 import {AccessAttribute} from "../user/acl/AccessAttribute.js";
 import {AccessControlException} from "../errors/AccessControlException.js";
 import {Auditable} from "../Auditable.js";
+import {EngineNode, EngineNodeUUID} from "../core/EngineNode.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2456,5 +2457,41 @@ The Reversense Team
 
         return ch;
 
+    }
+
+    /**
+     * To get running nodes assicated to org
+     * @param pUser
+     * @param pOrg
+     */
+    async getRunners(pUser: UserAccount, pOrg: OrganizationUnit):Promise<EngineNode[]> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_READ,
+            pUser,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.MEMBER_GRP,
+                OrganizationAccessControl.attr.OWNER
+            ]
+        );
+
+        return await this._ctx.getNodeManager().getNodeByOrganizationUUID(pOrg.getUID());
+    }
+
+    async stopRunner(pUser: UserAccount, pOrg: OrganizationUnit, pNode:EngineNodeUUID):Promise<boolean> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_MODIFY,
+            pUser,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.MEMBER_GRP,
+                OrganizationAccessControl.attr.OWNER
+            ]
+        );
+
+
+        (await this._ctx.getNodeManager().getEngineNodeByUUID(pNode)).kill();
+
+        return true;
     }
 }

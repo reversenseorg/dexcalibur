@@ -984,7 +984,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         projectUID: req.body.projectUID
                     });
 
-                    order.orgUnit = org!=null?org.getUID():null;
+                    order.orgUnit = org!=null?org.getUID():project.getOrgUID();
                     order.appUnit = app!=null?app.getUID():null;
                     // file upload
                     if(req.body.fileUploadID!=null){
@@ -1020,6 +1020,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         req.user,
                         req.body.projectUID,
                         orders,{
+                            orgUnit: project.getOrgUID(),
                             cookie: req.cookies
                         }
                     );

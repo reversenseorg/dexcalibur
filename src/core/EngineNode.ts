@@ -36,6 +36,7 @@ import {WebsocketClient} from "../WebsocketClient.js";
 import {K8ResourceType, K8sHelper} from "./k8s/K8sHelper.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {SecurityZone} from "../security/SecurityZone.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const GOT = got.default;
@@ -595,9 +596,9 @@ export class EngineNode implements INode {
      * @param pOID
      * @since 1.8.15
      */
-    async attachToOrg(pOID:OrganizationUnitUUID):Promise<void> {
+    async attachToOrg(pOID:OrganizationUnitUUID, pSave = true):Promise<void> {
         this._orgUUID = pOID;
-        await this.save(['_orgUUID']);
+        if(pSave) await this.save(['_orgUUID']);
     }
 
     /**
@@ -1363,24 +1364,46 @@ export class EngineNode implements INode {
     /**
      * To kill this node
      *
-     * Only work when parallelism is based on top of process
-     * (not on top of self registration)
      *
      * @method
      */
     kill():void {
 
-        if(this._pid==-1 || this._pid==null) return;
+        if(this.selfReg){
+            try{
 
-        try{
-            _ps_.kill(this._pid);
+                if(this._httpClient == null){
+                    this._initHttpClient();
+                }
 
-            if(this._engine!=null){
-                (async ()=>{ await this.stopped(this._engine as DexcaliburEngine); })();
+
+
+
+                this._httpClient.stop().then(()=>{
+                    this.stopped(this._engine as DexcaliburEngine).then(()=>{
+                        (this._engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
+                            .asyncRemoveEntry(this).then(()=>{
+                                Logger.success(`[ENGINE NODE][NODE=${this.UUID}] Killed remotely.`);
+                            });
+                    })
+                })
+
+            }catch (e){
+                Logger.error(`[ENGINE NODE][NODE=${this.UUID}] Cannot be killed remotely : ${e.message} ${e.stack}`);
             }
-            Logger.success(`[ENGINE NODE][NODE=${this.UUID}] Killed.`)
-        }catch(e){
-            Logger.error(`[ENGINE NODE][NODE=${this.UUID}] Cannot be killed : ${e.message} ${e.stack}`);
+        }else{
+            if(this._pid==-1 || this._pid==null) return;
+
+            try{
+                _ps_.kill(this._pid);
+
+                if(this._engine!=null){
+                    (async ()=>{ await this.stopped(this._engine as DexcaliburEngine); })();
+                }
+                Logger.success(`[ENGINE NODE][NODE=${this.UUID}] Killed.`)
+            }catch(e){
+                Logger.error(`[ENGINE NODE][NODE=${this.UUID}] Cannot be killed : ${e.message} ${e.stack}`);
+            }
         }
     }
 
@@ -1437,24 +1460,32 @@ export class EngineNode implements INode {
         return (time+pTimeout) < (new Date().getTime());
     }
 
-    toJsonObject():any {
-        return {
+    toJsonObject(pOption = null, pZone = SecurityZone.PUBLIC):any {
+        let o:any = {
             UUID: this.UUID,
             _projectUID: this._projectUID,
-            httpPort: this.httpPort,
-            httpsPort: this.httpsPort,
             running: this.running,
             state: this.state,
             activeScanSession: this.activeScanSession,
             purpose: this.purpose,
             history: this.history,
             waitingQueue: this.waitingQueue,
-            spawnCmd: this.spawnCmd,
-            pid: this._pid,
-            selfReg: this.selfReg
+            selfReg: this.selfReg,
+            startedAt: this.startedAt,
+            stoppedAt: this.stoppedAt,
+            createdAt: this.createdAt,
             //errPipe: (this.errPipe!=null),
             //outPipe: (this.outPipe!=null)
         };
+
+        o.pid = this._pid;
+        if(pZone!=SecurityZone.PUBLIC){
+            o.spawnCmd = this.spawnCmd;
+            o.httpPort = this.httpPort;
+            o.httpsPort = this.httpsPort;
+        }
+
+        return o;
     }
 
     /**
@@ -1550,6 +1581,10 @@ export class EngineNode implements INode {
         pResponse.pipe(proxyReq);
     }
 
+    private _initHttpClient(){
+        this._httpClient = new EngineNodeClient(this.getHostname(), this.httpPort+"", this._engine as DexcaliburEngine);
+    }
+
     /**
      * To check if the node is up or not
      *
@@ -1562,7 +1597,7 @@ export class EngineNode implements INode {
         }
 
         if(this._httpClient == null){
-            this._httpClient = new EngineNodeClient(this.getHostname(), this.httpPort+"", this._engine as DexcaliburEngine);
+            this._initHttpClient();
         }
 
         //Logger.info("[ENGINE NODE] getHcStatus > ",this.state);
@@ -1580,7 +1615,7 @@ export class EngineNode implements INode {
      * @param {DexcaliburEngine} pEngine
      * @method
      */
-    stopped(pEngine:DexcaliburEngine) {
+    async stopped(pEngine:DexcaliburEngine):Promise<void> {
         Logger.info("STOPPING "+this.getUID());
         /*
         try{
@@ -1604,7 +1639,7 @@ export class EngineNode implements INode {
 
         if(this._engine==null) this._engine = pEngine;
 
-        this.save(['running','state','stoppedAt','startedAt']);
+        await this.save(['running','state','stoppedAt','startedAt']);
     }
 
     /**

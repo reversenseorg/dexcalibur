@@ -132,3 +132,61 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
         }
     }
 );
+
+
+
+/**
+ * A webhook used by slave nodes to send state/health checks to master node
+ *
+ */
+NODE_MGR_WEB_API.addAsyncPublicRoute(
+    '/stop',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+
+
+                // TODO : authenticate
+
+                /*
+                let unsafeKey = req.headers['x-dxc-'+$.context.nodeManager.getRegistrationKeyName()];
+
+                if(Array.isArray(unsafeKey) && unsafeKey.length>0){
+                    unsafeKey = unsafeKey[0];
+                }
+
+                const unsafeHost = req.headers[EngineNodeManager.HEADER_NODE_HOST];
+
+                // validate
+                const nodeUUID = await $.context.nodeManager.registerNode(
+                    Buffer.from(unsafeKey as string),
+                    unsafeHost as string,
+                    {
+                        http: req.body.http,
+                        https: req.body.https,
+                        ws: req.body.ws,
+                    }
+                );
+                */
+
+                if($.context.isSlaveNode()){
+                    await $.context.exit();
+                    $.sendSuccess(res, 'ok');
+                }else{
+                    throw new Error("Master or standalone nodes cannot be killed remotely.");
+                }
+
+            }catch(err){
+                Logger.error("[API][NODE] Node cannot be killed.",err.stack);
+                //console.log(req.headers);
+                $.sendErrorAfterException(
+                    res,
+                    NODE_MGR_WEB_API.name,
+                    "Node cannot be registered",
+                    err);
+            }
+        }
+    }
+);

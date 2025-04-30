@@ -289,12 +289,17 @@ export class ProjectManager {
         // search slave ready
         let node:Nullable<EngineNode> = await this._ctx.nodeManager.getReadySlave(
             proj.getUID(),
-            NodePurpose.NEW_PRJ
+            NodePurpose.NEW_PRJ,
+            pOrg.getUID()
         );
 
-        // search
         if(node==null){
+            // search free node assigned to org
             node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, pOrg.getUID());
+        }
+        if(node==null){
+            // search free node not assigned to an org
+            node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, null);
         }
 
         // create workflow
@@ -1027,6 +1032,7 @@ export class ProjectManager {
             freeNode = await this._ctx.getNodeManager().getFreeSlave(pPurpose, oid);
 
             if(freeNode != null){
+                freeNode.attachToOrg(oid);
                 freeNode.setProject(pProjectUID);
                 await freeNode.saveAll();
                 Logger.debug(`[proj=${pProjectUID}][org=${oid}][openRemotely] A free slave has been assigned to proj+org, return it `);
@@ -1041,8 +1047,10 @@ export class ProjectManager {
 
 
         freeNode = await this._ctx.getNodeManager().getFreeSlave(pPurpose);
+        const orgUUID = prj.getOrgUID();
 
         if(freeNode!=null){
+            if(orgUUID!=null) freeNode.attachToOrg(orgUUID,false);
             freeNode.setProject(pProjectUID);
             await freeNode.saveAll();
 
@@ -1051,7 +1059,7 @@ export class ProjectManager {
         }else{
             Logger.debug(`[proj=${pProjectUID}][openRemotely] No free slave ready for proj, create a new slave node `);
             // if the project is not attached to aan app unit, then there is no quota
-            return await this._ctx.getNodeManager().createNode(pProjectUID,pPurpose);
+            return await this._ctx.getNodeManager().createNode(pProjectUID,pPurpose, orgUUID);
         }
 
 

@@ -80,6 +80,7 @@ export interface Logger {
     raw(...args:string[]):LoggerAction;
     pop():string;
     push(prefix:string):string[];
+    updateCfg(pConfig:any):void;
 }
 
 
@@ -90,6 +91,7 @@ export class TestLogger implements Logger
     cache: TestMessage[] = [];
     cacheTag: string = null;
     debugEnabled: boolean = false;
+    quiet = false;
 
     constructor(debugMode:boolean){
         this.debugEnabled = debugMode;
@@ -173,6 +175,10 @@ export class TestLogger implements Logger
         this.prefix.push(prefix);
         return this.prefix;
     }
+
+    updateCfg(pConfig: any) {
+        if(pConfig.quiet!=null) this.quiet = pConfig.quiet;
+    }
 }
 
 function time(){
@@ -181,6 +187,7 @@ function time(){
 
 export class ProdLogger implements Logger
 {
+    quiet = false;
     prefix: string[] = [];
     debugEnabled: boolean = false;
 
@@ -189,16 +196,25 @@ export class ProdLogger implements Logger
         this.debugEnabled = debugMode;
     }
 
+
+    updateCfg(pConfig: any) {
+        if(pConfig.quiet!=null) this.quiet = pConfig.quiet;
+    }
+
     enableDebug(){
         this.debugEnabled = true;
     }
 
     error(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
+
         PRINT(chalk.bold.red(time()+'[ERROR] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     debug(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
+
         if(this.debugEnabled)
             PRINT(chalk.bold.blue(time()+'[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
@@ -206,6 +222,8 @@ export class ProdLogger implements Logger
 
 
     debugRAW(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
+
         if(this.debugEnabled)
             PRINT(args);
         return LoggerAction;
@@ -215,6 +233,7 @@ export class ProdLogger implements Logger
      * TODO : TestLogger
      */
     debugPink(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
         if(this.debugEnabled)
             PRINT(chalk.bold.magenta(time()+'[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
@@ -222,28 +241,33 @@ export class ProdLogger implements Logger
 
 
     debugBgRed(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
         if(this.debugEnabled)
             PRINT(chalk.white.bgRed.bold(time()+'[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     warn(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
         if(this.debugEnabled)
             PRINT(chalk.bold.yellow(time()+'[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     success(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
         PRINT(chalk.bold.green(time()+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     info(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
         PRINT(time()+'[INFO] '+this.prefix.join("")+multi_concat(args));
         return LoggerAction;
     }
 
     raw(...args :any[]):LoggerAction{
+        if(this.quiet) return LoggerAction;
         PRINT(multi_concat(args));
         return LoggerAction;
     }
@@ -275,6 +299,8 @@ export function newLogger(config:any =null, override:boolean =false):TestLogger|
             loggerInstance = new TestLogger(config.debugMode);
         else
             loggerInstance = new ProdLogger(config.debugMode);
+
+        loggerInstance.updateCfg(config);
     }
 
     return loggerInstance;

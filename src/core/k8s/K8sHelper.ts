@@ -7,7 +7,9 @@ export enum K8ResourceType {
     STATEFULSET="statefulset",
     REPLICASET="replicaset",
     REPCTRL="replicaset",
-    DEPLOYMENT="deployment"
+    DEPLOYMENT="deployment",
+    POD="pod",
+    SERVICE="service"
 }
 
 export class K8sHelper {
@@ -35,6 +37,29 @@ export class K8sHelper {
 
         const ns = (/^[a-zA-Z0-9_-]+$/.test(pNamespace)? ` -n ${pNamespace} `:"");
         const out = await Util.execAsync(`${K8sHelper.KUBECTL} scale ${pType} ${pResName} --replicas=${pSize} ${ns}`);
+
+        if(out.stderr != null && out.stderr.length > 0){
+            Logger.error(out.stderr);
+        }
+
+        Logger.success(out.stdout);
+
+        return ;
+    }
+
+    static async delete(pType:K8ResourceType, pResName:string, pNamespace = ""):Promise<void>{
+        if([
+            K8ResourceType.STATEFULSET,
+            K8ResourceType.REPLICASET,
+            K8ResourceType.REPCTRL,
+            K8ResourceType.DEPLOYMENT,
+            K8ResourceType.POD,
+        ].indexOf(pType)==-1){
+            throw new Error(`K8sHekper error : resource type '${pType}' cannot be deleted`);
+        }
+
+        const ns = (/^[a-zA-Z0-9_-]+$/.test(pNamespace)? ` -n ${pNamespace} `:"");
+        const out = await Util.execAsync(`${K8sHelper.KUBECTL} delete ${pType} ${pResName} ${ns}`);
 
         if(out.stderr != null && out.stderr.length > 0){
             Logger.error(out.stderr);
