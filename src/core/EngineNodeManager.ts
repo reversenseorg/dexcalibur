@@ -86,6 +86,7 @@ export class EngineNodeManager {
     static readonly HEADER_NODE_UUID = 'x-dxc-nodeuid';
     static readonly HEADER_NODE_HOST = 'x-dxc-nodehost';
 
+    static MAX_SLAVES:number = 4;
 
     private _self:Nullable<EngineNode> = null;
 
@@ -952,6 +953,7 @@ export class EngineNodeManager {
 
     /**
      * To check if organization thresholds allows engine node manager to allocate more node
+     * and if there is enough resource avilable
      *
      * @param {OrganizationUnitUUID} pOrgUUID
      */
@@ -965,7 +967,7 @@ export class EngineNodeManager {
 
         const nodes = await this.getNodeByOrganizationUUID(pOrgUUID);
 
-        return (nodes.length<thr.concurrentNodes);
+        return (nodes.length<thr.concurrentNodes) && (await this.hasEnoughResources());
     }
 
 
@@ -1074,10 +1076,10 @@ export class EngineNodeManager {
             return true;
         }else{
             console.log("NOT RUNNING > ",pNode.getUID())
-            /*if(pNode.getUID()!=this.uuid && pRemove==true){
+            if(pNode.getUID()!=this.uuid && pNode.state==NodeState.STOPPED && pRemove==true){
                     await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                         .asyncRemoveEntry(pNode);
-            }*/
+            }
 
             // remove
             /*await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
@@ -1103,6 +1105,7 @@ export class EngineNodeManager {
                 if(up){
                     if(this._shouldBeFreed(nodes[i])){
                         console.log(nodes[i].getUID()+" SHOULD BE FREED");
+                        nodes[i].kill();
                     }
                     info.push({
                         node: nodes[i],
@@ -1339,5 +1342,12 @@ export class EngineNodeManager {
         }else{
             return await this.getEngineNodeByUUID(this.uuid);
         }
+    }
+
+    private async hasEnoughResources():Promise<boolean> {
+        const curr = (await this.getNodes({ running:true })).length;
+        const max = (process.env.DXC_MAX_SLAVES!=null ? parseInt(process.env.DXC_MAX_SLAVES,10) : EngineNodeManager.MAX_SLAVES);
+
+        return (curr < max);
     }
 }

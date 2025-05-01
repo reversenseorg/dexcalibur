@@ -794,6 +794,7 @@ export class EngineNode implements INode {
 
 
 
+
     /**
      * To perform the operation
      *
@@ -1373,6 +1374,16 @@ export class EngineNode implements INode {
         });
     }
 
+    killSelf():void {
+        this.stopped(this._engine as DexcaliburEngine).then(()=>{
+            (this._engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
+                .asyncRemoveEntry(this).then(()=>{
+                    process.exit(0);
+                    Logger.success(`[ENGINE NODE][NODE=${this.UUID}] Killed remotely.`);
+            });
+        })
+    }
+
 
     /**
      * To kill this node
@@ -1388,9 +1399,6 @@ export class EngineNode implements INode {
                 if(this._httpClient == null){
                     this._initHttpClient();
                 }
-
-
-
 
                 this._httpClient.stop().then(()=>{
                     this.stopped(this._engine as DexcaliburEngine).then(()=>{
