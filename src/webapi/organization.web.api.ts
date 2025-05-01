@@ -383,8 +383,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, app.toJsonObject());
 
             }catch(err){
-                Logger.error("[API][ORG] Application unit cannot be created : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, "Application unit cannot be created. ", {cause:err.message });
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Application unit cannot be created. ",err, { cause:err.message });
             }
         }
     }
@@ -425,8 +424,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     )
                 );
             }catch(err){
-                Logger.error("[API][PROJECT] Specified project cannot be set as default project. Cause : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, "Specified project cannot be set as default project. Cause : "+err.message);
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Application unit cannot be modified.",err, { cause:err.message });
             }
         },
         'delete': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void>=>{
@@ -458,8 +456,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 );
 
             }catch(err){
-                Logger.error("[API][PROJECT] List of actives projects cannot be retrieved. Cause : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, "List of actives projects cannot be retrieved. Cause : "+err.message);
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Application unit cannot be deleted.",err, { cause:err.message });
             }
         }
     }
@@ -805,8 +802,10 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, { conn: result });
 
             }catch(err){
-                Logger.error("[API][ORG] Organization Identity provider unreachable : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, "Organization Identity provider unreachable. ", {cause:err.message });
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization Identity provider unreachable.",
+                    err,{cause:err.message});
             }
         }
     }
@@ -843,8 +842,10 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, { conn: result });
 
             }catch(err){
-                Logger.error("[API][ORG] Organization Identity provider unreachable : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, "Organization Identity provider unreachable. ", {cause:err.message });
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization Identity provider unreachable.",
+                    err,{cause:err.message});
             }
         }
     }
@@ -886,8 +887,10 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, { created: result });
 
             }catch(err){
-                Logger.error("[API][ORG] Organization AuthModule cannot be modified : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, " Organization AuthModule cannot be modified; ", {cause:err.message });
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization AuthModule cannot be modified",
+                    err,{cause:err.message});
             }
         },
         'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any>=>{
@@ -903,8 +906,10 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, result.map(x => x.toJsonObject(SecurityZone.PUBLIC)));
 
             }catch(err){
-                Logger.error("[API][ORG] Organization AuthModule cannot be listed : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, " Organization AuthModule cannot be listed. ", {cause:err.message });
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization AuthModule cannot be listed",
+                    err,{cause:err.message});
             }
         }
     }
@@ -924,8 +929,10 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, { connected: success });
 
             }catch(err){
-                Logger.error("[API][ORG] Organization AuthModule cannot be modified : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, " Organization AuthModule cannot be modified; ", {cause:err.message });
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization AuthModule cannot be modified",
+                    err,{cause:err.message});
             }
         }
     }
@@ -1587,8 +1594,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess(res,data);
             }catch(err){
-                Logger.error("[API][ORG] App Unit : Scans orders cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "App Unit : Scans orders cannot be listed. Cause : " + err.message);
+                $.sendErrorAfterException(res, ORG_WEB_API.name, "Scans orders cannot be listed.",err, { cause:err.message });
             }
         }
     }
@@ -1611,8 +1617,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess(res,app.toJsonObject());
             }catch(err){
-                Logger.error("[API][ORG] App Unit : Scans orders cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "App Unit : Scans orders cannot be listed. Cause : " + err.message);
+                $.sendErrorAfterException(res, ORG_WEB_API.name, "Application unit information cannot be retrieved.",err, { cause:err.message });
             }
         }
     }

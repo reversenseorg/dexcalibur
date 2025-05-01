@@ -654,4 +654,18 @@ export class AuditManager {
         return reports[0];
     }
 
+    async dropReportsByApp(pAppUnitUUID:ApplicationUnitUUID):Promise<void> {
+
+        const rep = await (this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType()) as MongodbDbCollection)
+            .search({
+                application: pAppUnitUUID
+            },{raw:true, merlin:false})
+
+        for(let i=0; i<rep.length; i++){
+            await (this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType()) as MongodbDbCollection)
+                .asyncRemoveEntry(rep[i]);
+        }
+
+    }
+
 }

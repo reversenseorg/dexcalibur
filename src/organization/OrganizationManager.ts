@@ -705,15 +705,13 @@ The Reversense Team
             .asyncUpdateEntry(pAppUnit, {replace:false, $set:[Object.keys(pChanges)]}) as boolean;
     }
 
-
+    /**
+     * To drop application and all related project  and report
+     * @param pUserAccount
+     * @param pOrg
+     * @param pApp
+     */
     async dropApplication(pUserAccount:UserAccount, pOrg:OrganizationUnit, pApp:ApplicationUnit):Promise<boolean> {
-
-        // check if the user is a member of the org
-        AccessControl.isAuthorizedByAttr(
-            OrganizationAccessControl.attr.MEMBER_GRP,
-            pOrg,
-            pUserAccount
-        );
 
         // check if the user is authorized to drop the app (must be the owner of app or of the org)
         AccessControl.isAuthorized(
@@ -727,6 +725,16 @@ The Reversense Team
             ]
         );
 
+        // drop child projects. TODO : replace by deleteMany
+        const rel = pApp.getReleases();
+        for(let i=0;i<rel.length;i++){
+            await this._ctx.deleteProject(pUserAccount, rel[i], false);
+        }
+
+        // delete reports
+        await this._ctx.getAuditManager().dropReportsByApp(pApp.getUID());
+
+        // delete app unit
         return await this._ctx.getEngineDB()
             .getCollectionOf(ApplicationUnit.TYPE.getType())
             .asyncRemoveEntry(pApp);

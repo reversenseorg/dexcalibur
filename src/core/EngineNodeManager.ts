@@ -1075,8 +1075,8 @@ export class EngineNodeManager {
             }
             return true;
         }else{
-            console.log("NOT RUNNING > ",pNode.getUID())
-            if(pNode.getUID()!=this.uuid && pNode.state==NodeState.STOPPED && pRemove==true){
+            console.log("NOT RUNNING > ",pNode.getUID(),pNode.state,pRemove);
+            if(pNode.getUID()!=this.uuid  && pRemove==true){
                     await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                         .asyncRemoveEntry(pNode);
             }
