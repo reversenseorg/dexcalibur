@@ -176,6 +176,7 @@ export interface EngineNodeOptions {
     startedAt?:number;
     stoppedAt?:number;
     createdAt?:number;
+    idleSince?:number;
     spawnCmd?:string;
     stdout$?:Subject<string>;
     stderr$?:Subject<string>;
@@ -233,6 +234,7 @@ export class EngineNode implements INode {
             (new NodeProperty("createdAt")).type(DbDataType.NUMERIC).def(-1),
             (new NodeProperty("startedAt")).type(DbDataType.NUMERIC).def(-1),
             (new NodeProperty("stoppedAt")).type(DbDataType.NUMERIC).def(-1),
+            (new NodeProperty("idleSince")).type(DbDataType.NUMERIC).def(-1),
             (new NodeProperty("activeScanSession")).type(DbDataType.STRING).def(null),
             (new NodeProperty("activeOpe")).type(DbDataType.BLOB)
                 .sleep( (x:NodePropertyState)=>{
@@ -431,6 +433,7 @@ export class EngineNode implements INode {
     startedAt = -1;
     stoppedAt = -1;
     createdAt = -1;
+    idleSince = -1;
     /**
      * Flag.
      * TRUE if the node is allowed to start on self registration of a slave
@@ -481,6 +484,7 @@ export class EngineNode implements INode {
         if(pOptions.nodeOpts != null) this.nodeOpts = pOptions.nodeOpts;
         if(pOptions.startedAt != null) this.startedAt = pOptions.startedAt;
         if(pOptions.stoppedAt != null) this.stoppedAt = pOptions.stoppedAt;
+        if(pOptions.idleSince != null) this.idleSince = pOptions.idleSince;
         if(pOptions.selfReg != null) this.selfReg = pOptions.selfReg;
         if(pOptions.createdAt != null) this.createdAt = pOptions.createdAt;
 
@@ -580,12 +584,13 @@ export class EngineNode implements INode {
 
 
     async saveAll():Promise<void>{
+
         return await this.save([
             '_pid','state','purpose',
             'spawnCmd',
             '_hostname','httpPort','httpsPort','wsPort','wssPort','masterURI',
             'selfReg', '_projectUID','_orgUUID',
-            'startedAt','stoppedAt','createdAt',
+            'startedAt','stoppedAt','createdAt','idleSince',
             'waitingQueue','activeOpe',
             'running','parentUUID','nodeOpts','activeScanSession'
         ]);
@@ -714,7 +719,7 @@ export class EngineNode implements INode {
             throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node : '+this.state);
         }
 
-            if(this.isAllowSefRegistration() && this.state==NodeState.QUEUED){
+        if(this.isAllowSefRegistration() && this.state==NodeState.QUEUED){
             //return; // await this.remoteStart();
         }
 
@@ -1112,6 +1117,14 @@ export class EngineNode implements INode {
      */
     setState(pState:NodeState):void {
         const old = this.state;
+        if(this.state!=NodeState.IDLE && pState==NodeState.IDLE) {
+            this.idleSince = Util.now();
+        }
+        if(pState!=NodeState.IDLE) {
+            this.idleSince = -1;
+        }
+
+
         this.state = pState;
         this.nodeState$.next({
             before: old,
@@ -1474,6 +1487,7 @@ export class EngineNode implements INode {
             startedAt: this.startedAt,
             stoppedAt: this.stoppedAt,
             createdAt: this.createdAt,
+            idleSince: this.idleSince
             //errPipe: (this.errPipe!=null),
             //outPipe: (this.outPipe!=null)
         };
@@ -1586,7 +1600,7 @@ export class EngineNode implements INode {
     }
 
     /**
-     * To check if the node is up or not
+     * To check if the node is up or not, only is idle
      *
      * @since 1.8.0
      */
@@ -1616,7 +1630,10 @@ export class EngineNode implements INode {
      * @method
      */
     async stopped(pEngine:DexcaliburEngine):Promise<void> {
-        Logger.info("STOPPING "+this.getUID());
+        Logger.info("STOPPING "+this.getUID())
+
+        console.log("RUNNING ", this.getUID(),this.running,this.state);
+
         /*
         try{
             throw new Error('STOOPING');
@@ -1770,6 +1787,14 @@ export class EngineNode implements INode {
 
     resumeQueue() {
         this.operation$.next(null);
+    }
+
+    getIdleDuration():number {
+        if(this.idleSince==-1){
+            return -1;
+        }else{
+            return (new Date().getTime())-this.idleSince;
+        }
     }
 }
 EngineNode.TYPE.builder(EngineNode);

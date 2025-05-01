@@ -53,6 +53,8 @@ HEALTH_WEB_API.addAsyncPublicRoute(
             const $: WebServer = req.dxc.$;
 
             try{
+
+
                 if(await $.context.getOrgManager().listOrganizations($.context.getInternalAcc())){
                     res.sendStatus(200);
                 }else{

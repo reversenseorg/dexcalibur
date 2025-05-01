@@ -260,7 +260,7 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
      */
     toBusSubscriber(pAssess:any):BusSubscriber {
         return BusSubscriber.from( ( pEvent)=>{
-
+            // TODO IAST
         });
     }
 

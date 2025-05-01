@@ -171,9 +171,10 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
                 );
                 */
 
+                console.log("STOPPING SLVAE NODE");
                 if($.context.isSlaveNode()){
                     await $.context.exit();
-                    $.sendSuccess(res, 'ok');
+                    $.sendSuccess(res, { done: 'ok' });
                 }else{
                     throw new Error("Master or standalone nodes cannot be killed remotely.");
                 }

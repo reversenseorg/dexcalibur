@@ -2475,7 +2475,15 @@ The Reversense Team
             ]
         );
 
-        return await this._ctx.getNodeManager().getNodeByOrganizationUUID(pOrg.getUID());
+        //return await this._ctx.getNodeManager().getNodeByOrganizationUUID(pOrg.getUID());
+
+        let apps = await this.listApplications(this._ctx.getInternalAcc(),pOrg);
+        let puids:DexcaliburProjectUUID[] = [];
+        apps.map(au => {
+            puids = puids.concat(au.projects);
+        });
+
+        return await this._ctx.getNodeManager().getNodesByProjects(puids);
     }
 
     async stopRunner(pUser: UserAccount, pOrg: OrganizationUnit, pNode:EngineNodeUUID):Promise<boolean> {

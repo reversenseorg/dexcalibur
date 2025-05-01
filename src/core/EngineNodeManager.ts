@@ -141,6 +141,7 @@ export class EngineNodeManager {
 
     private _ctrl:Nullable<EngineNodeManagerWorker> = null;
 
+    private _max_idle_time:number = 60*60*1000;
 
     constructor(pMasterEngine:DexcaliburEngine, pCurrentUID:EngineNodeUUID) {
         // UUID of this engine node
@@ -158,7 +159,11 @@ export class EngineNodeManager {
                 .then(()=>{
                     console.log('Saved UUID');
                 })
-        })
+        });
+
+        if(process.env.DXC_MAX_IDLETIME!=null){
+            this._max_idle_time = parseInt(process.env.DXC_MAX_IDLETIME,10);
+        }
     }
 
     async recoverRunningSlaves():Promise<EngineNodeUUID[]> {
@@ -646,6 +651,18 @@ export class EngineNodeManager {
     }
 
     /**
+     *
+     * @param pPUIDs
+     * @param pRunning
+     */
+    async getNodesByProjects(pPUIDs:DexcaliburProjectUUID[], pRunning = true):Promise<EngineNode[]> {
+        return await this.getNodes({
+            _orgUUID: { $in: pPUIDs },
+            running: pRunning
+        });
+    }
+
+    /**
      * To get the list of nodes linked to a specific organization
      *
      * @param {OrganizationUnitUUID} pOUID The project UID
@@ -758,7 +775,7 @@ export class EngineNodeManager {
             http: this.engine.getWebserver().getPort(),
             https: this.engine.getWebsocketServer().getPort(),
             ws: this.engine.getWebsocketServer().getPort(),
-            timeout: 1000,
+            timeout: 30000,
             pollLimit: -1
         });
 
@@ -863,7 +880,7 @@ export class EngineNodeManager {
         Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}][${node!=null?node.getHostname():'-'}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
 
         await this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType())
-            .asyncUpdateEntry(node, { replace:false, $set:['running','state','pid']});
+            .asyncUpdateEntry(node, { replace:false, $set:['running','state','pid','idleSince']});
 
 
         if(vEvent.new==NodeState.IDLE || vEvent.new==NodeState.REGISTERED){
@@ -1022,7 +1039,7 @@ export class EngineNodeManager {
                 up = await pNode.getHcStatus(pEngine);
             }
 
-            //console.log(pNode.getUID(),up,pNode.state);
+            console.log("RUNNING ", pNode.getUID(),up,pNode.state);
             if(up===false){
                 if([NodeState.QUEUED,NodeState.NEW].indexOf(pNode.state)==-1){
                     await pNode.stopped(this.engine);
@@ -1035,11 +1052,12 @@ export class EngineNodeManager {
             }else if(up===null) {
                 // check/flush
                 const createdDelay = ((new Date()).getTime()-pNode.createdAt)/(3600*1000)
-                //console.log("Created since : ", createdDelay+" hours");
+                //console.log("Created since : ", createdDelay+" hours",pNode.createdAt,((new Date()).getTime()-pNode.createdAt));
                 const startDelay = ((new Date()).getTime()-pNode.startedAt)/(3600*1000);
-                //console.log("Started since : ", (pNode.startedAt>-1 ? startDelay+" hours" : pNode.startedAt));
+                //console.log("Started since : ", (pNode.startedAt>-1 ? startDelay+" hours" : pNode.startedAt),pNode.startedAt,((new Date()).getTime()-pNode.startedAt));
 
-                if([NodeState.QUEUED,NodeState.NEW].indexOf(pNode.state)==-1
+
+                if([NodeState.STOPPED,NodeState.UNKNOW].indexOf(pNode.state)>-1
                     || (pNode.createdAt>-1 && createdDelay > 24)
                     || (pNode.startedAt>-1 && startDelay > 24)
                 ) {
@@ -1055,15 +1073,16 @@ export class EngineNodeManager {
             }
             return true;
         }else{
-            if(pNode.getUID()!=this.uuid && pRemove==true){
+            console.log("NOT RUNNING > ",pNode.getUID())
+            /*if(pNode.getUID()!=this.uuid && pRemove==true){
                     await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                         .asyncRemoveEntry(pNode);
-
-            }
+            }*/
 
             // remove
             /*await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                 .asyncRemoveEntry(pNode);*/
+            return false;
         }
     }
 
@@ -1082,6 +1101,9 @@ export class EngineNodeManager {
             if(nodes[i].UUID!=this.uuid){
                 up = await this.refreshRunningStatus(nodes[i], this.engine, pRemove);
                 if(up){
+                    if(this._shouldBeFreed(nodes[i])){
+                        console.log(nodes[i].getUID()+" SHOULD BE FREED");
+                    }
                     info.push({
                         node: nodes[i],
                         idleTime: -1 // (nodes[i].state===NodeState.IDLE ? )
@@ -1092,6 +1114,15 @@ export class EngineNodeManager {
 
         return info;
     }
+
+    private _shouldBeFreed(pNode:EngineNode):boolean {
+        const d = pNode.getIdleDuration();
+        if(d==-1) return false;
+
+        return (d>this._max_idle_time);
+    }
+
+
 
     /**
      *

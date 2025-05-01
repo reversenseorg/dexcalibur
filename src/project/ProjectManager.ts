@@ -852,6 +852,7 @@ export class ProjectManager {
             // search free node or node for REVIEW / HOOK
             const remoteNode = await this._openRemotely(pUser,pProjectUID,pPurpose);
 
+
             // attach callback on node init
             if(pOnBefore!=null){
                 (pOnBefore)(remoteNode);
@@ -1095,6 +1096,7 @@ export class ProjectManager {
             //const ope = await  currNode.nextWaitingOpe();
 
             currNode.setState(NodeState.BUSY);
+            await currNode.save(['state','idleSince']);
         }
 
 
@@ -1146,6 +1148,7 @@ export class ProjectManager {
 
             if(currNode!=null) {
                 currNode.setState(NodeState.IDLE);
+                await currNode.save(['state','idleSince']);
             }
 
             // update db
