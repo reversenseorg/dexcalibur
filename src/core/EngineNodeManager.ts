@@ -657,7 +657,7 @@ export class EngineNodeManager {
      */
     async getNodesByProjects(pPUIDs:DexcaliburProjectUUID[], pRunning = true):Promise<EngineNode[]> {
         return await this.getNodes({
-            _orgUUID: { $in: pPUIDs },
+            _projectUID: { $in: pPUIDs },
             running: pRunning
         });
     }
