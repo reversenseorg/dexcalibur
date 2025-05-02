@@ -1041,7 +1041,7 @@ export class EngineNodeManager {
                 up = await pNode.getHcStatus(pEngine);
             }
 
-            console.log("RUNNING ", pNode.getUID(),up,pNode.state);
+            Logger.debug("RUNNING | "+pNode.getUID()+" | "+up+" | "+pNode.state);
             if(up===false){
                 if([NodeState.QUEUED,NodeState.NEW].indexOf(pNode.state)==-1){
                     await pNode.stopped(this.engine);
@@ -1075,7 +1075,7 @@ export class EngineNodeManager {
             }
             return true;
         }else{
-            console.log("NOT RUNNING > ",pNode.getUID(),pNode.state,pRemove);
+            Logger.debug("NOT RUNNING | "+pNode.getUID()+" | none |  "+pNode.state+" | "+pRemove);
             if(pNode.getUID()!=this.uuid  && pRemove==true){
                     await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                         .asyncRemoveEntry(pNode);

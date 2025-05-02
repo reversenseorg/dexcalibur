@@ -1160,6 +1160,12 @@ export class ProjectManager {
             this._ctx.log("Project cannot be opened. See error message.", project, err.code);
             wf.pushStatus(StatusMessage.newError("Project cannot be loaded. See logs for more details : "+err.message));
             project = null;
+
+            // stop
+            /*if(this._ctx.isSlaveNode()){
+                await this._ctx.exit();
+            }*/
+
             throw err;
         }
 

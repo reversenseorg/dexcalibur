@@ -785,8 +785,8 @@ export class EngineNode implements INode {
 
         const resp:any = JSON.parse(data.body);
         Logger.raw('open_slave RESULT ',data.body);
-        if(resp.success){
-
+        if(resp.success==false){
+            this.kill("Cause : Project cannot be opened.");
         }
 
         return this;
@@ -1391,7 +1391,7 @@ export class EngineNode implements INode {
      *
      * @method
      */
-    kill():void {
+    kill(pCause = ""):void {
 
         if(this.selfReg){
             try{
@@ -1404,7 +1404,7 @@ export class EngineNode implements INode {
                     this.stopped(this._engine as DexcaliburEngine).then(()=>{
                         (this._engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                             .asyncRemoveEntry(this).then(()=>{
-                                Logger.success(`[ENGINE NODE][NODE=${this.UUID}] Killed remotely.`);
+                                Logger.success(`[ENGINE NODE][NODE=${this.UUID}] Killed remotely. ${pCause}`);
                             });
                     })
                 })
