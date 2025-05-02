@@ -308,4 +308,4 @@ EXPOSE ${DXC_HTTP_PORT} ${DXC_WS_PORT}
 # Dexcalibur HTTPS
 EXPOSE 8443
 
-ENTRYPOINT [ "node", "--max-old-space-size=$DXC_NODE_HEAP_SZ", "./dexcalibur.js" ]
+ENTRYPOINT [ "node", "./dexcalibur.js" ]
