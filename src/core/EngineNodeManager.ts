@@ -329,6 +329,7 @@ export class EngineNodeManager {
         if(pOrg!=null){
             filter._orgUUID = { $in: [pOrg] };
         }
+
         let nodes = await this.getNodes( filter);
 
         console.log('Ready slave before filtering : ',nodes.length,' '+nodes.map(x => x.purpose).join(','));

@@ -18,6 +18,11 @@ import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {BusinessPlan} from "../../billing/BusinessPlan.js";
 import {NodeState} from "../../core/EngineNodeManager.js";
+import * as Log from "../../Logger.js";
+
+
+
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 /**
  * Present a scan scheduler
@@ -204,6 +209,9 @@ export class ScanScheduler {
             NodePurpose.ANY
         );
 
+
+        Logger.info(`[Ready Slave] [newScanBundle] [project=${pProj}] [org=null] [purpose=${NodePurpose.ANY}]  : ${node!=null? node.getUID() : 'KO'}`);
+
         // no ready node, search running, busy, node
         if(node==null){
 
@@ -268,7 +276,7 @@ export class ScanScheduler {
                 NodePurpose.ANY
             );
 
-            console.log("READY SLAVE FROM newScan ",node);
+            Logger.info(`[Ready Slave] [newScan] [project=${pOrder.getProjectUID()}] [org=null] [purpose=${NodePurpose.ANY}]  : ${node!=null? node.getUID() : 'KO'}`);
 
             if(node != null){
                 pOrder.slaveUID = node.getUID();

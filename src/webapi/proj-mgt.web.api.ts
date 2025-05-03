@@ -682,6 +682,9 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 let candidate = await $.context.getNodeManager()
                     .getReadySlave( unsafeUUID, unsafePurpose, prj.getOrgUID());
 
+
+                Logger.info(`[Ready Slave] [pro-mgt API /open] [project=${unsafeUUID}] [org=${prj.getOrgUID()}] [purpose=${unsafePurpose}]  : ${candidate!=null? candidate.getUID() : 'KO'}`);
+
                 if(candidate!=null){
                     // a slave is ready for this project
                     const freshNode = await $.context.getNodeManager()

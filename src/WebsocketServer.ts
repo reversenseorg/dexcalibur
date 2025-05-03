@@ -294,6 +294,8 @@ export class WebsocketServer
                                                     unsafeJSON['prj'],
                                                     NodePurpose.REVIEW
                                                 ).then((vNode)=>{
+
+                                                    Logger.info(`[Ready Slave] [WebsocketServer] [project=${unsafeJSON['prj']}] [org=null] [purpose=${NodePurpose.REVIEW}]  : ${vNode!=null? vNode.getUID() : 'KO'}`);
                                                     if(vNode!=null){
                                                         const nodeUID = vNode.getUID();
                                                         try{

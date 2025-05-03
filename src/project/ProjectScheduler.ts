@@ -15,7 +15,9 @@ import {ProjectOrder} from "./ProjectOrder.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ProjectSchedulerException} from "../errors/ProjectSchedulerException.js";
 import {UserAccount} from "../user/UserAccount.js";
+import * as Log from "../Logger.js";
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export class ProjectScheduler {
 
@@ -143,6 +145,9 @@ export class ProjectScheduler {
             NodePurpose.NEW_PRJ,
             pOrder.getOrganizationUnit()
         );
+
+
+        Logger.info(`[Ready Slave] [newScan] [project=${pOrder.getProjectUID()}] [org=${pOrder.getOrganizationUnit()}] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
 
         // check ressources quotas
         if(node==null && await this._ctx.nodeManager.canCreateNode(pOrder.getOrganizationUnit())){

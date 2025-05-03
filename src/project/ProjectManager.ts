@@ -293,13 +293,18 @@ export class ProjectManager {
             pOrg.getUID()
         );
 
+        Logger.info(`[Ready Slave] [newProjectOrder] [project=${proj.getUID()}] [org=${pOrg.getUID()}] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
+
         if(node==null){
             // search free node assigned to org
             node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, pOrg.getUID());
+            Logger.info(`[Free Slave] [newProjectOrder] [org=${pOrg.getUID()}] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
+
         }
         if(node==null){
             // search free node not assigned to an org
             node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, null);
+            Logger.info(`[Free Slave] [newProjectOrder] [no org] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
         }
 
         // create workflow
@@ -1007,6 +1012,9 @@ export class ProjectManager {
 
         const assignedNode = await this._ctx.getNodeManager().getReadySlave(pProjectUID,pPurpose);
 
+
+        Logger.info(`[Ready Slave] [_openRemotely] [project=${pProjectUID}] [org=null] [purpose=${pPurpose}]  : ${assignedNode!=null? assignedNode.getUID() : 'KO'}`);
+
         // if a node is already assigned to project for specific purpose, and is ready (idle state), return it
         if(assignedNode!=null){
             Logger.debug(`[proj=${pProjectUID}][openRemotely] A slave is ready for this project, return it `);
@@ -1031,6 +1039,7 @@ export class ProjectManager {
 
             // search a free slave authorized for this org
             freeNode = await this._ctx.getNodeManager().getFreeSlave(pPurpose, oid);
+            Logger.info(`[Free Slave] [_openRemotely]  [org=${oid}] [purpose=${pPurpose}]  : ${freeNode!=null? freeNode.getUID() : 'KO'}`);
 
             if(freeNode != null){
                 freeNode.attachToOrg(oid);
@@ -1048,6 +1057,7 @@ export class ProjectManager {
 
 
         freeNode = await this._ctx.getNodeManager().getFreeSlave(pPurpose);
+        Logger.info(`[Free Slave] [_openRemotely]  [no org] [purpose=${pPurpose}]  : ${freeNode!=null? freeNode.getUID() : 'KO'}`);
         const orgUUID = prj.getOrgUID();
 
         if(freeNode!=null){
