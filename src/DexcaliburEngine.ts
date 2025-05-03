@@ -1830,7 +1830,22 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @private
      */
     private _listenProcessSignals() {
+        //let done = false;
         process.on('SIGINT', () => {
+
+            console.log("\n");
+            // clear temporary files
+
+            // clear DB connections
+
+            // kill children nodes
+            (async ()=>{
+                await this.exit(true);
+            })();
+
+        });
+
+        process.on('SIGTERM', () => {
 
             console.log("\n");
             // clear temporary files
