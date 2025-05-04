@@ -109,7 +109,7 @@ export class SessionStore /*extends expressSession.Store*/ {
      * @param pCallback
      */
     get(pSID:string, pCallback: (vErr:any,vSession:UserSession)=>any ){
-        Logger.debug(`[SESSION STORE][get] Read session : [sid=${pSID}] : `)
+        //Logger.debug(`[SESSION STORE][get] Read session : [sid=${pSID}] : `)
         this._coll.asyncGetEntry({ _uid: pSID })
             .then((pSession:UserSession)=>{
 
@@ -120,7 +120,7 @@ export class SessionStore /*extends expressSession.Store*/ {
                 }
 
                 const expired = this._engine.getUserService().getSessionService().isSessionExpired(pSession);
-                Logger.info(`[SESSION STORE][get] Read session : [sid=${pSID}][expired=${expired?'true':'false'}]`)
+                //Logger.info(`[SESSION STORE][get] Read session : [sid=${pSID}][expired=${expired?'true':'false'}]`)
                 if(expired){
                     //Logger.error(`[SESSION STORE][get] Read session : failure [sid=${pSID}] : session is expired`);
                     pCallback.apply(null, [{ expire:true }, null ]);

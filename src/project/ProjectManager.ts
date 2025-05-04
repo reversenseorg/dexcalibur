@@ -299,12 +299,19 @@ export class ProjectManager {
             // search free node assigned to org
             node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, pOrg.getUID());
             Logger.info(`[Free Slave] [newProjectOrder] [org=${pOrg.getUID()}] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
-
+            node.setProject(proj.getUID());
+            await node.save(['_projectUID']);
         }
         if(node==null){
             // search free node not assigned to an org
             node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, null);
             Logger.info(`[Free Slave] [newProjectOrder] [no org] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
+
+            if(node!=null){
+                node.setProject(proj.getUID());
+                await node.attachToOrg(pOrg.getUID(), false);
+                await node.save(['_projectUID','_orgUUID']);
+            }
         }
 
         // create workflow
