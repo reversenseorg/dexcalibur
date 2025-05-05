@@ -450,7 +450,7 @@ export class UserService {
         });
 
         if(user != null) {
-            Logger.success("[AUTH SERVICE] Find user : account found");
+            //Logger.success("[AUTH SERVICE] Find user : account found");
             return user;
         }else{
             if(pOptions.autoCreate === true){
@@ -464,7 +464,7 @@ export class UserService {
                     },
                     pAccount);*/
 
-                Logger.success("[AUTH SERVICE] Find user : account not found but created accordingly to 'autoCreate' option");
+                Logger.debug("[AUTH SERVICE] Find user : account not found but created accordingly to 'autoCreate' option");
 
                 return user;
             }else{
@@ -481,7 +481,7 @@ export class UserService {
         });
 
         if(user != null) {
-            Logger.success("[AUTH SERVICE] Find user : account found");
+            //Logger.success("[AUTH SERVICE] Find user : account found");
             return user;
         }else{
             if(pOptions.autoCreate === true){
@@ -495,7 +495,7 @@ export class UserService {
                     },
                     pAccount);*/
 
-                Logger.success("[AUTH SERVICE] Find user : account not found but created accordingly to 'autoCreate' option");
+                Logger.debug("[AUTH SERVICE] Find user : account not found but created accordingly to 'autoCreate' option");
 
                 return user;
             }else{

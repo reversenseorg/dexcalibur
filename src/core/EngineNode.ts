@@ -1182,7 +1182,7 @@ export class EngineNode implements INode {
      *
      */
     isReady():boolean {
-        return (this.state===NodeState.IDLE);
+        return (this.state===NodeState.IDLE)||(this.state===NodeState.REGISTERED);
     }
 
 
