@@ -14,6 +14,7 @@ import {Nullable} from "./core/IStringIndex.js";
 import TargetApp from "./common/TargetApp.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -48,6 +49,8 @@ const DIR_NAME = {
  */
 export default class ProjectWorkspace
 {
+    project:DexcaliburProject;
+
     path:string = null;
 
     mainAPK:Nullable<APK> = null;
@@ -61,7 +64,7 @@ export default class ProjectWorkspace
      * @param {*} pPath 
      * @constructor
      */
-    constructor ( pPath:string){
+    constructor ( pPath:string, pProject:DexcaliburProject){
 
         /**
          * Working directory
@@ -196,7 +199,7 @@ export default class ProjectWorkspace
      * If a folder already exists it will not be overwritten.
      * @method 
      */
-    async init():Promise<void>{
+    async init(pRecreateIfMissing = false):Promise<void>{
         if(!_fs_.existsSync(this.path)){
             _fs_.mkdirSync(this.path, {recursive: true});
         }    
@@ -204,6 +207,7 @@ export default class ProjectWorkspace
             this.mkWDir(DIR_NAME.SAVE);
         }    
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.IN))){
+            // todo : restore FS from DB
             this.mkWDir(DIR_NAME.IN);
         }    
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.RUNTIME))){
@@ -222,6 +226,7 @@ export default class ProjectWorkspace
             this.mkWDir(DIR_NAME.TMP);
         }
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.DEX))){
+            // todo : restore FS from DB
             this.mkWDir(DIR_NAME.DEX);
         }
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.APP_OUT))){
@@ -244,6 +249,14 @@ export default class ProjectWorkspace
         }
 
         Logger.success("[*] Working directory : "+this.path);
+    }
+
+    isInputFolderEmpty(){
+        return (_fs_.readdirSync(_path_.join(this.path, DIR_NAME.IN)).length==0);
+    }
+
+    isPkgFolderEmpty(){
+        return (_fs_.readdirSync(_path_.join(this.path, DIR_NAME.DEX)).length==0);
     }
 
     /**
@@ -459,5 +472,30 @@ export default class ProjectWorkspace
         return path;
     }
 
+    restore() {
+
+        if(this.isInputFolderEmpty()){
+
+            // download project inputs from DB
+            //this.project.getProjectDB().getFileManager().this.project.inputs
+
+            /*
+
+                const inputPath = this.getWorkspace().getValidInputPath(pInput);
+                await this.getContext()
+                    .getEngineDB()
+                    .getFileManager()
+                    .readFileTo('uploads', pInput.data as string, inputPath)
+
+                // update and save project input
+                pInput.setPath(inputPath);
+                pInput.location = ProjectInputLocation.LOCAL;
+                this.inputs.push(pInput);
+             */
+
+            //this.restoreInputs();
+            //this.restoreInputs();
+        }
+    }
 }
 

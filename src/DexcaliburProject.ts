@@ -1086,7 +1086,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // init project workspace
         if(this.workspace === null){
             this.workspace = new ProjectWorkspace(
-                _path_.join( this.engine.workspace.getLocation(), this.uid )
+                _path_.join( this.engine.workspace.getLocation(), this.uid ),
+                this
             );
 
             await this.workspace.init();
@@ -1099,6 +1100,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this.pdb.setProject(this);
         // this.pdb.restore();
 
+        // detect missing parts of workspace and restore (useful for Kubernetes)
+        // and stateless pod
+        this.workspace.restore();
 
 
 
@@ -1934,10 +1938,13 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         //project.config = pEngine.getConfiguration();
 
         project.workspace = new ProjectWorkspace(
-            _path_.join( pEngine.workspace.getLocation(), pProjectUID )
+            _path_.join( pEngine.workspace.getLocation(), pProjectUID ),
+            project
         );
 
+        // check if workspace exists, else recreate it using DB
         project.workspace.init();
+
 
 
         if(pConfig!=null){
@@ -2442,6 +2449,12 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @method
      */
     async fullscan( pPath:string=null):Promise<DexcaliburProject>{
+
+
+        // Kubernetes : detect if files required exists in filesystem
+        if(!this.appAnalyzer.isReady()){
+            //this.useAPK()
+        }
 
         // ensure "save operations" will be multi-threaded
         this.getProjectDB().initScheduler();
@@ -2975,7 +2988,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
 
         this.workspace = new ProjectWorkspace(
-            _path_.join( this.getContext().workspace.getLocation(), this.getUID() )
+            _path_.join( this.getContext().workspace.getLocation(), this.getUID() ),
+            this
         );
 
         this.workspace.init();

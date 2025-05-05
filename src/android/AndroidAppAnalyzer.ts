@@ -1342,8 +1342,21 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		// extract app icons
 		await this.extractAppIcons();
+	}
 
 
+
+	isReady():boolean {
+
+		// check if APK content is available in filesystem
+		const base = this.context.getWorkspace().getApkDir();
+
+		return _fs_.existsSync(_path_.join(base,'AndroidManifest.xml'));
+	}
+
+	async importToSlave():Promise<any> {
+		// todo
+		return true;
 	}
 }
 

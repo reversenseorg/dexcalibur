@@ -70,4 +70,15 @@ export default class IosAppAnalyzer implements IAppAnalyzer
     async performXrefAnalysis():Promise<any>{
         // todo
     }
+
+
+
+    isReady():boolean {
+        return true;
+    }
+
+    async importToSlave():Promise<any> {
+        // todo
+        return true;
+    }
 }

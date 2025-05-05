@@ -30,4 +30,8 @@ export interface IAppAnalyzer {
     extractAppIcons():Promise<AppIcon[]>;
 
     performXrefAnalysis():Promise<any>;
+
+    isReady():boolean;
+
+    importToSlave():Promise<any>;
 }
