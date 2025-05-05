@@ -322,7 +322,7 @@ export class EngineNodeManager {
 
         let filter:any = {
             _projectUID: { $in: [pProjectUID] },
-            state: NodeState.IDLE,
+            state: { $in: [NodeState.IDLE,NodeState.REGISTERED] },
             running: true
         };
 
@@ -358,7 +358,7 @@ export class EngineNodeManager {
         // a project. In such scenario, the function must search for IDLE node with empty project UID
         let filter:any = {
             _projectUID: null,
-            state: NodeState.IDLE,
+            state: { $in: [NodeState.IDLE,NodeState.REGISTERED] },
             running: true
         };
 

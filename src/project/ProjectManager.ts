@@ -289,32 +289,39 @@ export class ProjectManager {
         // search slave ready
         let node:Nullable<EngineNode> = await this._ctx.nodeManager.getReadySlave(
             proj.getUID(),
-            NodePurpose.NEW_PRJ,
+            NodePurpose.ANY,
             pOrg.getUID()
         );
+
+        if(node!=null){
+            node.setPurpose(NodePurpose.NEW_PRJ);
+            await node.save(['purpose']);
+        }
 
         Logger.info(`[Ready Slave] [newProjectOrder] [project=${proj.getUID()}] [org=${pOrg.getUID()}] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
 
         if(node==null){
             // search free node assigned to org
-            node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, pOrg.getUID());
+            node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.ANY, pOrg.getUID());
             Logger.info(`[Free Slave] [newProjectOrder] [org=${pOrg.getUID()}] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
 
             if(node!=null){
                 node.setProject(proj.getUID());
-                await node.save(['_projectUID']);
+                node.setPurpose(NodePurpose.NEW_PRJ);
+                await node.save(['purpose','_projectUID']);
             }
         }
 
         if(node==null){
             // search free node not assigned to an org
-            node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.NEW_PRJ, null);
+            node = await this._ctx.getNodeManager().getFreeSlave(NodePurpose.ANY, null);
             Logger.info(`[Free Slave] [newProjectOrder] [no org] [purpose=${NodePurpose.NEW_PRJ}]  : ${node!=null? node.getUID() : 'KO'}`);
 
             if(node!=null){
                 node.setProject(proj.getUID());
+                node.setPurpose(NodePurpose.NEW_PRJ);
                 await node.attachToOrg(pOrg.getUID(), false);
-                await node.save(['_projectUID','_orgUUID']);
+                await node.save(['purpose','_projectUID','_orgUUID']);
             }
         }
 
