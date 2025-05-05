@@ -422,6 +422,9 @@ export class ProjectManager {
         const currNode = await this._ctx.getNodeManager().getNodeByUUID(this._ctx.getNodeUUID());
         Logger.info("NODE >>> ",this._ctx.getNodeUUID());
 
+        currNode.setState(NodeState.BUSY);
+        await currNode.save(["state"]);
+
         if(pOnBefore!=null){
             (pOnBefore)(currNode);
         }
