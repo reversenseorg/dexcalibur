@@ -501,7 +501,7 @@ export default class ProjectWorkspace
     }
 
     isTargetAppMissing():boolean {
-        return _fs_.existsSync(this.getAppPath());
+        return !_fs_.existsSync(this.getAppPath());
     }
 }
 

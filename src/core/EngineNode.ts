@@ -1816,5 +1816,12 @@ export class EngineNode implements INode {
             return (new Date().getTime())-this.idleSince;
         }
     }
+
+    async resetIdleTime():Promise<void> {
+        if(this.state==NodeState.IDLE){
+            this.idleSince = (new Date().getTime());
+            await this.save(['idleSince']);
+        }
+    }
 }
 EngineNode.TYPE.builder(EngineNode);

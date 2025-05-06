@@ -3344,6 +3344,13 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         return [];
     }
+
+    async resetIdleTime():Promise<void> {
+        const node = await this.engine.getNodeManager().getSelfNode();
+        if(node!=null){
+            await node.resetIdleTime();
+        }
+    }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);
 

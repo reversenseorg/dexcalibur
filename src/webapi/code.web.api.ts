@@ -57,6 +57,8 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
 
+                await project.resetIdleTime();
+
                 if(format=='tree'){
                     if(query=='.*')
                         data = project.find.package('name:/^[^\\.]*$/');
@@ -163,6 +165,8 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 // ========== SECURITY CHECKS
 
 
+                await project.resetIdleTime();
+
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -210,6 +214,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
+                await project.resetIdleTime();
 
 
                 if(req.body['project']!=null){
@@ -295,6 +300,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
             try{
 
                 project = req.dxc.project;
+
+
+                await project.resetIdleTime();
 
                 // ========== LOGIC
                 const type:string = req.query.type as string;
@@ -418,6 +426,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== LOGIC
 
+                await project.resetIdleTime();
+
+
                 // collect
                 let dev:any = {};
                 const callers:(string|ModelMethod)[] = [];
@@ -534,6 +545,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 if(project == null || !project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
+
+
+                await project.resetIdleTime();
 
                 // ========== LOGIC +  RESPONSE
                 const sign:string = Util.decodeURI(Util.b64_decode(req.params.id));
@@ -706,6 +720,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 if(project == null || !project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
+
+
+                await project.resetIdleTime();
 
                 // ========== LOGIC
                 // collect
@@ -881,6 +898,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 if(project == null || !project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
+
+
+                await project.resetIdleTime();
 
                 // ========== LOGIC
                 const search:string = req.query.search as string;

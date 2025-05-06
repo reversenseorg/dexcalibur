@@ -142,7 +142,7 @@ export class EngineNodeManager {
 
     private _ctrl:Nullable<EngineNodeManagerWorker> = null;
 
-    private _max_idle_time:number = 60*60*1000;
+    private _max_idle_time:number = 120*60*1000; // 2 hour
 
     constructor(pMasterEngine:DexcaliburEngine, pCurrentUID:EngineNodeUUID) {
         // UUID of this engine node
@@ -872,6 +872,11 @@ export class EngineNodeManager {
 
         //Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
         let node:EngineNode = await this.getNodeByUUID(vEvent.nodeUUID);
+
+        if(node==null){
+            // node terminated earlier, ignore
+            return;
+        }
 
         if(vEvent.new==NodeState.REGISTERED){
             node.state = NodeState.IDLE;
