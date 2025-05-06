@@ -39,6 +39,9 @@ export class DexcaliburProjectException extends MonitoredError {
     static CANNOT_INIT_NO_WF = (pPUID:DexcaliburProjectUUID)=>{
         return new DexcaliburProjectException(`Cannot init project, no workflow defined [puid=${pPUID}]`,
             ErrorCode.PROJECT + 120) };
+    static CANNOT_REATTACH_INPUT = (pPUID:DexcaliburProjectUUID,pInput:string)=>{
+        return new DexcaliburProjectException(`Cannot reattach input to project workspace [puid=${pPUID}][input=${pInput}]`,
+            ErrorCode.PROJECT + 121,{ puid:pPUID, path:pInput}) };
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

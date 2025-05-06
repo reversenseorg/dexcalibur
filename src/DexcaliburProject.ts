@@ -1506,6 +1506,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @async
      */
     async attachInput(pInput:ProjectInput):Promise<void> {
+
         if(this.packageAnalyzer == null){
             this.packageAnalyzer = new GenericPackageAnalyzer({ });
             this.packageAnalyzer.setProject(this);
@@ -1513,23 +1514,14 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         if(pInput.isFile()){
 
-            if(pInput.location==ProjectInputLocation.LOCAL){
+            const copy = new ProjectInput(pInput);
+            copy.location = ProjectInputLocation.DB_PRJ;
 
-                // if the project input is stored into temporary, out of project workspace,
-                // it must be copied first into project workspace
-                const inputDir = this.getWorkspace().getInputDir();
-                if(pInput.data.indexOf(inputDir)!==0){
-                    // Input file is not located into project workspace
-                    const inputPath = this.getWorkspace().getValidInputPath(pInput);
-                    _fs_.copyFileSync(pInput.data, inputPath);
-                    // update and save project input
-                    pInput.setPath(inputPath);
-                    this.inputs.push(pInput);
-                }
-            }
-            else if(pInput.location==ProjectInputLocation.DB_UPL){
+            // if the input is still in global upload bucket,
+            // move it as local file in project workspace FS
+            if(pInput.location==ProjectInputLocation.DB_UPL) {
 
-                // if the project input is stored into DB, out of project workspace,
+                // if the project input is stored into DB as uploaded fil in 'dxcserver" schema, out of project workspace,
                 // it must be downloaded first into project workspace
                 const inputPath = this.getWorkspace().getValidInputPath(pInput);
                 await this.getContext()
@@ -1540,8 +1532,45 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 // update and save project input
                 pInput.setPath(inputPath);
                 pInput.location = ProjectInputLocation.LOCAL;
-                this.inputs.push(pInput);
+            }
 
+            copy.data = _path_.join(_path_.sep+ProjectWorkspace.BASE_PATH.IN, _path_.basename(pInput.getPath()));
+            // if the input is a file or is the input imported previously
+            if(pInput.location==ProjectInputLocation.LOCAL){
+
+                // import file into project DB
+                await this.pdb.getFileManager().writeFile('ws', pInput.getPath(), copy.getPath(), {
+                    input: copy.getPath(),
+                    type: ProjectWorkspace.BASE_PATH.IN
+                });
+
+                const res = this.inputs.find(x => x.getPath()===copy.getPath());
+                if(res==null){
+                    // save imported input
+                    this.inputs.push(copy);
+                }
+            }
+
+
+
+            // download input into FS workspace if missing
+
+            // if the project input is stored into temporary, out of project workspace,
+            // it must be copied first into project workspace
+
+            const inputDir = this.getWorkspace().getPath();
+            let candidate = _path_.join(inputDir, copy.getPath());
+            if(!_fs_.existsSync(candidate)){
+                // Input file is not located into project workspace
+                const inputPath = this.getWorkspace().getValidInputPath(pInput);
+
+                this.getProjectDB().getFileManager()
+                    .readFileTo('ws', copy.getPath(), inputPath);
+
+                //_fs_.copyFileSync(pInput.data, inputPath);
+                // update and save project input
+                //pInput.setPath(inputPath);
+                //this.inputs.push(pInput);
             }
         }else{
             this.inputs.push(pInput);
@@ -1551,6 +1580,51 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         // save changes
         await this.getContext().getEngineDB().saveProject(this, ['inputs']);
+    }
+
+    /**
+     * To reattach inputs from project to project workspace and local context
+     *
+     * @param {ProjectInput} pInput
+     * @method
+     * @async
+     */
+    async reattachInput(pInput:ProjectInput):Promise<boolean> {
+
+        if(this.packageAnalyzer == null){
+            this.packageAnalyzer = new GenericPackageAnalyzer({ });
+            this.packageAnalyzer.setProject(this);
+        }
+
+        let freshData = false;
+        const inputDir = this.getWorkspace().getPath();
+        if(pInput.location===ProjectInputLocation.DB_PRJ){
+
+            if(!_fs_.existsSync( _path_.join(inputDir,pInput.getPath()))){
+
+                // download file to workspace
+                await this.pdb.getFileManager()
+                    .readFileTo(
+                        'ws',
+                        pInput.getPath(),
+                        _path_.join(inputDir,pInput.getPath())
+                    );
+
+                freshData = true;
+            }
+
+            // check
+            if(!_fs_.existsSync( _path_.join(inputDir,pInput.getPath()))){
+                throw DexcaliburProjectException.CANNOT_REATTACH_INPUT(this.getUID(),pInput.getPath())
+            }else if(freshData){
+                this.packageAnalyzer.attachInput(pInput);
+            }
+        }
+
+        //await this.packageAnalyzer.attachInput(pInput);
+
+
+        return freshData;
     }
 
     /**
@@ -1578,6 +1652,30 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         return targetApp;
     }
 
+
+    /**
+     * @since 1.8.28
+     */
+    async reattachWorkspace():Promise<void> {
+
+
+        Logger.info("[PROJECT] reattachWorkspace : scan for missing inputs in local workspace")
+        let needUnpack = false;
+
+        for (let i = 0; i < this.inputs.length; i++) {
+            if (await this.reattachInput(this.inputs[i])) {
+                needUnpack = true;
+            }
+        }
+
+        if (this.getWorkspace().isPkgFolderEmpty() || this.getWorkspace().isTargetAppMissing() || needUnpack) {
+            Logger.info("[PROJECT] reattachWorkspace : prepare package again locally")
+            await this.packageAnalyzer.prepareTargetPackage();
+            this.packageAnalyzer.free();
+        }
+
+        return;
+    }
 
     /**
      * To synchronize project platform used during analysis with device and APK.
@@ -3240,6 +3338,12 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         return null;
     }
 
+
+    async getInputs():Promise<ProjectInput[]> {
+        //return this.getContext().getProjectManager().getInputsOf()
+
+        return [];
+    }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);
 

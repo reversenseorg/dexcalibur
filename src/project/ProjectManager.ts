@@ -1,8 +1,8 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {UserAccount} from "../user/UserAccount.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
-import {OrganizationUnit} from "../organization/OrganizationUnit.js";
-import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {ApplicationUnit, ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import DeviceManager from "../DeviceManager.js";
@@ -1150,6 +1150,10 @@ export class ProjectManager {
 
             Logger.success("[ENGINE] [OPEN PROJECT] Project loaded");
 
+
+            // [K8S] detect missing input in local workspace, and import
+            await project.reattachWorkspace();
+
             // enable auto-update of project in DB when some specifics events
             // of the project happen
             await this._ctx.getEngineDB().attachProject(project);
@@ -1348,5 +1352,20 @@ export class ProjectManager {
         }
 
         return order;
+    }
+
+
+    async deleteProject( pAccount:UserAccount, pProjectUUID:DexcaliburProjectUUID){
+        // check role only
+        AccessControl.isAuthorized(
+            AccessControl.access.PROJ_DELETE_ANY,
+            pAccount
+        );
+
+        // retrieve project and check user
+        const prj = await this.getProject(pAccount, pProjectUUID);
+
+        return await this._ctx.getEngineDB().deleteProjectByUID(pProjectUUID);
+
     }
 }

@@ -851,7 +851,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         }
 
                         unsafeProjectUID = (req.dxc.project as DexcaliburProject).getUID();
-
                 }else{
                     unsafeProjectUID = req.body['uid'];
                 }
@@ -860,11 +859,21 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
 
+                if(req.body['aid'] != null){
+                    const app = await $.context.getOrgManager().getDirectApplication(req.user, req.body['aid']);
+
+                    $.sendSuccess( res, {
+                        remove: await $.context.getOrgManager().dropAppRelease(req.user, app, unsafeProjectUID)
+                    });
+                }else{
+                    $.sendSuccess( res, {
+                        remove: await $.context.deleteProject( req.dxc.sess.getUserAccount(),  unsafeProjectUID)
+                    });
+                }
 
 
-                $.sendSuccess( res, {
-                    remove: await $.context.deleteProject( req.dxc.sess.getUserAccount(),  unsafeProjectUID)
-                });
+
+
 
 
             }catch(err){

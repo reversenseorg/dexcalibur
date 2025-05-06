@@ -728,16 +728,117 @@ The Reversense Team
         // drop child projects. TODO : replace by deleteMany
         const rel = pApp.getReleases();
         for(let i=0;i<rel.length;i++){
-            await this._ctx.deleteProject(pUserAccount, rel[i], false);
+            await this.dropAppRelease(pUserAccount, pApp, rel[i]);
         }
 
         // delete reports
         await this._ctx.getAuditManager().dropReportsByApp(pApp.getUID());
 
+        // drop user groups
+        const appGrp = pApp.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);
+        if(appGrp!=null && appGrp.value!=null && appGrp.value.length>0){
+            await this.dropUserGroup(
+                this._ctx.getInternalAcc(),
+                pOrg,
+                appGrp.value[0]
+            );
+        }
+
         // delete app unit
         return await this._ctx.getEngineDB()
             .getCollectionOf(ApplicationUnit.TYPE.getType())
             .asyncRemoveEntry(pApp);
+    }
+
+
+    /**
+     * To search apps by one or more project
+     *
+     * @param pAccount
+     * @param pProjectUUIDs
+     * @private
+     */
+    private async _searchApplicationByReleases(pAccount:UserAccount, pProjectUUIDs:DexcaliburProjectUUID[]):Promise<ApplicationUnitUUID[]> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.SRV_INSTANCE_MGT,
+            pAccount
+        );
+
+        const apps = await this._ctx.getEngineDB().getCollectionOf(ApplicationUnit.TYPE.getType())
+            .search({
+                filter: {
+                    projects: { $in: pProjectUUIDs }
+                }
+            },{ merlin:false, raw:true });
+
+        return apps.map(x => x.getUID());
+    }
+
+
+    /**
+     * @since 1.8.28
+     * @param pAccount
+     * @param pApp
+     * @param pProjectUUID
+     */
+    async dropAppRelease(pAccount:UserAccount, pApp:ApplicationUnit, pProjectUUID:DexcaliburProjectUUID):Promise<void> {
+
+        if(pProjectUUID==null || !DexcaliburProject.VALIDATE.uid.test(pProjectUUID)){
+            throw OrganizationManagerException.INVALID_APP_RELEASE(pApp.getUID(),pProjectUUID);
+        }
+
+        // check if the user is authorized to drop the app (must be the owner of app or of the org)
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_MODIFY,
+            pAccount,
+            pApp,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
+            ]
+        );
+
+        // check if oroject is a valid release
+        if(!pApp.hasRelease(pProjectUUID)){
+            throw OrganizationManagerException.INVALID_APP_RELEASE(pApp.getUID(),pProjectUUID);
+        }
+
+        // check if the project is open on a node, and kill it
+        const nodes = await this._ctx.getNodeManager().getNodeByProject(pProjectUUID);
+        for(let i=0; i<nodes.length; i++){
+            if(nodes[i].isRunning()){
+                await nodes[i].kill("Stopped by 'drop app release' routine");
+            }
+        }
+
+        // drop audit reports and orders attached to this project
+        await this._ctx.getAuditManager().dropReportsByProject(pAccount, pProjectUUID, pApp);
+
+
+        // check if the project is a part of extra application unit
+        const extraApps = await this._searchApplicationByReleases(
+            this._ctx.getInternalAcc(),
+            [pProjectUUID]
+        );
+
+        // if the project is attached to a single app, it can be deleted safely
+        if(extraApps.length==1){
+            // remove scan orders
+            await this._ctx.getScanScheduler().dropOrdersByProjects(pAccount, [pProjectUUID]);
+            // drop project DB and files
+            await this._ctx.getProjectManager().deleteProject(pAccount, pProjectUUID);
+        }
+
+        // finally remove project from application release
+        pApp.removeRelease(pProjectUUID);
+
+        // save changes
+        await this._ctx.getEngineDB().getCollectionOf(ApplicationUnit.TYPE.getType())
+            .asyncUpdateEntry( pApp, { replace:false, $set:['projects']})
+
+        return ;
     }
 
     async testSsoConnection(pAccount:UserAccount, pConnSettings:SsoOptions):Promise<boolean> {
@@ -2510,4 +2611,6 @@ The Reversense Team
 
         return true;
     }
+
+
 }

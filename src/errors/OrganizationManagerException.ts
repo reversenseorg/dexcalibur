@@ -230,6 +230,13 @@ export class OrganizationManagerException extends MonitoredError {
                 oid:pOUID
             }) };
 
+    static INVALID_APP_RELEASE = (pApp:ApplicationUnitUUID, pProj:DexcaliburProjectUUID)=>{
+        return new OrganizationManagerException(`The project is not a valid release of this application.`,
+            ErrorCode.ORGANIZATION + 50, {
+                aid:pApp,
+                pid: pProj
+            }) };
+
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

@@ -112,6 +112,7 @@ export class ScanScheduler {
                 uid: `${pProject.getUID()}:scan:${(new Date()).getTime()}`
             });
             project = await DexcaliburProject.load(this._ctx, pProject.getUID(), pUser, null, wf);
+            await project.reattachWorkspace();
         }else{
             project = pProject;
             wf = pProject.getWorkflow();
@@ -356,6 +357,23 @@ export class ScanScheduler {
         return await (this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType()))
             .search({ filter: { 'settings.projectUID': { $in: pApp.getReleases() } } }, {raw:true});
     }
+
+    /**
+     * To list orders from a project
+     *
+     * @param pProject
+     */
+    async dropOrdersByProjects(pUserAccount:UserAccount, pProjects:DexcaliburProjectUUID[]):Promise<ScanOrder[]> {
+
+
+        return await (this._ctx.getEngineDB().getCollectionOf(ScanOrder.TYPE.getType()))
+            .search({
+                filter: {
+                    'settings.projectUID': { $in: pProjects }
+                }
+            }, {raw:true, merlin:false});
+    }
+    
 
     /**
      * To retrieve an order by its UUID

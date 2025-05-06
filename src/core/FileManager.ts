@@ -8,8 +8,12 @@ import * as _fs_ from "fs";
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 
 /**
+ * File manager help to implement a database-backed filesystem
+ * instead of relying on host filesystem
  *
+ * It ensures slaves node are more stateless about FS
  *
+ *  @class
  * @since 1.8.14
  */
 export class FileManager {
@@ -141,11 +145,39 @@ export class FileManager {
         return this._buckets[pBucket].openDownloadStreamByName(pUploadID);
     }
 
-    /*async scanDir(pFilepath:string):Promise<boolean>  {
+    /*
+    ------- COMMON FS API -----------
+     */
 
-    }
+    /*
+    async scanDir(pFilepath:string):Promise<boolean>  {
 
+    }*/
+
+    /**
+     *
+     * @param pBucket
+     * @param pFilepath
+     * @method
+     * @since 1.8.24
+     */
+    /*
     async isFile(pBucket:string, pFilepath:string):Promise<boolean> {
 
+    }*/
+
+    /**
+     * To export en entire bucket to temporary folder in FS in order
+     *
+     * Useful when an external process must walk over all paths from a folder
+     * like binwalk
+     *
+     * @method
+     * @since 1.8.24
+     */
+    /*
+    async exportBucketToTempFolder(pParentPath:string):Promise<string> {
+        // todo
+        return "";
     }*/
 }

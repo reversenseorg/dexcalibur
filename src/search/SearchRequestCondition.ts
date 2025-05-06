@@ -4,7 +4,8 @@ import Util from "../Utils.js";
 import {SearchOptions} from "./MerlinSearchAPI.js";
 import {INode, Tag} from "@dexcalibur/dexcalibur-orm";
 
-const REGEXP_DELIMITER_TOKEN = '/';
+export const REGEXP_DELIMITER_TOKEN = '/';
+
 
 export interface ValidateOptions {
   range?: any[],
@@ -23,6 +24,8 @@ export interface ValidateOptions {
 export class SearchRequestCondition implements IStringIndex<any>{
 
   static WILDCARD = '*';
+  static REGEXP_DELIMITER_TOKEN = REGEXP_DELIMITER_TOKEN;
+  static FIELD_TOK = '.';
 
   depth = 3;
   tag: Tag|null = null;
@@ -155,5 +158,37 @@ export class SearchRequestCondition implements IStringIndex<any>{
 
   hasError():boolean{
     return (this.error != null);
+  }
+
+  /**
+   * To stringified and escaped regexp
+   */
+  getRegExpPattern():string {
+    return this._re.source;
+  }
+
+  /**
+   * To check if a condition is only tag-based
+   */
+  isTagOnly():boolean {
+    return (this.tagKey!=null && this.field=="");
+  }
+
+  /**
+   * To check if a condition is only tag-based
+   */
+  hasTag():boolean {
+    return (this.tagKey!=null);
+  }
+
+  /**
+   * To check if a condition is applied to nested element
+   */
+  isNested():boolean {
+    return (this.field!="" && this.field.indexOf(SearchRequestCondition.FIELD_TOK)>-1);
+  }
+
+  isFieldBased():boolean {
+    return (this.field!="" && this.field.length>0);
   }
 }

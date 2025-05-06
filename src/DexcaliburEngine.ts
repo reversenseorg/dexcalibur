@@ -1430,6 +1430,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             wf.pushStatus(new StatusMessage(7, "Loading project data"));
             project = await DexcaliburProject.load(this, pUID, pUserAccount, null);
 
+
+            // [K8S] detect missing input in local workspace, and import
+            await project.reattachWorkspace();
+
             Logger.success("[ENGINE] [OPEN PROJECT] Project loaded");
             // enable auto-update of project in DB when some specifics events
             // of the project happen

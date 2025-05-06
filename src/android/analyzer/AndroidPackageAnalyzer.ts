@@ -116,6 +116,9 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         let path:string;
 
         switch (pProjectInput.location){
+            case ProjectInputLocation.DB_PRJ:
+                path = _path_.join(this._project.getWorkspace().getPath(), pProjectInput.getPath());
+                break;
             case ProjectInputLocation.LOCAL:
                 path = pProjectInput.data as string;
                 break;

@@ -3,12 +3,14 @@ import DexcaliburProject from "../DexcaliburProject.js";
 
 import {newTagPresets, TAG_CATEGORY_PRESETS} from "./common/TagPresets.js";
 
-import {IDatabase, IDbCollection, IStringIndex, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDbCollection, IStringIndex, Tag, TagCategory, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
 import {newLogger} from "../Logger.js";
 import {ProjectDatabase} from "../database/ProjectDatabase.js";
 import type = Mocha.utils.type;
 import {Observable} from "rxjs";
+import {REGEXP_DELIMITER_TOKEN, SearchRequestCondition} from "../search/SearchRequestCondition.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 
 export interface TagMap {
     [num:number] :Tag
@@ -435,5 +437,44 @@ export class TagManager {
         this._tags.map( (vTag:Tag)=>{
             this._tags.updateEntry(vTag);
         });*/
+    }
+
+    async searchTagsByRegexp(pUidPattern:string):Promise<TagUUID[]>{
+        const tags:Tag[] = await this._tags.search({
+            filter:{
+                _uid: {
+                    $regex: pUidPattern
+                }
+            }
+        },{merlin:false, raw:true});
+
+        return tags.map(x => x.getUUID());
+    }
+
+    /**
+     *
+     * @param pUidPattern
+     */
+    async searchTags(pUidPattern:string):Promise<TagUUID[]>{
+
+        if(pUidPattern[0]==SearchRequestCondition.REGEXP_DELIMITER_TOKEN &&
+            pUidPattern[pUidPattern.length-1]==SearchRequestCondition.REGEXP_DELIMITER_TOKEN){
+
+            return await this.searchTagsByRegexp(pUidPattern.substring(1,pUidPattern.length-2));
+        }
+        else if(pUidPattern.indexOf(SearchRequestCondition.WILDCARD)>-1){
+            return await this.searchTagsByRegexp(
+                pUidPattern.replaceAll(".","\\.").replaceAll(".*","..*")
+            )
+        }
+        else {
+            const tags:Tag[] = await this._tags.search({
+                filter:{
+                    _uid:  pUidPattern
+                }
+            },{merlin:false, raw:true});
+
+            return tags.map(x => x.getUUID());
+        }
     }
 }

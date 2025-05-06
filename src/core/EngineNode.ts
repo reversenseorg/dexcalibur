@@ -507,7 +507,7 @@ export class EngineNode implements INode {
                     Logger.info(`[ENGINE NODE][${this.UUID}][1] Execute operation direct : ${oldest.type} ${new Date(oldest.created)}`);
                     this.execOperation2(oldest)
                         .then((vRes)=>{
-                            Logger.error(`[ENGINE NODE][${this.UUID}][1] Operation execution done : `);
+                            Logger.info(`[ENGINE NODE][${this.UUID}][1] Operation execution done : `);
                             this.opeTerminated.push(oldest);
                             this.operation$.next(null);
                         },(err)=>{
@@ -631,6 +631,10 @@ export class EngineNode implements INode {
             .asyncUpdateEntry(this, { replace:false, $set:pPpt});
 
         Logger.info(`[ENGINE][node=${this.UUID}] Node saved`);
+    }
+
+    async saveState():Promise<void> {
+        return await this.save(['state','idleSince']);
     }
 
     getUID():EngineNodeUUID {
@@ -1021,11 +1025,17 @@ export class EngineNode implements INode {
             await this._engine.getEngineDB().updateOrder(pOrder,['uuid']);
         }
 
+        if(this.state==NodeState.REGISTERED){
+            this.setState(NodeState.IDLE, false);
+            await this.saveState();
+        }
+
         Logger.info(`[ENGINE NODE][${this.UUID}][startProject] State : ${this.state} `);
 
         // check if server is starting and queue is empty
         // else check if node is busy
         switch (this.state){
+            case NodeState.REGISTERED:
             case NodeState.IDLE:
                 // save order, to make it accessible from slave Node
                 // await this._engine.getEngineDB().save(pOrder);
@@ -1116,7 +1126,7 @@ export class EngineNode implements INode {
      *
      * @param pState
      */
-    setState(pState:NodeState):void {
+    setState(pState:NodeState, pBroadcast = true):void {
         const old = this.state;
         if(this.state!=NodeState.IDLE && pState==NodeState.IDLE) {
             this.idleSince = Util.now();
@@ -1127,12 +1137,14 @@ export class EngineNode implements INode {
 
 
         this.state = pState;
-        this.nodeState$.next({
-            before: old,
-            new: this.state,
-            time: Util.time(),
-            nodeUUID: this.UUID
-        });
+        if(pBroadcast){
+            this.nodeState$.next({
+                before: old,
+                new: this.state,
+                time: Util.time(),
+                nodeUUID: this.UUID
+            });
+        }
     }
 
     setHttpPort(pPort:number, pForce = false):void {

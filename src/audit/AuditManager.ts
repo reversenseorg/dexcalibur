@@ -668,4 +668,63 @@ export class AuditManager {
 
     }
 
+
+    async dropReportsByProject(pAccount:UserAccount, pProjectUUID:DexcaliburProjectUUID, pAppUnit:Nullable<ApplicationUnit> = null):Promise<void> {
+
+        let reports:AssuranceReport[];
+        let success = false;
+
+        if(pAppUnit==null){
+            AccessControl.isAuthorized(
+                AccessControl.access.SRV_INSTANCE_MGT,
+                pAccount
+            );
+
+
+            reports = await this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType())
+                .search({
+                    project: pProjectUUID
+                });
+
+            for(let i=0; i<reports.length; i++){
+                success = await this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType())
+                    .asyncRemoveEntry(reports[i]);
+
+                if(success){
+                    Logger.success(`[AUDIT MANAGER] dropReportsByProject (1) : Report ${reports[i].getUID()} dropped successfully`);
+                }else{
+                    Logger.error(`[AUDIT MANAGER] dropReportsByProject (1) : Report ${reports[i].getUID()} cannot be dropped`);
+                }
+            }
+
+        }else{
+            AccessControl.isAuthorized(
+                AccessControl.access.AUDIT_REPORT_DEL,
+                pAccount,
+                pAppUnit,
+                [
+                    OrganizationAccessControl.attr.APP_MEMBER,
+                    OrganizationAccessControl.attr.OWNER,
+                ]
+            );
+
+            reports = await this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType())
+                .search({
+                    project: pProjectUUID,
+                    application: pAppUnit.getUID()
+                });
+
+            for(let i=0; i<reports.length; i++){
+                success = await this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType())
+                    .asyncRemoveEntry(reports[i]);
+
+
+                if(success){
+                    Logger.success(`[AUDIT MANAGER] dropReportsByProject (2) : Report ${reports[i].getUID()} dropped successfully`);
+                }else{
+                    Logger.error(`[AUDIT MANAGER] dropReportsByProject (2) : Report ${reports[i].getUID()} cannot be dropped`);
+                }
+            }
+        }
+    }
 }

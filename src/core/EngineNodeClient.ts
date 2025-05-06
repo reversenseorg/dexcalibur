@@ -67,8 +67,9 @@ export class EngineNodeClient extends HttpClient {
     async stop():Promise<boolean> {
         try{
             // Logger.info("[ENGINE NODE][HEALTH] Request node healthcheck : "+this.baseURL+"api/health/ready");
-            const response = await this.perform("api/node/stop");
+            const response = await this.perform("api/node/stop", { method:'POST'});
             if(response.body!=null){
+                console.log(response.body);
                 console.log(JSON.parse(response.body).data.done);
                 return (JSON.parse(response.body).data.done=='ok');
             }else{

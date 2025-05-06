@@ -211,5 +211,25 @@ export class ApplicationUnit extends Auditable implements INode {
 
         console.log("assignDevice > ", this.devices );
     }
+
+    /**
+     * To check if a project is a part of this app
+     *
+     * @param pProjectUUID
+     * @since 1.8.28
+     */
+    hasRelease(pProjectUUID: DexcaliburProjectUUID) {
+        return (this.projects.indexOf(pProjectUUID)>-1);
+    }
+
+    /**
+     * To remove a release from the list
+     *
+     * @param pProjectUUID Project to remove
+     * @since 1.8.28
+     */
+    removeRelease(pProjectUUID: DexcaliburProjectUUID) {
+        this.projects = this.projects.filter(x => (x!=pProjectUUID));
+    }
 }
 ApplicationUnit.TYPE.builder(ApplicationUnit);

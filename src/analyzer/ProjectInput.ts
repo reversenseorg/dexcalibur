@@ -13,7 +13,8 @@ export enum ProjectInputLocation {
     DEVICE="device",
     REMOTE="remote",
     LOCAL="local",
-    DB_UPL="db_upl"
+    DB_UPL="db_upl",
+    DB_PRJ="db_prj"
 }
 
 export enum ProjectInputPurpose{
@@ -80,6 +81,8 @@ export class ProjectInput implements IProjectInput{
         }
     }
 
+
+
     static from(pOptions:ProjectInputOptions):ProjectInput {
         return new ProjectInput(pOptions);
     }
@@ -92,10 +95,26 @@ export class ProjectInput implements IProjectInput{
         return (this.type===ProjectInputType.REGULAR_FILE);
     }
 
+    getPath():string {
+        if(this.isFile()){
+            return this.data as string;
+        }else{
+            return null;
+        }
+    }
+
     setPath(pPath:string):void {
         this.data = pPath;
     }
 
+    /**
+     * To perform comparison of type and checksum
+     *
+     * If the location is a local file, the location is alsop tested
+     */
+    isFileDifferent(pInput:ProjectInput):boolean {
+        return (this.getPath()!=pInput.getPath());
+    }
     toJsonObject(pZone = SecurityZone.PUBLIC):any {
 
         const o = {

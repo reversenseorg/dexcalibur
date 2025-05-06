@@ -57,6 +57,7 @@ import {GridFSBucket} from "mongodb";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {IFileDatabase} from "../core/commons.js";
 import {FileManager} from "../core/FileManager.js";
+import {ProjectInput} from "../analyzer/ProjectInput.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -149,7 +150,7 @@ export class ProjectDatabase implements IFileDatabase {
 
         ModelResource.TYPE,
 
-        AssuranceModel.TYPE
+        AssuranceModel.TYPE,
         //ModelStringValue.TYPE
     ];
 
@@ -234,11 +235,13 @@ export class ProjectDatabase implements IFileDatabase {
      *
      * @private
      */
-    private _initWorkspace(){
+    private async _initWorkspace():Promise<void>{
         // create or open the workspace bucket in gridFS
-        this._wsBucket = new GridFSBucket(this._db.db, {bucketName: 'ws' });
+        // this._wsBucket = new GridFSBucket(this._db.db, {bucketName: 'ws' });
 
-        this._fmgr
+        if(this._fmgr!=null){
+            this._wsBucket  = await this._fmgr.open('ws');
+        }
     }
 
     /**

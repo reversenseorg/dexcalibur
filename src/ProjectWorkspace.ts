@@ -49,6 +49,8 @@ const DIR_NAME = {
  */
 export default class ProjectWorkspace
 {
+    static BASE_PATH = DIR_NAME;
+
     project:DexcaliburProject;
 
     path:string = null;
@@ -496,6 +498,10 @@ export default class ProjectWorkspace
             //this.restoreInputs();
             //this.restoreInputs();
         }
+    }
+
+    isTargetAppMissing():boolean {
+        return _fs_.existsSync(this.getAppPath());
     }
 }
 
