@@ -165,8 +165,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 // ========== SECURITY CHECKS
 
 
-                await project.resetIdleTime();
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -176,6 +174,8 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 if(project == null || !project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
+
+                await project.resetIdleTime();
 
                 // ========== LOGIC
 
@@ -214,7 +214,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                await project.resetIdleTime();
 
 
                 if(req.body['project']!=null){
@@ -227,6 +226,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
 
+                await project.resetIdleTime();
                 // ========== LOGIC +  RESPONSE
                 $.sendSuccess( res, project.find.method('name:/.*/').toJsonObject({}));
             }catch(err){
@@ -301,6 +301,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
                 project = req.dxc.project;
 
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
 
                 await project.resetIdleTime();
 
@@ -425,7 +428,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 project = req.dxc.project;
 
                 // ========== LOGIC
-
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
                 await project.resetIdleTime();
 
 
