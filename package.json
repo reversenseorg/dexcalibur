@@ -67,7 +67,7 @@
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0",
     "ts-node": "^10.9.1",
-    "typedoc": "^0.25.5"
+    "typedoc": "^0.25.13"
   },
   "bin": {
     "dexcalibur": "dexcalibur.js"
