@@ -19,10 +19,7 @@ export interface ThreatOptions {
  */
 export default class Threat extends Asset{
 
-    id:string;
     uid:string ;
-    name:string;
-    description:string;
     property:DataProperty;
     signature:Constraint[] = [];
 

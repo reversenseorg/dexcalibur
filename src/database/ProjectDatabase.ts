@@ -58,6 +58,10 @@ import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {IFileDatabase} from "../core/commons.js";
 import {FileManager} from "../core/FileManager.js";
 import {ProjectInput} from "../analyzer/ProjectInput.js";
+import {ProjectFileDatabase} from "./ProjectFileDatabase.js";
+import {ModelFunction} from "../ModelFunction.js";
+import {MongoDbMerlinBackend} from "./MongoDbMerlinBackend.js";
+import ModelCall from "../ModelCall.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -103,6 +107,9 @@ export class ProjectDatabase implements IFileDatabase {
 
     private _project:Nullable<DexcaliburProject> = null;
 
+    private _pfdb:ProjectFileDatabase;
+
+    private _merlinBE:MongoDbMerlinBackend;
     /**
      * Worker to schedule child worker to save data
      *
@@ -118,6 +125,7 @@ export class ProjectDatabase implements IFileDatabase {
         HookSession.TYPE,
         ModelFile.TYPE,
         DataScope.TYPE,
+
         KeyPoint.TYPE,
         HookStrategy.TYPE,
         HookSet.TYPE,
@@ -141,6 +149,8 @@ export class ProjectDatabase implements IFileDatabase {
         ModelField.TYPE,
         ModelBom.TYPE,
         ModelStringValue.TYPE,
+        ModelFunction.TYPE,
+       // ModelCall.TYPE,
 
         ModelUiEventType.TYPE,
         ModelUiEvent.TYPE,
@@ -161,6 +171,10 @@ export class ProjectDatabase implements IFileDatabase {
         this._db = pDb;
     }
 
+    getMerlinBE():MongoDbMerlinBackend {
+        return this._merlinBE;
+    }
+
     setEngine(pContext:DexcaliburEngine){
         this._ctx = pContext;
         this._fmgr = new FileManager(pContext, this);
@@ -172,6 +186,11 @@ export class ProjectDatabase implements IFileDatabase {
         if(pProject.dbName==""){
             pProject.dbName = this.name;
         }
+
+        this._pfdb = new ProjectFileDatabase(this._project,this);
+
+        this._merlinBE = new MongoDbMerlinBackend(this._project.getTagManager());
+        this._merlinBE.setDB(this);
 
         this._initSubscriptions();
 
@@ -383,7 +402,7 @@ export class ProjectDatabase implements IFileDatabase {
      *
      * @param pObject
      */
-    async search(pFilter:any, pObject:INode, pOptions?:any):Promise<any[]> {
+    async search(pFilter:any, pObject:INode|NodeInternalType, pOptions?:any):Promise<any[]> {
 
         let res:INode[] = [];
         let coll:IDbCollection;
@@ -399,6 +418,10 @@ export class ProjectDatabase implements IFileDatabase {
         return res;
     }
 
+
+    async merlinSearch( pRequest:MerlinSearchRequest):Promise<IDbIndex> {
+        return await this._merlinBE.search(pRequest, this._project.find.newFinderResult().data);
+    }
 
     saveAsync(pObject:INode):void{
 
@@ -675,7 +698,8 @@ export class ProjectDatabase implements IFileDatabase {
             NodeInternalType.CLASS,
             NodeInternalType.METHOD,
             NodeInternalType.FIELD,
-            NodeInternalType.PACKAGE
+            NodeInternalType.PACKAGE,
+            NodeInternalType.CALL
         ];
 
         let vals;
@@ -720,7 +744,8 @@ export class ProjectDatabase implements IFileDatabase {
             ModelClass.TYPE,
             ModelField.TYPE,
             ModelMethod.TYPE,
-            ModelPackage.TYPE
+            ModelPackage.TYPE,
+            ModelCall.TYPE
         ];
 
 
@@ -777,4 +802,20 @@ export class ProjectDatabase implements IFileDatabase {
     getFileManager():FileManager {
         return this._fmgr;
     }
+
+    getFileScope(pScopeName: string) {
+        const info = this._getCollectionInfo(ModelFile.TYPE.getType());
+
+        return this._db.getCollection(pScopeName, info.collType);
+    }
+
+    /**
+     *
+     * @method
+     */
+    getFileDB():ProjectFileDatabase {
+        return this._pfdb;
+    }
+
+
 }

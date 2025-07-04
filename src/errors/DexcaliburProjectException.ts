@@ -5,8 +5,6 @@ import {UserAccountUUID} from "../user/UserAccount.js";
 
 export class DexcaliburProjectException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     static ALL = {
         NEED_PROJECT_UPGRADE: ErrorCode.PROJECT + 112,

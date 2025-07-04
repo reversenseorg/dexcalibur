@@ -5,8 +5,7 @@ import {SecurityZone} from "../security/SecurityZone.js";
 
 export class EngineDatabaseException extends MonitoredError {
 
-    code:number;
-    extra:any;
+
 
     static CODE = {
         UNKNOWN_COLLECTION: ErrorCode.GENERIC + 20,

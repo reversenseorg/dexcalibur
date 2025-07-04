@@ -51,11 +51,6 @@ export class AnalyzerState implements INode{
     modified = -1;
 
     tags:number[] = [];
-    /**
-     * The collection where the state is backed up
-     * @private
-     */
-    private _coll:IDbCollection = null;
 
     private _pdb:Nullable<ProjectDatabase> = null;
 
@@ -95,7 +90,6 @@ export class AnalyzerState implements INode{
     }
 
     setContext(pCtx:DexcaliburProject){
-        this._coll = pCtx.getDB().getCollection('anal_state', AnalyzerState.TYPE);
         this._pdb = pCtx.getProjectDB();
     }
 
@@ -117,7 +111,7 @@ export class AnalyzerState implements INode{
     }
 
     async save():Promise<any>{
-        return await this._pdb.saveState(this); //  this._coll.updateEntry(this);
+        return await this._pdb.saveState(this);
     }
 
     toJsonObject(pOption?: SerializeOptions): any {

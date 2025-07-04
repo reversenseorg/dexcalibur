@@ -7,6 +7,12 @@ import * as Path from 'path';
 const TEST_CONFIG = Path.join( Util.__dirname(import.meta.url), './res/config_test.js');
 const TEST_CONFIG2 = Path.join( Util.__dirname(import.meta.url), './res/config_test_2.js');
 
+
+const TEST_WS:string = _path_.join(Util.__dirname(import.meta.url),'ws');
+const TEST_APP = "com.yubico.yubioath"
+const TEST_LIB = "libdatastore_shared_counter.so"
+const TEST_ARCH = "arm64-v8a"
+
 var CONFIG = null;
 
 import * as Log from '../dist/src/Logger.js';
@@ -23,6 +29,7 @@ import GraphMaker from "../dist/src/Graph.js";
 import {TestHelper} from "../dist/src/TestHelper.js";
 import ProjectWorkspace from "../dist/src/ProjectWorkspace.js";
 import Util from "../src/Utils.js";
+import * as _path_ from "path";
 
 let Logger:Log.TestLogger;
 

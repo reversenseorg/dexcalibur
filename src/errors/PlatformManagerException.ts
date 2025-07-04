@@ -2,8 +2,6 @@ import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 
 export class PlatformManagerException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     static ALL = {};
 

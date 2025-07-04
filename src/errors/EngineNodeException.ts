@@ -56,6 +56,9 @@ export class EngineNodeException extends MonitoredError {
     static WRONG_REGISTRATION_KEY = ()=>{
         return new EngineNodeException("Wrong registration key",
             ErrorCode.REMOTE_DEXCALIBUR + 416) };
+    static NOT_AVAILABLE_IN_CONTROLLER = (pFeature:string)=>{
+        return new EngineNodeException(`The feature '${pFeature}' is not available on controller`,
+            ErrorCode.REMOTE_DEXCALIBUR + 417) };
 
 
 

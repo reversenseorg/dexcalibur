@@ -2,8 +2,6 @@ import {ErrorCode, MonitoredError} from "../../errors/MonitoredError.js";
 
 export class DataFormatManagerException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     static CODE = {
         NOT_IMPLEMENTED: ErrorCode.GENERIC + 50,

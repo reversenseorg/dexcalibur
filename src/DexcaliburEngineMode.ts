@@ -8,5 +8,6 @@
 export enum DexcaliburEngineMode {
     MASTER = "MASTER",
     SLAVE = "SLAVE",
-    STANDALONE = "STANDALONE"
+    STANDALONE = "STANDALONE",
+    CONTROLLER="ctrl"
 }

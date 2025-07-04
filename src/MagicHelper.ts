@@ -70,9 +70,7 @@ export class MagicHelper extends  External.ExternalHelper implements IFileAnalyz
             file.name = _path_.basename( l[1]);
             file.__p.md5 = Util.trim(l[2].substr(l[2].indexOf(':')));
 
-            if(l.length>7){
-                file.__p.m = [];
-            }
+
             for(let i=7; i<l.length; i++){
                 if(l[i]!=null){
                     res = RE.exec(l[i]) ;
@@ -82,11 +80,7 @@ export class MagicHelper extends  External.ExternalHelper implements IFileAnalyz
                             file.type = res[3].split(' ')[0];
                         }
 
-                        // __p = properties
-                        // m = map
-                        // o = offset
-                        // t = type
-                        file.appendSection(new ModelFileSection(res[1], res[3]));
+                        file.appendChunk(new ModelFileSection(res[1], res[3]));
                     }else{
                         Logger.info("Format not detected in : "+l[i]);
                     }

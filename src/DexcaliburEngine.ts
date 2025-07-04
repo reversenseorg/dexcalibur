@@ -70,6 +70,12 @@ import {EngineNodeUUID} from "./core/EngineNode.js";
 import {ProjectScheduler} from "./project/ProjectScheduler.js";
 import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import Tool = External.Tool;
+import {OrganizationUnit} from "./organization/OrganizationUnit.js";
+import {ConnectionUUID} from "./organization/conn/Connection.js";
+
+export interface StartCtrlOpts {
+    delay: number
+}
 
 /*
 const _fixPath_ = require("fix-path");
@@ -519,19 +525,18 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             this.setEngineMode(pEngineOptions.engine_mode);
             this.offline = (pEngineOptions.offline===true);
             this._engOpts = pEngineOptions;
+
+            /*if(pEngineOptions.engine_mode!=null){
+                this.engine_type = pEngineOptions.engine_mode;
+            }*/
         }
 
         NodeSchema.init();
 
         this.aclManager = new AccessControlManager(this);
         this.aclManager.init(this._internalAcc);
-        
-        this.sigServerApi = new SignatureServerAPI({
-            host: (process.env.DXC_SS_HOST!=null ? process.env.DXC_SS_HOST : '127.0.0.1'),
-            port: (process.env.DXC_SS_PORT!=null ? process.env.DXC_SS_PORT : '8085'),
-            ssl: (process.env.DXC_SS_SEC!=null ? (process.env.DXC_SS_SEC==="true") : false),
-            auth: null
-        });
+
+
 
         this.nodeManager = new EngineNodeManager(this,
             (pEngineOptions!=null && pEngineOptions.node_uid!=null) ? pEngineOptions.node_uid : this.UID);
@@ -545,31 +550,54 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             });
         }
 
-        this.scanScheduler = new ScanScheduler(this);
-        this.projectScheduler = new ProjectScheduler(this);
 
-        this.projMgr = new ProjectManager(this);
-        this.auditMgr = AuditManager.getInstance(this);
 
-        this.cleanup$.subscribe(async (vEvent:CleanupEvent)=>{
-            // to automatically remove inconsistent project from workspace
-            if(vEvent.type==='project'){
-                await this.deleteProject(null, vEvent.data, true);
-            }
-        });
+        if(!this.isNodeController()){
+            this.sigServerApi = new SignatureServerAPI({
+                host: (process.env.DXC_SS_HOST!=null ? process.env.DXC_SS_HOST : '127.0.0.1'),
+                port: (process.env.DXC_SS_PORT!=null ? process.env.DXC_SS_PORT : '8085'),
+                ssl: (process.env.DXC_SS_SEC!=null ? (process.env.DXC_SS_SEC==="true") : false),
+                auth: null
+            });
+
+            this.scanScheduler = new ScanScheduler(this);
+            this.projectScheduler = new ProjectScheduler(this);
+
+            this.projMgr = new ProjectManager(this);
+            this.auditMgr = AuditManager.getInstance(this);
+
+            this.cleanup$.subscribe(async (vEvent:CleanupEvent)=>{
+                // to automatically remove inconsistent project from workspace
+                if(vEvent.type==='project'){
+                    await this.deleteProject(null, vEvent.data, true);
+                }
+            });
+        }
 
         this._listenProcessSignals();
     }
 
     getOrgManager():OrganizationManager{
+        /*if(this.isNodeController()){
+            throw EngineNodeException.NOT_AVAILABLE_IN_CONTROLLER('org_manager');
+        }*/
+
         return  this.orgMgr;
     }
 
     getProjectManager():ProjectManager{
+        if(this.isNodeController()){
+            throw EngineNodeException.NOT_AVAILABLE_IN_CONTROLLER('project_manager');
+        }
+
         return  this.projMgr;
     }
 
     getAuditManager():AuditManager {
+        if(this.isNodeController()){
+            throw EngineNodeException.NOT_AVAILABLE_IN_CONTROLLER('audit_manager');
+        }
+
         return this.auditMgr;
     }
 
@@ -606,7 +634,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         if([
             DexcaliburEngineMode.STANDALONE,
             DexcaliburEngineMode.MASTER,
-            DexcaliburEngineMode.SLAVE
+            DexcaliburEngineMode.SLAVE,
+            DexcaliburEngineMode.CONTROLLER
         ].indexOf(pType)>-1){
             this.engine_type = pType;
         }else{
@@ -651,6 +680,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
     getScanScheduler():ScanScheduler {
+        if(this.isNodeController()){
+            throw EngineNodeException.NOT_AVAILABLE_IN_CONTROLLER('scan_scheduler');
+        }
         return this.scanScheduler;
     }
 
@@ -664,6 +696,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @method
      */
     getProjectScheduler():ProjectScheduler {
+        if(this.isNodeController()){
+            throw EngineNodeException.NOT_AVAILABLE_IN_CONTROLLER('project_scheduler');
+        }
+
         return this.projectScheduler;
     }
 
@@ -742,7 +778,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             + LOGO
             + PACKAGE_JSON.version
             + (" ".repeat(78-14-PACKAGE_JSON.version.length))
-            +"by @FrenchYeti \n"
+            +"by Reversense SAS \n"
             +"╔════════════════════════════════════════════════════════════════════════════╗\n"
             +"║ Hey :)                                                                     ║\n"
             +"║                                                                            ║\n"
@@ -752,6 +788,18 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     }
 
+    printControllerBanner(pDelay:number):void {
+        Logger.info("\n\n"
+            + LOGO
+            + PACKAGE_JSON.version
+            + (" ".repeat(78-14-PACKAGE_JSON.version.length))
+            +"by Reversense SAS \n"
+            +"╔════════════════════════════════════════════════════════════════════════════╗\n"
+            +"║ Mode : CONTROLLER"+(" ".repeat(78-10-'CONTROLLER'.length))+"║\n"
+            +"║ Delay : "+ pDelay+(" ".repeat(78-11-(''+pDelay).length))+"║\n"
+            +"╚════════════════════════════════════════════════════════════════════════════╝\n"
+        );
+    }
     /**
      *
      * @param {*} pPort
@@ -777,7 +825,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         + LOGO
         + PACKAGE_JSON.version
         + (" ".repeat(78-14-PACKAGE_JSON.version.length))
-        +"by @FrenchYeti \n"
+        +"by Reversense SAS \n"
         +"╔════════════════════════════════════════════════════════════════════════════╗\n"
         +"║ WebServer running on : http://127.0.0.1:"+pWebPort+(" ".repeat(78-43-(""+pWebPort).length))+"║\n"
         +"║ WebSocket : http://127.0.0.1:"+pWsPort+(" ".repeat(78-32-(""+pWsPort).length))+"║\n"
@@ -799,7 +847,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         + LOGO
         + PACKAGE_JSON.version
         + (" ".repeat(78-14-PACKAGE_JSON.version.length))
-        +"by @FrenchYeti \n"
+        +"by Reversense SAS \n"
         +"╔════════════════════════════════════════════════════════════════════════════╗\n"
         +"║ Dexcalibur is not fully configured, please visit URL below to              ║\n"
         +"║ finalize install:                                                          ║\n"
@@ -895,7 +943,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             await this.userSvc.initService(this);
 
-            if(this._installMode){
+            if(!this.isNodeController() && this._installMode){
 
                 // search if "local" account already exists
                 let acc = await this.userSvc.listLocalAccounts();
@@ -994,7 +1042,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         this.orgMgr = new OrganizationManager(this);
 
-
         await this.aclManager.refreshUserGroups();
 
         // init workspace
@@ -1009,50 +1056,50 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // init
         await this.init( guiCfgs);
 
-        this.terminalSrv = new TerminalServer({
-            _engine: this
-        });
 
-        Logger.debug('PASS0');
-        //  enumerate local and remote platforms
-        this.platformMgr.enumerate();
-
-        this.updater.run( DXC_LIFECYCLE_EVENT.PLATFORM_MGR_AFTER_INIT);
-
-        Logger.debug('PASSA');
-        //  enumerate local and remote inspectors
-        await this.inspectorMgr.enumerate();
-        Logger.debug('PASSB');
-
-        this.updater.run( DXC_LIFECYCLE_EVENT.INSPECT_MGR_AFTER_INIT);
-
-        // load device manager db
-        await this.deviceMgr.load();
-        Logger.debug('PASS3');
-
-        this.updater.run( DXC_LIFECYCLE_EVENT.DEV_MGR_AFTER_INIT);
-
-        LicenceManager.replenish();
-
-        // init AuditManager singleton
-        await this.getAuditManager().init();
-
-        // run fixes
-        if(this._updateMode===true){
-            await this.runFixes();
-        }
+        if(!this.isNodeController()){
+            this.terminalSrv = new TerminalServer({
+                _engine: this
+            });
 
 
-        // restart child ADB server
-        (async function(){
-            self.deviceMgr.getBridgeFactory('adb').newGenericWrapper().kill();
+            Logger.debug('PASS0');
+            //  enumerate local and remote platforms
+            this.platformMgr.enumerate();
 
+            this.updater.run( DXC_LIFECYCLE_EVENT.PLATFORM_MGR_AFTER_INIT);
+
+            Logger.debug('PASSA');
+            //  enumerate local and remote inspectors
+            await this.inspectorMgr.enumerate();
+            Logger.debug('PASSB');
+
+            this.updater.run( DXC_LIFECYCLE_EVENT.INSPECT_MGR_AFTER_INIT);
+
+            // load device manager db
+            await this.deviceMgr.load();
+            Logger.debug('PASS3');
+
+            this.updater.run( DXC_LIFECYCLE_EVENT.DEV_MGR_AFTER_INIT);
+
+            LicenceManager.replenish();
+
+            // init AuditManager singleton
+            await this.getAuditManager().init();
+
+            // run fixes
+            if(this._updateMode===true){
+                await this.runFixes();
+            }
+
+            // restart child ADB server
+            await self.deviceMgr.getBridgeFactory('adb').newGenericWrapper().kill();
             Logger.debug('PASS4');
-        })();
 
-        // start engine controller
-        if(!pNoCtrl && this.engine_type===DexcaliburEngineMode.MASTER){
-            await this.getNodeManager().startController();
+            // start engine controller
+            if(this.engine_type===DexcaliburEngineMode.MASTER){
+                this.getNodeManager().spawnController(10000);
+            }
         }
 
 
@@ -1230,6 +1277,38 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.platformMgr.enumerate();
     }
 
+    /**
+     * @since 1.9.2
+     */
+    isNodeController():boolean {
+        return (this.engine_type===DexcaliburEngineMode.CONTROLLER);
+    }
+
+    /**
+     * @since 1.9.2
+     */
+    isMaster():boolean {
+        return (this.engine_type===DexcaliburEngineMode.MASTER);
+    }
+
+    /**
+     *
+     * @param pOptions
+     */
+    startAsController( pOptions:StartCtrlOpts ):void {
+
+        this.printControllerBanner(pOptions.delay);
+
+        setInterval(()=>{
+            this.getNodeManager().refreshPool().then((d)=>{
+                // console.log(d);
+            }).catch((e)=>{
+                console.error((e));
+            })
+        }, pOptions.delay );
+
+        return ;
+    }
 
     /**
      * To starts servers and child process
@@ -1239,7 +1318,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     start( pWebPort:string|number=null, pUI:string=null){
 
-
+        if(this.isNodeController()){
+            throw EngineNodeException.NOT_AVAILABLE_IN_CONTROLLER("normal start");
+        }
 
 
         const s =this.getSettings().getWebserverSettings();
@@ -1847,6 +1928,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 await this.exit(true);
             })();
 
+            this.getNodeManager().stopController();
         });
 
         process.on('SIGTERM', () => {
@@ -1861,6 +1943,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 await this.exit(true);
             })();
 
+            this.getNodeManager().stopController();
         });
     }
 

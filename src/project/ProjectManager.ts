@@ -1013,8 +1013,12 @@ export class ProjectManager {
         if(currNode.purpose===NodePurpose.NEW_PRJ){
             currNode.purpose = NodePurpose.ANY;
         }
+
         // change and save state, start to consume waiting queue locally
-        currNode.setState(NodeState.IDLE);
+        if(!this._ctx.isStandaloneMode()){
+            currNode.setState(NodeState.IDLE);
+        }
+
 
         return currNode;
     }

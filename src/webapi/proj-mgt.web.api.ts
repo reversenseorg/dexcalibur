@@ -678,6 +678,21 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 // TODO check is user is authorized to access project
                 const prj = await $.context.getProjectManager().getProject(req.user, unsafeUUID);
 
+                if($.context.isStandaloneMode()){
+                    const selfNode = await $.context.getProjectManager().open(
+                        req.user,
+                        unsafeUUID,
+                        (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY),
+                        {
+                            cookie: req.cookies
+                        }
+                    );
+
+                    $.sendSuccess(res, {
+                        ready: true,
+                        node: $.context.getNodeUUID()
+                    });
+                }
 
                 let candidate = await $.context.getNodeManager()
                     .getReadySlave( unsafeUUID, unsafePurpose, prj.getOrgUID());

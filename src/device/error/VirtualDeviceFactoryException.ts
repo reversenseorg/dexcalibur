@@ -13,8 +13,6 @@ import {DeviceTemplateUUID} from "../template/DeviceTemplate.js";
  */
 export class VirtualDeviceFactoryException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     _zone = SecurityZone.PRIVATE;
 

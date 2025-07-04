@@ -279,14 +279,17 @@ export class Secret {
         // unwrap org layer
         if(this.isProtectedByOrg()){
             let orgOpts = pWrappers[SecretProtectionType.ORG];
+
             if(orgOpts==null || orgOpts.key==null || orgOpts.iv==null){
                 throw new Error("Secret protected by SecretProtectionType.ORG cannot be unwrap : missing keys or ivs");
             }
 
+            let authTag = (this.extra[SecretProtectionType.ORG]!=null ? this.extra[SecretProtectionType.ORG].authTag : null);
+
 
             layerObb = (orgOpts.key as Secret).unwrapOBB( layerObb, {
                 iv:orgOpts.iv,
-                authTag: (this.extra[SecretProtectionType.ORG]!=null ? this.extra[SecretProtectionType.ORG].authTag : null),
+                authTag: authTag.buffer,
                 extra:pWrappers
             });
 

@@ -18,7 +18,6 @@ export default class ModelUiEvent extends Savable
 
     __:NodeInternalType = NodeInternalType.UI_EVT;
 
-    _uid:string;
     tags:number[] = [];
     time:number = -1;
     data:any = null;

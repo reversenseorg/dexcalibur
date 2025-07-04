@@ -58,7 +58,10 @@ export class MerlinUnserializer {
                 ope = {
                     type: OperationType.SEARCH,
                     args: {
-                        pattern: MerlinSearchRequest.parseCondition2((pObject.args as SerializedSearchOperationArgs).pattern, {not:false})
+                        pattern: [
+                            MerlinSearchRequest
+                                .parseCondition2((pObject.args as SerializedSearchOperationArgs).pattern, {not:false})
+                            ]
                     }
                 };
                 break;
@@ -181,7 +184,7 @@ export class MerlinUnserializer {
             reqOpers.push({
                 type: OperationType.SEARCH,
                 args: {
-                    pattern: MerlinSearchRequest.parseCondition2(pRequest.pattern, reqOpts)
+                    pattern: [MerlinSearchRequest.parseCondition2(pRequest.pattern, reqOpts)]
                 }
             });
         }
@@ -242,7 +245,7 @@ export class MerlinUnserializer {
                         reqOpers.push({
                             type: OperationType.SEARCH,
                             args: {
-                                pattern: MerlinSearchRequest.parseCondition2(pObject.request.pattern, reqOpts)
+                                pattern: [MerlinSearchRequest.parseCondition2(pObject.request.pattern, reqOpts)]
                             }
                         });
                     }catch (e){
@@ -268,9 +271,9 @@ export class MerlinUnserializer {
                                             reqOpers.push({
                                                 type: OperationType.FILTER,
                                                 args: {
-                                                    pattern: MerlinSearchRequest.parseCondition2((x.args as any).pattern,
+                                                    pattern: [MerlinSearchRequest.parseCondition2((x.args as any).pattern,
                                                         ((x.args as any).options!=null?
-                                                            (x.args as any).options:null))
+                                                            (x.args as any).options:null))]
                                                 }
                                             });
                                         }catch (e){

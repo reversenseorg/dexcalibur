@@ -17,10 +17,25 @@ import {ValidationRule} from "../Validator.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {Subject} from "rxjs";
 import {EngineNodeManagerWorker} from "./controller/EngineNodeManagerWorker.js";
+import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
+import * as _child_process_ from "child_process";
+import DexcaliburWorkspace from "../DexcaliburWorkspace.js";
+import UT from "../Utils.js";
+import * as _path_ from "path";
+import {ChildProcess} from "child_process";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const GOT = got.default;
+
+interface ControllerInfo {
+    pid:number,
+    running:boolean,
+    stdout?:any,
+    stderr?:any,
+    args?: string,
+    process?: ChildProcess
+}
 
 export interface EngineNodeInfo {
     idleTime: number;
@@ -107,6 +122,13 @@ export class EngineNodeManager {
 
     engine:DexcaliburEngine;
 
+    _ctrl_info:ControllerInfo = {
+        pid: -1,
+        running: false,
+        stdout: [],
+        stderr: [],
+        args: ''
+    };
 
     /**
      * Replace by DB request => stateless
@@ -1240,10 +1262,10 @@ export class EngineNodeManager {
      */
     async registerNode(pKey:Buffer, pHostname:string, pOptions:any):Promise<EngineNodeUUID> {
 
-        Logger.info(`[NODE MGR][REGISTER] Start registration of [host=${pHostname}]`);
+        Logger.info(`[ENGINE NODE MANAGER][REGISTER] Start registration of [host=${pHostname}]`);
         // authenticate node
         await this._validateRegistrationKey(pKey);
-        Logger.success(`[NODE MGR][REGISTER][host=${pHostname}] Registration key verified`);
+        Logger.success(`[ENGINE NODE MANAGER][REGISTER][host=${pHostname}] Registration key verified`);
 
         // get node from queued node request
         let nextNode = await  this._getNextNode();
@@ -1324,22 +1346,132 @@ export class EngineNodeManager {
         })).length;
     }
 
-    async startController():Promise<void> {
-        if(!this.engine.isStandaloneMode() && !this.engine.isSlaveNode()){
-            this._ctrl = await EngineNodeManagerWorker.newNodeController(
-                this.engine,
-                (vMessage:any)=>{
-                    console.log("FROM THREAD > ",vMessage);
-                },15000);
+    spawnController(pDelay:number, pNodeOpts:any = [], pDebug = false):void {
 
-            await this._ctrl.start();
+        let child:_child_process_.ChildProcess=null;
+
+        Logger.info( `[ENGINE NODE MANAGER] Start to spawn node controller`);
+        try{
+            let args:string[] = pNodeOpts;
+            const ws:DexcaliburWorkspace =  DexcaliburWorkspace.getInstance();
+            const time = UT.time();
+
+
+            //this.errPipe = _path_.join( ws.getTempFolderLocation(), (time+'_err.log'));
+            //this.outPipe = _path_.join( ws.getTempFolderLocation(), (time+'_out.log'));
+
+            //const out:number = _fs_.openSync( this.outPipe, 'w+', 0o666);
+            //const err:number = _fs_.openSync( this.errPipe, 'w+', 0o666);
+
+            if(process.env.DXC_BIN_PATH){
+                args.push(_path_.join(process.env.DXC_BIN_PATH,'dexcalibur.js'));
+            }else{
+                args.push('./dist/dexcalibur.js');
+            }
+
+            args.push('--headless');
+            args.push('--controller');
+            args.push(`--ctrl-delay=${pDelay}`);
+
+            if(this.selfRegistration){
+
+                args.push('--self-registration');
+                args.push('--self-registration-secret='+(this.getRegistrationKeyPath()));
+            }
+
+            //args.push('--master-uri='+this.masterURI);
+
+            if(pDebug){
+                args.push("--debug");
+            }
+
+            Logger.info('[NODE] Spawn command : node '+args.join(' '));
+
+
+            //child = _child_process_.spawn('node', args, { detached: true, stdio: [ 'ignore', out, err ] });
+            child = _child_process_.spawn('node', args, {
+                detached: true,
+                env: {
+                    ... process.env,
+                    DXC_DEBUG: (pDebug? "1" : "0")
+                },
+                stdio: [
+                    'ignore', 'pipe', 'pipe'
+                ]
+            });
+
+            // save Process ID
+            this._ctrl_info = {
+                pid: child.pid,
+                running: true,
+                args: args.join(' '),
+                stdout: [],
+                stderr: [],
+                process: child
+            };
+
+            //await this.save(['_pid','spawnCmd','state','running']);
+
+            // write stdout to buffer
+            child.stdout.on('data', (data) => {
+                const raw = Buffer.from(data).toString();
+                this._ctrl_info.stdout.push(raw);
+            });
+            // write stderr to buffer
+            child.stderr.on('data', (data) => {
+                const cause = Buffer.from(data).toString();
+                this._ctrl_info.stderr.push(data);
+                console.error("ERROR : ",cause);
+            });
+
+            child.on('close', (code) => {
+                Logger.info("Stopped slave ...");
+                this._ctrl_info.running = false;
+            });
+
+            Logger.info( `[ENGINE NODE] node controller spawned [PID=${this._ctrl_info.pid}]:   ${this._ctrl_info.args}  (opts)`);
+        }catch(err){
+            Logger.info('[ENGINE NODE] Detached node error :'+err.message);
         }
     }
 
-    async stopController():Promise<void> {
-        if(this._ctrl==null) return ;
+    startController():void {
+        console.log("startController FROM THREAD > ",this.engine.engine_type);
+        if(!this.engine.isStandaloneMode()
+            && !this.engine.isSlaveNode()){
 
-        await this._ctrl.stop();
+            this._ctrl =  EngineNodeManagerWorker.newNodeController(
+                this.engine,
+                (vMessage:any)=>{
+                    console.log("FROM THREAD > ",vMessage);
+                },10000);
+
+            if(this._ctrl!=null){
+                this._ctrl.start();
+            }
+
+
+        }
+    }
+
+    /**
+     * To stop node controller process
+     *
+     * @param {number} pKillSignal Kill disgnal. Default : 9
+     * @method
+     */
+    stopController(pKillSignal = 9):void {
+        if(this.engine.isMaster()){
+            if(this._ctrl_info.process!=null){
+                const success = this._ctrl_info.process.kill(pKillSignal);
+                console.log(`[ENGINE NODE MANAGER] Node controller ${success?'killed':'cannot be killed'}`);
+                this._ctrl_info = {
+                    pid: -1,
+                    running: false,
+                    process: null
+                };
+            }
+        }
     }
 
     async getSelfNode():Promise<Nullable<EngineNode>> {
@@ -1356,4 +1488,6 @@ export class EngineNodeManager {
 
         return (curr < max);
     }
+
+
 }

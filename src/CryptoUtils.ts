@@ -1,4 +1,5 @@
 import * as _crypto_ from "node:crypto";
+import * as _fs_ from "fs";
 import {createHash} from "node:crypto";
 import {BinaryToTextEncoding} from "crypto";
 
@@ -112,5 +113,19 @@ export class CryptoUtils {
 
     static randomUUID(pLength: number):string {
         return "";
+    }
+
+    /**
+     * To compute the sha256 checksum of a file
+     *
+     * @param {string} pPath File path
+     * @return {string} Checksum
+     * @method
+     * @static
+     */
+    static sha256_file(pPath:string):string {
+        return CryptoUtils.sha256(
+            _fs_.readFileSync(pPath, {encoding:'utf8'}),
+            'binary', true);
     }
 }

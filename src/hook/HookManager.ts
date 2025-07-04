@@ -282,9 +282,11 @@ export class HookManager
      */
     async loadNativeHook():Promise<void>{
 
+
+        Logger.info("[HOOK MANAGER] Load native hook");
         // get previously parsed lib
 
-        // load native hooks
+        // load existing native hooks
         this.nhooks = await this.db.getAllNativeHook(); //nhooks.getAsList();
         this.nhooks.map( h => {
             h.setManager(this);

@@ -33,6 +33,7 @@ import {OrganizationManager} from "./OrganizationManager.js";
 import {AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
 import {UploadedResource} from "../common/UploadedResource.js";
 import {ProjectInput} from "../analyzer/ProjectInput.js";
+import {Policy, PolicyUUID} from "../audit/Policy.js";
 
 export type OrganizationUnitUUID = string;
 
@@ -50,6 +51,7 @@ export interface OrganizationUnitOptions {
     deviceTpls?:DeviceTemplateUUID[]
     tags?:TagUUID[];
     secrets?:Secret[];
+    policies?:Policy[];
     groups?:UserGroup[];
     _attr?:AccessAttributeMap;
     settings?:SettingPolicy;
@@ -160,13 +162,30 @@ export class OrganizationUnit extends Auditable implements INode {
                 });
             })
             .def([]),
+        (new NodeProperty("policies"))
+            .type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                let o:any[] = [];
+                x.p.map((s:any) => {
+                    o.push(s.toJsonObject());
+                });
+                return o;
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                return x.p.map((x:any) => {
+                    return Policy.fromUnsafeObject(x);
+                });
+            })
+            .def([]),
         (new NodeProperty("connections"))
             .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState) => {
                 if(x.p==null) return [];
                 let o:any[] = [];
                 x.p.map((s:any) => {
-                    o.push(s.toJsonObject({}, SecurityZone.PRIVATE));
+                    o.push((s as Connection).toJsonObject({}, SecurityZone.PRIVATE));
                 });
                 return o;
             })
@@ -273,6 +292,7 @@ export class OrganizationUnit extends Auditable implements INode {
     secrets: Secret[] = [];
     businessPlan: Nullable<BusinessPlan> = null;
     deviceTpls: DeviceTemplate[] = [];
+    policies:Policy[] = [];
 
     /**
      * @since 1.8.14
@@ -300,6 +320,7 @@ export class OrganizationUnit extends Auditable implements INode {
             this.devices = (pOptions.devices!=null ? pOptions.devices : []);
             this.groups = (pOptions.groups!=null ? pOptions.groups : []);
             this.secrets = (pOptions.secrets!=null ? pOptions.secrets : []);
+            this.policies = (pOptions.policies!=null?pOptions.policies : []);
             this._attr = (pOptions._attr!=null ? pOptions._attr : {});
         }
 
@@ -414,12 +435,17 @@ export class OrganizationUnit extends Auditable implements INode {
     }
 
     addConnection(pConn:Connection, pUpdate = false):void {
-
-        if(!pUpdate && !this.isConnUuidFree(pConn.getUID())){
+        if(pUpdate){
+            for(let i=0;i<this.connections.length; i++){
+                if(this.connections[i].getUID()===pConn.getUID()){
+                    this.connections[i] = pConn;
+                }
+            }
+        }else if(this.isConnUuidFree(pConn.getUID())){
+            this.connections.push(pConn);
+        }else{
             throw OrganizationManagerException.CONN_ALREADY_EXISTS(pConn.getUID());
         }
-
-        this.connections.push(pConn);
     }
 
     removeConnection(pConnUID:ConnectionUUID):void {
@@ -496,6 +522,7 @@ export class OrganizationUnit extends Auditable implements INode {
             secrets: [],
             _attr: this._attr,
             settings: this.settings,
+            policies: this.policies.map(x => x.toJsonObject()),
             businessPlan: (this.businessPlan!=null? this.businessPlan.toJsonObject() : null)
         };
 
@@ -762,6 +789,50 @@ export class OrganizationUnit extends Auditable implements INode {
      */
     getSettings():SettingPolicy {
         return this.settings;
+    }
+
+    /**
+     * To add or update a policy
+     *
+     * @param pPolicy
+     */
+    addPolicy(pPolicy:Policy):Nullable<Policy> {
+
+        let uuid:PolicyUUID;
+
+        if(pPolicy.getUID()==null){
+            do{
+                uuid = randomUUID();
+            }while(this.policies.find((p) => (p.getUID()===uuid))!=null);
+            pPolicy.setUID(uuid);
+        }else{
+            // update if UUID exists
+            for(let i=0; i<this.policies.length; i++){
+                if(this.policies[i].getUID()==pPolicy.getUID()){
+                    this.policies[i] = pPolicy;
+                    return pPolicy;
+                }
+            }
+        }
+
+        this.policies.push(pPolicy);
+        return pPolicy;
+    }
+
+    /**
+     *
+     * @param pPolicy
+     */
+    removePolicy(pPolicy:PolicyUUID):void {
+        this.policies = this.policies.filter(p => (p.getUID()!=pPolicy));
+    }
+
+    /**
+     *
+     * @param pPolicy
+     */
+    getPolicy(pPolicy:PolicyUUID):Nullable<Policy> {
+        return this.policies.find(r => (r.getUID()===pPolicy));
     }
 }
 OrganizationUnit.TYPE.builder(OrganizationUnit);

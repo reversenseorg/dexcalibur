@@ -14,6 +14,7 @@ import {UserServiceException} from "./errors/UserServiceException.js";
 import {UserAccount} from "./user/UserAccount.js";
 import {SslOptions, SslSettings} from "./settings/SslOptions.js";
 import {AbstractSettings} from "./settings/AbstractSettings.js";
+import {FSUtil} from "./util/FSUtil.js";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -1045,7 +1046,7 @@ export namespace Settings {
          * - Default location : <HOMEDIR>/.dexcalibur/<GLOBAL_CFG_NAME>
          *
          */
-        static load(pConfigPath: string = undefined, pOverride: any = undefined): GlobalSettings {
+        static load(pConfigPath: string = undefined, pOverride: any = undefined, pControlNode = false): GlobalSettings {
             let path: string;
             let gs: GlobalSettings = null;
 
@@ -1078,6 +1079,60 @@ export namespace Settings {
             }
 
             return gs;
+        }
+
+
+
+        /**
+         *
+         * @method
+         */
+        static async loadAsNodeController(pConfigPath: string = undefined, pOverride: any = undefined):Promise<GlobalSettings> {
+            let path: string;
+            let gs: GlobalSettings = null;
+
+            if (process.env.DEXCALIBUR_HOME != null) {
+                path = _path_.join(process.env.DEXCALIBUR_HOME, Settings.GLOBAL_CFG_NAME);
+            } else if (pConfigPath !== undefined) {
+                path = pConfigPath;
+            } else {
+                path = GlobalSettings.getDefaultLocation();
+            }
+
+            return null;
+            /*
+
+            const raw = await FSUtil.readFile(path,'r');
+
+            return null;
+            /*
+
+            try {
+                if (!_fs_.existsSync(path)) {
+                    GlobalSettings.createDefaultConfig(path);
+                }
+
+                const raw = await FSUtil.readFile(path,'r');
+
+                return null;
+
+                const data: any = JSON.parse(raw.toString());
+
+                if (pOverride != null) {
+                    for (const i in pOverride) data[i] = pOverride[i];
+                }
+
+                __log("[GLOBAL SETTINGS] load : success : " + JSON.stringify(data));
+
+                gs = new GlobalSettings(data);
+                gs.setPath(path);
+            } catch (err) {
+                console.log(err)
+                console.log( "[GLOBAL SETTINGS] load : error : " + err.message  + "\n" + err.stack);
+                //__log("[GLOBAL SETTINGS] load : error : " + err.message + " " + pConfigPath + "\n" + err.stack);
+            }
+
+            return gs;*/
         }
 
 

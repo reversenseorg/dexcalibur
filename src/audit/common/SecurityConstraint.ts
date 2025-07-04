@@ -7,7 +7,6 @@ import Constraint, {ConstraintType} from "./Constraint.js";
 
 export default class SecurityConstraint extends Constraint {
 
-    name:string;
     impl:any;
 
     constructor( pConfig:any = null) {

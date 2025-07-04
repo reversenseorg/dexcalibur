@@ -66,7 +66,7 @@ export class Finder {
 
   static NODE_ANY:NodeType = new NodeType('any',NodeInternalType.NONE, []);
 
-  __DB: AnalyzerDatabase;
+  __DB: AnalyzerDatabase; // re
   __tmp: IDatabase;
   cache: any = null;
 

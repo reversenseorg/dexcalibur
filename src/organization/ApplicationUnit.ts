@@ -19,6 +19,8 @@ import {ValidationRule} from "../Validator.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {DeviceUUID} from "../Device.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
+import {Policy, PolicyUUID} from "../audit/Policy.js";
+import {randomUUID} from "crypto";
 
 
 export type ApplicationUnitUUID = string;
@@ -34,6 +36,7 @@ export interface ApplicationUnitOptions {
     projects?:DexcaliburProjectUUID[];
     devices?:DeviceUUID[];
     orgUnit?:OrganizationUnitUUID;
+    policies?:Policy[];
     _attr?:AccessAttributeMap;
 }
 
@@ -62,6 +65,23 @@ export class ApplicationUnit extends Auditable implements INode {
         (new NodeProperty("icon")).type(DbDataType.STRING).def(null),
         (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
         (new NodeProperty("os")).type(DbDataType.STRING).def(OperatingSystem.NONE),
+        (new NodeProperty("policies"))
+            .type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                let o:any[] = [];
+                x.p.map((s:any) => {
+                    o.push(s.toJsonObject());
+                });
+                return o;
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                return x.p.map((x:any) => {
+                    return Policy.fromUnsafeObject(x);
+                });
+            })
+            .def([]),
         (new NodeProperty("_attr"))
             .type(DbDataType.STRING)
             .wakeUp( (x:NodePropertyState) => {
@@ -94,6 +114,7 @@ export class ApplicationUnit extends Auditable implements INode {
     devices: DeviceUUID[] = [];
     orgUnit:OrganizationUnitUUID = null;
     os: OperatingSystem = OperatingSystem.NONE;
+    policies: Policy[] = [];
     //archs: Architecture[] = [];
     //abi:string[] = [];
 
@@ -113,6 +134,7 @@ export class ApplicationUnit extends Auditable implements INode {
             this.orgUnit = (pOptions.orgUnit!=null?pOptions.orgUnit : null);
             this.devices = (pOptions.devices!=null?pOptions.devices : []);
             this.projects = (pOptions.projects!=null?pOptions.projects : []);
+            this.policies = (pOptions.policies!=null?pOptions.policies : []);
             this._attr = pOptions._attr!;
         }
 
@@ -188,6 +210,7 @@ export class ApplicationUnit extends Auditable implements INode {
             devices: this.devices,
             os: this.os,
             projects: this.projects,
+            policies: this.policies.map(x => x.toJsonObject()),
             tags: this.tags
         };
 
@@ -230,6 +253,51 @@ export class ApplicationUnit extends Auditable implements INode {
      */
     removeRelease(pProjectUUID: DexcaliburProjectUUID) {
         this.projects = this.projects.filter(x => (x!=pProjectUUID));
+    }
+
+
+    /**
+     * To add or update a policy
+     *
+     * @param pPolicy
+     */
+    addPolicy(pPolicy:Policy):Nullable<Policy> {
+
+        let uuid:PolicyUUID;
+
+        if(pPolicy.getUID()==null){
+            do{
+                uuid = randomUUID();
+            }while(this.policies.find((p) => (p.getUID()===uuid))!=null);
+            pPolicy.setUID(uuid);
+        }else{
+            // update if UUID exists
+            for(let i=0; i<this.policies.length; i++){
+                if(this.policies[i].getUID()==pPolicy.getUID()){
+                    this.policies[i] = pPolicy;
+                    return pPolicy;
+                }
+            }
+        }
+
+        this.policies.push(pPolicy);
+        return pPolicy;
+    }
+
+    /**
+     *
+     * @param pPolicy
+     */
+    removePolicy(pPolicy:PolicyUUID):void {
+        this.policies = this.policies.filter(p => (p.getUID()!=pPolicy));
+    }
+
+    /**
+     *
+     * @param pPolicy
+     */
+    getPolicy(pPolicy:PolicyUUID):Nullable<Policy> {
+        return this.policies.find(r => (r.getUID()===pPolicy));
     }
 }
 ApplicationUnit.TYPE.builder(ApplicationUnit);

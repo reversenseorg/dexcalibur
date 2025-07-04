@@ -6,13 +6,10 @@ import {DDVM_TypeHelper} from "./DDVM_TypeHelper.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-interface ClassSet {
-    [fqcn :string] :ModelClass
-}
 
 export default class DDVM_ClassLoader
 {
-    classes:ClassSet = null;
+    classes:Record<string, ModelClass> = null;
     vm:any = null;
 
     constructor( pVM:any){
@@ -67,5 +64,11 @@ export default class DDVM_ClassLoader
         this.classes[clz.name] = clz;
 
         return clz;
+    }
+
+    toJsonObject():any {
+        return {
+            classes: Object.keys(this.classes)
+        }
     }
 }

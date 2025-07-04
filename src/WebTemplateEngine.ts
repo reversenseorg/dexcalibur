@@ -49,7 +49,7 @@ export default class WebTemplateEngine
     process(data:string|Buffer):string{
         let m:RegExpExecArray = null, tpl:string = null, match:boolean = false;
         do {
-            m = TPL_TOKEN.exec((data instanceof Buffer)?data.toString('utf8'):data);
+            m = TPL_TOKEN.exec((data instanceof Buffer)? data.toString('utf8') : (data as string));
 
             if (m == null || m.length < 2) {
                 break;
@@ -62,6 +62,6 @@ export default class WebTemplateEngine
 
         if(data instanceof Buffer) data = data.toString('utf8');
 
-        return data;
+        return (data as string);
     }
 }

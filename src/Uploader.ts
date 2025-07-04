@@ -12,6 +12,7 @@ import {UploadedResource, UploadedResourceUUID} from "./common/UploadedResource.
 import {UserAccount} from "./user/UserAccount.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {GridFSBucketReadStream} from "mongodb";
+import {CryptoUtils} from "./CryptoUtils.js";
 
 const BUSBOY = _busboy_.default;
 
@@ -154,6 +155,50 @@ export default class Uploader {
         });
 
         pRequest.pipe(busboy);
+
+        return upl;
+    }
+
+    /**
+     * To upload a local file to upload DB
+     *
+     * @param pUser
+     * @param pPath
+     * @param pFileName
+     */
+    async uploadFile( pUser:UserAccount, pPath:string, pFileName:string = null, pExclude:string[] = []):Promise<UploadedResource> {
+
+        const upl = new UploadedResource({
+            uuid: await this._ctx.getEngineDB().generateFreeUuid(NodeInternalType.UPLOAD)
+        });
+
+        upl.path = pPath;
+        upl.date = (new Date()).getTime();
+        upl.setOwner(pUser);
+        upl.algo = CryptoUtils.ALG_SHA256;
+        upl.sum = CryptoUtils.sha256_file(pPath);
+
+        // checksum
+        if(pExclude.indexOf(upl.sum)>-1){
+            // this file already exists, abort
+            return null;
+        }
+
+        const stat = _fs_.statSync(pPath);
+
+        await this._ctx.getEngineDB().getFileManager().writeFileStream(
+            'uploads',
+            _fs_.createReadStream(pPath),
+            upl.getUID(),
+            {
+                uuid: upl.getUID(),
+                size: stat.size,
+                name: pFileName
+            }
+        );
+
+        upl.terminate();
+        await this.save(upl, ['terminated']);
 
         return upl;
     }

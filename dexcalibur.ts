@@ -87,6 +87,14 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "To start engine as a MASTER node",
         hasVal:false,
         callback:(ctx,param)=>{ ctx.masterMode = true; } },
+    { name:"--controller",
+        help: "To control slave nodes",
+        hasVal:false,
+        callback:(ctx,param)=>{ ctx.ctrlNode = true; } },
+    { name:"--ctrl-delay",
+        help: "The delay between each refresh of node pool",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.ctrlDelay = param.value; } },
     { name:"--slave-node",
         help: "To start engine as a slave node",
         hasVal:false,
@@ -226,6 +234,10 @@ if(projectArgs.slaveMode){
     console.log("------- MODE : MASTER --------");
     engineOpts.offline = (projectArgs.offline===true);
     engineOpts.engine_mode = DexcaliburEngineMode.MASTER;
+}else if(projectArgs.ctrlNode){
+    console.log("------- MODE : NODE CONTROLLER --------");
+    engineOpts.offline = (projectArgs.offline===true);
+    engineOpts.engine_mode = DexcaliburEngineMode.CONTROLLER;
 }else{
     console.log("------- MODE : STANDALONE --------");
 }
@@ -319,7 +331,14 @@ if( !projectArgs.ipc
                     dxcInstance.wsserver.setPort(parseInt(projectArgs.wsPort,10));
                 }
 
-                dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);
+                if(projectArgs.ctrlNode===true){
+                    dxcInstance.startAsController({
+                        delay: projectArgs.ctrlDelay
+                    });
+                }else{
+                    dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);
+                }
+
             }
         })();
 

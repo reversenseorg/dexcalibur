@@ -1,9 +1,7 @@
 
 
-import * as Log from '../../Logger.js';
 import DexcaliburEngine, {DexcaliburEngineOptions} from "../../DexcaliburEngine.js";
 import {Settings} from "../../Settings.js";
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 /**
@@ -50,12 +48,15 @@ export class EngineNodeControllerRunner {
      *
      */
     async start():Promise<any> {
-        await this._engine.loadConfiguration( Settings.GlobalSettings.load());
-        await this._engine.boot(false, "", true);
-        //console.log("started");
+        //Settings.GlobalSettings.load();
+        return await Settings.GlobalSettings.loadAsNodeController();
+        /*return await this._engine.loadConfiguration(
+            await Settings.GlobalSettings.loadAsNodeController()
+        );*/
+        //return await this._engine.boot(false, "", true);
     }
 
     async refreshPool():Promise<any>{
-        await this._engine.getNodeManager().refreshPool();
+        return await this._engine.getNodeManager().refreshPool();
     }
 }

@@ -15,6 +15,9 @@ import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import {ValidationRule} from "../Validator.js";
 
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
+import {Policy, PolicyZone} from "../audit/Policy.js";
+import {PolicyRuleFactory} from "../audit/PolicyRuleFactory.js";
+import {PolicyActionFactory} from "../audit/PolicyActionFactory.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -1036,3 +1039,228 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
         lazyProject: true
     }
 );
+
+
+/**
+ * To order a scan
+ *
+ *
+ */
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/policies/create',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                if(req.body.policy!=null && req.body.policy.scope==null){
+                    throw new Error("Policy scope is mandatory.");
+                }
+
+                if(!Policy.VALIDATE.scopeZone.test(req.body.policy.scope.type)){
+                    throw new Error("Scope not supported");
+                }
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(req.user, req.body.oid);
+
+                if(req.body.policy.model==null){
+                    throw new Error("Assurance Model UID is mandatory. ")
+                }
+
+                let proto:Nullable<Policy> = Policy.fromUnsafeObject(req.body.policy);
+                let policy:Nullable<Policy> = null;
+                switch (req.body.policy.scope.type){
+                    case PolicyZone.ORG:
+                        policy = await $.context.getOrgManager().updateOrgPolicy(req.user, org, proto);
+                        break;
+                    case PolicyZone.APP:
+                        const app = await $.context.getOrgManager().getApplication(req.user, req.body.oid, req.body.policy.scope.uid);
+                        policy = await $.context.getOrgManager().updateAppPolicy(req.user, org, app, proto);
+                        break;
+                    default:
+                        throw new Error("Scope not supported");
+                }
+
+
+                if(policy!=null){
+                    $.sendSuccess( res, policy.toJsonObject());
+                }else{
+                    throw new Error("Create failure");
+                }
+            }catch(err){
+                Logger.error("[API][AUDIT] Policy cannot be created. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Policy cannot be created. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
+
+/**
+ * To order a scan
+ *
+ *
+ */
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/policies/model/:aid',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // target org
+                //const org = await $.context.getOrgManager().getOrganization(req.user, req.params.oid);
+
+                // target org
+                const model = await $.context.getAuditManager().getModelByUID(req.user, req.params.aid);
+
+                if(model!=null){
+                    $.sendSuccess( res, (await $.context.getAuditManager().getDefaultPolicyFromModel(model)).toJsonObject());
+                }else{
+                    $.sendSuccess(res,null);
+                }
+            }catch(err){
+                Logger.error("[API][AUDIT] Scans cannot be ordered. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Scans cannot be ordered. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
+/**
+ * To order a scan
+ *
+ *
+ */
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/policy/:scope/:oid/:pid',
+    {
+        'put': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(req.user, req.params.oid);
+
+                let proto:Nullable<Policy> = Policy.fromUnsafeObject(req.body);
+                let policy:Nullable<Policy> = null;
+                switch (req.params.scope){
+                    case PolicyZone.ORG:
+                        policy = await $.context.getOrgManager().updateOrgPolicy(req.user, org, proto);
+                        break;
+                    case PolicyZone.APP:
+                        if(req.body.aid!=null){
+                            throw new Error("Application UUID is mandatory");
+                        }
+                        const app = await $.context.getOrgManager().getApplication(req.user, org, req.body.aid);
+                        policy = await $.context.getOrgManager().updateAppPolicy(req.user, org, app, proto);
+                        break;
+                    default:
+                        throw new Error("Scope not supported");
+                }
+
+                $.sendSuccess( res, {
+                    uid: policy.getUID()
+                });
+            }catch(err){
+                Logger.error("[API][AUDIT] Policy cannot be modified. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Policy cannot be modified. Cause : " + err.message);
+            }
+        },
+        'delete': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(req.user, req.params.oid);
+
+                let proto:Nullable<Policy> = Policy.fromUnsafeObject(req.body);
+                let policy:Nullable<Policy> = null;
+                switch (req.params.scope){
+                    case PolicyZone.ORG:
+                        policy = await $.context.getOrgManager().updateOrgPolicy(req.user, org, proto, true);
+                        break;
+                    case PolicyZone.APP:
+                        if(req.body.aid!=null){
+                            throw new Error("Application UUID is mandatory");
+                        }
+                        const app = await $.context.getOrgManager().getApplication(req.user, org, req.body.aid);
+                        policy = await $.context.getOrgManager().updateAppPolicy(req.user, org, app, proto, true);
+                        break;
+                    default:
+                        throw new Error("Scope not supported");
+                }
+
+                $.sendSuccess( res, {
+                    uid: proto.getUID()
+                });
+            }catch(err){
+                Logger.error("[API][AUDIT] Policy cannot be modified. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Policy cannot be modified. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
+/**
+ * To order a scan
+ *
+ *
+ */
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/policy/:scope/:oid',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(req.user, req.params.oid);
+
+                $.sendSuccess( res, org.policies.map(x => x.toJsonObject()));
+            }catch(err){
+                Logger.error("[API][AUDIT] Policy cannot be modified. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Policies cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+
+
+
+/**
+ * To order a scan
+ *
+ *
+ */
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/policies/actions',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // target org
+                $.sendSuccess( res,  PolicyActionFactory.listActions());
+            }catch(err){
+                Logger.error("[API][AUDIT] Policy cannot be modified. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Policies cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true
+    }
+);
+

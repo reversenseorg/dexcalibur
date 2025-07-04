@@ -2,8 +2,8 @@
  * @class
  */
 import DDVM_Symbol from "./DDVM_Symbol.js";
+import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
-export type DDVM_SymbolMap = Record<string,DDVM_Symbol>;
 
 /**
  * Represent a symbol table
@@ -16,7 +16,7 @@ export type DDVM_SymbolMap = Record<string,DDVM_Symbol>;
  */
 export default class DDVM_SymbolTable
 {
-    table:DDVM_SymbolMap = {};
+    table:Record<string,DDVM_Symbol> = {};
 
     /**
      * @constructor
@@ -47,7 +47,7 @@ export default class DDVM_SymbolTable
      * To get the map
      *
      */
-    getSymbols():DDVM_SymbolMap{
+    getSymbols():Record<string,DDVM_Symbol>{
         return this.table;
     }
 
@@ -119,6 +119,20 @@ export default class DDVM_SymbolTable
 
         for(let i in this.table){
             tab.addEntry(i, this.table[i].type, this.table[i].value, this.table[i].code);
+        }
+        return tab;
+    }
+
+    /**
+     *
+     * @param pOptions
+     * @since 1.9.0
+     */
+    toJsonObject(pOptions?:SerializeOptions){
+
+        let tab:any = {};
+        for(let k in this.table){
+            tab[k] = this.table[k].toJsonObject();
         }
         return tab;
     }

@@ -1,23 +1,14 @@
 
-import * as _stream_ from 'stream';
-import {promisify} from 'util';
-
-
 import * as Log from './Logger.js';
 import RadareHelper, {R2_TYPE} from "./R2Helper.js";
 import DexcaliburProject from "./DexcaliburProject.js";
 import ModelFile from "./ModelFile.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-const pipeline = promisify(_stream_.pipeline);
-
-interface R2HelperMap {
-    [pBinID:string] :RadareHelper
-}
 
 export default class RadareFactory
 {
-    helpers: R2HelperMap = {}
+    helpers: Record<string, RadareHelper> = {}
     ctx:DexcaliburProject = null;
 
     constructor( pProject:DexcaliburProject) {
@@ -38,8 +29,11 @@ export default class RadareFactory
      * To create an instance of RadareHelper spawning a local r2 process
      * @param pBinary
      */
-    newLocalInstance( pBinary:ModelFile): RadareHelper {
-        return this.helpers[pBinary.getUID()] = new RadareHelper( pBinary, R2_TYPE.LOCAL, { ctx:this.ctx });
+    async newLocalInstance( pBinary:ModelFile):Promise<RadareHelper> {
+        const f = pBinary.getUID()
+        this.helpers[f] = new RadareHelper( pBinary, R2_TYPE.LOCAL, { ctx:this.ctx });
+        await this.helpers[f].start([]);
+        return this.helpers[f];
     }
 
     /**

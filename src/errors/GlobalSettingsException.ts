@@ -2,8 +2,7 @@ import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 
 export class GlobalSettingsException extends MonitoredError {
 
-    code:number;
-    extra:any;
+
 
     static ALL = {};
 

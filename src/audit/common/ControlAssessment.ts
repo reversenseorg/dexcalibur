@@ -87,7 +87,9 @@ interface Match {
 export enum MetadataTopic {
     DFLOW_STEP="step",
     IMPACT="impact",
-    CRITICITY="criticity"
+    CRITICITY="criticity",
+    PREFERED_ABI='prefered abi',
+    CATEGORY="category"
 }
 
 
@@ -197,7 +199,7 @@ export default class ControlAssessment implements IControl {
                 }
 
                 if(type===MerlinType.REQUEST){
-                    a.rules[vIndex] = MerlinSearchRequest.fromJsonObject(vRule);
+                    a.rules[vIndex] = MerlinSearchRequest.fromJsonObject(null, vRule);
                 }else{
                     a.rules[vIndex] = MerlinUnserializer.fromSerializedMerlinPrimitive(vRule as any);
                 }

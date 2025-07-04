@@ -24,6 +24,8 @@ import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {Nullable} from "./core/IStringIndex.js";
+import {Metadata, MetadataType} from "./audit/common/Metadata.js";
+import {MetadataTopic} from "./audit/common/ControlAssessment.js";
 
 
 
@@ -101,6 +103,7 @@ export interface ModelFileOptions {
     _d?:string;
     scope?:DataScope;
     sections?:ModelExecutableSection[];
+    chunks?:ModelFileSection[];
     sectionsOpts?:ModelExecutableSectionOptions[];
     __p?:any;
     __t?:any[];
@@ -130,18 +133,15 @@ export default class ModelFile implements INode,IPersistent {
             (new NodeProperty("path")).type(DbDataType.STRING).def(null),
             (new NodeProperty("location")).type(DbDataType.STRING).def(null),
             (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
+            (new NodeProperty("meta")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
             (new NodeProperty("data")).type(DbDataType.STRING).def({}),
             (new NodeProperty("scope")).single(DataScope.TYPE)/*.key(DbKeyType.COMPOSITE,0)*/.def("PKG"),
-                /*
-                .type(DbDataType.STRING)
-                .def(null)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? (x.p as DataScope).getInternalName() : null )})
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ?  x.p : null )}),*/
-            // (x.ctx as DexcaliburProject).getDataAnalyzer().getScope(x.p)
+
 
             (new NodeProperty("sections"))
                 .type(DbDataType.STRING)
+                .def([])
                 .sleep( (x:NodePropertyState)=>{
                     if(x.p==null) return null;
 
@@ -154,18 +154,82 @@ export default class ModelFile implements INode,IPersistent {
                 .wakeUp( (x:NodePropertyState)=>{
                     if(x.p==null) return [];
 
-                    const sect:ModelFileSection[] = [];
+                    const sect:ModelExecutableSection[] = [];
                     let s:ModelFileSection;
                     for(let i=0; i<x.p.length; i++){
-                        s = new ModelFileSection(x.p[i].o,x.p[i].t)
-                        s.l = x.p[i].l;
-                        sect.push(s);
+                        sect.push(new ModelExecutableSection(x.p));
                     }
                     return sect;
 
                  }),//.multiple(ModelFileSection.TYPE).type(DbDataType.STRING),
+            (new NodeProperty("chunks"))
+                .type(DbDataType.STRING)
+                .def([])
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return null;
+                    const sect:any[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        sect.push(x.p[i].toJsonObject());
+                    }
+                    return sect;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p==null) return [];
 
-            (new NodeProperty("__p")).type(DbDataType.STRING).def(null), //.serialize(DbSerialize.JSON),
+                    const chks:ModelFileSection[] = [];
+                    let s:ModelFileSection;
+                    for(let i=0; i<x.p.length; i++){
+                        s = new ModelFileSection(x.p[i].o,x.p[i].t)
+                        s.l = x.p[i].l;
+                        chks.push(s);
+                    }
+                    return chks;
+
+                }),//.multiple(ModelFileSection.TYPE).type(DbDataType.STRING),
+
+            (new NodeProperty("__p"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return {};
+
+                    let p:any = {};
+
+                    for(let k in x.p){
+                        switch (k){
+                            case "f_list":
+                            case "m":
+                            case "sections":
+                                /*ignore*/
+                                break;
+                            case "tags":
+                            default:
+                                p[k] = x.p[k];
+                                break;
+                        }
+                    }
+
+                    return p;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p==null) return {};
+
+                    let p:any = {};
+                    for(let k in x.p){
+                        switch (k){
+                            case "f_list": /*ignore*/ break;
+                            case "m":
+                                //p[k] = x.p[k].map((s:any) => new ModelFileSection(s.o,s.t));
+                                break;
+                            case "sections":
+                                //p[k] = x.p[k].map((s:any) => new ModelExecutableSection(s));
+                                break;
+                            case "tags":
+                            default:
+                                p[k] = x.p[k];
+                                break;
+                        }
+                    }
+                }), //.serialize(DbSerialize.JSON),
             (new NodeProperty("__t")).type(DbDataType.STRING).def(null), //.serialize(DbSerialize.JSON),
             (new NodeProperty("f_list")).type(DbDataType.STRING).def(null)
     ]);
@@ -199,6 +263,8 @@ export default class ModelFile implements INode,IPersistent {
     tags:number[] = [];
     //trueFile:boolean = false;
 
+    meta:Metadata[] = [];
+
     /**
      * Scope including this file.
      *
@@ -211,7 +277,9 @@ export default class ModelFile implements INode,IPersistent {
     // scope (app package, app data, device file, ...)
 
 
+    chunks:ModelFileSection[] = [];
     sections: ModelExecutableSection[] = [];
+
     f_list: ModelFunctionList = {};
 
     /**
@@ -399,10 +467,10 @@ export default class ModelFile implements INode,IPersistent {
      *
      * @param pFileSection
      */
-    appendSection(pFileSection: ModelFileSection): void {
-        if (this.__p.m == null) this.__p.m = [];
+    appendChunk(pFileSection: ModelFileSection): void {
+        if (this.chunks == null) this.chunks = [];
 
-        this.__p.m.push(pFileSection);
+        this.chunks.push(pFileSection);
     }
 
     /**
@@ -412,8 +480,19 @@ export default class ModelFile implements INode,IPersistent {
      * @method
      * @since 1.0.0
      */
-    getSections(): ModelFileSection[] {
-        return this.__p.m;
+    getChunks(): ModelFileSection[] {
+        return this.chunks;
+    }
+
+    /**
+     * To get all sections
+     *
+     * @return {ModelFileSection[]} data fragment contained into the file
+     * @method
+     * @since 1.0.0
+     */
+    getSections(): ModelExecutableSection[] {
+        return this.sections;
     }
 
 
@@ -439,8 +518,10 @@ export default class ModelFile implements INode,IPersistent {
                   switch(vCmd){
                       case "sections":
                           o.__p.sections = [];
-                          if(this.__p.sections!=null)
-                            this.__p.sections.map( vSec => { o.__p.sections.push(vSec.toJsonObject() )});
+                          if(this.sections!=null)
+                            this.sections.map((vSec:any) => {
+                                if(vSec!=null) o.__p.sections.push(vSec.toJsonObject() )
+                            });
                           break;
                       case "f_list":
                           o.__p.f_list = {};
@@ -464,30 +545,47 @@ export default class ModelFile implements INode,IPersistent {
                     break;
                 case "sections":
                     o.sections = [];
-                    if(this.sections!=null)
-                        this.sections.map( vSec => { o.sections.push(vSec.toJsonObject() )});
+                    if(this.sections!=null) {
+                        this.sections.map(vSec => {
+                            if (vSec != null){
+                                o.sections.push(vSec.toJsonObject())
+                            }
+                        });
+                    }
+                    break;
+                case "chunks":
+                    o.chunks = [];
+                    if(this.chunks!=null) {
+                        this.chunks.map(vSec => {
+                            if (vSec != null){
+                                o.chunks.push(vSec.toJsonObject())
+                            }
+                        });
+                    }
                     break;
                 case "f_list":
-                    o.f_list = {};
+                    /*o.f_list = {};
                     if(this.f_list!=null)
                         for(const addr in this.f_list)
-                            o.f_list[addr] = this.f_list[addr].toJsonObject();
+                            o.f_list[addr] = this.f_list[addr].toJsonObject();*/
                     break;
                 case '__p':
                     o.__p = {};
                     for (let k in this.__p) {
                         switch (k) {
-                            case "sections":
+                            /*case "sections":
                                 o.__p.sections = [];
                                 if(this.__p.sections!=null)
-                                    this.__p.sections.map( vSec => { o.__p.sections.push(vSec.toJsonObject() )});
+                                    this.__p.sections.map( (vSec) => {
+                                            if(vSec!=null) o.__p.sections.push(vSec.toJsonObject() )
+                                    });
                                 break;
                             case "f_list":
                                 o.__p.f_list = {};
                                 if(this.__p.f_list!=null)
                                     for(let addr in this.__p.f_list)
                                         o.__p.f_list[addr] = this.__p.f_list[addr].toJsonObject();
-                                break;
+                                break;*/
                             default:
                                 if (typeof this.__p[k] == 'object') {
                                     if (typeof this.__p[k]['toJsonObject'] === 'function') {
@@ -515,8 +613,8 @@ export default class ModelFile implements INode,IPersistent {
 
 
     setProgramSection(pSection: ModelExecutableSection[]): number {
-        this.__p.sections = pSection;
-        return this.__p.sections.length;
+        this.sections = pSection;
+        return this.sections.length;
     }
 
     hasFuncs(): boolean {
@@ -612,6 +710,22 @@ export default class ModelFile implements INode,IPersistent {
         const uuid = vTag.getUUID();
         if(this.tags.indexOf(uuid)==-1)
             this.tags.push(uuid);
+    }
+
+    addMeta(pType:MetadataType, pKey:MetadataTopic, pValue:any):void {
+        this.meta.push({
+            type: pType,
+            key: pKey,
+            value: pValue
+        });
+    }
+
+    removeMeta(pKey:MetadataTopic):void {
+        this.meta = this.meta.filter(x => (x.key!=pKey));
+    }
+
+    getMetaByTopic(pKey:MetadataTopic):Nullable<Metadata> {
+        return this.meta.find((x)=> x.key===pKey);
     }
 
     getEntropy():number {

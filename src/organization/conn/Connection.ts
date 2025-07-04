@@ -1,12 +1,17 @@
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {Auditable} from "../../Auditable.js";
-import {Secret} from "../../core/secrets/Secret.js";
+import {Secret, SecretUUID} from "../../core/secrets/Secret.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
 import {ValidationRule} from "../../Validator.js";
 
 
-
-
+export interface ConnectionProtocolType {
+    name: string,
+    value: ConnectionProtocol,
+    label: string,
+    icon: string[],
+    disabled: boolean
+}
 
 export interface SecretMapping {
     name: string;
@@ -31,6 +36,9 @@ export enum ConnectionProtocol {
     FTP="ftp",
     SSH="ssh",
     PLAYSTORE="playstore",
+    APKPURE="apkpure",
+    FDROID="fdroid",
+    HUAWAIAPPG="huawaiappstore",
     APPSTORE="appstore"
 }
 
@@ -48,11 +56,25 @@ export interface ConnectionOptions {
     name?: string;
     description?:string;
     address?: string;
-    secrets?:Record<string, Secret>;
+    secrets?:Record<string, SecretUUID>;
     fields?:Record<string, string>;
 }
 
 export class Connection extends Auditable   {
+
+    static SUPPORTED:ConnectionProtocolType[] = [
+        { name:"HTTP", value:ConnectionProtocol.HTTP, disabled:false, label:"Anonymous HTTP", icon:["fas","webhook"] },
+        { name:"HTTP_BASIC", value:ConnectionProtocol.HTTP_BASIC, disabled:false, label:"HTTP Basic authentication", icon:["fas","lock"] },
+        { name:"HTTP_REALM", value:ConnectionProtocol.HTTP_REALM, disabled:false, label:"HTTP Bearer authentication", icon:["fas","lock"] },
+        { name:"DOCKER", value:ConnectionProtocol.DOCKER, disabled:true, label:"Docker Registry", icon:["fab","docker"] },
+        { name:"FTP", value:ConnectionProtocol.FTP, label:"FTP / SFTP / FTPS", disabled:true, icon:["fas","download"] },
+        { name:"SSH", value:ConnectionProtocol.SSH, label:"SSH", disabled:false, icon:["fas","train-tunnel"] },
+        { name:"PLAYSTORE", value:ConnectionProtocol.PLAYSTORE, disabled:false, label:"Google PlayStore", icon:["fab","google-play"] },
+        { name:"APKPURE", value:ConnectionProtocol.APKPURE, disabled:false, label:"APK Pure", icon:["fab","google-play"] },
+        { name:"FDROID", value:ConnectionProtocol.FDROID, disabled:false, label:"F-Droid", icon:["fab","google-play"] },
+        { name:"HUAWAIAPPG", value:ConnectionProtocol.HUAWAIAPPG, disabled:false, label:"Huawei App Gallery", icon:["fab","google-play"] },
+        { name:"APPSTORE", value:ConnectionProtocol.APPSTORE, disabled:true, label:"Apple AppStore", icon:["fab","app-store-ios"] },
+    ];
 
     static VALIDATE:Record<string, ValidationRule> = {
         uuid: ValidationRule.uuid(),
@@ -67,6 +89,9 @@ export class Connection extends Auditable   {
             ConnectionProtocol.FTP,
             ConnectionProtocol.SSH,
             ConnectionProtocol.PLAYSTORE,
+            ConnectionProtocol.FDROID,
+            ConnectionProtocol.APKPURE,
+            ConnectionProtocol.HUAWAIAPPG,
             ConnectionProtocol.APPSTORE
         ])
     }
@@ -79,8 +104,10 @@ export class Connection extends Auditable   {
     description:string;
     address: string;
     tags:number[] = [];
-    secrets:Record<string, Secret> = {};
+    secrets:Record<string, SecretUUID> = {};
     fields:Record<string, string> = {};
+
+    private _secrets:Record<SecretUUID, Secret>={};
 
     constructor(pOptions:Nullable<ConnectionOptions>) {
         super({});
@@ -127,9 +154,9 @@ export class Connection extends Auditable   {
             tags:  this.tags
         };
 
-        if(pZone == SecurityZone.PUBLIC){
-            for(let k in this.secrets) o.secrets[k] = this.secrets[k].getUID();
-        }
+        // _secrets must be never exported
+
+        for(let k in this.secrets) o.secrets[k] = this.secrets[k];
 
         return o;
     }
@@ -162,7 +189,23 @@ export class Connection extends Auditable   {
         this.fields[pFieldName] = pFieldValue;
     }
 
-    mapSecret(pSecretName: string, pSecret: Secret) {
+    mapSecret(pSecretName: string, pSecret: SecretUUID) {
         this.secrets[pSecretName] = pSecret;
+    }
+
+    hasField(pName:string):boolean {
+        return (this.fields[pName]!=null);
+    }
+
+    hasSecret(pName:string):boolean {
+        return (this.secrets[pName]!=null);
+    }
+
+    getField(pName:string):string {
+        return (this.fields[pName]);
+    }
+
+    getSecretByName(pName:string):Nullable<SecretUUID> {
+        return this.secrets[pName];
     }
 }

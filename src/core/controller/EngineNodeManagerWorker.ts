@@ -1,13 +1,13 @@
 import {Nullable} from "../IStringIndex.js";
-import {getEnvironmentData, isMainThread, setEnvironmentData, Worker} from "node:worker_threads";
+import {isMainThread, setEnvironmentData, Worker} from "node:worker_threads";
 import * as _path_ from "path";
 import * as _fs_ from "node:fs";
 import Util from "../../Utils.js";
-import {BinwalkHelper} from "../../BinwalkHelper.js";
 
 import * as Log from '../../Logger.js';
-import {WorkerInfo} from "../Job.js";
 import DexcaliburEngine, {DexcaliburEngineOptions} from "../../DexcaliburEngine.js";
+import {DexcaliburEngineMode} from "../../DexcaliburEngineMode.js";
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
@@ -74,16 +74,19 @@ export class EngineNodeManagerWorker {
      * @method
      * @async
      */
-    static async newNodeController( pEngine:DexcaliburEngine, pJob:any, pDelay:number ):Promise<EngineNodeManagerWorker> {
+    static newNodeController( pEngine:DexcaliburEngine, pJob:any, pDelay:number ):EngineNodeManagerWorker {
+
+        const opts = pEngine.getOptions();
+        opts.engine_mode = DexcaliburEngineMode.CONTROLLER;
 
         const threadID = 'node-controller-'+(EngineNodeManagerWorker.ctrlCTR++);
-        const worker = await EngineNodeManagerWorker._newWorker(
+        const worker =  EngineNodeManagerWorker._newWorker(
             'nodeController',
             'nodeController', [
                 {
                     uid: 'backend:info',
                     data: {
-                        engineOpts: pEngine.getOptions(),
+                        engineOpts: opts,
                         interval: pDelay,
                         threadID: threadID
                     }
@@ -91,7 +94,13 @@ export class EngineNodeManagerWorker {
             ]);
 
 
+        const enm = new EngineNodeManagerWorker(threadID,worker);
+
+
         worker.on('message',(vMsg)=>{
+            if(vMsg.cmd==='start' && vMsg.success){
+                enm.startPeriodicRefresh(10000)
+            }
             pJob.call(null, vMsg);
         });
 
@@ -100,9 +109,12 @@ export class EngineNodeManagerWorker {
             Logger.info("[EngineNodeManagerWorker] [queueScheduler] close ");
         });
 
+        //worker.unref();
 
-        return new EngineNodeManagerWorker(threadID,worker);
+        return enm;
     }
+
+
 
     /**
      * To prepare shared data and start a worker.
@@ -112,23 +124,31 @@ export class EngineNodeManagerWorker {
      * @param pName
      * @param pEnvData
      */
-    static async _newWorker(pCommand:string, pFilename:Nullable<string> = null, pEnvData:WorkerEnvData[] = []):Promise<Worker> {
+    static  _newWorker(pCommand:string, pFilename:Nullable<string> = null, pEnvData:WorkerEnvData[] = []):Worker {
+
+        const data:Record<string, any> = {};
 
         if(pEnvData!=null && Array.isArray(pEnvData)){
             pEnvData.map((vInfo:WorkerEnvData)=>{
+                data[vInfo.uid] = vInfo.data;
+                /*
                 setEnvironmentData(
                     vInfo.uid,
                     JSON.stringify(vInfo.data)
-                );
+                );*/
             })
         }
 
+        data['core:info'] = {
+            command: pCommand
+        };
+        /*
         setEnvironmentData(
             'core:info',
             JSON.stringify({
                 command: pCommand
             })
-        );
+        );*/
 
         const workerName = pFilename!=null ? pFilename : pCommand;
         const workerPath = _path_.join(Util.__dirname(import.meta.url),'..','workers',workerName+'.js');
@@ -137,13 +157,32 @@ export class EngineNodeManagerWorker {
             throw new Error("Worker ["+workerPath+"] not exists.");
         }
         // from main thread, set worker context
-        const worker = new Worker(workerPath);
+        const worker = new Worker(workerPath, {
+            workerData: data,
+            stdin: false,
+            stdout: false,
+            stderr: false,
+            resourceLimits: {
+                maxOldGenerationSizeMb: 1024,
+                maxYoungGenerationSizeMb: 1024,
+                codeRangeSizeMb: 256,
+                stackSizeMb: 200,
+            }
+        });
 
         worker.on('exit',(err)=>{
             if(isMainThread){
                 console.log(`Main Thread [worker=${workerName}][cmd=${pCommand}] exited. Code : ${err}`);
+            }else{
+                console.log(`Worker Thread [worker=${workerName}][cmd=${pCommand}] exited. Code : ${err}`);
             }
         });
+
+        worker.on('error',(err)=>{
+            console.log(`Node Worker error [worker=${workerName}][cmd=${pCommand}] exited. `,err);
+        });
+
+        //worker.on
 
         /*
         worker.on('online',()=>{
@@ -155,15 +194,30 @@ export class EngineNodeManagerWorker {
         return worker;
     }
 
-    async stop():Promise<void> {
+    stop():void {
         this.worker.postMessage({
             cmd: 'exit'
         })
     }
 
-    async start():Promise<void> {
+    start():void {
         this.worker.postMessage({
             cmd: 'start'
-        })
+        });
+    }
+
+    refresh():void {
+        this.worker.postMessage({
+            cmd: 'refresh'
+        });
+    }
+
+
+    startPeriodicRefresh(pDelay = 10000):void {
+        setInterval(()=> {
+            this.worker.postMessage({
+                cmd: 'refresh'
+            });
+        }, pDelay);
     }
 }

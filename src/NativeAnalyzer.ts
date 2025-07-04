@@ -21,7 +21,18 @@ import {AnalyzerState} from "./AnalyzerState.js";
 import {IDatabase, IDbCollection, Tag} from "@dexcalibur/dexcalibur-orm";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {Nullable} from "./core/IStringIndex.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MetadataType} from "./audit/common/Metadata.js";
+import {MetadataTopic} from "./audit/common/ControlAssessment.js";
+import {STATE_PPTS} from "./Analyzer.js";
 
+
+export enum NativeBackend {
+    R2="radare2",
+    GHIDRA='ghidra',
+    IDA='ida',
+    BINARY_NINJA='bin_binja'
+}
 
 export const PROFILES = {
     ANDROID_LIB: new AndroidNativeAnalyzerProfile({ }),
@@ -143,6 +154,30 @@ export default class NativeAnalyzer {
             }
         });
 
+        if(this.state.state[STATE_PPTS.FILES_PROCESSED]!=null){
+            if(this.targets==null || !Array.isArray(this.targets.all)){
+                this.targets = {
+                    all: []
+                };
+            }
+
+            let fuid:string;
+            for(let i=0; i<this.state.state[STATE_PPTS.FILES_PROCESSED].length; i++){
+
+                fuid = this.state.state[STATE_PPTS.FILES_PROCESSED][i];
+                this.context.getMerlinEngine().file({
+                    _uid: fuid,
+                }).executePDB(this.context).then((vFile)=>{
+                    if(vFile.count()>0){
+                        this.targets.all.push(vFile.get(0));
+                    }else{
+                        console.log(`File ${fuid} not found`);
+                    }
+               })
+            }
+        }
+
+
         return true;
     }
 
@@ -165,8 +200,8 @@ export default class NativeAnalyzer {
      *
      * @param {DataScope} pScope
      */
-    getAnalyzedFiles(pScope:DataScope):ModelFile[]{
-        return this.targets[pScope.getName()];
+    getAnalyzedFiles(pScope:DataScope = null):ModelFile[]{
+        return this.targets.all; //[pScope.getName()];
     }
 
     /**
@@ -248,6 +283,7 @@ export default class NativeAnalyzer {
         this.waitQueue = this.waitQueue.filter( (f:ModelFile)=> (f.getUID()!==pFile.getUID()));
     }
 
+
     /**
      * To scan all acceptable files into given scope
      *
@@ -266,8 +302,6 @@ export default class NativeAnalyzer {
             this.targetable[pScope.getName()] = [];
 
         let idx:IDbCollection =  await this.context.getDataAnalyzer().getIndex(pScope);
-
-
         const supported_fmt = Object.keys(this.fmt_tags);
         const targetable_tag = this.context.getTagManager().getTag("analyzer.native.targetable");
         const profile = pProfile!=null ? pProfile : this.profile;
@@ -317,14 +351,7 @@ export default class NativeAnalyzer {
 
                         pFile.addTag(this.fmt_tags[pFile.type]);
 
-
-                        /* if(pOptions==null || !pOptions.skipAuto){
-                            this.analyzeFile(pFile, profile);
-                        }else{
-                            Logger.info("[ANALYZER] Native analysis of "+pFile.getRelativePath()+" has been skipped by configuration (#1)");
-                        }*/
                     }
-                //}
             }
         });
 
@@ -390,6 +417,7 @@ export default class NativeAnalyzer {
      * @param pScope
      * @param pOptions
      */
+    /*
     async scanFileByScope(pScope:DataScope, pProfile:NativeAnalyzerProfile=null, pOptions:any = {}):Promise<void> {
 
         const da = this.context.getDataAnalyzer();
@@ -444,13 +472,6 @@ export default class NativeAnalyzer {
 
                         targetable[fn].push({ pref:targetable[fn].length, file:pFile});
 
-
-
-                        /* if(pOptions==null || !pOptions.skipAuto){
-                            this.analyzeFile(pFile, profile);
-                        }else{
-                            Logger.info("[ANALYZER] Native analysis of "+pFile.getRelativePath()+" has been skipped by configuration (#1)");
-                        }*/
                     }
                 }
             }
@@ -491,12 +512,13 @@ export default class NativeAnalyzer {
 
         }
 
-    }
+    }*/
 
-    /**
+    /*
      *
      * @param pProfile
      */
+    /*
     scanAllFiles(pProfile:NativeAnalyzerProfile = null):void{
 
         if(!this.targets.hasOwnProperty('all'))
@@ -514,7 +536,7 @@ export default class NativeAnalyzer {
                 this.analyzeFile(pFile, profile);
             }
         });
-    }
+    }*/
 
     /**
      * To perform analysis of native file accordingly to a specified
@@ -590,7 +612,8 @@ export default class NativeAnalyzer {
                 Logger.info("[NATIVE ANALYSZER] RadareHelper found for "+pFile.getUID()+": "+helper.target.getPath());
             }
 
-            i = await helper.runCmd(pCommands, pOptions);
+            const res  = await helper.runCmd(pCommands, pOptions);
+            i = res.length;
 
         }catch (err) {
             Logger.error("[R2 HELPER][ERROR] scan : "+err.message);
@@ -599,36 +622,34 @@ export default class NativeAnalyzer {
         return i;
     }
 
+    /*
     analyzeFile(pFile:ModelFile, pProfile:NativeAnalyzerProfile):RadareHelper{
         let helper:RadareHelper;
         try{
 
             if(!this.r2factory.isOpened(pFile)){
-                helper = this.r2factory.newLocalInstance(pFile);
+                helper = await this.r2factory.newLocalInstance(pFile);
             }else{
                 helper = this.r2factory.getHelperFor(pFile);
             }
 
-            //pFile.tagAs('$r');
-            ( async ()=>{
-                const n = await helper.start(pProfile);
+            const n = await helper.start(pProfile);
 
-                Logger.info("[DB::FUNC] executed cmd : "+n);
-                if(n){
-                    pFile.getFunctions().map( (vFn:ModelFunction) => {
-                        this.db.funcs.addEntry(vFn.signature(), vFn);
-                         Logger.info("[DB::FUNC] add func : ", vFn.signature(), " ", vFn.name);
-                    });
+            Logger.info("[DB::FUNC] executed cmd : "+n);
+            if(n){
+                pFile.getFunctions().map( (vFn:ModelFunction) => {
+                    this.db.funcs.addEntry(vFn.signature(), vFn);
+                     Logger.info("[DB::FUNC] add func : ", vFn.signature(), " ", vFn.name);
+                });
 
 
-                    Logger.info("[DB::FUNC]File flagged analyzed : ", pFile.getUID());
-                    if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
-                        this.state.state.openedLib.push(pFile.getUID());
-                        await this.state.save();
-                    }
+                Logger.info("[DB::FUNC]File flagged analyzed : ", pFile.getUID());
+                if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
+                    this.state.state.openedLib.push(pFile.getUID());
+                    await this.state.save();
                 }
+            }
 
-            })();
 
         }catch (err) {
             Logger.error("[R2 HELPER][ERROR] "+err.message)
@@ -636,7 +657,7 @@ export default class NativeAnalyzer {
         }
 
         return helper;
-    }
+    }*/
 
     /**
      *
@@ -648,12 +669,12 @@ export default class NativeAnalyzer {
         try{
 
             if(!this.r2factory.isOpened(pFile)){
-                helper = this.r2factory.newLocalInstance(pFile);
+                helper = await this.r2factory.newLocalInstance(pFile);
             }else{
                 helper = this.r2factory.getHelperFor(pFile);
             }
 
-            const n = await helper.start(pProfile);
+            const n = await helper.start([]);
 
             //Logger.info("[DB::FUNC] executed cmd : "+n);
             if(n){
@@ -683,18 +704,16 @@ export default class NativeAnalyzer {
     async getHelperForFunc(pFunc:ModelFunction):Promise<RadareHelper> {
 
         let file = pFunc.getDeclaringFile();
-        if(typeof file === 'string'){
-            file = await this.context.dataAnalyzer.findFile(file)
+        if(file !=null){
+            const node = await this.context.dataAnalyzer.findFile(file._uid)
 
-            if(file != null){
-                pFunc.setDeclaringFile(file);
-            }
+            /*if(node != null){s
+                pFunc.setDeclaringFile(node);
+            }*/
 
 
-            return this.r2factory.getHelperFor(file as ModelFile);
-        }else if(ModelFile.TYPE.is(file)){
-           return this.r2factory.getHelperFor(file as ModelFile);
-        }else{
+            return this.r2factory.getHelperFor(node);
+        }else {
             throw NativeAnalyzerException.CANNOT_DISASS_VOLATILE();
         }
     }
@@ -720,8 +739,11 @@ export default class NativeAnalyzer {
                 fn: pFunc
             });
 
+            let success = true;
+            n.map(x => success = success && x.success);
+
             //Logger.info("[DB::FUNC] executed cmd : "+n);
-            if(n){
+            if(success){
                 Logger.info("[NATIVE ANALYZER] Function '"+pFunc.getSignature()+"' has been successfully analyzed ");
                 return true;
             }else{
@@ -742,4 +764,176 @@ export default class NativeAnalyzer {
     analyzeMemory():void{
 
     }
+
+
+    /**
+     * DEfault backend is R2, but different backend (ghidra, ida, binary ninja) could be configured
+
+     * @param pFile
+     */
+    async getHelper(pFile:ModelFile, pBackend:NativeBackend = NativeBackend.R2):Promise<any> {
+        switch (pBackend){
+            case NativeBackend.BINARY_NINJA:
+            case NativeBackend.GHIDRA:
+            case NativeBackend.IDA:
+                throw NativeAnalyzerException.BACKEND_NOT_SUPPORTED(pBackend);
+                break;
+            case NativeBackend.R2:
+            default:
+                if(!this.r2factory.isOpened(pFile)){
+                    return await this.r2factory.newLocalInstance(pFile);
+                }else{
+                    return this.r2factory.getHelperFor(pFile);
+                }
+                break;
+        }
+
+        return null;
+    }
+
+    /**
+     * To discover a new file, known as an executable file
+     *
+     * Disass, extract various info and more
+     *
+     * @method
+     */
+    async discover(pFile:ModelFile, pBackend = "radare2"):Promise<any> {
+        let helper:any;
+        try{
+
+            helper = await this.getHelper(pFile);
+
+            const res = await helper.start([]);
+
+            if(res.success){
+                // discover functions
+                const funcs = await helper.listFunctions();
+                Logger.info("[NATIVE ANALYZER] "+funcs.length+` functions have been successfully analyzed in : ${pFile.getRelativePath()}`);
+                await this._pdb.saveMany(funcs, ModelFunction.TYPE.getType());
+
+                // discover sections
+                const sections = await helper.listSections();
+
+                Logger.info("[NATIVE ANALYZER] "+sections.length+` sections have been successfully analyzed in : ${pFile.getRelativePath()}`);
+
+                pFile.appendFunctions(funcs);
+                pFile.setProgramSection(sections);
+
+                await this.markAsProcessed(pFile);
+
+                // save file
+                await this._pdb.save(pFile, ModelFile.TYPE.getType(), ['__p']);
+            }
+
+            if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
+                this.state.state.openedLib.push(pFile.getUID());
+                await this.state.save();
+            }
+
+
+        }catch (err) {
+            Logger.error("[R2 HELPER][ERROR] "+err.message)
+            console.error(err);
+
+        }
+
+        return helper;
+    }
+
+
+    /**
+     * to create or update a function
+     *
+     * @param pFn
+     * @param pSet
+     */
+    async saveFunction(pFn:ModelFunction, pSet:string[]=[]):Promise<ModelFunction> {
+        if(pSet.length>0){
+            return await this._pdb.save(pFn, { [ModelFunction.TYPE.getPrimaryKey().getName()]: pFn.getUID() }, pSet ) as ModelFunction;
+        }else{
+            return await this._pdb.save(pFn) as ModelFunction;
+        }
+    }
+
+    /**
+     *
+     * @param pScope
+     * @param pFile
+     * @param pAction
+     */
+    isEligibleTo(pScope:DataScope, pFile: ModelFile, pAction:string):boolean {
+
+        switch (pAction){
+            case 'discovery':
+                // discovery action is performed on packages, on some platforms, as Android,
+                // files targeting differents ABI can be present. Then, they must be filtered
+                if(pScope.getInternalName()== "PKG"){
+                    Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
+                    const o:number = (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
+
+                    if(o>-1){
+                        pFile.addTag(this.fmt_tags[pFile.type]);
+                        pFile.addMeta(
+                            MetadataType.TEXT,
+                            MetadataTopic.PREFERED_ABI,
+                            o
+                        );
+                        return true;
+                    }
+                }else{
+                    // by default, if ABI compliance check cannot be
+                    // based on file path (as into apk), file is considered compliant
+                    // todo : add ABI detection or let user force analysis
+                    // targetable.push(pFile);
+
+                    // this.targets[pScope.getName()].push(pFile);
+                    //pFile.addTag(this.fmt_tags[pFile.type]);
+                }
+            default:
+                false;
+        }
+
+
+        return false;
+    }
+
+    /**
+     * To verify if the file have been already scanned
+     *
+     * @param {ModelFile} pModelFile
+     */
+    hasBeenAnalyzed(pModelFile: ModelFile) {
+        const list = this.state.getProperty(STATE_PPTS.FILES_PROCESSED) as string[];
+        if(list==null || !Array.isArray(list)){
+            return false;
+        }else{
+            return (list.length>0 && list.indexOf(pModelFile.getUID())>-1);
+        }
+    }
+
+    /**
+     * To mark a file as processed, and skip it when the project is re-open
+     *
+     * @param {ModelFile} pFile
+     */
+    async markAsProcessed(pFile: ModelFile):Promise<void> {
+        if(!this.hasBeenAnalyzed(pFile)){
+            if(this.state.getProperty(STATE_PPTS.FILES_PROCESSED)==null){
+                this.state.setProperty(STATE_PPTS.FILES_PROCESSED, []);
+            }
+
+            this.state.getProperty(STATE_PPTS.FILES_PROCESSED).push(pFile.getUID());
+            await this.state.save();
+        }
+    }
+
+     async listProcessedFiles():Promise<string[]> {
+        const f = await this.state.getProperty(STATE_PPTS.FILES_PROCESSED);
+        if(f==null){
+            return [];
+        }else{
+            return f;
+        }
+     }
 }

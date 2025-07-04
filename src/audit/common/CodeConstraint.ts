@@ -18,7 +18,6 @@ export interface CodeConstraintOptions extends ConstraintOptions {
 
 export default class CodeConstraint extends Constraint {
 
-    name:string;
 
     impl:any;
 

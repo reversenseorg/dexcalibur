@@ -17,7 +17,7 @@ export class DDVM_StackEntry
     symTab:DDVM_SymbolTable;
     ret:DDVM_Symbol = null;
     stats:number = 0;
-    states:any = null;
+    states:Record<string, DDVM_SymbolTable> = {};
 
 
     constructor( pMethod:ModelMethod, pObj, pArgs, pReturn = null){
@@ -32,8 +32,8 @@ export class DDVM_StackEntry
     }
 
     saveState(pLabel = "root"):void{
-        if(this.states[pLabel]==null) this.states[pLabel] = [];
-        this.states[pLabel].push(this.symTab.clone());
+        //if(this.states[pLabel]==null) this.states[pLabel] = [];
+        this.states[pLabel]=this.symTab.clone(); //.push(this.symTab.clone());
     }
 
     restoreState(pLabel = "root"):void{
@@ -110,6 +110,24 @@ export class DDVM_StackEntry
         for(let i=0; i<this.method.locals; i++){
             this.symTab.setSymbol('v'+i, DTYPE.UNDEFINED, null);
         }
+    }
+
+    toJsonObject():any {
+        const o =  {
+            method: {
+                __: this.method.__,
+                uid: this.method.getUID()
+            },
+            symTab: (this.symTab!=null ? this.symTab.toJsonObject() : null),
+            ret: (this.ret !=null ? this.ret.toJsonObject() : null),
+            states: {}
+        };
+
+        for(let k in this.states){
+            o.states[k] = (this.states[k] != null ? this.states[k].toJsonObject() : null);
+        }
+
+        return o;
     }
 }
 

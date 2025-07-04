@@ -53,6 +53,7 @@ export class DataAnalyzer implements IAnalyzerUnit
     private _pdb:ProjectDatabase;
 
     db:IDatabase = null;
+
     //detector:FileTypeDetector = null;
     binwalk:BinwalkHelper = null;
 
@@ -84,7 +85,6 @@ export class DataAnalyzer implements IAnalyzerUnit
 
         this.setProjectDB(this.context.getProjectDB());
 
-        this.db = pCtx.getDB();
         this._tmpDB = this.context.getAnalyzer().getData().getTempConnector().newTemporaryDb('data');
 
     }
@@ -209,21 +209,6 @@ export class DataAnalyzer implements IAnalyzerUnit
         return this.scopes[pName];
     }
 
-    /*newDB(pName:string="files.db"){
-        // inmemory
-        let idb:IDatabaseAdapter = ConnectorFactory.getInstance().newConnector('sqlite',this.context);
-        this.db = idb.newTemporaryDb(pName);
-    }*/
-
-    /*
-    isScopeIndexed(pScope:DataScope|string):boolean {
-
-        if(typeof pScope === 'string'){
-            return this.db.exists(this.getScope(pScope).getIndexName());
-        }else{
-            return this.db.exists(pScope.getIndexName());
-        }
-    }*/
 
     /**
      * To load in memory, files from ProjectDB for the specified Index
@@ -506,8 +491,7 @@ export class DataAnalyzer implements IAnalyzerUnit
     scanFile(pFile:ModelFile, pScope:DataScope):DataAnalyzer{
 
 
-        //let idx:IDbIndex = this.db.getIndex(pScope.getIndexName(), ModelFile.TYPE);
-        let idx:IDbCollection = this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+        let idx:IDbCollection = this._pdb.getFileScope(pScope.getIndexName());
 
         pFile._d  ='f';
         pFile.setScope(pScope);
@@ -543,8 +527,8 @@ export class DataAnalyzer implements IAnalyzerUnit
      * @method
      * @since 1.0.0
      */
-    getDB():IDatabase{
-        return this.db;
+    getDB():IDbCollection{
+        return this._pdb.getCollectionOf(ModelFile.TYPE.getType());
     }
 
 
@@ -584,15 +568,6 @@ export class DataAnalyzer implements IAnalyzerUnit
 
         files.map(x => data.addEntry(x.getRelativePath(), x));
         return data;
-
-        /*
-        if(typeof pScope==='string') {
-            // return this.db.getIndex(this.scopes[pScope].getIndexName(), ModelFile.TYPE);
-            return this.db.getCollection(this.scopes[pScope].getIndexName(), ModelFile.TYPE);
-        }else{
-            //return this.db.getIndex(pScope.getIndexName(), ModelFile.TYPE);
-            return this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
-        }*/
 
     }
 

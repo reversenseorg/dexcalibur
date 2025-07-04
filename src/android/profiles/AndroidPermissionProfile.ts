@@ -12,9 +12,6 @@ export class AndroidPermissionProfile extends GenericPermissionProfile
 
     requireRoot = true;
 
-    prop:any;
-
-
     constructor(){
         super();
     }

@@ -36,7 +36,7 @@ export default class ModelString extends Savable
     __:NodeInternalType = NodeInternalType.STRING;
 
     // SRC_NODE_TYPE : SRC_UUID : STR_TYPE : UID
-    _uid:string;
+    _uid:string = "";
 
     location:DataLocation = null;
     value:string = null;

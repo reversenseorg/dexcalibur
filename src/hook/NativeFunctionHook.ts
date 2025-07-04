@@ -107,11 +107,8 @@ export default class NativeFunctionHook extends AbstractHook {
         let o = super.toJsonObject();
 
         o.func = this.getTarget().getUID();
-        const f = (this.getTarget() as ModelFunction).getDeclaringFile();
-        if(typeof f==='string')
-            o.file = f;
-        else if(f!==null)
-            o.file = (f as ModelFile).getName();
+        o.file = (this.getTarget() as ModelFunction).getDeclaringFile();
+
 
         CoreDebug.checkJsonSerialize(o,"NativeFunctionHook");
         return o;

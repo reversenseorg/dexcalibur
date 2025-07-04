@@ -24,7 +24,9 @@ import DataScope, {DataScopeMap} from "./DataScope.js";
 import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit.js";
 import {SearchEngineException} from "./errors/SearchEngineException.js";
 import {DataAnalyzer} from "./DataAnalyzer.js";
-import {IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection, IDbIndex, INode} from "@dexcalibur/dexcalibur-orm";
+import {INodeRef} from "./INode.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
 
 
 
@@ -464,4 +466,21 @@ export class SearchAPI
         this._db = data;
         this._finder.updateDB(data);
     }
+
+    /**
+     *
+     */
+    newFinderResult():FinderResult {
+        return new FinderResult(this._finder.newResultSet(),this._finder);
+    }
+
+    /**
+     * To check if an object is a node reference
+     *
+     * @param pRef
+     */
+    static isNodeRef(pRef:any):boolean {
+        return (pRef['__']!=null && pRef['_uid']!=null);
+    }
+
 }

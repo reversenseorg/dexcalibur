@@ -100,7 +100,7 @@ export default class ModelResource extends Savable
 
     __:NodeInternalType = NodeInternalType.RESOURCE;
 
-    _uid:string;
+    _uid:string = "";
     location:DataLocation = null;
     value:any = null;
     name:string;

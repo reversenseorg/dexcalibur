@@ -35,7 +35,6 @@ export class SearchRequestCondition implements IStringIndex<any>{
   raw = "";
   regexp:boolean = false;
   error:any = null;
-
   opts:SearchOptions = { not:false };
 
   private _re:RegExp|null = null;
@@ -56,6 +55,12 @@ export class SearchRequestCondition implements IStringIndex<any>{
     return (this.pattern != null);
   }
 
+  /**
+   * To enable regex search in condition
+   *
+   * @param {boolean} pSkipClean
+   * @method
+   */
   turnAsRegexp(pSkipClean = false):void{
     this.regexp = true;
     let p = this.pattern;
@@ -70,9 +75,9 @@ export class SearchRequestCondition implements IStringIndex<any>{
         this._re = new RegExp(p.substring(1,lastDeliminiter), reFlags);
         return;
       }
+    }else{
+      this._re = new RegExp(p);
     }
-
-    this._re = new RegExp(p);
   }
 
   isQueryString():boolean {
@@ -164,7 +169,10 @@ export class SearchRequestCondition implements IStringIndex<any>{
    * To stringified and escaped regexp
    */
   getRegExpPattern():string {
-    return this._re.source;
+    const source = this._re.source;
+
+      return this._re.source;
+
   }
 
   /**
@@ -190,5 +198,9 @@ export class SearchRequestCondition implements IStringIndex<any>{
 
   isFieldBased():boolean {
     return (this.field!="" && this.field.length>0);
+  }
+
+  getFieldParts():string[] {
+    return  this.field.split(SearchRequestCondition.FIELD_TOK);
   }
 }

@@ -1,7 +1,10 @@
+import * as _path_ from "path";
+import * as _fs_ from "fs";
+
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {UserAccount, UserAccountOptions, UserAccountType, UserAccountUUID} from "../user/UserAccount.js";
 import AccessControl from "../user/acl/AccessControl.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {IDbCollection, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {randomUUID} from "crypto";
@@ -19,7 +22,7 @@ import {ApplicationUnit, ApplicationUnitUUID} from "./ApplicationUnit.js";
 import Role, {RoleUUID} from "../user/acl/common/Role.js";
 import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
 import {EmailSender} from "../core/email/EmailSender.js";
-import {Connection, ConnectionUUID} from "./conn/Connection.js";
+import {Connection, ConnectionProtocol, ConnectionUUID} from "./conn/Connection.js";
 import {Secret, SecretUUID} from "../core/secrets/Secret.js";
 import {Device, DeviceUUID} from "../Device.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
@@ -43,6 +46,10 @@ import {AccessAttribute} from "../user/acl/AccessAttribute.js";
 import {AccessControlException} from "../errors/AccessControlException.js";
 import {Auditable} from "../Auditable.js";
 import {EngineNode, EngineNodeUUID} from "../core/EngineNode.js";
+import {Policy} from "../audit/Policy.js";
+import {ApkeepHelper} from "../android/ApkeepHelper.js";
+import {UploadedResource} from "../common/UploadedResource.js";
+import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1364,8 +1371,11 @@ The Reversense Team
         pConn.setAccessAttribute(OrganizationAccessControl.attr.MEMBER_GRP);
         pConn.setAccessAttribute(OrganizationAccessControl.attr.OWNER);
 
+        console.log(pConn);
 
         pOrg.addConnection(pConn);
+
+        console.log(pOrg);
 
         if(await (this._ctx.getEngineDB()
             .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
@@ -2613,4 +2623,141 @@ The Reversense Team
     }
 
 
+    async updateOrgPolicy(pUser: UserAccount, pOrg: OrganizationUnit,
+                          pPolicy: Policy, pRemove = false):Promise<Policy> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_MODIFY,
+            pUser,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.MEMBER_GRP,
+                OrganizationAccessControl.attr.OWNER
+            ]
+        );
+
+        let pol:Nullable<Policy> = null;
+        if(pRemove){
+             pOrg.removePolicy(pPolicy.getUID());
+        }else{
+             pol = pOrg.addPolicy(pPolicy);
+        }
+
+
+        await this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType())
+            .asyncUpdateEntry(pOrg, {replace:false, $set:['policies'] });
+
+        return pol;
+    }
+
+    async updateAppPolicy(pUser: UserAccount, pOrg: OrganizationUnit,
+                          pApp:ApplicationUnit, pPolicy: Policy, pRemove = false):Promise<Policy> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_MODIFY,
+            pUser,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.MEMBER_GRP,
+                OrganizationAccessControl.attr.OWNER
+            ]
+        );
+
+        let pol:Nullable<Policy> = null;
+        if(pRemove){
+            pApp.removePolicy(pPolicy.getUID());
+        }else{
+            pol = pApp.addPolicy(pPolicy);
+        }
+
+        await this._ctx.getEngineDB()
+            .getCollectionOf(ApplicationUnit.TYPE.getType())
+            .asyncUpdateEntry(pApp, {replace:false, $set:['policies'] });
+
+        return pol;
+    }
+
+
+    /**
+     * To download an application from a remote location
+     *
+     * @param pUser
+     * @param pOrg
+     * @param pApp
+     * @param pConn
+     */
+    async download( pUser:UserAccount, pOrg:OrganizationUnit,
+                    pApp:ApplicationUnit, pConn:ConnectionUUID,
+                    pCheckExists = false):Promise<UploadedResource> {
+
+        const conn = pOrg.getConnection(pConn);
+
+        if(conn==null){
+            throw new Error('Connection not exists.');
+        }
+
+        const destFolder = _path_.join(this._ctx.getWorkspace().getTempFolderLocation(),"apkdl");
+        if(!_fs_.existsSync(destFolder)){
+            _fs_.mkdirSync(destFolder);
+        }
+
+
+        let helper:any;
+        let path:string = null;
+        switch(conn.type){
+            case ConnectionProtocol.FDROID:
+            case ConnectionProtocol.APKPURE:
+            case ConnectionProtocol.HUAWAIAPPG:
+            case ConnectionProtocol.PLAYSTORE:
+                helper = new ApkeepHelper();
+                path = (helper as ApkeepHelper).downloadWith( pUser, pApp.packageID, pOrg, conn, destFolder);
+                break;
+        }
+
+        if(path==null){
+            return null;
+        }
+
+        if(pCheckExists){
+            // TODO : gather checksum of inputs and check if exists
+        }
+        const uplres = await this._ctx.getWebserver().uploader.uploadFile(pUser, path, path);
+
+
+        await this._ctx.getEngineDB().save(uplres);
+
+        return uplres;
+    }
+
+    async extractInfo(pApp: ApplicationUnit, pRes: UploadedResource):Promise<any> {
+
+        let info:any = {};
+        switch (pApp.os){
+            case OperatingSystem.ANDROID:
+                // download resource
+                let tmpDl = pRes.path;
+                if(!_fs_.existsSync(tmpDl)){
+                    tmpDl = this._ctx.getWorkspace().createTempFile("apkdl_",false);
+                    const res = this._ctx.getWebserver().uploader.downloadFile(pRes.getUID(),tmpDl);
+                    if(!_fs_.existsSync(tmpDl)){
+                        throw new Error("Information cannot be extracted from package");
+                    }
+                }
+
+                // create temp output folder
+                const tmpOut = this._ctx.getWorkspace().createTempFolder("apkdl_ext_");
+
+                info = await AndroidPackageAnalyzer.extractInfoTemporary(tmpDl, tmpOut);
+
+                pRes.appendExtra(info);
+
+                await this._ctx.getWebserver().uploader.save(pRes, ['extra']);
+
+                _fs_.rm(tmpDl,()=>{});
+                _fs_.rm(tmpOut,()=>{});
+
+                break;
+        }
+
+        return info;
+    }
 }

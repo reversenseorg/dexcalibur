@@ -1,7 +1,11 @@
 import {IChange} from "../common/Change.js";
-import {TagUUID} from "@dexcalibur/dexcalibur-orm";
-import {UserAccountUUID} from "../user/UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {DbDataType, NodeProperty, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {ValidationRule} from "../Validator.js";
+import {ProjectInputPurpose} from "../analyzer/ProjectInput.js";
+import {PolicyRule, PolicyRuleOptions} from "./PolicyRule.js";
+import {PolicyException} from "./errors/PolicyException.js";
+import {AssuranceModelUUID} from "./common/AssuranceModel.js";
 
 export enum PolicyZone {
     NONE='none',
@@ -20,6 +24,8 @@ export interface PolicyOptions {
     changes?:IChange[];
     scope?:PolicyScope<any>;
     enabled?:boolean;
+    rules?:PolicyRule[];
+    model?:AssuranceModelUUID;
 }
 
 /**
@@ -43,6 +49,32 @@ export interface PolicyScope<T> {
  */
 export class Policy {
 
+    static SUPPORTED_ZONES:PolicyZone[] = [
+        PolicyZone.APP, PolicyZone.ORG,
+        PolicyZone.PRJ, PolicyZone.NONE
+    ];
+
+    static VALIDATE = {
+        scopeZone: ValidationRule.newPinklistAssert(Policy.SUPPORTED_ZONES)
+    };
+
+    static TYPE:NodeType = (new NodeType( "policy", NodeInternalType.POLICY, [
+        (new NodeProperty("uuid")).type(DbDataType.STRING).notnull(),
+        (new NodeProperty("name")).type(DbDataType.STRING).notnull(),
+        (new NodeProperty("description")).type(DbDataType.STRING),
+        (new NodeProperty("version")).type(DbDataType.INTEGER).def(-1),
+        (new NodeProperty("changes")).type(DbDataType.BLOB),
+        (new NodeProperty("scope")).type(DbDataType.BLOB),
+        (new NodeProperty("enabled")).type(DbDataType.BLOB),
+        (new NodeProperty("rules")).type(DbDataType.BLOB),
+        (new NodeProperty("tags")).type(DbDataType.BLOB),
+        (new NodeProperty("model")).type(DbDataType.STRING)
+    ])).dataSource("PROJECT_DB");
+
+    __:NodeInternalType = NodeInternalType.POLICY;
+
+    // COMMON
+
     uuid:PolicyUUID;
 
     name:string;
@@ -61,6 +93,13 @@ export class Policy {
 
     tags:TagUUID[] = [];
 
+    // CUSTOM
+
+    rules:PolicyRule[] = [];
+
+    model:Nullable<AssuranceModelUUID> = null;
+
+
     constructor(pOptions:PolicyOptions = {}) {
         if(pOptions.uuid!=null) this.uuid = pOptions.uuid;
         if(pOptions.name!=null) this.name = pOptions.name;
@@ -68,9 +107,64 @@ export class Policy {
         if(pOptions.version!=null) this.version = pOptions.version;
         if(pOptions.changes!=null) this.changes = pOptions.changes;
         if(pOptions.scope!=null) this.scope = pOptions.scope;
+        if(pOptions.rules!=null) this.rules = pOptions.rules;
         if(pOptions.enabled!=null) this.enabled = pOptions.enabled;
+        if(pOptions.model!=null) this.model = pOptions.model;
     }
 
+    /**
+     *
+     */
+    getUID():PolicyUUID {
+        return this.uuid;
+    }
+
+    /**
+     *
+     * @param vUid
+     */
+    setUID(vUid:PolicyUUID):void {
+        this.uuid = vUid;
+    }
+
+    /**
+     * To add or replace a rule in the policy
+     *
+     * @param {PolicyRule} pRule
+     * @method
+     */
+    addRule(pRule:PolicyRule):void {
+
+        for(let i=0; i<this.rules.length; i++){
+            if(this.rules[i].name===pRule.name){
+                // replace existing rule
+                this.rules[i] = pRule;
+                return;
+            }
+        }
+
+        // the rule is not already in the list
+        this.rules.push(pRule);
+        return;
+    }
+
+    /**
+     * To remove a rule by the instance or name
+     *
+     * @param {PolicyRule|string} pRule
+     * @method
+     */
+    removeRule(pRule:PolicyRule|string):void {
+        if(pRule==null){
+            throw PolicyException.CANNOT_REMOVE_RULE(this.name, 'rule is null');
+        }
+
+        if(typeof pRule==='string'){
+            this.rules = this.rules.filter( r => r.name!=pRule);
+        }else{
+            this.rules = this.rules.filter( r => r.name!=pRule.name);
+        }
+    }
 
     /**
      * To prepare to json serialized
@@ -78,7 +172,7 @@ export class Policy {
      * @method
      */
     toJsonObject():any{
-        return {
+        const o = {
             uuid:this.uuid,
             name: this.name,
             description: this.description,
@@ -86,7 +180,28 @@ export class Policy {
             changes: this.changes,
             scope:this.scope,
             tags:this.tags,
-            enabled: this.enabled
+            enabled: this.enabled,
+            model: this.model,
+            rules: []
         };
+
+        this.rules.map(r => {
+            o.rules.push( r.toJsonObject());
+        })
+
+        return o;
+    }
+
+    static fromUnsafeObject(pOptions:PolicyOptions) {
+        const policy = new Policy({
+            ...pOptions,
+            rules: []
+        });
+
+        pOptions.rules.map(((vRule) => {
+            policy.addRule(new PolicyRule(vRule));
+        }));
+
+        return policy;
     }
 }

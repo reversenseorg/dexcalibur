@@ -23,7 +23,7 @@ export default class ModelUiComponent extends Savable
 
     __:NodeInternalType = NodeInternalType.UI_CMP;
 
-    _uid:string;
+    _uid:string = "";
     tags:number[] = [];
     data:any = null;
     state:UiCmpState = {};

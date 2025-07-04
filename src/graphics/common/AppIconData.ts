@@ -3,7 +3,6 @@ import {AppIcon, AppIconFormat} from "../../AppIcon.js";
 
 export class AppIconData extends AppIcon {
     fmt = AppIconFormat.PNG;
-    data:Buffer;
 
     constructor(pFormat:AppIconFormat) {
         super();

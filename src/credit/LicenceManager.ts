@@ -5,6 +5,7 @@ import {Product} from "./Product.js";
 import {GenericScanner} from "../audit/common/GenericScanner.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 import {LicenseManagerException} from "./errors/LicenseManagerException.js";
+import {PrivacyScanner} from "../audit/scanner/PrivacyScanner.js";
 
 interface ActivatedServices {
     [ productCode:string] :any
@@ -46,10 +47,10 @@ export class LicenceManager {
 
         const svc = LicenceManager.wallet[pProject.getLicenseNo()];
         switch (pProductCode){
-            /*case 'scanner.privacy':
+            case 'scanner.privacy':
                 // add serial/key check
                 svc['scanner.privacy'] = new PrivacyScanner({ project:pProject });
-                break;*/
+                break;
             case 'scanner.generic':
                 // add serial/key check
                 svc['scanner.generic'] = new GenericScanner({ project:pProject });

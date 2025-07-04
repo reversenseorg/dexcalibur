@@ -14,6 +14,7 @@ import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessCont
 import {ValidationRule} from "../Validator.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 import {AccessAttribute, AccessAttributeMap} from "../user/acl/AccessAttribute.js";
+import {CryptoUtils, HashAlgo} from "../CryptoUtils.js";
 
 export type  UploadedResourceUUID = string;
 
@@ -21,7 +22,11 @@ export interface UploadedResourceOpts {
     _id?:string;
     uuid?:UploadedResourceUUID;
     path?:string;
-    date?:number
+    date?:number;
+    sum?:string;
+    algo?:HashAlgo;
+    tags?:TagUUID[];
+    terminated?:boolean;
 }
 
 /**
@@ -43,6 +48,8 @@ export class UploadedResource extends Auditable implements INode {
             (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("path")).type(DbDataType.STRING),
+            (new NodeProperty("sum")).type(DbDataType.STRING).def(""),
+            (new NodeProperty("algo")).type(DbDataType.STRING).def(CryptoUtils.ALG_SHA256),
             (new NodeProperty("date")).type(DbDataType.NUMERIC).def(0),
             (new NodeProperty("terminated")).type(DbDataType.BOOLEAN),
             (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
@@ -79,6 +86,12 @@ export class UploadedResource extends Auditable implements INode {
 
     tags:TagUUID[] = [];
 
+    sum:string = "";
+
+    algo = CryptoUtils.ALG_SHA256;
+
+    extra:any = {};
+
     constructor(pOptions:UploadedResourceOpts = {}) {
         super({});
 
@@ -86,6 +99,10 @@ export class UploadedResource extends Auditable implements INode {
         if(pOptions.uuid!=null) this.uuid = pOptions.uuid;
         if(pOptions.path!=null) this.path = pOptions.path;
         if(pOptions.date!=null) this.date = pOptions.date;
+        if(pOptions.sum!=null) this.sum = pOptions.sum;
+        if(pOptions.algo!=null) this.algo = pOptions.algo;
+        if(pOptions.tags!=null) this.tags = pOptions.tags;
+        if(pOptions.terminated!=null) this.terminated = pOptions.terminated;
     }
 
     initAccessAttributes() {
@@ -109,12 +126,19 @@ export class UploadedResource extends Auditable implements INode {
             path: (pZone===SecurityZone.PRIVATE? this.path : null),
             uuid: this.uuid,
             date: this.date,
+            sum: this.sum,
+            algo: this.algo,
+            tags: this.tags,
             terminated: this.terminated,
         }
     }
 
     terminate() {
         this.terminated = true;
+    }
+
+    appendExtra(pInfo: any) {
+        this.extra = pInfo;
     }
 }
 UploadedResource.TYPE.builder(UploadedResource);

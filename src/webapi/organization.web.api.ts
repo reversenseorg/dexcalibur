@@ -531,10 +531,13 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(pReq.body.secrets!=null){
                     for(let n in pReq.body.secrets){
-                        conn.mapSecret(n,pReq.body.secrets[n]);
+                        if(Connection.VALIDATE.uuid.test(pReq.body.secrets[n])){
+                            conn.mapSecret(n, pReq.body.secrets[n]);
+                        }else{
+                            throw new Error("SecretUUID is invalid.")
+                        }
                     }
                 }
-
 
                 // create app unit
                 const success = await $.context.getOrgManager().addConnectionToOrg(
@@ -559,7 +562,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
 
 ORG_WEB_API.addAsyncAuthenticatedRoute(
-    '/ou/org/:oid/conn/uid/:cid',
+    '/ou/org/:oid/conn/cid/:cid',
     {
         'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
 
@@ -599,31 +602,6 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                         (pReq as any).user,
                         org, conn
                     )
-                );
-            }catch(err){
-
-                $.sendErrorAfterException(
-                    pRes, ORG_WEB_API.name,
-                    "Connection cannot be updated.",
-                    err,{cause:err.message});
-            }
-        },
-        'delete': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void>=>{
-            const $:WebServer = pReq.dxc.$;
-
-            try{
-
-                // target org
-                const org = await $.context.getOrgManager().getOrganization(
-                    (pReq as any).user,
-                    pReq.params.oid
-                );
-
-                const conn = org.getConnection(pReq.params.cid);
-
-                $.sendSuccess(
-                    pRes,
-                    await org.removeConnection(conn.getUID())
                 );
             }catch(err){
 
@@ -755,6 +733,22 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
+ORG_WEB_API.addAsyncPublicRoute(
+    '/ou/org/:oid/conn/protos',
+    {
+        'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void>=>{
+            const $:WebServer = pReq.dxc.$;
+            try{
+                $.sendSuccess( pRes,Connection.SUPPORTED);
+            }catch(err){
+                $.sendErrorAfterException( pRes, ORG_WEB_API.name,"Secret cannot be removed from organization.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
 ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:oid/conn/proto/:proto',
     {
@@ -771,6 +765,86 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess(
                     pRes,
                     ConnectionFactory.getExtraMappingsFor( pReq.params.proto as ConnectionProtocol)
+                );
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Secret cannot be removed from organization.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/conn/cid/:cid',
+    {
+        'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                const conn = org.getConnection(pReq.params.cid);
+
+                if(pReq.body.name!=null) conn.setName(pReq.body.name);
+                if(pReq.body.type!=null) conn.setType(pReq.body.type);
+                if(pReq.body.description!=null) conn.setDescription(pReq.body.description);
+                if(pReq.body.address!=null) conn.setAddress(pReq.body.address);
+
+                if(pReq.body.fields!=null){
+                    for(let n in pReq.body.fields){
+                        conn.mapField(n,pReq.body.fields[n]);
+                    }
+                }
+
+                if(pReq.body.secrets!=null){
+                    for(let n in pReq.body.secrets){
+                        conn.mapSecret(n,pReq.body.secrets[n]);
+                    }
+                }
+
+                $.sendSuccess(
+                    pRes,
+                    await $.context.getOrgManager().updateConnections(
+                        (pReq as any).user,
+                        org, conn
+                    )
+                );
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Connection cannot be updated.",
+                    err,{cause:err.message});
+            }
+        },
+        'delete': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void>=>{
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+                await $.context.getOrgManager().removeConnectionFromOrg(
+                    pReq.user, org, pReq.params.cid
+                );
+
+                $.sendSuccess(
+                    pRes,
+                    await $.context.getOrgManager().removeConnectionFromOrg(
+                        pReq.user, org, pReq.params.cid
+                    )
                 );
             }catch(err){
 

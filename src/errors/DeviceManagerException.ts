@@ -4,8 +4,6 @@ import {DeviceUUID} from "../Device.js";
 
 export class DeviceManagerException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     static ALL = {};
 

@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
-    "lib": ["es2017"],
-    "target": "es2017",
-    "module": "es2020",
+    "lib": [
+      "es2022"
+    ],
+    "target": "ES2022",
+    "module": "NodeNext",
     "declaration": true,
     "outDir": "./dist",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": false,
-    "moduleResolution": "node16",
+    "moduleResolution": "nodenext",
     "allowJs": true,
     "typeRoots": [
       "node_modules/@types"
@@ -27,6 +29,7 @@
   ],
   "exclude": [
     "node_modules",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "node_modules/r2pipe/*.d.ts"
   ]
 }

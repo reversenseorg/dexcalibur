@@ -1,8 +1,6 @@
 import KeyPoint from "./KeyPoint.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
-import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection.js";
-import {SqliteDb} from "../../connectors/sqlite/SqliteDb.js";
 import {KeyPointGenerator, KeyPointOptions, KeyPointOptionsOptions} from "./KeyPointGenerator.js";
 import {IDatabase, IDbCollection, INode} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";

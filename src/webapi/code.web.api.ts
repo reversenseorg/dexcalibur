@@ -1,9 +1,7 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
-import {Request, Response} from "express";
+import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import ModelMethod from "../ModelMethod.js";
 import Util from "../Utils.js";
@@ -14,11 +12,16 @@ import ModelPackage from "../ModelPackage.js";
 import * as VM from "vm";
 import {FinderResult} from "../search/FinderResult.js";
 import DataScope from "../DataScope.js";
-import ModelFile from "../ModelFile.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import AndroidAppAnalyzer from "../android/AndroidAppAnalyzer.js";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer.js";
 import {AndroidAnalyzerException} from "../errors/android/AndroidAnalyzerException.js";
+import {SecurityZone} from "../security/SecurityZone.js";
+import {MerlinRule, MerlinRuleType} from "../search/MerlinRule.js";
+import {MerlinSearchAPI} from "../search/MerlinSearchAPI.js";
+import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+
+;
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const CODE_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -97,6 +100,8 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
+
+
 CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/method/simplify/:id',
     {
@@ -109,9 +114,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
             try{
 
                 // ========== SECURITY CHECKS
-
-
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -143,7 +145,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( res, dev);
             }catch(err){
                 Logger.error("[API][CODE] Method cannot be simplified. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Method cannot be simplified. Cause : " + err.message);
+                $.sendErrorAfterException(res, "Method cannot be simplified. Cause : ", err.message, err, {
+                    context: err.extra
+                });
             }
         }
     }
@@ -984,26 +988,119 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
-/*this.app.route('/api/field/:id/setters')
-    .get(function(req,res){
-        // collect
-        let dev = {};
-        //let sign = Util.decodeURI(Util.b64_decode(req.params.id));
-        let field = $.project.find.get.field(Util.decodeURI(Util.b64_decode(req.params.id)));
-        setters = field.getSetters();
-        getters = field.getGetters();
-
-        for(let i=0; i<setters.length; i++)
-            dev.setters = setters[i].toJsonObject();
-        for(let i=0; i<getters.length; i++)
-            dev.getters = getters[i].toJsonObject();
-
-        //dev = field.toJsonObject(["__setters"]);
-        // dev.htg = $.project.graph.htg(method);
-
-        res.status(200).send(JSON.stringify(dev));
-    });*/
+CODE_WEB_API.addAsyncAuthenticatedRoute(
+    '/libraries',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
 
 
+            let $: WebServer = req.dxc.$;
+            let project:DexcaliburProject;
+
+            try{
+                if(req.query['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                $.sendSuccess( res,
+                    (await project.getProgramManager().listProjectLibraries(req.user))
+                        .map(x => x.toJsonObject({}, SecurityZone.PUBLIC))
+                );
+            }catch(err){
+                Logger.error("[API][CODE] Content of package cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Content of package cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+
+);
 
 
+CODE_WEB_API.addAsyncAuthenticatedRoute(
+    '/libraries',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+
+
+            let $: WebServer = req.dxc.$;
+            let project:DexcaliburProject;
+
+            try{
+                if(req.query['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                $.sendSuccess( res,
+                    (await project.getProgramManager().listProjectLibraries(req.user))
+                        .map(x => x.toJsonObject({}, SecurityZone.PUBLIC))
+                );
+            }catch(err){
+                Logger.error("[API][CODE] Content of package cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Content of package cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+CODE_WEB_API.addAsyncAuthenticatedRoute(
+    '/merlin/search',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+
+
+            let $: WebServer = req.dxc.$;
+            let project:DexcaliburProject;
+
+            try{
+                if(req.query['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                const request = MerlinSearchRequest.fromJsonObject(
+                    project.getMerlinEngine(),
+                    req.body.request
+                );
+
+                const data = await request.executePDB(req.project);
+
+                console.log(data);
+
+                const json = data.getData().map(x => {
+                    if(x!=null){
+                        return x.toJsonObject();
+                    }else{
+                        return null;
+                    }
+                })
+
+                console.log(json);
+
+                $.sendSuccess( res,json );
+
+
+            }catch(err){
+                Logger.error("[API][CODE] Search failure. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Search failure. Cause : " + err.message);
+            }
+        }
+    }
+);

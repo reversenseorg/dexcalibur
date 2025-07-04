@@ -2,7 +2,6 @@
 
 import DexcaliburProject from "./DexcaliburProject.js";
 import InMemoryConnector from "../connectors/inmemory/adapter.js";
-import SqliteConnector from '../connectors/sqlite/adapter.js';
 import {CoreDebug} from "./core/CoreDebug.js";
 
 
@@ -32,7 +31,7 @@ export class ConnectorFactory
     constructor() {
         this.connectors = {
             inmemory: { default: InMemoryConnector },
-            sqlite: { default: SqliteConnector }
+            //sqlite: { default: SqliteConnector }
         };
     }
 

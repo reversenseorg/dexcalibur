@@ -54,7 +54,7 @@ export default class ModelPackage extends Savable implements INode, IPersistent
      * @type {string|number|Tag}
      * @field
      */
-    tags:number[];
+    tags:number[] = [];
 
     /**
      * Alias

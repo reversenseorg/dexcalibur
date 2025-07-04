@@ -1,4 +1,5 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {NativeBackend} from "../NativeAnalyzer.js";
 
 
 
@@ -13,6 +14,7 @@ export class NativeAnalyzerException extends MonitoredError {
         INVALID_FUNC_SIGN: ErrorCode.ANALYZER_NATIV + 106,
         ALIAS_CONFLICT: ErrorCode.ANALYZER_NATIV + 107,
         ALIAS_MUST_DIFFERS_FROM_NAME: ErrorCode.ANALYZER_NATIV + 108,
+        BACKEND_NOT_SUPPORTED: ErrorCode.ANALYZER_NATIV + 109
     };
 
     static UNKNOW_FUNC = ()=>{ return new NativeAnalyzerException(" Native function is unknow",NativeAnalyzerException.ERR.UNKNOW_FUNC) };
@@ -23,6 +25,9 @@ export class NativeAnalyzerException extends MonitoredError {
     static INVALID_FUNC_SIGN = ()=>{ return new NativeAnalyzerException(" Signature of native function is invalid or missing",NativeAnalyzerException.ERR.INVALID_FUNC_SIGN) };
     static ALIAS_CONFLICT = ()=>{ return new NativeAnalyzerException(" Two native functions from same file cannot have same alias",NativeAnalyzerException.ERR.ALIAS_CONFLICT) };
     static ALIAS_MUST_DIFFERS_FROM_NAME = ()=>{ return new NativeAnalyzerException("Ignoreed : alias MUST differs from native function name",NativeAnalyzerException.ERR.ALIAS_MUST_DIFFERS_FROM_NAME) };
+    static BACKEND_NOT_SUPPORTED = (pBackend:NativeBackend)=>{ return new NativeAnalyzerException(`Native backend '${pBackend}' is not supported`,NativeAnalyzerException.ERR.BACKEND_NOT_SUPPORTED) };
+
+
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('NATIVE ANALYZER', pMsg, pCode, pExtra);

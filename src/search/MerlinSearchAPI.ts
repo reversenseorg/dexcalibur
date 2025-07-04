@@ -25,6 +25,7 @@ import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../core/CoreDebug.js";
+import {ISearchAPISelector} from "./ISearchApiSelector.js";
 
 
 
@@ -52,16 +53,17 @@ export interface SearchOptions {
  * @param {Object} data The database of objects
  * @constructor
  */
-export class MerlinSearchAPI
+export class MerlinSearchAPI<T>
 {
+
   targetOS:OperatingSystem|undefined;
 
   _queryCache:any = [];
   _caseSensitive:boolean = true;
   _finder:Finder;
-  _db:AnalyzerDatabase;
+  _db:T;
   _byID:boolean = false;
-  get:SearchAPISelector;
+  get:ISearchAPISelector<T>;
 
 
   _analyzers:{[name:string] :IAnalyzerUnit} = {}
@@ -73,7 +75,9 @@ export class MerlinSearchAPI
     // set default case sensitivity for all search
     this._caseSensitive = true;
 
-    if(pData!=null) this.setDatabase(pData);
+    if(pData!=null){
+      this.setDatabase(pData as any);
+    }
   }
 
   /**
@@ -82,26 +86,26 @@ export class MerlinSearchAPI
    * @return {ApplicationDatabase}
    * @method
    */
-  getDB():AnalyzerDatabase {
+  getDB():T {
     return this._db;
   }
 
-  setDatabase(pData:AnalyzerDatabase){
+  setDatabase(pData:T){
     this._db = pData;
-    this._finder = new Finder(this._db);
-    this.get = new SearchAPISelector(this._db);
+    this._finder = new Finder(this._db as any);
+    this.get = (new SearchAPISelector(this._db as any) as any);
   }
 
 
   /**
    * Switch case sensitive On/Off of following search
    */
-  nocase():MerlinSearchAPI{
+  nocase():MerlinSearchAPI<T>{
     this._caseSensitive = false;
     return this;
   }
 
-  byID():MerlinSearchAPI{
+  byID():MerlinSearchAPI<T>{
     this._byID = true;
     return this;
   }
@@ -122,11 +126,11 @@ export class MerlinSearchAPI
     return Util.readValue(pObject, pAccessPath);
   }
 
-  class(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  class(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelClass.TYPE, pattern, pOptions);
   }
 
-  package(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  package(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelPackage.TYPE, pattern, pOptions);
   }
 
@@ -134,39 +138,39 @@ export class MerlinSearchAPI
     return MerlinSearchRequest.fromCondition(this, ModelMethod.TYPE, pattern, pOptions);
   }
 
-  field(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  field(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelField.TYPE, pattern, pOptions);
   }
 
-  file(pattern:string="", pOptions:SearchOptions = { not:false }, pScope:DataScope = null):MerlinSearchRequest{
+  file(pattern:string|any="", pOptions:SearchOptions = { not:false }, pScope:DataScope = null):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelFile.TYPE, pattern, pOptions);
   }
 
-  array(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  array(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelDataBlock.TYPE, pattern, pOptions);
   }
 
-  activity(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  activity(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, AndroidActivity.TYPE, pattern, pOptions);
   }
 
-  service(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  service(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, AndroidService.TYPE, pattern, pOptions);
   }
 
-  receiver(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  receiver(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, AndroidReceiver.TYPE, pattern, pOptions);
   }
 
-  provider(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  provider(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, AndroidProvider.TYPE, pattern, pOptions);
   }
 
-  permission(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  permission(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, AndroidPermission.TYPE, pattern, pOptions);
   }
 
-  call(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  call(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelCall.TYPE, pattern, pOptions);
   }
 
@@ -174,11 +178,11 @@ export class MerlinSearchAPI
     return MerlinSearchRequest.fromCondition(this, ModelString.TYPE, pattern, pOptions);
   }
 
-  func(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  func(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelFunction.TYPE, pattern, pOptions);
   }
 
-  syscall(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  syscall(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelSyscall.TYPE, pattern, pOptions);
   }
 
@@ -271,7 +275,7 @@ export class MerlinSearchAPI
         "instr.opcode.type:"+CONST.INSTR_TYPE.GETTER, false, true);
   }*/
 
-  updateDB(data:AnalyzerDatabase){
+  updateDB(data:T){
     this._db = data;
     //this._finder.updateDB(data);
   }

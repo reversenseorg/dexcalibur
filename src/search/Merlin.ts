@@ -13,7 +13,7 @@ import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
 export class Merlin {
 
 
-    static static( pTargetOS:OperatingSystem, pRuleOption:MerlinRuleOptions = {}):MerlinAndroidRule|MerlinRule {
+    static static( pTargetOS:OperatingSystem = null, pRuleOption:MerlinRuleOptions = {}):MerlinAndroidRule|MerlinRule {
         switch (pTargetOS){
             case OperatingSystem.ANDROID:
                 return new MerlinAndroidRule(pRuleOption);

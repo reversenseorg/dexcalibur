@@ -10,6 +10,8 @@ import {Nullable} from "../core/IStringIndex.js";
 import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
 import {DevException} from "../errors/DevException.js";
 import {SerializedSearchRequest} from "../audit/common/SerializedMerlinPrimitive.js";
+import {Finder} from "./Finder.js";
+import {SearchAPISelector} from "./SearchAPISelector.js";
 
 export enum MerlinRuleType {
     STATIC,
@@ -56,7 +58,7 @@ export interface MerlinRuleOptions {
  *
  * @class
  */
-export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
+export class MerlinRule extends MerlinSearchAPI<any> implements MerlinPrimitive {
 
 
     TYPE = MerlinType.RULE;
@@ -362,6 +364,7 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
      */
     async execute(pProject:DexcaliburProject):Promise<FinderResult> {
         // update DB
+
         this.setDatabase(pProject.getAnalyzer().getData());
 
         let result:FinderResult;
@@ -385,6 +388,41 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
         return result;
     }
+
+    /**
+     * Add executed requests to results
+     *
+     * @param pProject
+     */
+    async executePDB(pProject:DexcaliburProject):Promise<FinderResult> {
+        // update DB
+
+        this._db = pProject.getProjectDB();
+        this._finder = new Finder(pProject.getAnalyzer().getData());
+        this.get = (new SearchAPISelector(this._db as any) as any);
+
+        let result:FinderResult;
+
+
+        // execute
+        switch(this.type){
+            case MerlinRuleType.TAINT:
+                result = new FinderResult(this._finder.newResultSet(), this._finder);
+                //const s= this._executeTaint(pProject);
+                break;
+            case MerlinRuleType.DYNAMIC:
+                // hook & start
+                break;
+            case MerlinRuleType.STATIC:
+                // hook & start
+                this.getRequest().setContext(this);
+                result = await this.getRequest().executePDB(pProject);
+                break;
+        }
+
+        return result;
+    }
+
 
     // res = await vRule.execute(this.project);
     // private

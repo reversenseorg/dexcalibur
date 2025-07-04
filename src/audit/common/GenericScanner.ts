@@ -20,6 +20,7 @@ import {FinderResult} from "../../search/FinderResult.js";
 import {BusSubscriber} from "../../Bus.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {AssuranceScannerException} from "../errors/AssuranceScannerException.js";
+import AnalyzerDatabase from "../../AnalyzerDatabase.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -68,7 +69,7 @@ export class GenericScanner extends AssuranceScanner {
 
     private _mainDB = 'global';
 
-    private _searchContext:MerlinSearchAPI|null = null;
+    private _searchContext:MerlinSearchAPI<any>|null = null;
 
     constructor(pConfig:PrivacyScannerOpts) {
         super({
@@ -453,7 +454,7 @@ export class GenericScanner extends AssuranceScanner {
         }
 
         if(this._searchContext==null){
-            this._searchContext = new MerlinSearchAPI(pContext.getSearchEngine().getDatabase());
+            this._searchContext = new MerlinSearchAPI<AnalyzerDatabase>(pContext.getSearchEngine().getDatabase());
         }
 
         if(this.project == null){

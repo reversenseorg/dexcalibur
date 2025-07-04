@@ -630,6 +630,89 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
     }
 
     /**
+     * To extract metadata from temporary inputs
+     *
+     * Useful to pre-scan a file to preconfigure a project
+     *
+     * @returns {Promise<void>}
+     * @async
+     */
+    static async extractInfoTemporary(pPath:string, pOutput:string):Promise<any> {
+
+        // create temporary output
+        const success = await AndroidPackageAnalyzer.extractApk(
+            pPath,
+            pOutput, {
+                force: true,
+                match: true,
+                type: 'bin'
+            }
+        );
+
+        if(success==false){
+            throw new Error("Cannot extract package temporary.")
+        }
+
+        // parse manifest to extract metadata and icon
+        // search by regexp instead of parsing
+        const manifestPath = _path_.join(pOutput,"AndroidManifest.xml");
+        const stringsPath = _path_.join(pOutput,"res","values","strings.xml");
+
+        if(!_fs_.existsSync(manifestPath)){
+            throw new Error("Cannot extract manifest from package.")
+        }
+        if(!_fs_.existsSync(stringsPath)){
+            throw new Error("Cannot extract strings.")
+        }
+
+        const data = _fs_.readFileSync(manifestPath, { encoding: "utf8" });
+        const strings = _fs_.readFileSync(stringsPath, { encoding: "utf8" });
+
+        const meta = {
+            version: "",
+            name: "",
+            icons: {}
+        }
+
+        let ver = /android:versionName="([^"]+)"/.exec(data);
+        if(ver!=null){
+            meta.version = ver[1];
+        }
+
+        let appName = /android:label="([^"]+)"/.exec(data);
+        if(appName!=null){
+            meta.name = appName[1];
+            if(meta.name.startsWith("@string/")){
+               const label = (new RegExp(`<string name="${meta.name.substring(8)}">([^<]+)</string>`))
+                   .exec(strings);
+
+               if(label!=null){
+                   meta.name = label[1];
+               }
+            }
+
+        }
+        // icons
+        const mipmap = _path_.join(pOutput,"res","mipmap");
+        const files = _fs_.readdirSync(mipmap);
+        files.map((vFile)=>{
+            if(/ic_launcher/.test(vFile)){
+                const p = _path_.join(mipmap,vFile);
+                if(_fs_.existsSync(p)){
+                    meta.icons[vFile] = _fs_.readFileSync(p).toString('base64');
+                }else{
+                    return null;
+                }
+            }
+        });
+
+
+
+        console.log(meta);
+        return meta;
+    }
+
+    /**
      * to destroy this object  and release resource
      */
     async destroy():Promise<void> {

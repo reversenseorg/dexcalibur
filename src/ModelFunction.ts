@@ -1,25 +1,18 @@
-
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import ModelFile from "./ModelFile.js";
 import ModelCpuInstruction from "./ModelCpuInstruction.js";
-
-export interface ModelFunctionList {
-    [pAddress:string] :ModelFunction
-}
-
-
-
 import * as Log from './Logger.js';
 import {ModelVariable} from "./ModelVariable.js";
 import {ModelNativeRef} from "./ModelNativeRef.js";
 import {
-    NodeType,
-    DataSourceHelper,
-    NodePropertyState,
-    NodeProperty,
     DbDataType,
     DbKeyType,
-    INode, DbSerialize, SerializeOptions, IStringIndex, Tag
+    INode,
+    IStringIndex,
+    NodeProperty,
+    NodeType,
+    SerializeOptions,
+    Tag
 } from "@dexcalibur/dexcalibur-orm";
 
 import {IPersistent} from "./persist/orm/IPersistent.js";
@@ -27,6 +20,14 @@ import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
 
 import {CoreDebug} from "./core/CoreDebug.js";
+import ts from "typescript";
+import {INodeRef} from "./INode.js";
+
+export interface ModelFunctionList {
+    [pAddress:string] :ModelFunction
+}
+
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
@@ -70,6 +71,7 @@ const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false
     }
 };
 
+
 /**
  * Represents a function
  *
@@ -94,7 +96,7 @@ export class ModelFunction implements INode, IPersistent {
             (new NodeProperty("nbbs")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("addr")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("edges")).type(DbDataType.INTEGER).def(0),
-            (new NodeProperty("src")).single(ModelFile.TYPE),
+            (new NodeProperty("src")).type(DbDataType.BLOB).def(null),
             (new NodeProperty("stack")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("sz")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
@@ -142,7 +144,7 @@ export class ModelFunction implements INode, IPersistent {
     args:ModelVariable[] = [];
     ret:ModelVariable = null;
 
-    src:ModelFile|string = null;
+    src:Nullable<INodeRef> = null;
 
     /**
      *
@@ -222,10 +224,8 @@ export class ModelFunction implements INode, IPersistent {
      */
     signature():string{
         if(this.__s==null){
-            if(ModelFile.TYPE.is(this.src )){
-                this.__s = (this.src as ModelFile).getUID();
-            }else if(typeof this.src === 'string'){
-                this.__s = (this.src as string);
+            if(this.src != null){
+                this.__s = (this.src._uid);
             }else{
                 this.__s = '<unknow>';
             }
@@ -278,11 +278,14 @@ export class ModelFunction implements INode, IPersistent {
      * @param pFile
      */
     setDeclaringFile(pFile:ModelFile):void{
-        this.src = pFile;
+        this.src = {
+            _uid: pFile.getUID(),
+            __: pFile.__
+        };
     }
 
 
-    getDeclaringFile():ModelFile|string{
+    getDeclaringFile():INodeRef {
         return this.src;
     }
 
@@ -400,6 +403,8 @@ export class ModelFunction implements INode, IPersistent {
                         obj.ret = (this.ret!=null ? this.ret.toJsonObject() : null)
                         break;
                     case "src":
+                        obj.src = this.src;
+                        /*
                         if(typeof this.src === 'string'){
                             obj.src = this.src;
                         }else{

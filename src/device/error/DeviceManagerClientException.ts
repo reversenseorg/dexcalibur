@@ -2,10 +2,6 @@ import {ErrorCode, MonitoredError} from "../../errors/MonitoredError.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
 import {UserAccountUUID} from "../../user/UserAccount.js";
 import {DeviceUUID} from "../../Device.js";
-import {Architecture} from "../../Architecture.js";
-import {EmulatorOptionID} from "../maker/EmulatorOption.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
-import {DeviceTemplateUUID} from "../template/DeviceTemplate.js";
 
 /**
  * Exception class related to virtual device management
@@ -13,8 +9,6 @@ import {DeviceTemplateUUID} from "../template/DeviceTemplate.js";
  */
 export class DeviceManagerClientException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     _zone = SecurityZone.PRIVATE;
 

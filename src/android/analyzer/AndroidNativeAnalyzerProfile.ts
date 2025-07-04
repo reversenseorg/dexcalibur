@@ -33,7 +33,7 @@ export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfi
 
 
     /**
-     * To verify is a file is compatible with a list of ABI
+     * To verify if a file is compatible with a list of ABI
      *
      * It returns the offset of the ABI in the specified list
      *

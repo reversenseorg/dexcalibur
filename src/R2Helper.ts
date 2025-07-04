@@ -1,7 +1,4 @@
-//import * as r2 from 'r2pipe';
-import * as _r2pipe from 'r2pipe'
-import {R2Pipe} from 'r2pipe-promise';
-const r2p = _r2pipe.default;
+import {R2CmdResult, R2Pipe} from './external/R2Pipe.js';
 
 import * as Log from './Logger.js';
 import ModelExecutableSection from "./ModelExecutableSection.js";
@@ -16,10 +13,12 @@ import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
 import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager.js";
 import {DataType} from "./types/DataType.js";
 import {TagManager} from "./tags/TagManager.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import {INativeHelper, NativeHelperCmd} from "./analyzer/INativeHelper.js";
+import {NativeBackend} from "./NativeAnalyzer.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-//r2p.r2bin = "";
 
 export enum R2_TYPE {
     LOCAL,
@@ -42,8 +41,10 @@ const ARCH_RET = {
  * @class
  * @author Georges-B MICHEL
  */
-export default class RadareHelper
+export default class RadareHelper implements INativeHelper
 {
+
+    readonly BACKEND_TYPE = NativeBackend.R2;
 
     _t:R2_TYPE = R2_TYPE.LOCAL;
 
@@ -65,7 +66,7 @@ export default class RadareHelper
      * @type {R2Pipe}
      * @since 1.0.0
      */
-    _p:any = null;
+    _p:Nullable<R2Pipe> = null;
 
     /**
      * r2 config
@@ -139,6 +140,7 @@ export default class RadareHelper
      */
      async parseSections(pOut:any):Promise<ModelExecutableSection[]> {
         let secs:ModelExecutableSection[] = [];
+
 
         pOut.map( vSec => {
             secs.push(new ModelExecutableSection({
@@ -320,9 +322,11 @@ export default class RadareHelper
      * @method
      * @since 1.0.0
      */
-    async runCmd( pCommands:string[], pOptions:any= {}):Promise<number> {
+    async runCmd( pCommands:string[], pOptions:any= { update:true }):Promise<R2CmdResult[]> {
         let k:number = 0;
         let data:any;
+        let res:R2CmdResult[] =[];
+        let parsedData:any;
 
 
 
@@ -332,24 +336,58 @@ export default class RadareHelper
 
             if(this._h[pCommands[i]] === true && pOptions.force!==true) continue;
 
+            data = null;
+
             switch(pCommands[i]){
-                case 'sections':
-                    data = await this._p.cmdj("iSj");
-                    this._h.sections = true;
-                    this.target.setProgramSection(await this.parseSections(await data));
-                    this.target.tagAs('$r');
-                    if(data) k++;
+                case NativeHelperCmd.LIST_SECTIONS:
+                    data = await this._p.runCmd("iSj");
+
+                    if(data.success){
+                        this._h.sections = true;
+                        data.data = await this.parseSections(data.data);
+                        res.push(data);
+
+                        if(pOptions.update){
+                            this.target.setProgramSection(data.data);
+                            this.target.tagAs('$r');
+                        }
+                    }else{
+                        res.push(null);
+                    }
+
+
+                    if(data){
+                        k++;
+                    }
                     break;
-                case 'f_list':
-                    data = await this._p.cmdj("aflj");
-                    this._h.f_list = true;
-                    this.target.appendFunctions(await this.parseFunctionList(await data, { src:this.target }));
-                    this.target.tagAs('$r');
+                case NativeHelperCmd.LIST_FUNCS:
+                    data = await this._p.runCmd("aflj");
+                    if(data.success){
+
+                        this._h.f_list = true;
+
+                        data.data = await this.parseFunctionList(data.data, {
+                            src: {
+                                __:ModelFile.TYPE.getType(),
+                                _uid: this.target.getUID()
+                            }
+                        });
+
+                        res.push(data);
+
+
+                        if(pOptions.update){
+                            this.target.appendFunctions(data.data);
+                            this.target.tagAs('$r');
+                        }
+                    }else{
+                        res.push(null);
+                    }
                     if(data) k++;
                     break;
                 case NativeAnalyzerCommands.FUNC_CMD.DISASS:
                     if((pOptions.fn instanceof  ModelFunction) && (pOptions.fn.getAddr()!=null)){
-                        data = await this._p.cmdj("pdfj @ "+pOptions.fn.getAddr());
+                        data = await this._p.runCmd("pdfj @ "+pOptions.fn.getAddr(), {json:true, ignoreErr: false});
                         if(data != null){
                             pOptions.fn.addDisass(await this.parseDisassembly(await data.ops));
                             //this._h.f_disass = true;
@@ -365,13 +403,17 @@ export default class RadareHelper
                     //this.target.appendFunctions(RadareHelper.parseFunctionList(data));
                     break;
                 case 'config':
-                    let cfg:any = await this._p.cmdj("aslj");
+                    let cfg:any = await this._p.runCmd("aslj");
                     this.updateHelperConfig(cfg);
                     break;
             }
+
+            if(data!=null){
+                res.push(data);
+            }
         }
 
-        return k;
+        return res;
     }
 
     /**
@@ -381,29 +423,12 @@ export default class RadareHelper
 
         if(pTool.getPath()[0]!=='/') {
             Logger.info("[R2] $PATH env : ",process.env.PATH);
-            r2p.r2bin = Util.whereIs(r2p.r2bin);
-            Logger.info("[R2] Path of radare2 found into  : ",r2p.r2bin);
+            R2Pipe.setPath(Util.whereIs(R2Pipe.NAME));
+            Logger.info("[R2] Path of radare2 found into  : ",R2Pipe.R2PIPE_PATH);
         }else{
-            r2p.r2bin = pTool.getPath();
-            Logger.info("[R2] Path of radare2 manually configured   : ",r2p.r2bin);
+            R2Pipe.setPath(pTool.getPath());
+            Logger.info("[R2] Path of radare2 manually configured   : ",R2Pipe.R2PIPE_PATH);
         }
-        /*try{
-            if(pTool.getPath()[0]!=='/'){
-                const p:string = require('os').platform();
-                if(p == "linux" || p == "darwin"){
-                    // TODO : replace by programmatic way
-                    const rp = _ps_.execSync("which radare2", {shell:ShellHelper.getExtPath()}).toString();
-                    // remove CR
-                    r2p.r2bin = rp.substr(0, rp.length-1);
-                }
-            }else{
-
-            }
-        }catch(err){
-            r2p.r2bin = "r2";
-            Logger.error(err.message+" "+err.stack);
-        }*/
-
     }
 
     /**
@@ -420,22 +445,30 @@ export default class RadareHelper
      * @method
      * @since 1.0.0
      */
-     async start(pProfile:any):Promise<any>{
-        let data:any = null;
+     async start(pCommands=['sections','f_list']):Promise<any>{
+        let data:any = {
+            success: false,
+            data: null
+        };
         try {
-            Logger.info(`[R2] Start analysis of : ${this.target.getPath()}`)
-            this._p = await R2Pipe.open(this.target.getPath());
+            Logger.info(`[R2] (extraCmds=${pCommands.join(',')}) Start analysis of : ${this.target.getPath()} `)
+            this._p = R2Pipe.open(this.target.getPath());
 
-            let res:any = await this._p.cmd("aa;aac").catch(err => {
-                Logger.error(`[R2] Error aa;aac : ${err.message}`)
-            });
+            let res:any = await this._p.runCmd("aa;aac", { json:false, ignoreErr:true });
 
-            if(!this._typeMgr.isInitialized(DATATYPE_CATEGORY.NATIVE)){
-                await this.initDataTypes();
-            }
 
-            if(res!=null){
-                data = await this.runCmd(['sections','f_list']);
+            if(res != null){
+                if(res.success && !this._typeMgr.isInitialized(DATATYPE_CATEGORY.NATIVE)){
+                    await this.initDataTypes();
+                }
+
+                data.success = res.success;
+
+                if(pCommands.length >0){
+                    data.data = await this.runCmd(pCommands);
+                }
+            }else{
+                data.success = false;
             }
          } catch(err)  {
              Logger.error(`[R2] Error: ${err.message} ${err.stack}`)
@@ -459,20 +492,24 @@ export default class RadareHelper
 
             if(!this._typeMgr.isInitialized(DATATYPE_CATEGORY.NATIVE)){
 
-                data = await this._p.cmd("tj").catch(err => {
+                data = await this._p.runCmd("tj").catch(err => {
                     Logger.error(`[R2] Error 'tj' : ${err.message}`)
                 });
 
-                if(typeof data === 'string'){
-                    data = JSON.parse(data);
+                console.log(data);
+
+                if(typeof data.data === 'string'){
+                    data = JSON.parse(data.data);
                 }
 
                 const types:DataType[] = [];
-                data.map( (vData:any)=>{
-                    const t = new DataType(vData.type, vData.size);
-                    t.fmt = vData.format;
-                    types.push(t);
-                })
+                if(data.types!=null){
+                    data.types.map( (vData:any)=>{
+                        const t = new DataType(vData.type, vData.size);
+                        t.fmt = vData.format;
+                        types.push(t);
+                    })
+                }
                 success = await this._typeMgr.initTypes( DATATYPE_CATEGORY.NATIVE, types);
             }else{
                 success = true;
@@ -491,7 +528,7 @@ export default class RadareHelper
      */
     quit():void {
          if(this._p != null){
-             this._p.quit();
+             this._p.kill();
          }
     }
 
@@ -535,6 +572,26 @@ export default class RadareHelper
     private updateHelperConfig(pConfig: any):void {
         for(let k in pConfig){
             this._cfg[k] = pConfig[k];
+        }
+    }
+
+    async listFunctions():Promise<ModelFunction[]> {
+        const funcs = await this.runCmd([NativeHelperCmd.LIST_FUNCS]);
+
+        if(funcs.length==0 || !funcs[0].success){
+            return [];
+        }else{
+            return funcs[0].data;
+        }
+    }
+
+    async listSections():Promise<ModelExecutableSection[]> {
+        const res = await this.runCmd([NativeHelperCmd.LIST_SECTIONS]);
+
+        if(res.length==0 || !res[0].success){
+            return [];
+        }else{
+            return res[0].data as ModelExecutableSection[];
         }
     }
 }

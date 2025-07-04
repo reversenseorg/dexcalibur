@@ -15,9 +15,10 @@ import AndroidService from "../android/AndroidService.js";
 import {AndroidPermission} from "../android/Permissions.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelFile from "../ModelFile.js";
+import {ISearchAPISelector} from "./ISearchApiSelector.js";
 
 
-export class SearchAPISelector
+export class SearchAPISelector implements ISearchAPISelector<AnalyzerDatabase>
 {
   _db:AnalyzerDatabase = null;
 

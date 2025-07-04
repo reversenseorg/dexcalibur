@@ -18,8 +18,13 @@ import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessCont
 import {GenericScanner} from "./common/GenericScanner.js";
 import {ScannerFactory} from "./scanner/ScannerFactory.js";
 import {BusinessPlan, BusinessPlanType} from "../billing/BusinessPlan.js";
-import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 import {ScanOrder, ScanOrderUUID} from "./common/ScanOrder.js";
+import {PolicyAction, PolicyRule} from "./PolicyRule.js";
+import {PolicyRuleFactory} from "./PolicyRuleFactory.js";
+import {Policy} from "./Policy.js";
+import {User} from "../User.js";
+import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
+import {ExplainedReport} from "./ExplainedReport.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -726,5 +731,87 @@ export class AuditManager {
                 }
             }
         }
+    }
+
+    /**
+     *
+     * @param pModel
+     */
+    async getDefaultPolicyFromModel(pModel:AssuranceModel):Promise<Policy> {
+        return PolicyRuleFactory.fromModel(pModel.getUID());
+    }
+
+
+    /**
+     * To retrieve the list of scan reports by project (a specific version of the application unit)
+     *
+     * @param {UserAccount} pUser
+     * @param {DexcaliburProjectUUID} pProject Project UUID
+     * @returns {AssuranceReport[]} The list of reports
+     * @async
+     * @method
+     */
+    async getReportsByAppRelease(pUser:UserAccount, pApp:ApplicationUnit, pProjectUUID:DexcaliburProjectUUID):Promise<AssuranceReport[]> {
+        AccessControl.isAuthorized(
+            AccessControl.access.AUDIT_REPORT_READ,
+            pUser,
+            pApp,
+            [
+                OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.OWNER,
+            ]
+        );
+
+        // check if oroject is a valid release
+        if(!pApp.hasRelease(pProjectUUID)){
+            throw OrganizationManagerException.INVALID_APP_RELEASE(pApp.getUID(),pProjectUUID);
+        }
+
+
+        // TODO check assurance ACL
+        const reports = await (this.engine.getEngineDB()
+            .getCollectionOf(AssuranceReport.TYPE.getType())as MongodbDbCollection)
+            .search({
+                project: pProjectUUID
+            });
+
+
+        return reports;
+    }
+
+    /**
+     * To retrieve the list of scan reports by project (a specific version of the application unit)
+     *
+     * @param {UserAccount} pUser
+     * @param {DexcaliburProjectUUID} pProject Project UUID
+     * @returns {AssuranceReport[]} The list of reports
+     * @async
+     * @method
+     */
+    async getReportsByNearAppRelease(pUser:UserAccount, pApp:ApplicationUnit,
+                     pProject:DexcaliburProject, pUpper:boolean, pSameTags:boolean = true ):Promise<AssuranceReport[]> {
+
+
+
+        // check if oroject is a valid release
+        if(!pApp.hasRelease(pProject.getUID())){
+            throw OrganizationManagerException.INVALID_APP_RELEASE(pApp.getUID(),pProject.getUID());
+        }
+
+        // search release according to tags
+        const rel = await this.engine.getProjectManager().listProjectByAppUnit(pUser, pApp)
+
+        // TODO
+
+
+        // TODO check assurance ACL
+        const reports = await (this.engine.getEngineDB()
+            .getCollectionOf(AssuranceReport.TYPE.getType())as MongodbDbCollection)
+            .search({
+                project: null
+            });
+
+
+        return [];
     }
 }

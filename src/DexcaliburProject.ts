@@ -38,7 +38,6 @@ import {Settings} from "./Settings.js";
 import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
 import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
 import {AnalyzerConfiguration, FileAnalysisType, PackageAnalyzerOptions} from "./AnalyzerConfiguration.js";
-import SqliteConnector from "../connectors/sqlite/adapter.js";
 import AccessControl from "./user/acl/AccessControl.js";
 import {AccesErrCode, AccessException} from "./user/acl/Access.js";
 import Util from "./Utils.js";
@@ -97,6 +96,9 @@ import {ApplicationUnit, ApplicationUnitUUID} from "./organization/ApplicationUn
 import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
 import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
+import {TaintAnalyzer} from "./analyzer/taint/TaintAnalyzer.js";
+import {AbiManager, AbiType} from "./binary/ABI.js";
+import {ProgramManager} from "./core/ProgramManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -190,6 +192,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         (new NodeProperty("archs")).type(DbDataType.STRING),
         (new NodeProperty("dbName")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
+        (new NodeProperty("appUnit")).type(DbDataType.STRING).def(null),
 
         //(new NodeProperty("db")).type(DbDataType.STRING),é
         (new NodeProperty("device")).type(DbDataType.STRING)
@@ -372,7 +375,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      */
     find:SearchAPI = null;
 
-    merlin:MerlinSearchAPI = null;
+    merlin:MerlinSearchAPI<any> = null;
 
     // set SC analyzer
     /**
@@ -546,6 +549,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
     tags:TagUUID[] = [];
 
+    private _pm:ProgramManager;
+
     private readonly _scanScheduler:ScanSchedulerProject;
 
     private _wf:Workflow = null;
@@ -586,6 +591,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      */
     //checksum:DigestSet = {};
 
+
+    taintAnalyzer:Nullable<TaintAnalyzer> = null;
+
     /**
      *
      * @param {any} pConfig Project config options
@@ -622,6 +630,17 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 }
             }));
         }
+    }
+
+    /**
+     *
+     */
+    getProgramManager():ProgramManager {
+        if(this._pm==null){
+            this._pm = new ProgramManager(this);
+        }
+
+        return this._pm;
     }
 
     setEngine(pEngine:DexcaliburEngine):void {
@@ -992,9 +1011,16 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         return this.pdb;
     }
 
+    /*
     getDB():IDatabase {
         return this.db;
+    }*/
+
+
+    getDB():ProjectDatabase {
+        return this.pdb;
     }
+
 
     getTypeManager():TypeManager {
         return this.typeManager;
@@ -1116,9 +1142,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
 
         // open/create db
-        const sqliteConn:SqliteConnector = ConnectorFactory.getInstance().newConnector('sqlite' , this)
-        sqliteConn.connect(this.workspace.getDbPath());
-        this.db = sqliteConn.getDB();
+        //const sqliteConn:SqliteConnector = ConnectorFactory.getInstance().newConnector('sqlite' , this)
+        //sqliteConn.connect(this.workspace.getDbPath());
+        //this.db = sqliteConn.getDB();
 
 
 
@@ -2229,7 +2255,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     break;
                 case "engine":
                 case "_analysis$":
-                //case "_scanScheduler":
                 case "packageAnalyzer":
                 case "_wf":
                 case "webserver":
@@ -2247,7 +2272,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 case "inspectors":
                 case "fridaBuilder":
                 case "graph":
-                case "device":
                 case "application":
                 case "connector":
                 case "device":
@@ -2425,7 +2449,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             // data analysis
             (await this.dataAnalyzer.indexFilesIn(pkgScope)).subscribe((vFiles:ModelFile[])=>{
                 // update internal in-memory DB with file analyzer DB
-                this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getCollection('files', ModelFile.TYPE).getAll());
+                this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getAll());
             });
             //}
 
@@ -2690,7 +2714,23 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     this.getWorkflow().pushStatus(new StatusMessage(80, "Analysis of native libraries"));
 
                     // detect and scan libs
-                    this.performNativeAnalysis(pkgScope);
+                    // this.performNativeAnalysis(pkgScope);
+                    const execFiles = await this.getDB().getFileDB().searchExecutables(pkgScope);
+
+                    console.log("EXECUTABLE FILES ",execFiles);
+
+                    for(let i=0; i<execFiles.length; i++){
+                        if(this.analyze.hasBeenAnalyzed(execFiles[i])){
+                            // skip it or load in memory somethings
+                        }else if(this.analyze.isEligibleTo(pkgScope, execFiles[i],'native:discovery')){
+                            try{
+                                await this.discoverExecutableFile(execFiles[i], true);
+                            }catch (e){
+                                console.error("Cannot analyze binary file : ",execFiles[i].getUID());
+                            }
+
+                        }
+                    }
                 }
                 else if(ProjectEventType.NATIVE_ANALYSIS_DONE === vProjEvt.type){
                     // start whole app analysis
@@ -2703,7 +2743,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     // - ...
                     await this.getAppAnalyzer().performXrefAnalysis();
 
-
+                    await this.hook.loadNativeHook();
                 }
             })
 
@@ -2740,20 +2780,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     data: null
                 })
             }
-
-             //this.analyze.doNativeAnalysis(pkgScope, null, { skipAuto: this.analCfg.isAutoNativeAnalysis() });
-
-            /*
-            if(await this.analyze.doNativeAnalysisAsync(
-                pkgScope,
-                null,
-                { skipAuto: this.analCfg.isAutoNativeAnalysis() })){
-
-
-                Logger.info("[ANALYZER] Load native hook");
-                // native hook are loaded only if depending files have been loaded
-                await this.hook.loadNativeHook();
-            }*/
 
             // loadSyscall / Instr hook
 
@@ -2912,6 +2938,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     /**
      * To init and restore the Native file analyzer
      *
+     * If a device is already attached to the project, the device profile is used to choose
+     * relevant files
+     *
      * @method
      */
     private _prepareNativeAnalyzer(){
@@ -2921,37 +2950,66 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // restore saved state
         this.analyze.restoreNativeAnalyzer();
 
-        console.log("Device is not null > ",this.device!=null)
-
         if(this.device!=null){
 
             this.analyze.getNativeAnalyzer().configure(
                 this.platform,
                 this.device.getProfile().getSystemProfile().getArchitecture(),
-                (this.analCfg.useDeviceABI()? this.device.getProfile().getSystemProfile().getABIlist() : [])
+                (this.analCfg.useDeviceABI()?
+                    this.device.getProfile().getSystemProfile().getABIlist() :
+                    AbiManager.from([AbiType.arm64_v8a])
+                )
             );
         }else{
 
             // try to retrieve supported ABI from project settings
-            let devAbi = this.getAnalyzerConfiguration().getPkgAnalyzerConfig().abi;
+            //let devAbi = this.getAnalyzerConfiguration().getPkgAnalyzerConfig().abi;
+
+            let devAbi = AbiManager.from([AbiType.arm64_v8a]);
 
             this.analyze.getNativeAnalyzer().configure(
                 this.platform,
                 this.engine.getSettings().getServerSettings().getDefaultArchitecture(),
-                [devAbi]
+                devAbi
             );
         }
 
 
     }
 
+    /**
+     * To perform primary native analysis of native executable file (shared object, dll, ELF, ...)
+     *
+     * @param pScope
+     */
+    async discoverExecutableFile(pFile:ModelFile, pSave:boolean):Promise<void>{
+
+        Logger.info("[ANALYZER] Discover native library and executable contained into package. [[autoAnalysis="+this.analCfg.isAutoNativeAnalysis()+"]");
+        //this.analyze.doNativeAnalysis(pkgScope, null, { skipAuto: this.analCfg.isAutoNativeAnalysis() });
+
+
+        try{
+            const bin = await this.analyze.getNativeAnalyzer().discover(pFile);
+            // { skipAuto: this.analCfg.isAutoNativeAnalysis() }
+            //Logger.info("[ANALYZER] Load native hook");
+            //await this.hook.loadNativeHook();
+        }catch(err){
+            Logger.error("[ANALYZER] Analysis of native files failed : "+err.message);
+            console.log(err.stack);
+        }
+    }
+
+    /**
+     * To perform native analysis of file contained into a specific scope
+     * @param pScope
+     */
     async performNativeAnalysis(pScope:DataScope):Promise<void>{
 
         Logger.info("[ANALYZER] Scan every native library and executable contained into package. [scope="+pScope.getInternalName()+"][autoAnalysis="+this.analCfg.isAutoNativeAnalysis()+"]");
         //this.analyze.doNativeAnalysis(pkgScope, null, { skipAuto: this.analCfg.isAutoNativeAnalysis() });
 
-
         try{
+            // retrieve
             if(await this.analyze.doNativeAnalysisAsync(
                 pScope,
                 null,
@@ -2971,9 +3029,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 data: null
             })
         }
-
-
-
     }
 
 
@@ -3350,6 +3405,23 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         if(node!=null){
             await node.resetIdleTime();
         }
+    }
+
+    /**
+     * To get the taint analyzer initialized for this project.
+     *
+     *
+     */
+    getTaintAnalyzer():TaintAnalyzer {
+        if(this.taintAnalyzer==null){
+            this.taintAnalyzer = new TaintAnalyzer(this);
+        }
+
+        return this.taintAnalyzer;
+    }
+
+    getMerlinEngine():MerlinSearchAPI<any> {
+        return this.merlin;
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

@@ -2,8 +2,6 @@ import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 
 export class ConnectionSettingsException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     static ALL = {};
 

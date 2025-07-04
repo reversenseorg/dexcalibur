@@ -31,4 +31,6 @@ export interface DexcaliburVM {
     printStackTrace():any;
 
     getLog():any;
+
+    toJsonObject(): any;
 }

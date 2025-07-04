@@ -36,6 +36,7 @@ import {INode, IDatabase, IDbIndex, IDbSet, Tag, TagCategory} from "@dexcalibur/
 import {BusSubscriber} from "./Bus.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {newTagPresets} from "./tags/common/TagPresets.js";
+import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyzerProfile.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -49,6 +50,10 @@ var STATS = {
     fieldCalls: 0
 };
 
+
+export enum STATE_PPTS {
+    FILES_PROCESSED = 'fp'
+}
 
 
 
@@ -338,8 +343,11 @@ class ResolverV2
 }
 
 
-
-
+/**
+ * All-in-on API for all code-related analyzers
+ *
+ * @class
+ */
 export default class Analyzer
 {
     private _abstractTag: Nullable<Tag>;
@@ -363,6 +371,9 @@ export default class Analyzer
 
     resolver: ResolverV2;
 
+    /**
+     * Instance of native analyzer
+     */
     a_native:NativeAnalyzer = null;
 
     _wf:Workflow;
@@ -630,13 +641,6 @@ export default class Analyzer
         return this.a_native;
     }
 
-
-    async doNativeAnalysis(pScope:DataScope = null, pProfile:any={}, pOptions=null):Promise<void>{
-        if(pScope==null)
-            this.a_native.scanAllFiles(pProfile);
-        else
-            await this.a_native.scanFileByScope(pScope, pProfile, pOptions)
-    }
 
     async doNativeAnalysisAsync(pScope:DataScope = null, pProfile:any={}, pOptions=null):Promise<boolean>{
         let success:boolean;
@@ -1794,6 +1798,40 @@ export default class Analyzer
         ].map((vEvtType:string)=>{
 
         });*/
+    }
+
+    /**
+     * To check if a file is eligible to a particular kind of action
+     *
+     * @param pScope
+     * @param pFile
+     * @param pAction
+     */
+    isEligibleTo(pScope:DataScope, pFile: ModelFile, pAction:string):boolean {
+        const o = pAction.indexOf(':');
+        const cat = pAction.substring(0,o);
+
+        switch (cat){
+            case 'native':
+                return this.a_native.isEligibleTo(pScope, pFile, pAction.substring(o+1, pAction.length));
+            default:
+                return false;
+        }
+
+        return false;
+    }
+
+    /**
+     *
+     * @param modelFile
+     */
+    hasBeenAnalyzed(pModelFile: ModelFile):boolean {
+
+        if(this.a_native.hasBeenAnalyzed(pModelFile)){
+            return true;
+        }
+
+        return false;
     }
 }
 

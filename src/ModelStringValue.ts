@@ -44,7 +44,7 @@ export default class ModelStringValue extends Savable implements INode
     __:NodeInternalType = NodeInternalType.STRING;
 
     // SRC_NODE_TYPE : SRC_UUID : STR_TYPE : UID
-    _uid:string;
+    _uid:string = "";
 
     src:INodeRef|any = null;
     instr:any = null;

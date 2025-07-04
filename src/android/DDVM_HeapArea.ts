@@ -11,24 +11,39 @@ import DDVM_ClassLoader from "./DDVM_ClassLoader.js";
 import ModelClass from "../ModelClass.js";
 import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
 import * as Log from "../Logger.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+/**
+ *  An instance into the heap
+ *  @class
+ */
 export class DDVM_HeapEntry
 {
-    name:string = null;
-    type:any = null;
-    value:any = null;
+    name:string;
+    type:ModelClass;
+    value:Nullable<DDVM_ClassInstance> = null;
 
-    constructor( pName:string, pType:any, pValue:any){
+    constructor( pName:string, pType:ModelClass, pValue:DDVM_ClassInstance){
         this.name = pName;
         this.type = pType;
         this.value = pValue;
     }
+
+    toJsonObject():any {
+        return {
+            name: this.name,
+            type: this.type.getUID(),
+            value: (this.value!=null ? this.value.concrete : null)
+        };
+    }
 }
 
-
+/**
+ *
+ */
 export class DDVM_HeapArea
 {
     heap:DDVM_HeapEntry[] = null;
@@ -141,5 +156,21 @@ export class DDVM_HeapArea
                 this.free.push(i);
             }
         }
+    }
+
+    /**
+     * @since 1.9.0
+     */
+    toJsonObject():any {
+        let o = {
+            heap: [],
+            classloader: this.classloader.toJsonObject()
+        };
+
+        this.heap.map(x => o.heap.push(
+            x.toJsonObject()
+        ))
+
+        return o;
     }
 }

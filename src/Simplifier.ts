@@ -9,6 +9,7 @@ import ModelInstruction from "./ModelInstruction.js";
 import {CONST} from "./CoreConst.js";
 import * as Log from './Logger.js';
 import DDVM_Symbol from "./android/DDVM_Symbol.js";
+import {SimplifierException} from "./vm/errors/SimplifierException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -162,12 +163,17 @@ export default class Simplifier
             //cs.instr = this.vm.pcmaker.getCode();
             cs.instr = this.vm.getPseudoCode();
 
-            Logger.debug(cs.instr.join( require('os').EOL ));
+            Logger.info(cs.instr.join("\n"));
         }catch(e){
             //console.log("VM Error caught");
             //console.log(e);
             cs.instr = ["// An exeception occured at runtime :",this.vm.printStackTrace()];
-            
+
+
+            Logger.info(cs.instr.join("\n"));
+
+            throw SimplifierException.DDVM_CRASH(pMethod.getUID(), this.context.getUID(), this.vm.toJsonObject())
+
         }
 
 //        cs.logs = this.vm.readLog();

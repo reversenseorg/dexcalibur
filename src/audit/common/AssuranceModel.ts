@@ -26,6 +26,9 @@ import {Indicator, IndicatorUUID} from "./Indicator.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {CycloneDX} from "../../bom/CycloneDX.js";
 import DataFlow = CycloneDX.DataFlow;
+import AssuranceReport from "./AssuranceReport.js";
+import {ExplainedReport, ExportOptions} from "../ExplainedReport.js";
+import DexcaliburProject from "../../DexcaliburProject.js";
 
 export type AssuranceModelUUID = string;
 export enum AssuranceModelType {
@@ -45,6 +48,7 @@ export interface  ControlNode {
     ctrl?: IControl; //Control | ControlAssessment;
     canonicalID: ControlNodeCanonicalUID;
     children?:ControlTree;
+    [extra:string]:any;
 }
 export interface ControlTree {
     [canonicalUID:ControlNodeCanonicalUID]: ControlNode;
@@ -559,20 +563,42 @@ export default class AssuranceModel extends Auditable implements INode {
         return this._controlTree[pCanonicalUID];
     }
 
+    getTextualMetadata(pName:string):Nullable<string>{
+        const meta = this.metadata.find(m => {
+            return (m.type===MetadataType.TEXT)&&(m.key===pName);
+        });
+
+        if(meta!=null){
+            return meta.value;
+        }else{
+            return null;
+        }
+    }
+
+
     /**
      * To retrieve the version from metadata
      *
      * @return {number} Version
      * @method
      */
-    getVersion():number {
-        let version = 0;
-        this.metadata.map(x => {
-            if(x.key=="version"){
-                version = parseInt(x.value);
-            }
-        });
-        return version;
+    getVersion():number{
+        return parseInt(this.getTextualMetadata("version"),10);
+    }
+
+    getLinks():string[] {
+        return this.metadata.filter(m => {
+            return (m.type===MetadataType.URI);
+        }).map(x => x.value);
+    }
+
+
+    getAuthor():Nullable<string> {
+        return this.getTextualMetadata("author")
+    }
+
+    getRelease():Nullable<string> {
+        return this.getTextualMetadata("release")
     }
 
     /**
@@ -799,6 +825,137 @@ export default class AssuranceModel extends Auditable implements INode {
 
     getControlTree():any {
         return this._controlTree;
+    }
+
+    /**
+     *
+     * @param pAssessment
+     * @param pFlowStep
+     * @param pAnalType
+     */
+    static isControlAssessmentMatch(pAssessment: ControlAssessment, pFlowStep: DataOperation, pAnalType: AnalysisType) {
+
+        let flowOK = true, anaOK = true;
+
+        if(pFlowStep!=null){
+            flowOK = (pAssessment.metadata.find(x => (
+                (x.key===MetadataTopic.DFLOW_STEP) && (x.value===pFlowStep)
+            ))!=null);
+            if(!flowOK) return false;
+        }
+
+        if(pAnalType!=null){
+            anaOK = (pAssessment.analType===pAnalType);
+        }
+
+        return (anaOK && flowOK);
+    }
+
+    /**
+     * To search a control assessment by its properties
+     *
+     * @param pCtrl
+     * @param pAnalTypeS
+     * @param pFlowStep
+     */
+    searchAssessmentByPart(pCtrl:Control, pFlowStep:string, pAnalTypeS:string ):Nullable<ControlAssessment> {
+
+        const a = AssuranceModel.fromAnalTypeString(pAnalTypeS);
+        const f = AssuranceModel.fromDFlowString(pFlowStep);
+
+        for(let i=0; i<pCtrl.assessments.length; i++ ){
+            if(AssuranceModel.isControlAssessmentMatch(pCtrl.assessments[i], f, a)){
+                return pCtrl.assessments[i];
+            }
+        }
+        return null;
+    }
+
+
+    searchControlByCID(pCanonUID:string):any {
+        const lvl = pCanonUID.split(".");
+
+        let found:Nullable<Control|ControlAssessment> = null;
+        let nodeID:string ;
+        let ctrlSet:Control[]|ControlAssessment[] = this.controls as any;
+        let npart:string[], isCtrlAss = false;
+        let o:number = -1;
+
+
+        for(let i=(lvl[0]=='*'?1:0); i<lvl.length; i++){
+
+            nodeID = lvl[i];
+
+            ctrlSet = ctrlSet.sort((a:any,b:any)=>{
+                if(a.id!=null && b.id!=null){
+                    return a.id.localeCompare(b.id);
+                }
+
+                return (a.id==null ? 1 : -1);
+            });
+
+
+            o = nodeID.indexOf(":");
+            if(o>-1){
+                nodeID = nodeID.slice(0,o);
+            }
+
+            found = null as any;
+
+            for(let k=0; k<ctrlSet.length; k++){
+                // control
+                if( nodeID!==""){
+                    /*if(lvl.length==1){
+                        console.log(nodeID,ctrlSet[k].id, ctrlSet[k].id!=null && nodeID===ctrlSet[k].id,
+                            ctrlSet[k].isControl(),ctrlSet[k] , (ctrlSet[k] as Control).hasAssessments() );
+                    }*/
+                    if(ctrlSet[k].id!=null && nodeID===ctrlSet[k].id){
+                        found = ctrlSet[k];
+                        break;
+                    }
+                }
+            }
+
+            if(found){
+                if((found as IControl).isControl()){
+                    if((found as Control).assessments!=null && (found as Control).assessments.length>0){
+                        break;
+                    }else if(i<lvl.length-1 && (found as Control).hasChildren()){
+                        ctrlSet = (found as Control).children;
+                    }else{
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(found!=null){
+            if(o>-1){
+                npart = lvl[lvl.length-1].split(":");
+                // should be a control with assessments
+                return this.searchAssessmentByPart((found as Control), npart[1], npart[2]);
+            }
+            //console.log(pCanonUID, 'FOUND', found  )
+        }else{
+            console.log(pCanonUID, 'NOT FOUND');
+            return null;
+        }
+
+        return found;
+    }
+
+
+
+    explain( pReport:AssuranceReport, pProject:DexcaliburProject, pOptions:ExportOptions):ExplainedReport {
+        const exp = new ExplainedReport();
+
+        exp.setModel(this);
+        if(pReport.project!=null){
+            exp.setProject(pProject);
+        }
+        exp.setReport(pReport, pOptions);
+
+        return exp;
     }
 }
 AssuranceModel.TYPE.builder(AssuranceModel);

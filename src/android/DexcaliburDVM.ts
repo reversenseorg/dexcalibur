@@ -915,12 +915,12 @@ export default class DexcaliburDVM implements DexcaliburVM
             for(let i=0; i<margs.length; i++){
                 if(margs[i] instanceof ModelObjectType){
 
-                    if((pArguments!=null) && (pArguments["p"+i] !=null)){
+                    if((pArguments!=null) && (pArguments[i] !=null)){
                         //console.log(margs[i]);
-                        if(pArguments["p"+i].val != null)
+                        if(pArguments[i].val != null)
                             this.stack.last().addArgument(i, DDVM_TypeHelper.getDataTypeOf(margs[i]),
-                                this.heap.newInstance(margs[i]._name).setConcrete(pArguments["p"+i].val));
-                        else if(pArguments["p"+i].notset==true)
+                                this.heap.newInstance(margs[i]._name).setConcrete(pArguments[i].val));
+                        else if(pArguments[i].notset==true)
                             this.stack.last().addArgument(i, DDVM_TypeHelper.getDataTypeOf(margs[i]),
                                 this.heap.newInstance(margs[i]._name));
                         else
@@ -932,17 +932,17 @@ export default class DexcaliburDVM implements DexcaliburVM
                     }
 
                 }else{
-                    if((pArguments!=null) && (pArguments["p"+i] !=null)){
-                        if(pArguments["p"+i].val != null){
+                    if((pArguments!=null) && (pArguments[i] !=null)){
+                        if(pArguments[i].val != null){
                             if(DDVM_TypeHelper.getDataTypeOf(margs[i])==DTYPE.ARRAY){
                                 // parse array string
-                                arr = DDVM_VirtualArray.fromString( margs[i].name, pArguments["p"+i].val); // margs[i].type,
+                                arr = DDVM_VirtualArray.fromString( margs[i].name, pArguments[i].val); // margs[i].type,
 
                                 this.stack.last().addArgument(i, DDVM_TypeHelper.getDataTypeOf(margs[i]), arr);
                             }else
                                 this.stack.last().addArgument(i, DDVM_TypeHelper.getDataTypeOf(margs[i]),
-                                    DDVM_TypeHelper.castToDataType(DDVM_TypeHelper.getDataTypeOf(margs[i]), pArguments["p"+i].val));
-                        }else if(pArguments["p"+i].notset==true)
+                                    DDVM_TypeHelper.castToDataType(DDVM_TypeHelper.getDataTypeOf(margs[i]), pArguments[i].val));
+                        }else if(pArguments[i].notset==true)
                             this.stack.last().addArgument(i, DTYPE.UNDEFINED, null);
                         else
                             this.stack.last().addArgument(i, DDVM_TypeHelper.getDataTypeOf(margs[i]), null);
@@ -988,7 +988,7 @@ export default class DexcaliburDVM implements DexcaliburVM
         return this.stack.getLocalSymbolTable().addEntry(pReg, pSymbol.type, pSymbol.value, pExpr);
     }
 
-    setSymbol(pReg:string, pType:any, pValue:any, pCode:any=null){
+    setSymbol(pReg:string, pType:any, pValue:any, pCode:any=null):DDVM_Symbol{
         Logger.debug("setSymbol: (reg=",pReg,", type=",pType,")");
 //        return this.symTab.addEntry(pReg, VTYPE.METH, pType, pValue, pCode);
         return this.stack.getLocalSymbolTable().setSymbol(pReg, pType, pValue, pCode);
@@ -2091,9 +2091,12 @@ export default class DexcaliburDVM implements DexcaliburVM
             case OPCODE.MOVE_WIDE.byte:
             case OPCODE.MOVE_WIDE_16.byte:
             case OPCODE.MOVE_WIDE_FROM16.byte:
+
+                regV = this.getRegisterName(oper.right);
+                regX = this.getRegisterName(oper.left);
                 this.moveRegister(
-                    oper.right,
-                    oper.left
+                    regV,
+                    regX
                 );
                 break;
 
@@ -3111,5 +3114,22 @@ export default class DexcaliburDVM implements DexcaliburVM
     throwError( pRegister:string, pSymbol:DDVM_Symbol, pInstruction:ModelInstruction, pMessage:string):void{
         // TODO
         Logger.error(`[VM][ERROR] "${pRegister}" into [${pInstruction.toString()}] : ${pMessage}`);
+    }
+
+
+    /**
+     * To dump VM context
+     *
+     * @method
+     */
+    toJsonObject(): any {
+
+        return {
+            symTab: (this.symTab!=null ? this.symTab.toJsonObject() : null),
+            heap: (this.heap != null ? this.heap.toJsonObject() : null),
+            callStack: (this.stack !=null ? this.stack.callstack.map(x => x.toJsonObject()) : null),
+            pseudocode: this.getPseudoCode(),
+            log: this.getLog()
+        };
     }
 }

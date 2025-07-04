@@ -79,6 +79,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
             if(l.length>7){
                 file.__p.m = [];
             }
+
             for(let i=7; i<l.length; i++){
                 if(l[i]!=null){
                     res = RE.exec(l[i]) ;
@@ -94,7 +95,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
                         // m = map
                         // o = offset
                         // t = type
-                        file.appendSection(new ModelFileSection(res[1], res[3]));
+                        file.appendChunk(new ModelFileSection(res[1], res[3]));
                     }else{
                         Logger.debug("Format not detected in : "+l[i]);
                     }
@@ -150,10 +151,6 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
             l.shift(); // rm ----
 
 
-            if(l.length>1){
-                f.__p.m = [];
-            }
-
             for(let i=0; i<l.length; i++){
                 if(l[i]!=null){
                     res = RE.exec(l[i]) ;
@@ -167,7 +164,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
                         // m = map
                         // o = offset
                         // t = type
-                        f.appendSection( new ModelFileSection(res[1], res[3]));
+                        f.appendChunk( new ModelFileSection(res[1], res[3]));
                     }else if(l[i].length>0){
                         Logger.info("Format not detected in : "+l[i]);
                     }
@@ -215,9 +212,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
                 //f.path = l[1]; //.substr(lp);
                 f.__p.md5 = Util.trim(l[2].substr(l[2].indexOf(':')));
 
-                if(l.length>6){
-                    f.__p.m = [];
-                }
+
                 for(let i=7; i<l.length; i++){
                     if(l[i]!=null){
                         res = RE.exec(l[i]) ;
@@ -231,7 +226,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
                             // m = map
                             // o = offset
                             // t = type
-                            f.appendSection( new ModelFileSection(res[1], res[3]));
+                            f.appendChunk( new ModelFileSection(res[1], res[3]));
                         }else if(l[i].length>0){
                             Logger.info("Format not detected in : "+l[i]);
                         }

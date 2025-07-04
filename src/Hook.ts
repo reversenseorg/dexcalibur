@@ -314,11 +314,7 @@ export default class Hook
 
         if(this.native){
             o.native = this.native;
-            const f = (this.method as ModelFunction).getDeclaringFile();
-            if(typeof f==='string')
-                o.file = f;
-            else if(f!==null)
-                o.file = f.getName();
+            o.file = (this.method as ModelFunction).getDeclaringFile();
         }else{
             // add declaring file for multi-dex
             // o.file = (this.method as ModelMethod).getDeclaringFile().getName();
@@ -488,7 +484,7 @@ export default class Hook
             "@@__FN_UID__@@": CryptoUtils.md5(pFn.signature()),
             "@@__VAR__@@": "v"+CryptoUtils.md5(this.id)+"_VAR",
             "@@__HOOK_ID__@@": this.id,
-            "@@__MSG__@@": "Native:"+pFn.getDeclaringFile()+':'+pFn.getSymbol(),
+            "@@__MSG__@@": "Native:"+pFn.getDeclaringFile()._uid+':'+pFn.getSymbol(),
         };
 
         this.code.varID = tags["@@__VAR__@@"];

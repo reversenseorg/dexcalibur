@@ -26,11 +26,11 @@ export default class ModelCall extends Savable implements INode
         (new NodeProperty("line")).volatile().type(DbDataType.INTEGER).def(-1),
         (new NodeProperty("object")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("subject")).volatile().type(DbDataType.BLOB),
-    ])).dataSource("MEM", "call");
+    ])).dataSource("PROJECT_DB", "call");
 
     __:NodeInternalType = NodeInternalType.CALL;
 
-    _uid:string;
+    _uid:string = "";
 
     instr:ModelInstruction = null;
     caller:ModelMethod = null;

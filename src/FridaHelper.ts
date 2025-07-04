@@ -16,7 +16,8 @@ import {Device, FridaServerOptions, FridaServerTransport} from "./Device.js";
 import Util from "./Utils.js";
 import {IBridge} from "./Bridge.js";
 import {External} from "./external/External.js";
-import {Process} from "frida/dist";
+import {Process} from "frida";
+
 import * as _os_ from "os";
 import {FridaHelperException} from "./errors/FridaHelperException.js";
 import {Architecture} from "./Architecture.js";

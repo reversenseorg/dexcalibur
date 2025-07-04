@@ -9,8 +9,6 @@ import {SecurityZone} from "../../security/SecurityZone.js";
  */
 export class AssuranceScannerException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     _zone = SecurityZone.PRIVATE;
 
