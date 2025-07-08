@@ -13,8 +13,3 @@ if(_FS_.existsSync( dexcaliburPrefs)==false){
     _FS_.mkdirSync(dexcaliburPrefs);
 }
 
-// setup Dexcalibur's bootstrap file 
-/*_FS_.copyFileSync( 
-    _PATH_.join( __dirname, 'files', 'config.json'),
-    _PATH_.join( dexcaliburPrefs, 'config.json')
-);*/
