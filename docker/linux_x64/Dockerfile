@@ -75,6 +75,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV DXC_V_APKTOOL="2.7.0"
 ENV DXC_V_BAKSMALI="2.5.2"
 ENV DXC_V_BINWALK="3.1.0"
+ENV DXC_V_APKEEP="0.17.0"
 
 # ENV DXC_V_R2="2.5.2"
 # ENV DXC_V_FRIDA="2.5.2"
@@ -113,7 +114,7 @@ VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
 # ===============================
 WORKDIR /
 
-RUN apt-get update && apt install -y curl ca-certificates gnupg wget unzip  \
+RUN apt-get update && apt install -y pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
     bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3  \
     libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
     wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils \
@@ -122,14 +123,10 @@ RUN apt-get update && apt install -y curl ca-certificates gnupg wget unzip  \
 
 RUN mkdir -p /etc/apt/keyrings && \
     (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
-    (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list)
-
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list) && \
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
         && chmod +x kubectl \
         && mv kubectl /usr/local/bin/
-
-
-
 
 
 # ===============================
@@ -145,14 +142,8 @@ WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
     sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt && \
-    sudo npm install -g npm@10.0.0
-
-
-# ===============================
-# Install RUST
-# ===============================
-
-RUN (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
+    sudo npm install -g npm@10.0.0 && \
+    (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
     export PATH=$HOME/.cargo/bin:$PATH && \
     ls -la $HOME/.cargo/bin
 
@@ -176,6 +167,22 @@ ENV PATH="$PATH:$DXC_USER_HOME/.local/bin:$ANDROID_SDK_ROOT/cmdline-tools/tools:
 # RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_BUILD_TOOLS}
 # RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_PLATFORM_VERSION}
 
+
+# ===============================
+# Install Apkeep from source
+# ===============================
+
+RUN curl -L -o "$TMP_FOLDER/apkeep.zip" "https://github.com/EFForg/apkeep/archive/refs/tags/"$DXC_V_APKEEP".zip" && \
+    cd $TMP_FOLDER && \
+    unzip apkeep.zip && \
+    cd ./apkeep-$DXC_V_APKEEP && \
+    $HOME/.cargo/bin/cargo build --release && \
+    sudo cp ./target/release/apkeep /usr/local/bin/apkeep && \
+    sudo chmod 777 /usr/local/bin/apkeep && \
+    mkdir $DXC_USER_HOME/bin && \
+    cp ./target/release/apkeep $DXC_USER_HOME/apkeep && \
+    sudo chmod +x $DXC_USER_HOME/apkeep && \
+    cd $DXC_USER_HOME
 
 
 # ===============================
