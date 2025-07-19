@@ -1,4 +1,4 @@
-import * as  _path_ from "path";
+import * as _path_ from "path";
 
 
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
@@ -85,14 +85,14 @@ import {IPackageAnalyzer} from "./analyzer/IPackageAnalyzer.js";
 import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
 import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
 import {GenericPackageAnalyzer} from "./analyzer/GenericPackageAnalyzer.js";
-import {ProjectInput, ProjectInputLocation} from "./analyzer/ProjectInput.js";
+import {ProjectInput, ProjectInputLocation, ProjectInputPurpose} from "./analyzer/ProjectInput.js";
 import {Subject} from "rxjs";
 import * as _fs_ from "node:fs";
 import {ModelAPI} from "./ModelAPI.js";
 import InspectorFactory from "./InspectorFactory.js";
 import {GuiTypesManager} from "./graphics/GuiTypesManager.js";
 import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
-import {ApplicationUnit, ApplicationUnitUUID} from "./organization/ApplicationUnit.js";
+import {ApplicationIcon, ApplicationUnit, ApplicationUnitUUID} from "./organization/ApplicationUnit.js";
 import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
 import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
@@ -1603,6 +1603,10 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
 
         await this.packageAnalyzer.attachInput(pInput);
+
+        if(pInput.purpose==ProjectInputPurpose.MAIN){
+
+        }
 
         // save changes
         await this.getContext().getEngineDB().saveProject(this, ['inputs']);
@@ -3422,6 +3426,16 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
     getMerlinEngine():MerlinSearchAPI<any> {
         return this.merlin;
+    }
+
+    setIcon(pIcon: ApplicationIcon) {
+        this.meta.icon = pIcon;
+    }
+
+    getIcon():Nullable<ApplicationIcon> {
+        if(this.meta==null || this.meta.icon==null) return null;
+
+        return this.meta.icon;
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

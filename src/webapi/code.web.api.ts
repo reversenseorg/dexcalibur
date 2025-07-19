@@ -20,6 +20,7 @@ import {SecurityZone} from "../security/SecurityZone.js";
 import {MerlinRule, MerlinRuleType} from "../search/MerlinRule.js";
 import {MerlinSearchAPI} from "../search/MerlinSearchAPI.js";
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 
 ;
 
@@ -198,6 +199,10 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
         }
     }
 );
+
+
+
+
 
 
 
@@ -1021,7 +1026,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
 );
 
-
+/*
 CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/libraries',
     {
@@ -1052,7 +1057,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     }
-);
+);*/
 
 
 CODE_WEB_API.addAsyncAuthenticatedRoute(
@@ -1100,6 +1105,91 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
             }catch(err){
                 Logger.error("[API][CODE] Search failure. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Search failure. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+
+CODE_WEB_API.addAsyncAuthenticatedRoute(
+    '/direct/:puid/:nodetype/search',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+
+
+            let $: WebServer = req.dxc.$;
+
+            try{
+
+                const nodeType = req.params.nodetype;
+                const nodeUID = req.body.nodeuid;
+
+                const proj = (await $.context.getProjectManager().preloadForDirect(req.user, req.params.puid));
+
+                const result = (await (MerlinSearchRequest.getByRef({
+                    __:parseInt(nodeType,10),
+                    _uid:nodeUID
+                },proj.getMerlinEngine() )).executePDB(proj));
+
+                console.log(result);
+
+                if(result.count()>0){
+                    $.sendSuccess( res, result.get(0).toJsonObject());
+                }else{
+                    $.sendSuccess( res, null);
+                }
+
+
+            }catch(err){
+                //Logger.error("[API][CODE] Search failure from node ref. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Search failure from node ref. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
+    }
+);
+
+
+
+
+CODE_WEB_API.addAsyncAuthenticatedRoute(
+    '/direct/:puid/:nodetype/disass',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+
+
+            let $: WebServer = req.dxc.$;
+
+            try{
+
+                const nodeType = req.params.nodetype;
+                const nodeUID = req.body.nodeuid;
+
+                const project = (await $.context.getProjectManager().preloadForDirect(req.user, req.params.puid));
+
+                const result = (await (MerlinSearchRequest.getByRef({
+                    __:parseInt(nodeType,10),
+                    _uid:nodeUID
+                })).executePDB(project));
+
+                if(result.count()>0){
+                    if(result.get(0).disass==null){
+                        throw new Error("This node cannot be disassembled.");
+                    }
+                    $.sendSuccess( res, {
+                        disass: (result.get(0) as any).disass({ raw: true }, project.getDisassembler())
+                    });
+                }else{
+                    throw new Error("Node not found");
+                }
+
+
+            }catch(err){
+                Logger.error("[API][CODE] Disassembly failure from node ref. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Disassembly failure from node ref. Cause : " + err.message);
             }
         }
     }

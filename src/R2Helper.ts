@@ -349,7 +349,7 @@ export default class RadareHelper implements INativeHelper
 
                         if(pOptions.update){
                             this.target.setProgramSection(data.data);
-                            this.target.tagAs('$r');
+                            //this.target.tagAs('$r');
                         }
                     }else{
                         res.push(null);
@@ -378,7 +378,7 @@ export default class RadareHelper implements INativeHelper
 
                         if(pOptions.update){
                             this.target.appendFunctions(data.data);
-                            this.target.tagAs('$r');
+                            //this.target.tagAs('$r');
                         }
                     }else{
                         res.push(null);

@@ -34,7 +34,7 @@ import {ProjectSchedulerException} from "../errors/ProjectSchedulerException.js"
 import {BusinessPlan, BusinessPlanType, ResourceThresholds} from "../billing/BusinessPlan.js";
 import {ErrorCode} from "../errors/MonitoredError.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
-import {ProductType} from "../billing/Purchase.js";
+import {Purchase} from "../billing/Purchase.js";
 import {Person} from "../user/Person.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {TokenPurpose} from "../core/secrets/Token.js";
@@ -50,6 +50,8 @@ import {Policy} from "../audit/Policy.js";
 import {ApkeepHelper} from "../android/ApkeepHelper.js";
 import {UploadedResource} from "../common/UploadedResource.js";
 import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
+import {ReversenseProduct, ReversenseProductUUID} from "../billing/ReversenseProduct.js";
+import {INodeRef} from "../INode.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1873,6 +1875,8 @@ The Reversense Team
      */
     async verifyBalance(pOrder:ProjectOrder):Promise<void> {
 
+
+        /*
         const ouid = pOrder.getOrganizationUnit();
 
         if(!OrganizationUnit.VALIDATE.uuid.test(ouid)){
@@ -1882,17 +1886,27 @@ The Reversense Team
         const org = await this.getOrganization(this._ctx.getInternalAcc(), ouid);
         const bp = org.getBusinessPlan();
 
+        pOrder.getApplicationUnit()
+
+        bp.canPerformScan(
+
+        )
+
+        //bp.hasFreePlanSlot(bp.plan, )
+
+
         switch (bp.plan){
             case BusinessPlanType.SUBSCRIPTION:
                 bp.hasFreeAppSlot(pOrder.getApplicationUnit());
                 break;
             case BusinessPlanType.SCAN:
                 bp.hasFreeScanSlot();
+                bp.hasFreePlanSlot(bp.plan, )
                 break;
             default:
                 throw OrganizationManagerException.INVALID_BUSINESS_PLAN(ouid);
                 break;
-        }
+        }*/
     }
 
     /**
@@ -1900,7 +1914,7 @@ The Reversense Team
      *
      * @param {ProjectOrder} pOrder
      */
-    async verifyScanBalance(pOrder:ScanOrder):Promise<void> {
+    async verifyScanBalance(pOrder:ScanOrder, pSubject:INodeRef):Promise<void> {
 
         const ouid = pOrder.getOrganizationUnit();
 
@@ -1914,14 +1928,11 @@ The Reversense Team
         try {
             bp = org.getBusinessPlan();
         }catch (e){
+            // return error : Organization has not yet business plan
             if(e.code==ErrorCode.ORGANIZATION + 31){
-                org.setBusinessPlan(BusinessPlan.newSubscription(
-                    org,
-                    {
-                        concurrentNodes: 3
-                    }
-                ));
-                await this._ctx.getEngineDB().save(org);
+                org.setBusinessPlan(( new BusinessPlan({ org:ouid })).setQuotas({concurrentNodes: 3 }));
+                await this.updateOrganization( this._ctx.getInternalAcc(), org, { businessPlan: org.businessPlan });
+                //await this._ctx.getEngineDB().save(org);
                 bp = org.getBusinessPlan();
             }
         }
@@ -1936,9 +1947,9 @@ The Reversense Team
                 .CANNOT_VERIFY_SCAN_BALANCE(`Assurance model [uuid=${pOrder.getModelUID()}] not found.`);
         }
 
-        if(!bp.canPerformScan(model.getScannerID())){
+        if(!bp.canPerformScan(pSubject,[BusinessPlanType.SUBSCRIPTION, BusinessPlanType.SCAN], model.getScannerID())){
             throw OrganizationManagerException
-                .SCAN_LICENSE_VIOLATION(org.getUID(),model.getUID());
+                .SCAN_LICENSE_VIOLATION(org.getUID(),model.getScannerID(),pSubject, [BusinessPlanType.SUBSCRIPTION, BusinessPlanType.SCAN]);
         }
     }
 
@@ -1958,9 +1969,7 @@ The Reversense Team
         }catch(err){
             // bp is missing
             if((err as OrganizationManagerException).getCode()==(ErrorCode.ORGANIZATION + 31)){
-                org.setBusinessPlan(BusinessPlan.newSubscription(org,{
-                    concurrentNodes: 3
-                }));
+                org.setBusinessPlan(( new BusinessPlan({ org:pOrgUUID })).setQuotas({ concurrentNodes: 3}));
 
                 await this._ctx.getEngineDB()
                     .getCollectionOf(OrganizationUnit.TYPE.getType())
@@ -1979,16 +1988,49 @@ The Reversense Team
      * @param pOrg
      * @param pTarget
      */
-    async isLicenseActivated( pOrg: OrganizationUnit,
-                              pTarget:DexcaliburProjectUUID|ApplicationUnitUUID):Promise<boolean>{
+    async isSubscriptionActivated( pOrg: OrganizationUnit,
+                              pSubject:INodeRef, pProduct:ReversenseProductUUID):Promise<boolean>{
 
         let bp = pOrg.getBusinessPlan();
         if(bp==null){
             Logger.info(`Business plan is missing for org ${pOrg.getUID()}`);
             return false;
+
         }
 
-        return bp.hasSubscriptionFor(pTarget);
+        return bp.canPerformScan(pSubject, [BusinessPlanType.SUBSCRIPTION], pProduct);
+    }
+
+
+    /**
+     * To check if there is an activated license for a subscription of the target app
+     *
+     * @param pOrg
+     * @param pTarget
+     */
+    async listActivatedProductFor( pOrg: OrganizationUnit,
+                              pApp:ApplicationUnitUUID):Promise<{ purchases:Purchase[], products:ReversenseProduct[] }>{
+
+        let bp = pOrg.getBusinessPlan();
+        if(bp==null){
+            Logger.info(`Business plan is missing for org ${pOrg.getUID()}`);
+            return { purchases:[], products:[] };
+        }
+
+        const res =  { purchases:[], products:[] };
+        const prods:Record<ReversenseProductUUID, ReversenseProduct> = {};
+        (await this._ctx.mkpManager.listProducts()).map(x => {
+            prods[x.getUID()] = x;
+        });
+
+        bp.wallet.map((x:Purchase) => {
+            if(x.subject.__===NodeInternalType.APP_UNIT && x.subject._uid===pApp){
+                res.purchases.push(x);
+                res.products.push(prods[x.product]);
+            }
+        })
+
+        return res;
     }
 
     /**
@@ -2000,24 +2042,28 @@ The Reversense Team
      */
     async activateLicense( pUser:UserAccount,
                            pOrg:OrganizationUnit,
-                           pType:ProductType,
-                           pTarget:DexcaliburProjectUUID|ApplicationUnitUUID):Promise<boolean> {
+                           pPlan:BusinessPlanType,
+                           pTarget:INodeRef /*DexcaliburProjectUUID|ApplicationUnitUUID*/, pProduct:ReversenseProductUUID):Promise<boolean> {
 
 
-        if(pType==ProductType.APP){
+        if(pTarget.__!==NodeInternalType.APP_UNIT){
+            throw OrganizationManagerException.PRODUCT_NOT_SUPPORTED(pPlan,pProduct);
+        }
+
+        if(pPlan==BusinessPlanType.SUBSCRIPTION){
             await this._ctx.getAuditManager().activateApplicationSubscription(
-                pUser, pOrg, pTarget
+                pUser, pOrg, pTarget._uid, pProduct
             );
 
-            return await this.isLicenseActivated(pOrg, pTarget);
-        }else if(pType==ProductType.SCAN){
+            return await this.isSubscriptionActivated(pOrg, pTarget, pProduct);
+        }else if(pPlan==BusinessPlanType.SCAN){
+            // TODO : buy scan is there is enough credit
             await this._ctx.getAuditManager().activateApplicationScan(
-                pUser, pOrg, pTarget
+                pUser, pOrg, pTarget._uid, pProduct
             );
-
             return true;
         }else{
-            throw OrganizationManagerException.PRODUCT_NOT_SUPPORTED(pType);
+            throw OrganizationManagerException.PRODUCT_NOT_SUPPORTED(pPlan, pProduct);
         }
     }
 
@@ -2760,4 +2806,5 @@ The Reversense Team
 
         return info;
     }
+
 }

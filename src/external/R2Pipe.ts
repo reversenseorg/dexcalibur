@@ -304,7 +304,7 @@ export class R2Pipe {
                     }else{
                         this.cmdErr = [];
 
-                        console.log(`RADARE2 stderr => stdout (_onResults, ${this.cmdList[0].cmd}) : ${data}`);
+                        console.log(`RADARE2 stderr => stdout (_onResults : ${data}`);
                         //self._onResults( { cmd:this.cmdList.shift(), data: Buffer.from([]) });
 
                     }

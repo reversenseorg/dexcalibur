@@ -1,22 +1,19 @@
-import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
-import {ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
-import {ReversenseProduct} from "./ReversenseProduct.js";
-import {ProductRelease} from "./ProductRelease.js";
+import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {ReversenseProduct, ReversenseProductUUID} from "./ReversenseProduct.js";
+import {INodeRef} from "../INode.js";
+import {BusinessPlanType} from "./BusinessPlan.js";
+import {UserAccountUUID} from "../user/UserAccount.js";
+import Util from "../Utils.js";
 
-export enum ProductType {
-    SCAN=NodeInternalType.PROJECT,
-    APP=NodeInternalType.APP_UNIT
-}
 
 export interface PurchaseOptions {
     date:number;
-    type:ProductType;
+    plan: BusinessPlanType;
     org:OrganizationUnitUUID;
-    id:DexcaliburProjectUUID|ApplicationUnitUUID;
+    issuer:UserAccountUUID;
+    subject: INodeRef;
     transaction?: any;
-    products?: ReversenseProduct[];
+    product?:ReversenseProductUUID;
 }
 
 
@@ -24,113 +21,77 @@ export class Purchase {
 
     date:number;
 
-    type:ProductType;
-
     org:OrganizationUnitUUID;
 
-    id:DexcaliburProjectUUID|ApplicationUnitUUID;
+    plan: BusinessPlanType;
 
+    issuer: UserAccountUUID;
+
+    subject: INodeRef; //DexcaliburProjectUUID|ApplicationUnitUUID;
+
+    /**
+     * @deprecated
+     */
     products:ReversenseProduct[] = [];
 
-    transaction:any;
+    product:ReversenseProductUUID;
+
+    transaction:any = null;
 
     constructor(pOptions:PurchaseOptions) {
         this.date = pOptions.date;
-        this.type = pOptions.type;
+        this.plan = pOptions.plan;
         this.org = pOptions.org;
-        this.id = pOptions.id;
-        this.transaction = pOptions.transaction;
-        this.products = (pOptions.products!=null ? pOptions.products : []);
+        this.subject = pOptions.subject;
+        this.product = pOptions.product;
+
+        if(pOptions.transaction!=null) this.transaction = pOptions.transaction;
+        if(pOptions.issuer!=null) this.issuer = pOptions.issuer;
     }
 
-    static newSubscription(pOrganization:OrganizationUnitUUID, pOptions:any):Purchase {
+
+
+    static newSubscription(pUser:UserAccountUUID, pOrganization:OrganizationUnitUUID, pProduct:ReversenseProductUUID, pSubject:INodeRef):Purchase {
         return new Purchase({
             date: (new Date()).getTime(),
-            type: ProductType.APP,
+            plan: BusinessPlanType.SUBSCRIPTION,
+            issuer: pUser,
             org: pOrganization,
-            id: pOptions.id,
-            products: [
-                new ReversenseProduct({
-                    code: "scanner.generic",
-                    name: "Privacy scanner",
-                    description: "Scanner for Privacy assessment",
-                    price: 6000,
-                    releases: [
-                        new ProductRelease({
-                            version: "1.0",
-                            description: "Scanner for Privacy assessment"
-                        })
-                    ]
-                })
-            ]
+            product: pProduct,
+            subject: pSubject
         })
     }
 
-    static fromJsonObject(pObj:any):Purchase {
-        const p = new Purchase({
-            date: pObj.date,
-            type: pObj.type,
-            org: pObj.org,
-            id: pObj.id,
-            transaction: pObj.transaction,
-            products: []
-        });
 
-        (pObj.products).map((vRawProduct:any)=>{
-            p.products.push(
-                ReversenseProduct.fromJsonObject(vRawProduct)
-            );
-        })
-
-        return p;
-    }
-
-    static newScan(pOrganization:OrganizationUnitUUID, pOptions:any):Purchase {
+    static newScan(pUser:UserAccountUUID, pOrganization:OrganizationUnitUUID, pProduct:ReversenseProductUUID, pSubject:INodeRef):Purchase {
         return new Purchase({
             date: (new Date()).getTime(),
-            type: ProductType.SCAN,
+            plan: BusinessPlanType.SCAN,
+            issuer: pUser,
             org: pOrganization,
-            id: pOptions.id,
-            products: [
-                new ReversenseProduct({
-                    code: "scanner.generic",
-                    name: "Privacy scanner",
-                    description: "Scanner for Privacy assessment",
-                    price: 6000,
-                    releases: [
-                        new ProductRelease({
-                            version: "1.0",
-                            description: "Scanner for Privacy assessment"
-                        })
-                    ]
-                })
-            ]
+            product: pProduct,
+            subject: pSubject
         })
     }
 
-
-    hasLicenseFor(pCode:string):boolean {
-        for(let i=0; i<this.products.length; i++){
-            if(this.products[i].is(pCode)){
-                return true;
-            }
-        }
-        return false;
+    /**
+     * to check if a license has expired
+     */
+    hasExpired():boolean {
+        return (Util.now()-this.date)>(365*24*3600*1000);
     }
+
 
     toJsonObject():any{
         const o = {
             date: this.date,
-            type: this.type,
+            plan: this.plan,
             org: this.org,
-            id: this.id,
+            subject: this.subject,
+            issuer: this.issuer,
             transaction: this.transaction,
-            products: []
+            product: this.product
         };
-
-        this.products.map(x => {
-            o.products.push(x.toJsonObject());
-        })
 
         return o;
     }

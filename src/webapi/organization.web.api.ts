@@ -12,11 +12,10 @@ import {Connection, ConnectionProtocol} from "../organization/conn/Connection.js
 import {Secret} from "../core/secrets/Secret.js";
 import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
 import {ProjectState} from "../ProjectState.js";
-import {ProductType} from "../billing/Purchase.js";
 import {UserServiceException} from "../errors/UserServiceException.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
-import {AccessControlException} from "../errors/AccessControlException.js";
 import AccessControl from "../user/acl/AccessControl.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi("ORG");
@@ -1590,10 +1589,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     app.getParentOrganization()
                 );
 
-                $.sendSuccess(res,await $.context.getOrgManager().isLicenseActivated(
-                    org,
-                    app.getUID()
-                ));
+                $.sendSuccess(res,(await $.context.getOrgManager().listActivatedProductFor(org,app.getUID( ))));
             }catch(err){
                 $.sendErrorAfterException(res,
                     ORG_WEB_API.name,
@@ -1628,8 +1624,12 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess(res,await $.context.getOrgManager().activateLicense(
                     pReq.user,
                     org,
-                    pReq.body.type,
-                    app.getUID()
+                    pReq.body.plan,
+                    {
+                        __: NodeInternalType.APP_UNIT,
+                        _uid: app.getUID()
+                    },
+                    pReq.body.pid
                 ));
             }catch(err){
                 $.sendErrorAfterException(res,

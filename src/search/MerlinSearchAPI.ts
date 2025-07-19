@@ -22,10 +22,12 @@ import {ModelFunction} from "../ModelFunction.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {IAnalyzerUnit} from "../analyzer/IAnalyzerUnit.js";
 import {OperatingSystem} from "../platform/OperatingSystem.js";
-import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType, Nullable}
+  from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../core/CoreDebug.js";
 import {ISearchAPISelector} from "./ISearchApiSelector.js";
+import {INodeRef} from "../INode.js";
+import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
 
 
 
@@ -280,6 +282,24 @@ export class MerlinSearchAPI<T>
     //this._finder.updateDB(data);
   }
 
+
+  /**
+   *
+   *
+   * @param pRef
+   */
+  async searchNode( pRef:INodeRef):Promise<Nullable<INode>> {
+
+    if(pRef==null) return null;
+
+    const nt = MerlinSearchAPI.getMethodFromNodeType(pRef.__);
+
+    if(this[nt]==null) return null;
+
+    return this[nt].call(this,[{
+      [NodeType.getByID(pRef.__).getPrimaryKey().getName()]: pRef._uid
+    }])
+  }
 
   static getMethodFromNodeType( pType:NodeInternalType):string {
     switch (pType){

@@ -53,24 +53,9 @@ export interface SerializedMerlinOperation {
         SerializedTaintOperationArgs ;
 }
 
-
-/*
-export interface SerializedMerlinPrimitive {
-    _type?: MerlinType,
-    engine: string,
-    node: string,
-    request?: string,
-    i18n_request?:any;
-    os: string,
-    on?: Nullable<string>
-    oper?: Nullable<Operation[]>, //SerializedMerlinOperation[],
-    opts?: Nullable<string[]>,
-    args?: Nullable<any[]>,
-}*/
-
 export interface SerializedSearchRequest {
     node: string;
-    pattern: string;
+    pattern: string|any;
     oper?: SerializedMerlinOperation[],
     opts?: Nullable<string[]>,
 }

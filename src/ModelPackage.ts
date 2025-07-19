@@ -1,12 +1,21 @@
 import ModelMetadata from "./ModelMetadata.js";
 import ModelClass from './ModelClass.js';
-import {NodeType, DataSourceHelper, SerializeOptions, INode} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, DataSourceHelper, SerializeOptions, INode, TagUUID} from "@dexcalibur/dexcalibur-orm";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 
+
+export interface ModelPackageOptions {
+    name?: string;
+    sname?: string;
+    meta?: ModelMetadata;
+    tags?: TagUUID[];
+    children?:(ModelPackage|ModelClass)[];
+    alias?: string;
+}
 
 /**
  * The class represents a Java|* Package
@@ -16,7 +25,8 @@ import {CoreDebug} from "./core/CoreDebug.js";
 export default class ModelPackage extends Savable implements INode, IPersistent
 {
 
-    static TYPE:NodeType = (new NodeType( "package", NodeInternalType.PACKAGE, [])).dataSource("MEM", "package");
+    static TYPE:NodeType = (new NodeType( "package", NodeInternalType.PACKAGE, []))
+        .dataSource("MEM", "package");
 
     __:NodeInternalType = NodeInternalType.PACKAGE;
 
@@ -65,7 +75,7 @@ export default class ModelPackage extends Savable implements INode, IPersistent
 
 
     static fromJavaFQCN( pName:string):ModelPackage {
-        let o = new ModelPackage(pName);
+        let o = new ModelPackage({ name: pName });
         // o.sname = pName.split('.').pop();
         return o;
     }
@@ -74,13 +84,20 @@ export default class ModelPackage extends Savable implements INode, IPersistent
      * @param {String} pName Package fullname
      * @constructor 
      */
-    constructor(pName:string){
+    constructor(pOptions:ModelPackageOptions){
         super(STUB_TYPE.PACKAGE);
 
-        this.name = pName;
-        this.sname = pName.split('.').pop();
-        this.children = [];
-        this.tags = [];
+        this.name = pOptions.name;
+        this.meta = (pOptions.meta !=null ? pOptions.meta : null);
+        this.alias = pOptions.alias;
+        if(pOptions.sname){
+            this.sname = pOptions.sname;
+        }else if(this.name!=null){
+            this.sname = pOptions.name.split('.').pop();
+        }
+
+        this.children = (pOptions.children !=null ? pOptions.children : []);
+        this.tags = (pOptions.tags !=null ? pOptions.tags : []);
     }
 
     getUID():string {
@@ -183,8 +200,8 @@ export default class ModelPackage extends Savable implements INode, IPersistent
      * @returns {Object} Simple object containing package content
      * @function 
      */
-    toJsonObject( pOptions:SerializeOptions):any{
-        let pFields = pOptions.include;
+    toJsonObject( pOptions?:SerializeOptions):any{
+        let pFields = (pOptions!=null ? pOptions.include : null);
         let o:any= {}, k:number, m:any, field:string=null;
         o.children = [];
         o._t = 'p'; // TODO : Stub

@@ -62,6 +62,7 @@ import {HEALTH_WEB_API} from "./webapi/health.web.api.js";
 import {WEBHOOK_WEB_API} from "./webapi/webhook.web.api.js";
 import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import {SecurityZone} from "./security/SecurityZone.js";
+import {MARKETPLACE_WEB_API} from "./webapi/mkplace.web.api.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -1421,7 +1422,7 @@ export default class WebServer
         AUDIT_WEB_API.injectServer(this, "/api/audit", securedRoutes);
         ORG_WEB_API.injectServer(this, "/api/organization", securedRoutes);
         HEALTH_WEB_API.injectServer(this, "/api/health", securedRoutes);
-
+        MARKETPLACE_WEB_API.injectServer(this, "/api/mkp", securedRoutes);
         WEBHOOK_WEB_API.injectServer(this, "/activate", securedRoutes);
 
         this.initRoutes({

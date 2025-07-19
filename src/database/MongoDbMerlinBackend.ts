@@ -144,7 +144,7 @@ export class MongoDbMerlinBackend {
                     field = finalField; //cs.field;
 
 
-                    if (cs.opts?.regexp) {
+                    if (cs.isRegExp()) {
                         //filters[cs.field].push({ [cs.field]: cs.pattern })
 
 

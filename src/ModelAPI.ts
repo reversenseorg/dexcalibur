@@ -1,7 +1,7 @@
 import DexcaliburProject from "./DexcaliburProject.js";
 import ModelStringValue, {ModelStringValueOpts} from "./ModelStringValue.js";
 import {ModelVariable} from "./ModelVariable.js";
-import ModelPackage from "./ModelPackage.js";
+import ModelPackage, {ModelPackageOptions} from "./ModelPackage.js";
 import ModelClass from "./ModelClass.js";
 import ModelMethod from "./ModelMethod.js";
 import ModelField from "./ModelField.js";
@@ -44,7 +44,7 @@ export class ModelAPI {
         this.context = pProject;
     }
 
-    newPackage( pOptions:any):ModelPackage {
+    newPackage( pOptions:ModelPackageOptions):ModelPackage {
        return new ModelPackage(pOptions);
     }
 

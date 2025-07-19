@@ -1,9 +1,12 @@
 import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
-import {ProductType, Purchase} from "./Purchase.js";
+import { Purchase} from "./Purchase.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
+import { ReversenseProductUUID} from "./ReversenseProduct.js";
+import {INodeRef} from "../INode.js";
+import {UserAccountUUID} from "../user/UserAccount.js";
 
 export enum BusinessPlanType {
     SUBSCRIPTION= 'sub',
@@ -11,14 +14,19 @@ export enum BusinessPlanType {
 }
 
 export interface BusinessPlanOptions {
-    plan: BusinessPlanType,
     org: OrganizationUnitUUID,
-    counter?: number,
     wallet?: Purchase[],
     signature?: any,
     thresholds?: ResourceThresholds,
-    freeScanQty?: number,
-    freeSubscriptionQty?: number
+    credits?:Record<ReversenseProductUUID, Record<BusinessPlanType, number>>;
+    mkpPurchases?: MarketplacePurchase[];
+}
+
+export interface MarketplacePurchase {
+    date: number;
+    product: ReversenseProductUUID;
+    qtity: number;
+    type: BusinessPlanType;
 }
 
 export interface ResourceThresholds {
@@ -30,23 +38,20 @@ export interface ResourceThresholds {
  */
 export class BusinessPlan {
 
-    plan:BusinessPlanType;
 
     org:OrganizationUnitUUID;
 
     /**
-     * Number of product :
-     * The product type depends on BusinessPlanType
-     * - AppUnit counter for BusinessPlanType.SUBSCRIPTION
-     * - DexcaliburProject for BusinessPlanType.
+     * Internal purchases
      */
-    counter:number = 0;
-
     wallet:Purchase[] = [];
 
-    freeSubscriptionQty = 10;
+    credits:Record<ReversenseProductUUID, Record<BusinessPlanType, number>> = {};
 
-    freeScanQty = 5;
+    /**
+     * Marketplace purchases
+     */
+    mkpPurchases:MarketplacePurchase[] = [];
 
     signature:any;
 
@@ -61,14 +66,12 @@ export class BusinessPlan {
      */
     constructor(pOptions:BusinessPlanOptions) {
         this.org = pOptions.org;
-        this.plan = pOptions.plan;
 
-        if(pOptions.counter !=null) this.counter = pOptions.counter;
         if(pOptions.wallet !=null) this.wallet = pOptions.wallet;
         if(pOptions.signature !=null) this.signature = pOptions.signature;
         if(pOptions.thresholds !=null) this.thresholds = pOptions.thresholds;
-        if(pOptions.freeScanQty !=null) this.freeScanQty = pOptions.freeScanQty;
-        if(pOptions.freeSubscriptionQty !=null) this.freeSubscriptionQty = pOptions.freeSubscriptionQty;
+        if(pOptions.credits !=null) this.credits = pOptions.credits;
+        if(pOptions.mkpPurchases !=null) this.mkpPurchases = pOptions.mkpPurchases;
     }
 
     /**
@@ -85,9 +88,7 @@ export class BusinessPlan {
      */
     static newSubscription(pOrg:OrganizationUnit, pQuotas:ResourceThresholds):BusinessPlan {
         return new BusinessPlan({
-            plan: BusinessPlanType.SUBSCRIPTION,
             org: pOrg.getUID(),
-            counter: 0,
             wallet: [],
             signature: null,
             thresholds: pQuotas,
@@ -95,55 +96,53 @@ export class BusinessPlan {
     }
 
     /**
-     *
-     * @param pOrg
+     * Chainable
+     * @param {ResourceThresholds} pQuotas
+     * @return {BusinessPlan}
      */
-    static newScanWallet(pOrg:OrganizationUnit, pQuotas:ResourceThresholds):BusinessPlan {
-        return new BusinessPlan({
-            plan: BusinessPlanType.SCAN,
-            org: pOrg.getUID(),
-            counter: 0,
-            wallet: [],
-            signature: null,
-            thresholds: pQuotas
-        })
+    setQuotas( pQuotas:ResourceThresholds):BusinessPlan {
+        this.thresholds = pQuotas;
+        return this;
     }
 
     /**
      * To check if there is free scan slot
      */
-    hasFreeScanSlot():void {
-        if(this.plan!=BusinessPlanType.SCAN){
-            throw OrganizationManagerException.BUSINESS_PLAN_NOT_SCAN_PLAN(this.org);
-        }
+    hasFreeScanSlot(pProduct:ReversenseProductUUID):void {
 
-        if(this.wallet.length >= this.counter){
-            throw OrganizationManagerException.NO_SCAN_SLOT_AVAILABLE(this.org);
+        let credit:any = this.credits[pProduct];
+        if(credit==null || credit[BusinessPlanType.SCAN]<=0){
+            throw OrganizationManagerException.NO_SCAN_SLOT_AVAILABLE(this.org,pProduct);
+        }
+    }
+
+
+    /**
+     * To check if there is free scan slot
+     */
+    hasFreePlanSlot(pPlan:BusinessPlanType, pProduct:ReversenseProductUUID):void {
+
+
+        let credit:any = this.credits[pProduct];
+        if(credit==null || credit[pPlan]<=0){
+            if(pPlan===BusinessPlanType.SUBSCRIPTION)
+                throw OrganizationManagerException.NO_APP_SLOT_AVAILABLE(this.org,pProduct);
+            else
+                throw OrganizationManagerException.NO_SCAN_SLOT_AVAILABLE(this.org,pProduct);
         }
     }
 
     /**
      * To check if there is free scan slot
      */
-    hasFreeAppSlot(pAppUnitUUID:ApplicationUnitUUID):void {
-        if(this.plan!=BusinessPlanType.SUBSCRIPTION){
-            throw OrganizationManagerException.BUSINESS_PLAN_NOT_SUBS_PLAN(this.org);
-        }
+    hasFreeAppSlot(pAppUnitUUID:ApplicationUnitUUID, pProduct:ReversenseProductUUID):void {
 
-        let purchasedApp:Nullable<Purchase> = null;
 
-        this.wallet.map( x => {
-            if(x.type==ProductType.APP){
-                if(x.id === pAppUnitUUID){
-                    purchasedApp = x;
-                }
-            }
-        });
+        let credit:any = this.credits[pProduct];
+        if(credit==null || credit[BusinessPlanType.SUBSCRIPTION]<=0){
+            throw OrganizationManagerException.NO_SCAN_SLOT_AVAILABLE(this.org,pProduct);
 
-        if(purchasedApp==null){
-            if(this.wallet.length >= this.counter){
-                throw OrganizationManagerException.NO_APP_SLOT_AVAILABLE(this.org);
-            }
+
         }
     }
 
@@ -151,14 +150,24 @@ export class BusinessPlan {
      *
      * @param pScannerID
      */
-    canPerformScan( pScannerID:string):boolean {
+    canPerformScan( pSubject:INodeRef, pPlans:BusinessPlanType[], pProduct:ReversenseProductUUID):boolean {
         let authorized = false;
 
-        this.wallet.map((vPurchase)=>{
-            authorized = authorized || vPurchase.hasLicenseFor(pScannerID);
-        });
+        // check for subscription or free scan credit
+        let p:Purchase;
+        for(let i=0; i<this.wallet.length; i++){
+            p = this.wallet[i];
 
-        return authorized;
+            if(p.subject==null) continue;
+
+            if((pProduct===p.product) && (p.subject.__==pSubject.__) && (p.subject._uid==pSubject._uid)){
+                if((pPlans.indexOf(p.plan)>-1) && !p.hasExpired()){
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -166,14 +175,12 @@ export class BusinessPlan {
      */
     toJsonObject():any {
         const o =  {
-            plan: this.plan,
             org: this.org,
-            counter: this.counter,
             wallet: [],
             signature: this.signature,
             thresholds: this.thresholds,
-            freeScanQty: this.freeScanQty,
-            freeSubscriptionQty: this.freeSubscriptionQty
+            credits: this.credits,
+            mkpPurchases: this.mkpPurchases
         };
 
         this.wallet.map(x => {
@@ -187,39 +194,65 @@ export class BusinessPlan {
         this.wallet.push(pPurchase);
     }
 
-    addSubscription( pAppUnit:ApplicationUnitUUID|DexcaliburProjectUUID):void {
-        if(this.freeSubscriptionQty==0){
-            throw OrganizationManagerException.BUSINESS_PLAN_NOT_SUBS_PLAN(this.org);
+    /**
+     * To active a subscription
+     *
+     * @param pAppUnit
+     * @param pProducts
+     */
+    addSubscription( pUser:UserAccountUUID, pAppUnit:ApplicationUnitUUID|DexcaliburProjectUUID, pProduct:ReversenseProductUUID):void {
+
+        // count if there is enough credit
+        if(!this.hasEnoughCredit(pProduct,BusinessPlanType.SUBSCRIPTION)){
+            throw OrganizationManagerException.BUSINESS_PLAN_NOT_SUBS_PLAN(this.org,pProduct);
         }
 
-        this.wallet.push(Purchase.newSubscription(this.org,{
-            id: pAppUnit
+        let old:number = -1;
+        // count down credits (TODO : cross check in try/catch later)
+        old = this.credits[pProduct][BusinessPlanType.SUBSCRIPTION];
+
+        if(old>0 && old<Number.MAX_VALUE){
+            this.credits[pProduct][BusinessPlanType.SUBSCRIPTION] = old-1;
+        }else{
+            throw new Error("Invalid credit amount");
+        }
+
+        // make purchase
+        this.wallet.push(Purchase.newSubscription( pUser, this.org, pProduct, {
+            __: NodeInternalType.APP_UNIT,
+            _uid: pAppUnit
         }));
-
-        this.freeSubscriptionQty--;
     }
 
-    addPurchasedScan(pAppUnit:ApplicationUnitUUID|DexcaliburProjectUUID):void {
-        if(this.freeScanQty==0){
-            throw OrganizationManagerException.BUSINESS_PLAN_NOT_SCAN_PLAN(this.org);
+    /**
+     * To check if there is enough credit to activate a specific plan for a specific product
+     * @param {ReversenseProductUUID} pProduct
+     * @param {BusinessPlanType}pPlan
+     */
+    hasEnoughCredit(pProduct:ReversenseProductUUID, pPlan:BusinessPlanType):boolean {
+        const p = this.credits[pProduct];
+        if(p==null) return false;
+        return(p[pPlan]>0);
+    }
+    /**
+     * To credit a subscription
+     *
+     * @param pAppUnit
+     * @param pProducts
+     */
+    addCredit( pPurchase:MarketplacePurchase ):void {
+
+        if(this.credits[pPurchase.product]==null){
+            this.credits[pPurchase.product] = {
+                [BusinessPlanType.SCAN]: 0,
+                [BusinessPlanType.SUBSCRIPTION]: 0,
+            };
         }
 
-        this.wallet.push(Purchase.newScan(this.org,{
-            id: pAppUnit
-        }));
-        this.freeScanQty--;
+        this.credits[pPurchase.product][pPurchase.type] += (typeof pPurchase.qtity==='string' ? parseInt(pPurchase.qtity,10) : pPurchase.qtity);
+        this.mkpPurchases.push(pPurchase);
     }
 
-    hasSubscriptionFor(pAppUnit:ApplicationUnitUUID|DexcaliburProjectUUID):boolean{
-
-        for(let i=0; i<this.wallet.length; i++){
-            if((this.wallet[i].id===pAppUnit)&&(this.wallet[i].type==ProductType.APP)){
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     static fromJsonObject(pObj:any):BusinessPlan {
         const bp = new BusinessPlan(pObj);
@@ -228,7 +261,7 @@ export class BusinessPlan {
 
         if(Array.isArray(pObj.wallet)){
             pObj.wallet.map(x => {
-                bp.wallet.push(Purchase.fromJsonObject(x));
+                bp.wallet.push(new Purchase(x));
             })
         }
 

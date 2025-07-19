@@ -3,23 +3,19 @@ import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {ScanOrder, ScanOrderUUID} from "./ScanOrder.js";
 import {Subject} from "rxjs";
 import {EngineNode, NodePurpose, OperationType, ScanState} from "../../core/EngineNode.js";
-import {AuditManager} from "../AuditManager.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../../DexcaliburProject.js";
-import {AssuranceScanner} from "./AssuranceScanner.js";
-import {LicenceManager} from "../../credit/LicenceManager.js";
 import AssuranceReport from "./AssuranceReport.js";
 import {ACTION_DATE} from "../../common/ActionDates.js";
 import {UserAccount} from "../../user/UserAccount.js";
 import {ApplicationUnit} from "../../organization/ApplicationUnit.js";
 import {Workflow} from "../../Workflow.js";
 import {ProjectManagerException} from "../../errors/ProjectManagerException.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
-import {BusinessPlan} from "../../billing/BusinessPlan.js";
-import {NodeState} from "../../core/EngineNodeManager.js";
 import * as Log from "../../Logger.js";
-
+import AssuranceModel from "./AssuranceModel.js";
+import {BusinessPlanType} from "../../billing/BusinessPlan.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -73,7 +69,47 @@ export class ScanScheduler {
      */
     verifyBalance(vOrder:ScanOrder){
         // TODO : verify balance width License Server and sign result
-        this._queued$.next(vOrder);
+
+        // check if the org has subscription for the target app/project and each
+        if(vOrder.appUnit != null){
+            (async ()=>{
+                let org:OrganizationUnit, m:AssuranceModel;
+
+                try{
+                    org = await this._ctx.getOrgManager().getOrganization(
+                        this._ctx.getInternalAcc(),
+                        vOrder.orgUnit
+                    );
+
+                    m  = await this._ctx.getAuditManager().getModelByUID(
+                        this._ctx.getInternalAcc(),
+                        vOrder.getModelUID()
+                    );
+
+                    return org.getBusinessPlan().canPerformScan(
+                        {
+                            __:NodeInternalType.APP_UNIT,
+                            _uid: vOrder.appUnit
+                        },[
+                            BusinessPlanType.SUBSCRIPTION,
+                        ],m.getScannerID()
+                    );
+                }catch (e){
+                    console.error(e.stack);
+                    return false;
+                }
+            })().then((vRes)=>{
+                if(vRes){
+                    this._queued$.next(vOrder);
+                }else{
+                    Logger.error(`[verifyBalance] [app=${vOrder.appUnit}][org=${vOrder.orgUnit}][model=${vOrder.getModelUID()}]    : Cannot verify balance (false)`);
+                }
+            }).then((vErr)=>{
+                Logger.error(`[verifyBalance] [app=${vOrder.appUnit}][org=${vOrder.orgUnit}][model=${vOrder.getModelUID()}]    : Cannot verify balance`);
+            })
+        }else{
+            Logger.info(`[verifyBalance] [app=NULL][org=${vOrder.orgUnit}][model=${vOrder.getModelUID()}]    : Cannot verify balance because app UUID is missing`);
+        }
     }
 
     private _checkLock():void {
@@ -122,7 +158,14 @@ export class ScanScheduler {
             await this._ctx.getScanScheduler().saveOrder(pOrder)
         }
 
-        this._ctx.getOrgManager().verifyScanBalance(pOrder);
+        // if the
+        if(pOrder.appUnit!=null){
+            this._ctx.getOrgManager().verifyScanBalance(pOrder, { __:NodeInternalType.APP_UNIT, _uid: pOrder.appUnit});
+        }else{
+            this._ctx.getOrgManager().verifyScanBalance(pOrder, { __:NodeInternalType.PROJECT, _uid: pProject.getUID()});
+        }
+
+
 
         pOrder.setState(ScanState.RUNNING);
         pOrder.setDate( ACTION_DATE.START );

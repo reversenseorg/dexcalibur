@@ -150,7 +150,7 @@ class ResolverV2
             pkg = pAnalyzerDB.packages.getEntry(pkg); // TODO ???
             //if(!(pkg instanceof ModelPackage)){
             if(pkg == null){
-                pkg = new ModelPackage(missingCls.getPackage() as string);
+                pkg = new ModelPackage({ name: missingCls.getPackage() as string });
                 pAnalyzerDB.packages.setEntry((pkg as ModelPackage).name, pkg);
             }
 
@@ -531,6 +531,7 @@ export default class Analyzer
                         node: fresh
                     }
                 });
+
                 if(i>0){
                     (ppkgo = pDb.packages.getEntry( ppkg)).childAppend(fresh);
 
@@ -546,6 +547,7 @@ export default class Analyzer
                         });
                     }
 
+                    // TODO : update package in DB
                 }
 
 
@@ -662,7 +664,7 @@ export default class Analyzer
      */
     mapInstructionFrom(pMethod:ModelMethod, data:AnalyzerDatabase, stats:any){
         let bb:ModelBasicBlock = null, instruct:ModelInstruction = null, obj = null;
-        let success:boolean=false, stmt=null, tmp:any=null, t:ModelBasicBlock=null;
+        let success:boolean=false, stmt=null, tmp:any=null, t:ModelBasicBlock=null, c:ModelCall;
 
         // add visibility tags
         if(pMethod.hasModifier(Modifier.ABSTRACT) && (this._abstractTag!=null)){
@@ -728,10 +730,11 @@ export default class Analyzer
                     //instruct.right._callers.push(method);
                     instruct.right.addCaller(pMethod);
 
-                    tmp = new ModelCall({
-                        caller: pMethod,
-                        calleed: instruct.right, //obj,
-                        instr: instruct});
+                    tmp = new ModelCall();
+
+                    (tmp as ModelCall).setCaller(pMethod);
+                    (tmp as ModelCall).setCalled(instruct.right); //obj,
+                    (tmp as ModelCall).setInstr(instruct);
 
                     data.call.insert(tmp, false);
 
@@ -782,11 +785,16 @@ export default class Analyzer
 
                     instruct.right._callers.push(pMethod);
 
-                    data.call.insert(new ModelCall({
-                        caller: pMethod,
-                        calleed: instruct.right,
-                        instr: instruct
-                    }), false);
+
+                    c = new ModelCall();
+
+                    (c as ModelCall).setCaller(pMethod);
+                    (c as ModelCall).setCalled(instruct.right); //obj,
+                    (c as ModelCall).setInstr(instruct);
+
+                    data.call.insert(c, false);
+
+
 
                     stats.fieldCalls++;
 
@@ -833,10 +841,12 @@ export default class Analyzer
                         obj._callers.push(pMethod);
                         instruct.right = obj;
 
-                        data.call.insert(new ModelCall({
-                            caller:pMethod,
-                            calleed:obj,
-                            instr:instruct}), false);
+
+                        c = new ModelCall();
+                        (c as ModelCall).setCaller(pMethod);
+                        (c as ModelCall).setCalled(obj); //obj,
+                        (c as ModelCall).setInstr(instruct);
+                        data.call.insert(c, false);
 
 
                     }
@@ -1268,6 +1278,7 @@ export default class Analyzer
 
 
 
+
         Logger.raw("[*] "+STATS.idxMethod+" methods indexed");
         Logger.raw("[*] "+STATS.idxField+" fields indexed");
         Logger.raw("[*] "+STATS.instrCtr+" instructions indexed");
@@ -1485,7 +1496,7 @@ export default class Analyzer
         if(this.db.packages.hasEntry(pkgn)==true){
             pkg = this.db.packages.getEntry(pkgn);
         }else{
-            pkg = new ModelPackage(pkgn);
+            pkg = new ModelPackage({ name: pkgn });
             this.db.packages.setEntry(pkgn, pkg);
         }
 
@@ -1638,6 +1649,7 @@ export default class Analyzer
         stats[ModelField.TYPE.getName()]  =this.tagIf(pCondition, "fields", pTags);
         stats[ModelMethod.TYPE.getName()]  =this.tagIf(pCondition, "methods", pTags);
         stats[ModelStringValue.TYPE.getName()]  =this.tagIf(pCondition, "strings", pTags);
+        stats[ModelCall.TYPE.getName()]  =this.tagIf(pCondition, "call", pTags);
 
         return stats;
     }

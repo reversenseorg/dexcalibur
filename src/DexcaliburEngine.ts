@@ -72,6 +72,7 @@ import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import Tool = External.Tool;
 import {OrganizationUnit} from "./organization/OrganizationUnit.js";
 import {ConnectionUUID} from "./organization/conn/Connection.js";
+import {MarketplaceManager} from "./marketplace/MarketplaceManager.js";
 
 export interface StartCtrlOpts {
     delay: number
@@ -467,6 +468,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     scanScheduler:ScanScheduler;
 
+    mkpManager:MarketplaceManager
+
     db:Nullable<EngineDatabase> = null;
 
     // cleanup
@@ -536,6 +539,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.aclManager = new AccessControlManager(this);
         this.aclManager.init(this._internalAcc);
 
+        this.mkpManager = new MarketplaceManager(this);
 
 
         this.nodeManager = new EngineNodeManager(this,
@@ -897,6 +901,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.initConnectionsSettings();
         await this.nodeManager.loadInternalState();
 
+        await this.mkpManager.checkForUpdates();
+
 
         if(process.env.DXC_SAVE_SETTINGS=="1"){
             this.settings.save();
@@ -940,6 +946,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             this.db = new EngineDatabase(this, ss.getDatabaseSettings());
             await this.db.connect();
+
 
             await this.userSvc.initService(this);
 

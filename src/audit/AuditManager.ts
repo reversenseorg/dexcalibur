@@ -19,12 +19,11 @@ import {GenericScanner} from "./common/GenericScanner.js";
 import {ScannerFactory} from "./scanner/ScannerFactory.js";
 import {BusinessPlan, BusinessPlanType} from "../billing/BusinessPlan.js";
 import {ScanOrder, ScanOrderUUID} from "./common/ScanOrder.js";
-import {PolicyAction, PolicyRule} from "./PolicyRule.js";
 import {PolicyRuleFactory} from "./PolicyRuleFactory.js";
 import {Policy} from "./Policy.js";
-import {User} from "../User.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
-import {ExplainedReport} from "./ExplainedReport.js";
+import {ReversenseProductUUID} from "../billing/ReversenseProduct.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -41,6 +40,8 @@ const PROJECT_MODELS_FOLDER = "models";
 interface AssuranceModelMap {
     [id:string] : AssuranceModel;
 }
+
+
 
 /**
  * Class to load, store and manage assurance model
@@ -525,6 +526,9 @@ export class AuditManager {
     }
 
     /**
+     * Internal API
+     *
+     * License (subscription or Scan) is checked earlier
      *
      * @param pUser
      * @param pProject
@@ -534,11 +538,6 @@ export class AuditManager {
 
         // get model with ACL
         const model = await this.getModelByUID(pUser, pModel);
-
-        pOrg.getBusinessPlan().canPerformScan(
-            model.getScannerID()
-        );
-
         const scanner = await this.getScanner(pUser, pProject, model.getScannerID());
 
         // get scanner required by model
@@ -554,8 +553,21 @@ export class AuditManager {
         return scanner.getReport();
     }
 
+    /**
+     * To buy a subscription to a specified product already provisionned.
+     *
+     * If the organization has not enough credits, an exception is thrown
+     *
+     * @param {UserAccount} pUser
+     * @param {OrganizationUnit} pOrg
+     * @param {ApplicationUnitUUID} pAppUnit
+     * @param {ReversenseProductUUID} pProduct
+     * @return {Promise<void>}
+     * @async
+     * @method
+     */
     async activateApplicationSubscription(pUser:UserAccount, pOrg:OrganizationUnit,
-                                          pAppUnit:ApplicationUnitUUID):Promise<void>{
+                                          pAppUnit:ApplicationUnitUUID, pProduct:ReversenseProductUUID):Promise<void>{
         let bp: BusinessPlan;
 
         try{
@@ -563,18 +575,17 @@ export class AuditManager {
         }catch (e){
             // create bp
             pOrg.setBusinessPlan(new BusinessPlan({
-                plan: BusinessPlanType.SUBSCRIPTION,
                 org: pOrg.getUID()
             }));
             bp = pOrg.getBusinessPlan();
         }
 
-        if(bp.hasSubscriptionFor(pAppUnit)){
+        if(bp.canPerformScan({ __:NodeInternalType.APP_UNIT, _uid:pAppUnit },[BusinessPlanType.SUBSCRIPTION],pProduct)){
             Logger.info(`License already activated for : ${pAppUnit}`);
             return;
         }
 
-        bp.addSubscription(pAppUnit);
+        bp.addSubscription(pUser.getUID(),pAppUnit,pProduct);
 
         await this.engine.getOrgManager().updateBusinessPlan(pUser, pOrg);
 
@@ -582,15 +593,44 @@ export class AuditManager {
         return ;
     }
 
-
-    async activateApplicationScan(pUser:UserAccount, pOrg:OrganizationUnit, pAppUnit:ApplicationUnitUUID){
+    /**
+     *
+     * @param pUser
+     * @param pOrg
+     * @param pAppUnit
+     * @param pProduct
+     *
+     * @deprecated
+     */
+    async activateApplicationScan(pUser:UserAccount, pOrg:OrganizationUnit, pAppUnit:ApplicationUnitUUID, pProduct:ReversenseProductUUID):Promise<void>{
         if(pOrg.getBusinessPlan()==null){
+            // TODO : instead of set subscription plan, add scan purchase
             // create bp
             pOrg.setBusinessPlan(new BusinessPlan({
-                plan: BusinessPlanType.SUBSCRIPTION,
                 org: pOrg.getUID()
             }));
         }
+    }
+
+    /**
+     *
+     * @param pUser
+     * @param pOrg
+     * @param pAppUnit
+     * @param pProduct
+     *
+     * @deprecated
+     */
+    async buyApplicationScan(pUser:UserAccount, pOrg:OrganizationUnit, pAppUnit:ApplicationUnitUUID, pProduct:ReversenseProductUUID):Promise<void>{
+        if(pOrg.getBusinessPlan()==null){
+            // TODO : instead of set subscription plan, add scan purchase
+            // create bp
+            pOrg.setBusinessPlan(new BusinessPlan({
+                org: pOrg.getUID()
+            }));
+        }
+
+
     }
 
     /**

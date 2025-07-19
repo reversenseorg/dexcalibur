@@ -70,8 +70,7 @@ describe('MongoDbMerlinBackend', function() {
 
         const r2 = Merlin.android().strings({ value:"/https?:\/\/.*TOTO/" });
         const r1= Merlin.android().strings({ value:"/http/" }).filter(`value:/api/`);
-        const r5= Merlin.android().method({ enclosingClass: { name:"/http/" }})
-                .filter(`ret.name:/json/`);
+        const r5= Merlin.android().method({ enclosingClass: { name:"/http/" }}).filter(`ret.name:/json/`);
         //const r4= Merlin.android().strings(`value:/http/`).filter(`@network.host.uri`);
         const r3 = Merlin.android().strings( { value:"/https?:\/\/.*TOTO/"})
             .on("network.uri.new");

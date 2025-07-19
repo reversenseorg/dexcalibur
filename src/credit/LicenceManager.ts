@@ -2,10 +2,9 @@
 import {UserAccount} from "../user/UserAccount.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {Product} from "./Product.js";
-import {GenericScanner} from "../audit/common/GenericScanner.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 import {LicenseManagerException} from "./errors/LicenseManagerException.js";
-import {PrivacyScanner} from "../audit/scanner/PrivacyScanner.js";
+import {ReversenseProduct} from "../billing/ReversenseProduct.js";
 
 interface ActivatedServices {
     [ productCode:string] :any
@@ -28,7 +27,10 @@ export interface CompositeProductInfo {
 
 export class LicenceManager {
 
+    static shop: Record<string, ReversenseProduct> = {};
+
     static wallet: Record<LicenseNo, ActivatedServices> = {};
+    private static constructors: Record<string, any> = {};
 
     /**
      *
@@ -46,6 +48,13 @@ export class LicenceManager {
         }
 
         const svc = LicenceManager.wallet[pProject.getLicenseNo()];
+
+        if(this.constructors[pProductCode]==null){
+            throw new Error('Unknow product');
+        }
+        svc[pProductCode] = new (this.constructors[pProductCode])({ pProject: pProject });
+
+        /*
         switch (pProductCode){
             case 'scanner.privacy':
                 // add serial/key check
@@ -59,7 +68,7 @@ export class LicenceManager {
                 throw new Error("Licence Server : Unknow product");
                 break;
         }
-
+        */
         return svc[pProductCode];
     }
 
@@ -117,6 +126,22 @@ export class LicenceManager {
             products: Object.values(p),
             totalCost: total
         };
+    }
+
+    /**
+     * To register a product locally available
+     *
+     * @param {ReversenseProduct} pProduct product
+     */
+    static registerNewProduct(pProduct:ReversenseProduct, pConstructor:any):void {
+            this.shop[pProduct.getUID()] = pProduct;
+            this.constructors[pProduct.getUID()] = pConstructor;
+
+            //console.log("REGISTER PRODUCT : ",pProduct.getUID(),this.shop)
+    }
+
+    static getAvailableProducts():ReversenseProduct[] {
+        return Object.values(LicenceManager.shop);
     }
 
     static replenish(){

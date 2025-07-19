@@ -850,6 +850,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       return pPattern.raw;
     }
   }
+
   /**
    * To stringify a list of operations
    *
@@ -1187,6 +1188,11 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
     let coll:IDbCollection|IDbIndex;
 
+
+    if(this._ctx==null){
+      this.setContext(pProject.getMerlinEngine());
+    }
+
     const db = pProject.getAnalyzer().getInternalDB();
     if((typeof this._type)==="string"){
       Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType "+this._type);
@@ -1230,6 +1236,10 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   async executePDB(pProject:DexcaliburProject):Promise<FinderResult> {
 
     let coll:IDbCollection|IDbIndex;
+
+    if(this._ctx==null){
+      this.setContext(pProject.getMerlinEngine());
+    }
 
     const db = pProject.getProjectDB();
 
@@ -1327,12 +1337,22 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     switch (pObject.type){
       case OperationType.FILTER:
       case OperationType.SEARCH:
-        return {
+        const o = {
             type: pObject.type,
             args:{
-              pattern: [new SearchRequestCondition(pObject.args['pattern'])]
+              pattern: []
             }
         };
+
+
+        if((pObject.args as any).pattern!=null && Array.isArray((pObject.args as any).pattern)){
+          (pObject.args as any).pattern.map((vPattern)=>{
+            o.args.pattern.push(new SearchRequestCondition(vPattern))
+          })
+        }else{
+
+        }
+        return o;
       case OperationType.INNERJOIN:
         if(Object.keys(pObject.args).length>1){
           if(pObject.args['cond']!=null){
@@ -1426,18 +1446,20 @@ export class MerlinSearchRequest implements MerlinPrimitive{
    * @param pSearchContext
    * @param pRef
    */
-  static getByRef(pSearchContext:MerlinSearchAPI<any>, pRef:INodeRef):MerlinSearchRequest {
+  static getByRef(pRef:INodeRef, pSearchContext:Nullable<MerlinSearchAPI<any>> = null):MerlinSearchRequest {
     const nt = NodeType.getByID(pRef.__);
     const req = new MerlinSearchRequest(
         pSearchContext,
         nt, [{
           type:OperationType.SEARCH,
           args:{
-            pattern: [MerlinSearchRequest.parseCondition2(
-                `${nt.getPrimaryKey().getName()}:${pRef._uid}`, {
+            pattern: MerlinSearchRequest.parseObjectCondition({
+              [nt.getPrimaryKey().getName()]: pRef._uid
+            },{ not:false })
+                /*`${nt.getPrimaryKey().getName()}:${pRef._uid}`, {
                   not: false,
                   strict: true
-                })]
+                })]*/
           }
         }]
     );

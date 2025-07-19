@@ -64,7 +64,8 @@ export class ProjectScheduler {
      */
     async verifyBalance(pOrder:ProjectOrder):Promise<void>{
 
-        await this._ctx.getOrgManager().verifyBalance(pOrder);
+        // if the project order cannot be scanned the check must throw an exception
+        // await this._ctx.getOrgManager().verifyBalance(pOrder);
 
         this._queued$.next(pOrder);
     }

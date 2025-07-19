@@ -6,6 +6,7 @@ export enum ActionType {
 }
 
 export enum PolicyRuleCondition {
+    NONE="none",
     NEWOCC= 'newocc', // new occurence
     NEWOCC_SINCE = "newocc_since",
     NEWOCC_RELEASE_CTR = "newocc_relctr",
@@ -31,6 +32,7 @@ export interface PolicyAction {
 }
 
 export interface PolicyRuleOptions {
+    id?:string;
     name?:string;
     description?:string;
     version?:string;
@@ -49,6 +51,8 @@ export class PolicyRule {
 
 
     // COMMON
+
+    id:string;
 
     name:string;
 
@@ -73,6 +77,7 @@ export class PolicyRule {
 
 
     constructor(pOptions:PolicyRuleOptions = {}) {
+        if(pOptions.id!=null) this.id = pOptions.id;
         if(pOptions.name!=null) this.name = pOptions.name;
         if(pOptions.description!=null) this.description = pOptions.description;
         if(pOptions.version!=null) this.version = pOptions.version;
@@ -83,6 +88,10 @@ export class PolicyRule {
         if(pOptions.actions!=null) this.actions = pOptions.actions;
     }
 
+    getUID():string {
+        return this.id;
+    }
+
 
     /**
      * To prepare to json serialized
@@ -91,6 +100,7 @@ export class PolicyRule {
      */
     toJsonObject():any{
         return {
+            id: this.id,
             name: this.name,
             description: this.description,
             version: this.version,

@@ -85,7 +85,7 @@ export class SearchRequestCondition implements IStringIndex<any>{
   }
 
   isRegExp():boolean {
-    return (this.opts.hasOwnProperty('regexp') && (this.opts.regexp===true));
+    return (this.regexp) || (this.opts!=null && this.opts.hasOwnProperty('regexp') && (this.opts.regexp===true));
   }
 
   isStrict():boolean {

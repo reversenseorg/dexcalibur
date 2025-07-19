@@ -150,7 +150,7 @@ export class ProjectDatabase implements IFileDatabase {
         ModelBom.TYPE,
         ModelStringValue.TYPE,
         ModelFunction.TYPE,
-       // ModelCall.TYPE,
+        ModelCall.TYPE,
 
         ModelUiEventType.TYPE,
         ModelUiEvent.TYPE,
@@ -754,6 +754,8 @@ export class ProjectDatabase implements IFileDatabase {
         for(let i=0; i<types.length; i++){
 
             req = MerlinSearchRequest.fromCondition(this._project.merlin, types[i], "@"+pTag.getUID(), { not:false });
+
+            result = new InMemoryDbIndex();
             result = await (pDB.getDataSetFromNodeType(types[i].getType()) as InMemoryDbCollection).search(
                 req,
                 result
@@ -762,7 +764,7 @@ export class ProjectDatabase implements IFileDatabase {
             let filters:any[] = [];
             let updt:any[] = [];
             result.map(x => {
-                const pk = types[i].getPrimaryKey().getName();
+                const pk = types[i].getprimarykey().getname();
                 filters.push({ [pk]: x[pk] });
                 updt.push({ $set: result[i] });
                 return { $set: };

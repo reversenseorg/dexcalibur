@@ -10,6 +10,8 @@ import InMemoryDbIndex from "./InMemoryDbIndex.js";
 import {IDatabase, IDbIndex} from "@dexcalibur/dexcalibur-orm";
 import Util from "../../src/Utils.js";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
+import {SearchRequestCondition} from "../../src/search/SearchRequestCondition.js";
+import * as sea from "node:sea";
 
 /**
  * Represent an unique backend to process Merlin request in index and collection
@@ -38,7 +40,7 @@ export class InMemoryMerlinBackend {
             let i = 0;
             let op: Operation;
             let match = true;
-            let searchArgs:SearchOperationArgs, timeArgs:TimeOperationArgs;
+            let searchArgs:SearchOperationArgs, timeArgs:TimeOperationArgs, cs:SearchRequestCondition;
 
 
             while (i < pOperations.length) {
@@ -49,15 +51,17 @@ export class InMemoryMerlinBackend {
                     case OperationType.SEARCH:
                         searchArgs = op.args as SearchOperationArgs;
 
-                        if(searchArgs.pattern.tag!=null){
-                            match = match && searchArgs.pattern.tag.match(vData);
+                        cs = searchArgs.pattern[0];
 
-                        }else if (searchArgs.pattern.opts?.strict) {
+                        if(cs.tag!=null){
+                            match = match && cs.tag.match(vData);
+
+                        }else if (cs.opts?.strict) {
                             match = match
-                                && (Util.readValue(vData, searchArgs.pattern.field)
-                                    === searchArgs.pattern.pattern);
+                                && (Util.readValue(vData, cs.field)
+                                    === cs.pattern);
                         } else {
-                            match = match && searchArgs.pattern.test(vData);
+                            match = match && cs.test(vData);
                         }
 
 

@@ -20,9 +20,12 @@ export interface ReversenseProductOptions {
     description?:string;
     author?:ProductAuthor;
     releases?:ProductRelease[];
+    version?:string;
     price?:number;
     tags?:number[];
 }
+
+export type ReversenseProductUUID = string;
 
 /**
  *
@@ -38,6 +41,7 @@ export class ReversenseProduct implements INode
         (new NodeProperty("description")).type(DbDataType.STRING).def(""),
         (new NodeProperty("type")).type(DbDataType.NUMERIC).def(-1),
         (new NodeProperty("author")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("version")).type(DbDataType.STRING).def("1.0.0"),
         (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
         (new NodeProperty("releases")).type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
@@ -69,7 +73,7 @@ export class ReversenseProduct implements INode
 
     type?:NodeInternalType;
 
-    code:string;
+    code:ReversenseProductUUID;
 
     name:string;
 
@@ -83,7 +87,7 @@ export class ReversenseProduct implements INode
 
     tags:number[] = [];
 
-
+    version:string = "1.0.0";
 
     /**
      *
@@ -95,7 +99,7 @@ export class ReversenseProduct implements INode
         }
     }
 
-    getUID():string {
+    getUID():ReversenseProductUUID {
         return  this.code;
     }
 
@@ -171,7 +175,8 @@ export class ReversenseProduct implements INode
             releases:this.releases,
             price:this.price,
             tags:this.tags,
-            type:this.type
+            type:this.type,
+            version:this.version,
         };
 
         o.releases = [];

@@ -18,6 +18,7 @@ import { ConstraintMatch } from "./ConstraintMatch.js";
 import ModelString from "../../ModelString.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 import {TestPlan} from "./TestPlan.js";
+import {ReversenseProduct, ReversenseProductUUID} from "../../billing/ReversenseProduct.js";
 
 export interface AssuranceScannerOptions extends ProductOptions {
 
@@ -31,13 +32,13 @@ export interface AssuranceScannerOptions extends ProductOptions {
 }
 
 
-export type AssuranceScannerUID = string;
+export type AssuranceScannerUID = string | ReversenseProductUUID;
 
 
 /**
  * Generic scanner for any assurance model instance
  */
-export class AssuranceScanner extends Product {
+export class AssuranceScanner extends /* ReversenseProduct */ Product {
 
 
     static DEFAULT_NAME = "scanner.base";

@@ -98,6 +98,8 @@ export class ProjectManager {
     static API_NAME = API_NAME;
 
     private _ctx:DexcaliburEngine;
+    private _preload: Record<DexcaliburProjectUUID, DexcaliburProject> = {};
+    private _waitingPreload: Record<DexcaliburProjectUUID, boolean> = {};
 
     constructor(pCtx:DexcaliburEngine) {
         this._ctx = pCtx;
@@ -1006,6 +1008,27 @@ export class ProjectManager {
         // if project not loaded, open it locally
         project = await this._openLocally(pUser, pProjectUID, currNode);
 
+        if(project!=null && project.appUnit!=null){
+            try{
+                const appu = await this._ctx.getOrgManager().getDirectApplication(
+                    this._ctx.getInternalAcc(),
+                    project.appUnit,
+                )
+
+                const icn = project.getIcon();
+                if(icn !=null){
+                    appu.setIcon( icn.format, icn.data);
+                    await this._ctx.getEngineDB()
+                        .getCollectionOf(ApplicationUnit.TYPE.getType())
+                        .asyncUpdateEntry(appu, {replace:false, $set:['icon']}) as boolean;
+                }
+            }catch(ee){
+                console.error(ee.stack);
+            }
+
+        }
+
+
 
         console.log("PROJ OPEN done, changing state ");
 
@@ -1102,6 +1125,28 @@ export class ProjectManager {
     }
 
     /**
+     *
+     * @param pUser
+     * @param pUID
+     */
+    async preloadForDirect(pUser:UserAccount, pUID:DexcaliburProjectUUID):Promise<DexcaliburProject> {
+
+        if(this._preload[pUID]!=null){
+            return this._preload[pUID];
+        }else if(this._waitingPreload[pUID]==null){
+
+            this._waitingPreload[pUID] = true;
+            
+            const wf:Workflow = this._ctx.newWorkflow( "preload:"+pUID, true);
+            const prj =  await DexcaliburProject.load(this._ctx, pUID, pUser, null,wf);
+            this._preload[pUID] = prj;
+            return prj;
+        }else {
+            throw new Error("Project not ready");
+        }
+    }
+
+    /**
      * INTERNAL API
      * To open a project
      *
@@ -1114,7 +1159,7 @@ export class ProjectManager {
      * @async
      * @method
      */
-     private async _openLocally( pUserAccount:UserAccount, pUID:DexcaliburProjectUUID,
+     async _openLocally( pUserAccount:UserAccount, pUID:DexcaliburProjectUUID,
                                  pNode:Nullable<EngineNode>=null):Promise<DexcaliburProject>{
         let project:DexcaliburProject = null, success:any = false;
         let currNode:EngineNode;

@@ -399,7 +399,7 @@ export const OPCODE:Record<string,DalvikOpcodeDefinition> = {
 	},
 	
 	CHECK_CAST:{ byte:0x1f, instr:"check-cast", parse: DalvikInstructionFormat.format21c, type: CONST.INSTR_TYPE.CLASS_CHECK, reftype:ReferenceType.TYPE, format:Format.Format21c, flag:OpcodeType.CAN_THROW | OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
-	INSTANCE_OF:{ byte:0x20, instr:"instance-of", parse: DalvikInstructionFormat.format22c, type: CONST.INSTR_TYPE.CLASS_CHECK, reftype:ReferenceType.TYPE, format:Format.Format22c, flag:OpcodeType.CAN_THROW | OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
+	INSTANCE_OF:{ byte:0x20, instr:"instance-of", parse: DalvikInstructionFormat.format22c, type: CONST.INSTR_TYPE.CLASS_CHECK, reftype:ReferenceType.TYPE, format:Format.Format22c, flag:/* OpcodeType.CAN_THROW |*/ OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
 	
 	ARRAY_LENGTH:{ byte:0x21, instr:"array-length", parse: DalvikInstructionFormat.move, type: CONST.INSTR_TYPE.ARRAY_LENGTH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:OpcodeType.CAN_THROW | OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
 	

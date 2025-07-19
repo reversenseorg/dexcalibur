@@ -21,6 +21,11 @@ import {BusSubscriber} from "../../Bus.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {AssuranceScannerException} from "../errors/AssuranceScannerException.js";
 import AnalyzerDatabase from "../../AnalyzerDatabase.js";
+import {LicenceManager} from "../../credit/LicenceManager.js";
+import {ReversenseProduct} from "../../billing/ReversenseProduct.js";
+import {ProductRelease} from "../../billing/ProductRelease.js";
+import {PrivacyScanner} from "../scanner/PrivacyScanner.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -65,7 +70,9 @@ export class GenericScanner extends AssuranceScanner {
 
     static DEFAULT_NAME = "scanner.generic";
     static PRODUCT_CODE = "GEN_CLD_SSCAN";
-    static VERSION = "1.0";
+    static HUMAN_NAME = "Generic Scanner";
+    static DESCR = "Scanner for generic multi-purpose assessment"
+    static VERSION = "1.0.1";
 
     private _mainDB = 'global';
 
@@ -527,3 +534,25 @@ export class GenericScanner extends AssuranceScanner {
         return o;
     }
 }
+
+
+
+LicenceManager.registerNewProduct(new ReversenseProduct({
+    code: GenericScanner.DEFAULT_NAME,
+    name: GenericScanner.HUMAN_NAME,
+    description: GenericScanner.DESCR,
+    version: GenericScanner.VERSION,
+    author: {
+        name: "Reversense",
+        contact: "contact@reversense.com",
+        official: true
+    },
+    type: NodeInternalType.ASSURANCE_SCANNER,
+    price: 6000,
+    releases: [
+        new ProductRelease({
+            version: GenericScanner.VERSION,
+            description: GenericScanner.DESCR
+        })
+    ]
+}),GenericScanner);

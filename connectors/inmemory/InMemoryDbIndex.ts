@@ -21,7 +21,9 @@ import {InMemoryException} from "./error/InMemoryException.js";
  */
 export default class InMemoryDbIndex implements IDbIndex
 {
+
     static __type:string = "Index";
+    __type = InMemoryDbIndex.__type;
     name:string = null;
     refs:any = [];
     _db:IDatabase;

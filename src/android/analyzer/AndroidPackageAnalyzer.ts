@@ -30,6 +30,9 @@ import {AndroidManifest} from "../AndroidManifest.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
 import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
 import base = Mocha.reporters.base;
+import {AppIcon} from "../../AppIcon.js";
+import {ApplicationIcon} from "../../organization/ApplicationUnit.js";
+import {ImageFormatHelper} from "../../platform/ImageFormat.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -302,6 +305,18 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
 
 
+
+        const icon = AndroidPackageAnalyzer.extractAppIcon(
+            this._project.workspace.getApkDir()
+        );
+
+        if(icon!=null){
+            this._project.setIcon(icon);
+        }
+
+
+
+
         // start analysis ?
         if(success){
 
@@ -312,6 +327,8 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             //
             this._project.getWorkflow().pushStatus(new StatusMessage(5, "app extracted."));
         }
+
+
 
         return targetApp;
     }
@@ -693,25 +710,90 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         }
         // icons
-        const mipmap = _path_.join(pOutput,"res","mipmap");
-        const files = _fs_.readdirSync(mipmap);
-        files.map((vFile)=>{
-            if(/ic_launcher/.test(vFile)){
-                const p = _path_.join(mipmap,vFile);
-                if(_fs_.existsSync(p)){
-                    meta.icons[vFile] = _fs_.readFileSync(p).toString('base64');
-                }else{
-                    return null;
-                }
-            }
-        });
+        const icon = AndroidPackageAnalyzer.extractAppIcon(pOutput);
+        /*
+        const opts = ["-xxxhdpi","-xxhdpi","-xhdpi","-hdpi","","-mdpi"];
+
+        let mipmapPath:string;
+        let files:string[];
+
+        for(let i=0;i<opts.length; i++){
+            mipmapPath = _path_.join(pOutput,"res","mipmap"+opts[i]);
+
+            if(!_fs_.existsSync(mipmapPath)) continue;
+
+            try{
+                files = _fs_.readdirSync(mipmapPath);
+
+                files.map((vFile)=>{
+                    if(/ic_launcher/.test(vFile)){
+                        const p = _path_.join(mipmapPath,vFile);
+                        if(_fs_.existsSync(p)){
+                            meta.icons[vFile] = _fs_.readFileSync(p).toString('base64');
+                        }else{
+                            return null;
+                        }
+                    }
+                });
+            }catch(e){}
 
 
+            if(Object.keys(meta.icons).length>0) break;
+        }*/
 
-        console.log(meta);
+        if(icon!=null){
+            meta.icons = {
+                [icon.name]:icon
+            };
+        }
+
         return meta;
     }
 
+    /**
+     *
+     * @param pFolder
+     */
+    static extractAppIcon(pFolder:string):Nullable<ApplicationIcon> {
+
+        let icon:Nullable<ApplicationIcon> = null;
+
+        // icons
+        const opts = ["-xxxhdpi","-xxhdpi","-xhdpi","-hdpi","","-mdpi"];
+
+        let mipmapPath:string;
+        let files:string[];
+
+        for(let i=0;i<opts.length; i++){
+            mipmapPath = _path_.join(pFolder,"res","mipmap"+opts[i]);
+
+            if(!_fs_.existsSync(mipmapPath)) continue;
+
+            try{
+                files = _fs_.readdirSync(mipmapPath);
+
+                files.map((vFile)=>{
+                    if(/ic_launcher/.test(vFile)){
+                        const p = _path_.join(mipmapPath,vFile);
+                        if(_fs_.existsSync(p)){
+                            icon = {
+                                name: vFile,
+                                format: ImageFormatHelper.fromFileName(vFile),
+                                data:  _fs_.readFileSync(p).toString('base64')
+                            };
+                        }else{
+                            return null;
+                        }
+                    }
+                });
+            }catch(e){}
+
+
+            if(icon!=null) break;
+        }
+
+        return icon;
+    }
     /**
      * to destroy this object  and release resource
      */

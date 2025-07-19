@@ -801,6 +801,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                                 nodeReady = true;
                                 Logger.info(`[API][PROJECT MGT] Open project from slave : Terminated`);
 
+
                                 // remove "project order" from waiting queue
                                 await vNode.refreshWaitingQueue();
 

@@ -2,8 +2,6 @@ import {MonitoredError} from "@dexcalibur/dexcalibur-orm";
 
 export class InMemoryException extends MonitoredError {
 
-    code:number;
-    extra:any;
 
     static ALL = {};
 

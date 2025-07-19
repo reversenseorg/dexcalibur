@@ -31,7 +31,7 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 
 
 const DataModel = {
-    package: new ModelPackage("stub"),
+    package: new ModelPackage({ name:"stub" }),
     class: new ModelClass(),
     field: new ModelField(),
     method: new ModelMethod(),

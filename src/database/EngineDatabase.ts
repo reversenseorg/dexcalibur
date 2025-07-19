@@ -42,6 +42,7 @@ import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {ReadableStreamLike} from "rxjs";
 import {FileManager} from "../core/FileManager.js";
 import {IFileDatabase} from "../core/commons.js";
+import {ReversenseProduct} from "../billing/ReversenseProduct.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -157,7 +158,8 @@ export class EngineDatabase implements IFileDatabase {
         EngineNode.TYPE,
         AssuranceModel.TYPE,
         AssuranceReport.TYPE,
-        ScanOrder.TYPE
+        ScanOrder.TYPE,
+        ReversenseProduct.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};

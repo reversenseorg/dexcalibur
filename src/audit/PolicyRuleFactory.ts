@@ -11,6 +11,7 @@ export class PolicyRuleFactory {
 
     static ALL = {
         alert: new PolicyRule({
+            id: "alert",
             name: "Alert on new finding",
             description: "To warn and perform assigned actions when a scan found new things related to previous version of the same application",
             version: "1.0",
@@ -22,6 +23,7 @@ export class PolicyRuleFactory {
             ]
         }),
         high_pii_criticity: new PolicyRule({
+            id: "high_pii_criticity",
             name: "Alert on high risk finding",
             description: "To warn and perform assigned actions when a scan found high risk issues",
             version: "1.0",
@@ -33,7 +35,20 @@ export class PolicyRuleFactory {
                 PolicyActionFactory.createAction(ActionType.REPORT_WARNING)
             ]
         }),
+        custom_sdk_purpose: new PolicyRule({
+            id: "custom_sdk_purpose",
+            name: "Custom SDK purposes",
+            description: "To add or remove SDK purpose to fit organization policy",
+            version: "1.0",
+            condition: PolicyRuleCondition.NONE,
+            control: null,
+            actions: [
+                //{ type: ActionType.REPORT_WARNING, opts:{ color: "#F00", style:"danger" } }
+                PolicyActionFactory.createAction(ActionType.REPORT_WARNING)
+            ]
+        }),
         require_consent: new PolicyRule({
+            id: "require_consent",
             name: "Require Consent Warning",
             description: "To check if detected component require user consent accordingly to a set a tracker purpose",
             version: "1.0",
@@ -51,6 +66,20 @@ export class PolicyRuleFactory {
                 //{ type: ActionType.REPORT_WARNING, opts:{ color: "#F00", style:"danger" } }
                 PolicyActionFactory.createAction(ActionType.REPORT_WARNING)
             ]
+        }),
+        analyze_tp_sdk: new PolicyRule({
+            id: "analyze_tp_sdk",
+            name: "Group by Third-party SDKs",
+            description: "To group results by third-party SDKs",
+            version: "1.0",
+            condition: PolicyRuleCondition.NONE
+        }),
+        analyze_pii: new PolicyRule({
+            id: "analyze_pii",
+            name: "Search PII manipulated by SDKs",
+            description: "To search manipulated personal data for each detected SDK.",
+            version: "1.0",
+            condition: PolicyRuleCondition.NONE
         })
     }
 
@@ -61,7 +90,8 @@ export class PolicyRuleFactory {
             description: "This policy offers various rules to customise dashboard, reports and CTA",
             version: "1.0",
             rules: [
-                PolicyRuleFactory.ALL.alert
+                PolicyRuleFactory.ALL.alert,
+                PolicyRuleFactory.ALL.analyze_tp_sdk
             ]
         }),
         "privacy.trackers.shared": new Policy({
@@ -72,6 +102,8 @@ export class PolicyRuleFactory {
                 PolicyRuleFactory.ALL.alert,
                 PolicyRuleFactory.ALL.high_pii_criticity,
                 PolicyRuleFactory.ALL.require_consent,
+                PolicyRuleFactory.ALL.analyze_pii,
+                PolicyRuleFactory.ALL.custom_sdk_purpose
             ]
         }),
     };

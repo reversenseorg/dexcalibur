@@ -24,6 +24,9 @@ import * as sea from "node:sea";
 import ModelStringValue from "../../ModelStringValue.js";
 import {SearchAPI} from "../../SearchAPI.js";
 import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {LicenceManager} from "../../credit/LicenceManager.js";
+import {ReversenseProduct} from "../../billing/ReversenseProduct.js";
+import {ProductRelease} from "../../billing/ProductRelease.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -67,8 +70,10 @@ export interface PrivacyScannerOpts {
 export class PrivacyScanner extends AssuranceScanner {
 
     static DEFAULT_NAME = "scanner.privacy";
+    static HUMAN_NAME = "Privacy Scanner";
     static PRODUCT_CODE = "PRIV_CLD_SSCAN";
-    static VERSION = "1.0";
+    static DESCR = "Scanner for privacy assessment";
+    static VERSION = "1.0.1";
 
     private _mainDB = 'global';
 
@@ -134,6 +139,9 @@ export class PrivacyScanner extends AssuranceScanner {
                             console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
                             res.foreach((offset:number,x:any) => {
                                 // console.log('^ addMatch',  vRuleOffset, offset, x );
+
+                                // x => matching node
+
                                 pReport.addMatch(
                                     pCtrlNode,
                                     vRuleOffset,
@@ -364,7 +372,7 @@ export class PrivacyScanner extends AssuranceScanner {
 
         // TODO : execute TestPlan + attach matches to TestPlan step
 
-        // 2. perform basis static scan
+        // 2. perform scans
         this.report = new AssuranceReport({
             time:(new Date()).getTime(),
             started:(new Date()).getTime(),
@@ -393,6 +401,7 @@ export class PrivacyScanner extends AssuranceScanner {
 
         let crossReport:Nullable<AssuranceReport> = null;
         let filteredMatches:Record<string, any> = {};
+
         // 6. post process : sample results
         switch(this.model.getID()){
             case "privacy.pii3":
@@ -427,7 +436,7 @@ export class PrivacyScanner extends AssuranceScanner {
         AuditManager.getInstance().saveReport(pContext, this.report);
 
         //
-        switch(this.model.getID()){
+        /*switch(this.model.getID()){
             case "privacy.pii3":
                 // check if report of "privacy.trackers.shared" is available
                 crossReport = await this._getExtraReport("privacy.trackers.shared");
@@ -443,7 +452,7 @@ export class PrivacyScanner extends AssuranceScanner {
                     this._generateCrossReport(this.report,crossReport);
                 }
                 break;
-        }
+        }*/
 
 
     }
@@ -646,7 +655,7 @@ export class PrivacyScanner extends AssuranceScanner {
             // must be linked to a callable node.
             if(n.__ === NodeInternalType.STRING){
                 if(SearchAPI.isNodeRef(n as ModelStringValue)){
-                    res = (await (MerlinSearchRequest.getByRef(this.project.merlin, n.src)).executePDB(this.project));
+                    res = (await (MerlinSearchRequest.getByRef( n.src,this.project.merlin)).executePDB(this.project));
                     if(res==null || res.count()==0) break;
                     n = res.getData()[0];
                 }
@@ -660,8 +669,10 @@ export class PrivacyScanner extends AssuranceScanner {
                 case NodeInternalType.METHOD:
                 case NodeInternalType.FIELD:
                     res = await (Merlin.static().call({
-                        calleed: {
-                            [NodeType.getByID(n.__).getPrimaryKey().getName()] : (n as INode).getUID()
+                        _calleed: {
+                            __: n.__,
+                            _uid: (n as INode).getUID()
+                           // [NodeType.getByID(n.__).getPrimaryKey().getName()] : (n as INode).getUID()
                         }
                     },{ not:false })).executePDB(this.project);
                     break;
@@ -673,3 +684,23 @@ export class PrivacyScanner extends AssuranceScanner {
         return filtered;
     }
 }
+
+LicenceManager.registerNewProduct(new ReversenseProduct({
+    code: PrivacyScanner.DEFAULT_NAME,
+    name: PrivacyScanner.HUMAN_NAME,
+    description: PrivacyScanner.DESCR,
+    version: PrivacyScanner.VERSION,
+    author: {
+        name: "Reversense",
+        contact: "contact@reversense.com",
+        official: true
+    },
+    type: NodeInternalType.ASSURANCE_SCANNER,
+    price: 6000,
+    releases: [
+        new ProductRelease({
+            version: PrivacyScanner.VERSION,
+            description: PrivacyScanner.DESCR
+        })
+    ]
+}), PrivacyScanner);

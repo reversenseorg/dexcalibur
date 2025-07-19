@@ -683,7 +683,7 @@ export default class NativeAnalyzer {
                     Logger.info("[DB::FUNC] add func : ", vFn.signature(), " ", vFn.name);
                 })
 
-                pFile.tagAs('$r');
+                //pFile.tagAs('$r');
                 if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
                     this.state.state.openedLib.push(pFile.getUID());
                     await this.state.save();

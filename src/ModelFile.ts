@@ -525,9 +525,11 @@ export default class ModelFile implements INode,IPersistent {
                           break;
                       case "f_list":
                           o.__p.f_list = {};
-                          if(this.__p.f_list!=null)
-                            for(let addr in this.__p.f_list)
-                                o.__p.f_list[addr] = this.__p.f_list[addr].toJsonObject();
+                          if(this.__p!=null && this.__p.f_list!=null){
+                              for(let addr in this.__p.f_list)
+                                  o.__p.f_list[addr] = this.__p.f_list[addr].toJsonObject();
+                          }
+
                           break;
                   }
                 }
@@ -571,6 +573,7 @@ export default class ModelFile implements INode,IPersistent {
                     break;
                 case '__p':
                     o.__p = {};
+                    if(this.__p==null) continue;
                     for (let k in this.__p) {
                         switch (k) {
                             /*case "sections":
@@ -626,15 +629,20 @@ export default class ModelFile implements INode,IPersistent {
             //Logger.info("R2>Functions extracted (1) ");
             //Logger.info("R2 Functions extracted : ",JSON.stringify(pFuncs));
 
-            if (this.__p.f_list == undefined)
+            if(this.__p == null){
+                this.__p = {};
+            }
+
+            if (this.__p.f_list == null){
                 this.__p.f_list = {};
+            }
 
             pFuncs.map(vFn => {
                 vFn.signature();
                 this.__p.f_list["0x" + vFn.getAddr().toString(16)] = vFn;
             });
         } catch (err) {
-            Logger.error("[ModelFile] " + err.message)
+            Logger.error("[ModelFile] appendFunction : " + err.message)
         }
 
     }

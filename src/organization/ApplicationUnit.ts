@@ -21,16 +21,25 @@ import {DeviceUUID} from "../Device.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 import {Policy, PolicyUUID} from "../audit/Policy.js";
 import {randomUUID} from "crypto";
+import {ImageFormat} from "../platform/ImageFormat.js";
+import {Connection} from "./conn/Connection.js";
 
 
 export type ApplicationUnitUUID = string;
+
+
+export interface ApplicationIcon {
+    name?:string;
+    format: ImageFormat,
+    data: string| Buffer
+}
 
 export interface ApplicationUnitOptions {
     uuid?: ApplicationUnitUUID;
     name?: string;
     description?:string;
     packageID?: string;
-    icon?: Nullable<Avatar>;
+    icon?: Nullable<ApplicationIcon>;
     sources?: any[];
     os?:OperatingSystem;
     projects?:DexcaliburProjectUUID[];
@@ -62,7 +71,7 @@ export class ApplicationUnit extends Auditable implements INode {
         (new NodeProperty("devices")).type(DbDataType.STRING).def([]),
         (new NodeProperty("projects")).type(DbDataType.STRING).def([]),
         (new NodeProperty("orgUnit")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("icon")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("icon")).type(DbDataType.BLOB).def(null),
         (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
         (new NodeProperty("os")).type(DbDataType.STRING).def(OperatingSystem.NONE),
         (new NodeProperty("policies"))
@@ -108,9 +117,9 @@ export class ApplicationUnit extends Auditable implements INode {
     name: string;
     description:string;
     packageID: string;
-    icon: Nullable<Avatar>;
+    icon: Nullable<ApplicationIcon>;
     projects: DexcaliburProjectUUID[] = [];
-    sources: any[];
+    sources: any[] = [];
     devices: DeviceUUID[] = [];
     orgUnit:OrganizationUnitUUID = null;
     os: OperatingSystem = OperatingSystem.NONE;
@@ -197,6 +206,14 @@ export class ApplicationUnit extends Auditable implements INode {
     getTargetDevices():DeviceUUID[] {
         return this.devices;
     }
+
+    setIcon(pFormat:ImageFormat, pData:string|Buffer):void {
+        this.icon = {
+            format: pFormat,
+            data: pData
+        }
+    }
+
 
     toJsonObject(pOption?: SerializeOptions): any {
         const o:any = {
