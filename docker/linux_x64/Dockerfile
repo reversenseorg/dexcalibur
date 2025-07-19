@@ -204,7 +204,6 @@ RUN curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/
     $HOME/.cargo/bin/cargo build --release && \
     sudo cp ./target/release/binwalk /usr/local/bin/binwalk && \
     sudo chmod 777 /usr/local/bin/binwalk && \
-    mkdir $DXC_USER_HOME/bin && \
     cp ./target/release/binwalk $DXC_USER_HOME/binwalk && \
     sudo chmod +x $DXC_USER_HOME/binwalk && \
     cd $DXC_USER_HOME
