@@ -1,7 +1,7 @@
 import * as _os_ from "os"
 import * as _path_ from "path";
-import {LicenseManager} from "@dexcalibur/dexcalibur-installer/src/LicenseManager.js";
-import {Installer} from "@dexcalibur/dexcalibur-installer/src/Installer.js";
+import {LicenseManager, Installer} from "@dexcalibur/dexcalibur-installer";
+//import {Installer} from "@dexcalibur/dexcalibur-installer/src/Installer.js";
 import {Settings} from "../Settings.js";
 import GlobalSettings = Settings.GlobalSettings;
 import { CliFrontend } from "./CliFrontend.js";
