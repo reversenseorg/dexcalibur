@@ -764,5 +764,49 @@ export default class Util {
             }, []);
     };
 
+
+
+    /**
+     * To normalize a version number
+     * @param pVersion
+     */
+    static normalizeVersion( pVersion:string):string {
+        let i =pVersion.split('.').length;
+        while(i<3){ pVersion+='.0'; i++; }
+        return pVersion;
+    }
+
+    /**
+     * Recursive sync copy
+     *
+     * @param pSource
+     * @param pDest
+     * @param pCallback
+     */
+    static recursiveCpDirSync(pSource:string,pDest:string,pCallback:Function){
+
+
+        if(_fs_.lstatSync(pSource).isDirectory()){
+
+            if(!_fs_.existsSync(pDest)) _fs_.mkdirSync(pDest);
+
+            _fs_.readdirSync(pSource).forEach((file) => {
+
+                let spath:string = _path_.join(pSource, file);
+                let tpath:string = _path_.join(pDest, file);
+
+                if (_fs_.lstatSync(spath).isDirectory()) {
+                    Util.recursiveCpDirSync(spath, tpath, pCallback);
+                } else {
+                    _fs_.copyFileSync(spath, tpath);
+                    pCallback(tpath);
+                }
+            });
+        }else{
+            _fs_.copyFileSync(pSource, pDest);
+            pCallback(pDest);
+        }
+    }
+
 }
 

@@ -1,22 +1,19 @@
-import * as _os_ from "os"
 import * as _path_ from "path";
-import {LicenseManager, Installer} from "@dexcalibur/dexcalibur-installer";
-//import {Installer} from "@dexcalibur/dexcalibur-installer/src/Installer.js";
 import {Settings} from "../Settings.js";
 import GlobalSettings = Settings.GlobalSettings;
 import { CliFrontend } from "./CliFrontend.js";
 import Util from "../Utils.js";
+import {Installer} from "./lib/Installer.js";
+import {TermsManager} from "./lib/TermsManager.js";
 
-const DXC_HOME = ".dxc";
-
-let licenseMgr:LicenseManager;
+let termsMgr:TermsManager;
 let installer:Installer;
 
 
 export function install(pHomePath:string, pConfig:GlobalSettings = null){
     try{
 
-        licenseMgr = new LicenseManager({
+        termsMgr = new TermsManager({
             defaultLang: "fr",
             lang: ["fr"],
             folder: _path_.join(Util.__dirname(import.meta.url),"..","..","assets","LICENSES")
@@ -373,15 +370,12 @@ export function install(pHomePath:string, pConfig:GlobalSettings = null){
                         }
                     }
                 }
-            }, pConfig,licenseMgr, (pMsg:string)=>{
+            }, pConfig,termsMgr, (pMsg:string)=>{
                 //console.log('\x1b[36m%s\x1b[0m', pMsg);
             }
         );
 
-        //console.log(licenseMgr);
-        //console.log(installer);
-
-        const CLI = new CliFrontend(installer, licenseMgr, "Reversense 2021 - 2023");
+        const CLI = new CliFrontend(installer, termsMgr, "Reversense 2021 - 2025");
         CLI.start();
     }catch (err){
         console.log(JSON.stringify(err));

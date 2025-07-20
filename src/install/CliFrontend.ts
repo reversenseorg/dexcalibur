@@ -1,35 +1,27 @@
 import * as _fs_ from "fs"
 import * as _path_ from "path"
-import {Installer, InstallMode} from "@dexcalibur/dexcalibur-installer/src/Installer.js";
-import {LicenseManager} from "@dexcalibur/dexcalibur-installer/src/LicenseManager.js";
-import {CommandCode} from "@dexcalibur/dexcalibur-installer/src/CommandCode.js";
 import * as _os_ from "os"
-import chalk, {Chalk} from "chalk";
-import DexcaliburRegistry from "../DexcaliburRegistry.js";
+import {Installer, InstallMode} from "./lib/Installer.js";
+import {TermsManager} from "./lib/TermsManager.js";
+import * as Log from "../Logger.js";
+import chalk from "chalk";
+import {CommandCode} from "./lib/CommandResponse.js";
 
 const EOL = _os_.EOL;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 enum STDIN_MODE {
     KEY_MODE,
     STRING_MODE
-};
-
-
-
-
+}
 
 
 interface Action {
     label: string,
     key: string;
-
     action: (pStep:any)=>void;
 }
-
-
-
-
 
 
 interface StepInfo {
@@ -53,7 +45,6 @@ const META = {
 }
 
 
-
 /*
  * ==============================================
  */
@@ -72,7 +63,7 @@ export class CliFrontend {
 
     installer:Installer;
 
-    licenseMgr: LicenseManager;
+    termsMgr: TermsManager;
 
     copyright:string;
 
@@ -91,16 +82,10 @@ export class CliFrontend {
      * @param pInstaller
      * @param pLicenseMgr
      */
-    constructor( pInstaller:Installer, pLicenseMgr:LicenseManager, pCopyright:string) {
+    constructor( pInstaller:Installer, pMgr:TermsManager, pCopyright:string) {
         this.installer = pInstaller;
-        this.licenseMgr = pLicenseMgr;
+        this.termsMgr = pMgr;
         this.copyright = pCopyright;
-
-        // override default logger to print into the terminal for debug purpose only
-        /*this.installer.__log = (pMsg:string)=>{
-            console.log('\x1b[36m%s\x1b[0m', pMsg);
-        }*/
-
         this.configure();
     }
 
@@ -114,9 +99,9 @@ export class CliFrontend {
             WELCOME: {
                 tpl:
                     `
-${chalk.whiteBright("======================================================")}
+${Logger.info("======================================================")}
 [${this.getProductInfo()}]
-${chalk.whiteBright("======================================================")}
+${Logger.info("======================================================")}
 
 Welcome to Dexcalibur Installer
 
@@ -142,18 +127,18 @@ Choose a language by typing [F] or [E], else please read the license.
 `
                 ,
                 tokens: {
-                    "##_TEXT_##":  this.licenseMgr.getLicense("fr").loadText()
+                    "##_TEXT_##":  this.termsMgr.getTerms("fr").loadText()
                 },
                 controls: [
                     { label:"Reject", key:"r", action: (pStep:any)=>{
                             process.exit(1);
                         } },
                     { label:"Switch to French", key:"f", action: (pStep:any)=>{
-                            pStep.tokens["##_TEXT_##"] =  this.licenseMgr.getLicense("fr").loadText();
+                            pStep.tokens["##_TEXT_##"] =  this.termsMgr.getTerms("fr").loadText();
                             this.printStep("LICENSE", false);
                         } },
                     { label:"Switch to English", key:"e", action: (pStep:any)=>{
-                            pStep.tokens["##_TEXT_##"] =  this.licenseMgr.getLicense("en").loadText()
+                            pStep.tokens["##_TEXT_##"] =  this.termsMgr.getTerms("en").loadText()
                             this.printStep("LICENSE", false);
                         } },
                     { label:"Accept", key:"a", action: (pStep:any)=>{
@@ -200,7 +185,7 @@ Please choose the workspace location :##_TEXT_##`
                         });
 
                     return true;
-                },// /Users/melon/dxc/dexcalibur-codebase/reversense-installers/test/ws
+                },
                 controls: []
             },
             SETTINGS_HTTP: {

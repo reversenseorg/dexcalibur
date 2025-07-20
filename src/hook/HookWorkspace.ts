@@ -12,7 +12,6 @@ import * as OriginalFridaCompile from "@dexcalibur/dxc-frida-compile";
 import ts  from "@dexcalibur/dxc-frida-compile/ext/typescript.js";
 import {TargetLanguage} from "./common.js";
 import {Nullable} from "../core/IStringIndex.js";
-import {Requirement} from "@dexcalibur/dexcalibur-installer/src/Requirement.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import {getNodeSystem} from "./ext/System.js";
 

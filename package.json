@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@dexcalibur/dexcalibur-frida-compile": "^10.2.5",
-    "@dexcalibur/dexcalibur-installer": "^1.2.0",
     "@dexcalibur/dexcalibur-orm": "^1.0.35",
     "@dexcalibur/dexcalibur-orm-mongodb": "^1.4.9",
     "@dexcalibur/dxc-core-api": "^1.7.4",
