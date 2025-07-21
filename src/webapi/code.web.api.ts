@@ -1168,19 +1168,21 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 const nodeType = req.params.nodetype;
                 const nodeUID = req.body.nodeuid;
 
-                const project = (await $.context.getProjectManager().preloadForDirect(req.user, req.params.puid));
+
+                const proj = (await $.context.getProjectManager().preloadForDirect(req.user, req.params.puid));
 
                 const result = (await (MerlinSearchRequest.getByRef({
                     __:parseInt(nodeType,10),
                     _uid:nodeUID
-                })).executePDB(project));
+                },proj.getMerlinEngine() )).executePDB(proj));
 
                 if(result.count()>0){
                     if(result.get(0).disass==null){
                         throw new Error("This node cannot be disassembled.");
                     }
+
                     $.sendSuccess( res, {
-                        disass: (result.get(0) as any).disass({ raw: true }, project.getDisassembler())
+                        disass: (result.get(0) as any).disass({ raw: true }, proj.getDisassembler())
                     });
                 }else{
                     throw new Error("Node not found");
@@ -1192,5 +1194,8 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Disassembly failure from node ref. Cause : " + err.message);
             }
         }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );

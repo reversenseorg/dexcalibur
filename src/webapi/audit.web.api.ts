@@ -1264,3 +1264,24 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/bom/purposes',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const am = $.context.getAuditManager();
+
+                $.sendSuccess(res, await am.listPurposes());
+            }catch(err){
+                Logger.error("[API][AUDIT] BOM purposes cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "BOM purposes cannot be listed. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
+    }
+);

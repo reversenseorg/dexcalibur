@@ -8,6 +8,7 @@ import * as Log from "../Logger.js";
 import {INode, TagCategory} from "@dexcalibur/dexcalibur-orm";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {BomPurpose} from "../bom/BomPurpose.js";
 const GOT = got.default;
 
 
@@ -103,6 +104,21 @@ export class SignatureServerAPI {
         }
 
         return models;
+    }
+
+    /**
+     *
+     */
+    async getBomPurposes():Promise<BomPurpose[]> {
+
+        const response = await GOT(this.baseURL+"api/signatures/bompurposes");
+        const raw = JSON.parse(response.body);
+
+        if(raw.success && Array.isArray(raw.data)){
+            return raw.data;
+        }else{
+            return [];
+        }
     }
 
     /**

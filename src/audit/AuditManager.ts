@@ -24,6 +24,7 @@ import {Policy} from "./Policy.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {ReversenseProductUUID} from "../billing/ReversenseProduct.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {BomPurpose} from "../bom/BomPurpose.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -853,5 +854,9 @@ export class AuditManager {
 
 
         return [];
+    }
+
+    async listPurposes():Promise<BomPurpose[]> {
+        return await this.engine.getSignatureServer().getBomPurposes();
     }
 }

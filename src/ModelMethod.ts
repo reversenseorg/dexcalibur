@@ -475,8 +475,9 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         if(pConfig != null){
             if(pConfig.pretty == true)
                 return pDisassembler.methodPretty(this);
-            else if(pConfig.raw == true)
+            else if(pConfig.raw == true){
                 return pDisassembler.methodRaw(this);
+            }
         }else{
             return pDisassembler.method(this);
         }
