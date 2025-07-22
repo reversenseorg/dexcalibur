@@ -2,6 +2,9 @@ import * as VM from "vm";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import {PATCHES} from "./internals/patches.js";
 import {DXC_LIFECYCLE_EVENT} from "./CoreConst.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import {OrganizationUnit} from "./organization/OrganizationUnit.js";
+import {BusinessPlan} from "./billing/BusinessPlan.js";
 
 
 /**
@@ -17,11 +20,11 @@ export class DexcaliburPatch {
    * @type
    * @private
    */
-  private _code:any;
+  _code:any;
 
   version:string;
   time:string;
-  desr:string;
+  descr:string;
   ev:DXC_LIFECYCLE_EVENT;
 
   constructor(pConfig:any) {
@@ -40,7 +43,7 @@ export class DexcaliburPatch {
    * @param pEngine
    * @param pProject
    */
-  execute( pEngine:DexcaliburEngine, pExtra:any = null){
+  async execute( pEngine:DexcaliburEngine, pExtra:any = null):Promise<void>{
     // TODO: verify code signature
     const vmContext:any = { ENGINE:pEngine };
 
@@ -55,11 +58,11 @@ export class DexcaliburPatch {
     if(typeof this._code === "string"){
       VM.runInContext( this._code, vmContext);
     }else{
-      this._code.call( null, vmContext);
+      await this._code.call( null, vmContext);
     }
 
 
-    return true;
+    return ;
   }
 }
 
@@ -85,7 +88,45 @@ export class DexcaliburUpdater {
 
   engine:DexcaliburEngine = null;
 
-  patches:DexcaliburPatch[] = [];
+  patches:DexcaliburPatch[] = [new DexcaliburPatch({
+    ev: DXC_LIFECYCLE_EVENT.ENG_AFTER_BOOT,
+    time: "22/07/2025",
+    version: "1.0.0",
+    descr: "Patch organization unit created by engine < X to set new BusinessPlan",
+    _code:  async (pCtx:{ENGINE:DexcaliburEngine,PROJECT?:DexcaliburProject}):Promise<void>=>{
+
+      const orgs = await pCtx.ENGINE.getOrgManager().listOrganizations(
+          pCtx.ENGINE.getInternalAcc()
+      );
+
+      for(let i=0; i<orgs.length; i++){
+        let bp:BusinessPlan;
+        try{
+          bp = orgs[i].getBusinessPlan();
+          if(bp.isDeprecated()){
+            orgs[i].createBusinessPlan({ thresholds: { concurrentNodes: 3 }});
+            await pCtx.ENGINE.getOrgManager().updateOrganization(
+                pCtx.ENGINE.getInternalAcc(),
+                orgs[i],
+                {
+                  businessPlan: orgs[i].getBusinessPlan()
+                }
+            );
+            console.log(`Business plan of ${orgs[i].getUID()} organization have been updated`);
+          }else{
+            console.log(`Business plan of ${orgs[i].getUID()} organization is up-to-date`);
+          }
+        }catch (e){
+          if(bp==null){
+            bp = new BusinessPlan({
+              org: orgs[i].getUID()
+            })
+          }
+        }
+
+      }
+    }
+  })];
 
 
   constructor(pEngine:DexcaliburEngine) {
@@ -111,11 +152,11 @@ export class DexcaliburUpdater {
    * @param {*} pExtra
    * @method
    */
-  run( pEvent:DXC_LIFECYCLE_EVENT, pExtra:any = null):void{
-    this.patches.map( (vPath:DexcaliburPatch)=>{
-      if(vPath.ev === pEvent){
-        vPath.execute( this.engine, pExtra);
+  async run( pEvent:DXC_LIFECYCLE_EVENT, pExtra:any = null):Promise<void>{
+    for(let i=0; i<this.patches.length; i++){
+      if(this.patches[i].ev === pEvent){
+        await this.patches[i].execute( this.engine, pExtra);
       }
-    });
+    }
   }
 }

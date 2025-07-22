@@ -14,7 +14,7 @@ export enum BusinessPlanType {
 }
 
 export interface BusinessPlanOptions {
-    org: OrganizationUnitUUID,
+    org?: OrganizationUnitUUID,
     wallet?: Purchase[],
     signature?: any,
     thresholds?: ResourceThresholds,
@@ -59,6 +59,7 @@ export class BusinessPlan {
         concurrentNodes: 3
     };
 
+    private _old:any = {};
 
     /**
      *
@@ -72,6 +73,15 @@ export class BusinessPlan {
         if(pOptions.thresholds !=null) this.thresholds = pOptions.thresholds;
         if(pOptions.credits !=null) this.credits = pOptions.credits;
         if(pOptions.mkpPurchases !=null) this.mkpPurchases = pOptions.mkpPurchases;
+
+
+        ["plan","counter","freeScanQty","freeSubscriptionQty"].map(x => {
+            if((pOptions as any)[x] !=null) this._old[x] = pOptions[x];
+        });
+    }
+
+    isDeprecated():boolean {
+        return Object.keys(this._old).length > 0;
     }
 
     /**

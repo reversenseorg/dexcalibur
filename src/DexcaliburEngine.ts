@@ -1058,7 +1058,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // create updater
         this.updater = DexcaliburUpdater.getInstance(this);
 
-        this.updater.run( DXC_LIFECYCLE_EVENT.ENG_BEFORE_WS_INIT);
+        await this.updater.run( DXC_LIFECYCLE_EVENT.ENG_BEFORE_WS_INIT);
 
 
         this.orgMgr = new OrganizationManager(this);
@@ -1088,20 +1088,20 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             //  enumerate local and remote platforms
             this.platformMgr.enumerate();
 
-            this.updater.run( DXC_LIFECYCLE_EVENT.PLATFORM_MGR_AFTER_INIT);
+            await this.updater.run( DXC_LIFECYCLE_EVENT.PLATFORM_MGR_AFTER_INIT);
 
             Logger.debug('PASSA');
             //  enumerate local and remote inspectors
             await this.inspectorMgr.enumerate();
             Logger.debug('PASSB');
 
-            this.updater.run( DXC_LIFECYCLE_EVENT.INSPECT_MGR_AFTER_INIT);
+            await this.updater.run( DXC_LIFECYCLE_EVENT.INSPECT_MGR_AFTER_INIT);
 
             // load device manager db
             await this.deviceMgr.load();
             Logger.debug('PASS3');
 
-            this.updater.run( DXC_LIFECYCLE_EVENT.DEV_MGR_AFTER_INIT);
+            await this.updater.run( DXC_LIFECYCLE_EVENT.DEV_MGR_AFTER_INIT);
 
             LicenceManager.replenish();
 
@@ -1122,6 +1122,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 this.getNodeManager().spawnController(10000);
             }
         }
+
+        await this.updater.run( DXC_LIFECYCLE_EVENT.ENG_AFTER_BOOT);
 
 
         return true;
@@ -1206,6 +1208,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         this.inspectorMgr = InspectorManager.getInstance(this);
 
+
+        await this.updater.run( DXC_LIFECYCLE_EVENT.ENF_AFTER_INIT);
 /*
 
         // hook
@@ -1467,7 +1471,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 if(pForce || this.active[pUID].isOwnedBy(pAccount)){
                     // if the project is local remmove it
 
-                    this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, this.active[pUID]);
+                    await this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, this.active[pUID]);
 
                     // remove files
                     Util.recursiveRmDirSync(
@@ -1479,7 +1483,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 }
             }else{
                 // TODO : add ACL
-                this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, pUID);
+                await this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, pUID);
 
                 Util.recursiveRmDirSync(
                     _path_.join( this.workspace.getLocation(), pUID )
@@ -1559,7 +1563,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             wf.pushStatus(StatusMessage.newSuccess("Project is ready."));
             this.active[pUID] = project;
-            this.updater.run( DXC_LIFECYCLE_EVENT.OPEN_PROJECT, project);
+            await this.updater.run( DXC_LIFECYCLE_EVENT.OPEN_PROJECT, project);
 
             project.state = ProjectState.OPEN;
             this.log("Project loaded", project);
@@ -1748,7 +1752,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             this.webserver.setProject(project);
 
 
-            this.updater.run( DXC_LIFECYCLE_EVENT.NEW_PROJECT, project);
+            await this.updater.run( DXC_LIFECYCLE_EVENT.NEW_PROJECT, project);
 
             return project;
         }else{

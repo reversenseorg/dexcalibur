@@ -25,7 +25,7 @@ import {OrganizationManagerException} from "../errors/OrganizationManagerExcepti
 import {Secret, SecretProtectionType, SecretType, SecretUUID} from "../core/secrets/Secret.js";
 import {AesKeyLength, CryptoUtils} from "../CryptoUtils.js";
 import {ValidationRule} from "../Validator.js";
-import {BusinessPlan} from "../billing/BusinessPlan.js";
+import {BusinessPlan, BusinessPlanOptions} from "../billing/BusinessPlan.js";
 import {AccessControlException} from "../errors/AccessControlException.js";
 import Role from "../user/acl/common/Role.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
@@ -833,6 +833,14 @@ export class OrganizationUnit extends Auditable implements INode {
      */
     getPolicy(pPolicy:PolicyUUID):Nullable<Policy> {
         return this.policies.find(r => (r.getUID()===pPolicy));
+    }
+
+    createBusinessPlan(pOptions:Nullable<BusinessPlanOptions>):void {
+        let opt = pOptions;
+        if(pOptions==null) opt = {};
+        if(pOptions.org==null) opt.org = this.getUID();
+
+        this.businessPlan = new BusinessPlan(opt);
     }
 }
 OrganizationUnit.TYPE.builder(OrganizationUnit);
