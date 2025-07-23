@@ -123,4 +123,8 @@ export class GenericPackageAnalyzer implements IPackageAnalyzer {
     getInputsFor(pPurpose: InputSetPurpose): ProjectInput[] {
         return [];
     }
+
+    pullInput(pProjectInput: ProjectInput): Promise<string> {
+        throw new Error("Not implemented");
+    }
 }

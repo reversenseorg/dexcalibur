@@ -1,6 +1,7 @@
 import {Nullable} from "../core/IStringIndex.js";
 import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {SecurityZone} from "../security/SecurityZone.js";
+import {JsonObject} from "../Utils.js";
 
 
 export enum ProjectInputType {
@@ -70,10 +71,11 @@ export class ProjectInput implements IProjectInput{
     data: ProjectInputData;
     location: ProjectInputLocation;
     type: ProjectInputType;
-    extractOpts: Nullable<InputExtractOptions> = null;
+    extractOpts: InputExtractOptions = null;
     purpose: ProjectInputPurpose;
     originalName: Nullable<string> = null;
     path: string
+    predecessor: Nullable<ProjectInput>;
 
     constructor(pOptions:ProjectInputOptions = {}) {
         if(pOptions!=null){
@@ -95,8 +97,12 @@ export class ProjectInput implements IProjectInput{
         return (this.type===ProjectInputType.REGULAR_FILE);
     }
 
+    isFolder(): boolean {
+        return (this.type === ProjectInputType.FOLDER);
+    }
+
     getPath():string {
-        if(this.isFile()){
+        if (this.isFile() || this.isFolder()) {
             return this.data as string;
         }else{
             return null;
@@ -107,6 +113,14 @@ export class ProjectInput implements IProjectInput{
         this.data = pPath;
     }
 
+    getPredecessor():Nullable<ProjectInput> {
+        return this.predecessor;
+    }
+
+    setPredecessor(pPredecessor:Nullable<ProjectInput>):void {
+        this.predecessor = pPredecessor;
+    }
+
     /**
      * To perform comparison of type and checksum
      *
@@ -115,17 +129,31 @@ export class ProjectInput implements IProjectInput{
     isFileDifferent(pInput:ProjectInput):boolean {
         return (this.getPath()!=pInput.getPath());
     }
-    toJsonObject(pZone = SecurityZone.PUBLIC):any {
 
-        const o = {
-            data: this.data,
+    toJsonObject(pZone = SecurityZone.PUBLIC): JsonObject {
+
+        const o : JsonObject = {
+            data: this.data as string,
             location: (pZone==SecurityZone.PRIVATE ? this.location : ""),
             type: this.type,
-            extractOpts: this.extractOpts,
             purpose: this.purpose,
             originalName: this.originalName
         }
+        if (this.extractOpts != null) {
+            o.extractOpts = this.extractOpts as unknown as JsonObject;
+        }
+        if (this.getPredecessor() != null) {
+            o.predecessor = this.getPredecessor().toJsonObject();
+        }
+        return o;
+    }
 
+    static fromJsonObject(pJson:any): ProjectInput {
+        let o: ProjectInput = new ProjectInput(pJson);
+        o.location = pJson.location as ProjectInputLocation;
+        if (pJson.predecessor != null) {
+            o.predecessor = ProjectInput.fromJsonObject(pJson.predecessor);
+        }
         return o;
     }
 }

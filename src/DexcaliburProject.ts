@@ -83,7 +83,7 @@ import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";
 import {IPackageAnalyzer} from "./analyzer/IPackageAnalyzer.js";
 import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
 import {GenericPackageAnalyzer} from "./analyzer/GenericPackageAnalyzer.js";
-import {ProjectInput, ProjectInputLocation, ProjectInputPurpose} from "./analyzer/ProjectInput.js";
+import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "./analyzer/ProjectInput.js";
 import {Subject} from "rxjs";
 import * as _fs_ from "node:fs";
 import {ModelAPI} from "./ModelAPI.js";
@@ -1530,31 +1530,39 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             this.packageAnalyzer.setProject(this);
         }
 
-        if(pInput.isFile()){
-
+        if (pInput.isFile()) {
             const copy = new ProjectInput(pInput);
             copy.location = ProjectInputLocation.DB_PRJ;
 
             // if the input is still in global upload bucket,
             // move it as local file in project workspace FS
-            if(pInput.location==ProjectInputLocation.DB_UPL) {
+            if (pInput.location == ProjectInputLocation.DB_UPL || pInput.location == ProjectInputLocation.DEVICE) {
 
                 // if the project input is stored into DB as uploaded fil in 'dxcserver" schema, out of project workspace,
                 // it must be downloaded first into project workspace
-                const inputPath = this.getWorkspace().getValidInputPath(pInput);
-                await this.getContext()
-                    .getEngineDB()
-                    .getFileManager()
-                    .readFileTo('uploads', pInput.data as string, inputPath)
-
+                let inputPath = this.getWorkspace().getValidInputPath(pInput);
+                if (pInput.location == ProjectInputLocation.DB_UPL) {
+                    await this.getContext()
+                        .getEngineDB()
+                        .getFileManager()
+                        .readFileTo('uploads', pInput.getPath(), inputPath)
+                } else if (pInput.location == ProjectInputLocation.DEVICE) {
+                    let inputPredecessor = new ProjectInput(pInput);
+                    inputPredecessor.location = ProjectInputLocation.DEVICE;
+                    copy.setPredecessor(inputPredecessor);
+                    pInput.setPredecessor(inputPredecessor);
+                    const tmpFilePath = await this.getPackageAnalyzer().pullInput(pInput);
+                    // copy it to the local workspace input directory
+                    _fs_.copyFileSync(tmpFilePath, inputPath);
+                }
                 // update and save project input
                 pInput.setPath(inputPath);
                 pInput.location = ProjectInputLocation.LOCAL;
             }
 
-            copy.data = _path_.join(_path_.sep+ProjectWorkspace.BASE_PATH.IN, _path_.basename(pInput.getPath()));
-            // if the input is a file or is the input imported previously
-            if(pInput.location==ProjectInputLocation.LOCAL){
+            copy.setPath(_path_.join(_path_.sep+ProjectWorkspace.BASE_PATH.IN, _path_.basename(pInput.getPath())));
+
+            if (pInput.location == ProjectInputLocation.LOCAL) {
 
                 // import file into project DB
                 await this.pdb.getFileManager().writeFile('ws', pInput.getPath(), copy.getPath(), {
@@ -1562,14 +1570,11 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     type: ProjectWorkspace.BASE_PATH.IN
                 });
 
-                const res = this.inputs.find(x => x.getPath()===copy.getPath());
-                if(res==null){
+                if (this.inputs.filter(x => x.getPath()===copy.getPath()).length == 0) {
                     // save imported input
                     this.inputs.push(copy);
                 }
             }
-
-
 
             // download input into FS workspace if missing
 
@@ -1578,7 +1583,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
             const inputDir = this.getWorkspace().getPath();
             let candidate = _path_.join(inputDir, copy.getPath());
-            if(!_fs_.existsSync(candidate)){
+            if (!_fs_.existsSync(candidate)) {
                 // Input file is not located into project workspace
                 const inputPath = this.getWorkspace().getValidInputPath(pInput);
 
@@ -1590,7 +1595,10 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 //pInput.setPath(inputPath);
                 //this.inputs.push(pInput);
             }
-        }else{
+        } else if (pInput.isFolder()) {
+            await this.attachInputDeviceDirectory(pInput);
+            return;
+        } else {
             this.inputs.push(pInput);
         }
 
@@ -1602,6 +1610,40 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         // save changes
         await this.getContext().getEngineDB().saveProject(this, ['inputs']);
+    }
+
+    /**
+     * To add recursively all the files in a directory to the project
+     *
+     * @param {ProjectInput} pInput
+     * @method
+     * @async
+     */
+    async attachInputDeviceDirectory(pInput:ProjectInput):Promise<void> {
+        if (pInput.isFolder() && pInput.location == ProjectInputLocation.DEVICE) {
+            const files = await this.device.getDefaultBridge().listFiles(pInput.getPath());
+            let splittedRes: ProjectInput;
+            for (let deviceFile of files) {
+                try {
+                    splittedRes = ProjectInput.from({
+                        data: deviceFile.p,
+                        location: ProjectInputLocation.DEVICE,
+                        purpose: ProjectInputPurpose.EXTRA,
+                        type: deviceFile._t === 'd' ? ProjectInputType.FOLDER : ProjectInputType.REGULAR_FILE,
+                        extractOpts: {type: 'bin'},
+                        originalName: deviceFile.n
+                    });
+                    // Check if deviceFile is a symbolic link to a directory
+                    if (deviceFile._t === "l" && _fs_.lstatSync(deviceFile.p).isDirectory()) {
+                        //TODO: potentially infinite recursive loop, limit the exploration depth of symbolic directories
+                        splittedRes.type = ProjectInputType.FOLDER;
+                    }
+                    await this.attachInput(splittedRes);
+                } catch (err) {
+                    Logger.error(err.message);
+                }
+            }
+        }
     }
 
     /**

@@ -180,7 +180,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         }
 
         if(!_fs_.existsSync(path)){
-            throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+            throw DexcaliburProjectException.APP_FILE_NOT_FOUND();
         }
 
         return path;
@@ -204,11 +204,11 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         _fs_.writeFileSync( fpath, pInput.data, {encoding:"binary"});
 
 
-        if(_fs_.existsSync(fpath)){
-            throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+        if(!_fs_.existsSync(fpath)){
+            throw DexcaliburProjectException.APP_FILE_NOT_FOUND();
         }
 
-        return
+        return fpath;
     }
 
 
@@ -232,7 +232,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             throw AnalyzerException.CANNOT_PREPARE_PKG("Project is not configured");
         }
         if(this._base_apk==null){
-            throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+            throw DexcaliburProjectException.APP_FILE_NOT_FOUND();
         }
         /* if(this._project.getDevice() == null){
             throw DexcaliburProjectException.TARGET_DEVICE_NOT_FOUND();
@@ -242,10 +242,10 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         let targetApp:TargetApp;
         let basePath:string;
-        let splittedInput:ProjectInput[] = [];
+        //let splittedInput:ProjectInput[] = [];
 
         // pull main APK
-        if(this._base_apk.type==ProjectInputType.REGULAR_FILE){
+        if(this._base_apk.isFile()){
             basePath = await this.pullInput(this._base_apk);
         }else{
             basePath = await this.writeBuffer(this._base_apk);
@@ -258,64 +258,33 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         // if enabled, search split apk on target device
         if((this._cfg.ssa_auto===true) && (device!=null)){
 
-            if(device == null){
+            if (device == null) {
                 throw AnalyzerException.ANDROID_SEARCH_SPLITTED_DEV_FAIL();
             }
 
-            if(baseInput.location!=ProjectInputLocation.DEVICE){
+            if (this._base_apk.getPredecessor()==null || this._base_apk.getPredecessor().location != ProjectInputLocation.DEVICE) {
                 throw new Error("Cannot search splitted APK : project inputs is not binded to a device");
             }
-            if(baseInput.type!=ProjectInputType.REGULAR_FILE){
+            if(this._base_apk.getPredecessor().type!=ProjectInputType.REGULAR_FILE){
                 throw new Error("Cannot search splitted APK : main project input must be a path to a regular file");
             }
 
             // search app pkg folder
-            const appBin = _path_.posix.dirname(this._base_apk.data as string);
-            const tmpBin = this._project.getWorkspace().getInputDir();
+            const appDirPath = _path_.posix.dirname(this._base_apk.getPredecessor().getPath());
+            let inputAppDir = ProjectInput.from({
+                data: appDirPath,
+                location: ProjectInputLocation.DEVICE,
+                purpose: ProjectInputPurpose.EXTRA,
+                type: ProjectInputType.FOLDER,
+                extractOpts: {type: 'bin'},
+                originalName: _path_.posix.basename(appDirPath),
+            });
+            await this._project.attachInputDeviceDirectory(inputAppDir);
 
-            // list folder content
-            const files = await device.getDefaultBridge().listFiles(appBin);
-
-            let dist:string;
-            let splittedRes:ProjectInput;
-
-            // pull every file
-            for(let i=0;i<files.length;i++){
-
-                dist = _path_.join(tmpBin, files[i].n);
-                try{
-                    device.pull(files[i].p, dist);
+            //splittedInput.push(splittedRes);
 
 
-                    splittedRes = ProjectInput.from({
-                        data: dist,
-                        location: ProjectInputLocation.LOCAL,
-                        purpose: ProjectInputPurpose.EXTRA,
-                        type: ProjectInputType.REGULAR_FILE,
-                        extractOpts: {type:'bin'},
-                        originalName: files[i].n
-                    });
-
-
-                    if(_fs_.lstatSync(dist).isDirectory()){
-                        splittedRes.type = ProjectInputType.FOLDER;
-                    }
-
-                    if(this.state.getProperty("base_apks").indexOf(files[i].n)>-1){
-                        splittedRes.purpose = ProjectInputPurpose.MAIN;
-                        baseInput = splittedRes;
-                    }else{
-
-                    }
-
-                    splittedInput.push(splittedRes);
-                }catch(err){
-                    Logger.error(err.message);
-                }
-            }
-
-
-            Logger.info(ProjectInputViewer.printList(splittedInput));
+            //Logger.info(ProjectInputViewer.printList(splittedInput));
         }
 
         // extract Base APK
@@ -338,12 +307,15 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         // if enabled, merge package from splittedInput, this._base_apk  and  this._extra
         // into a single folder.
+<<<<<<< HEAD
         if(this._cfg.msa_auto===true){
+=======
+        if (this._cfg.mustMergeSplittedAPK()) {
+>>>>>>> 310894a5 (Update ProjectInput, add predecessor, and save it in DB.)
             // override options with options corresponding to freshly crafted package
             await this.mergeSplitApks(
                 baseInput,
-                this._extra,
-                splittedInput
+                this._extra
             );
             //opts.path = o.path;
         }
@@ -363,10 +335,10 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
 
         // start analysis ?
-        if(success){
+        if (success) {
 
             this.state.setProperty("_base_apk", targetApp.toJsonObject());
-            this.state.setProperty("_extra_apk", splittedInput);
+            //this.state.setProperty("_extra_apk", splittedInput);
             await this.state.save();
 
             //
@@ -391,26 +363,25 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
      * @async
      * @method
      */
-    async mergeSplitApks(pBaseApk:ProjectInput, pExtra:Record<string, ProjectInput[]>, pSplitApks:ProjectInput[]){
+    async mergeSplitApks(pBaseApk:ProjectInput, pExtra:Record<string, ProjectInput[]>){
 
-        let extraBundle:ProjectInput, tmpApp:TargetApp, extractDest:string, extra:string, splitCtn:string[];
+        let tmpApp:TargetApp, extractDest:string, extra:string, splitCtn:string[];
         const ignore = this.state.getProperty("ignore_split_files");
         const dest = this._project.workspace.getApkDir();
 
+        let extraToMerge: ProjectInput[] = pExtra.external;
+
         // pBaseApk has been already extracted to apk dir into project workspace
-        for(let i=0; i<pSplitApks.length; i++){
-
-            extraBundle = pSplitApks[i];
-
-            if((extraBundle.data as string).endsWith(".apk")){
+        for (let extraBundle of extraToMerge) {
+            if (extraBundle.getOriginalName().endsWith(".apk") || extraBundle.getPath().endsWith(".apk")) {
 
                 try{
                     // extract APK into tmp folder, and merge content with apk folder
-                    tmpApp = new TargetApp("bin", extraBundle.data as string);
+                    tmpApp = new TargetApp("bin", extraBundle.getPath());
 
                     extractDest = _path_.join(
                         this._project.workspace.getTmpDir(),
-                        Util.now()+"_"+_path_.basename(extraBundle.data as string)
+                        Util.now()+"_"+_path_.basename(extraBundle.getPath())
                     );
 
                     // extract apk
@@ -529,7 +500,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
     }
 
     /**
-     * To attach new input to an package analyzer instance
+     * To attach new input to a package analyzer instance
      *
      * It doesnt update state
      *

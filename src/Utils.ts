@@ -29,6 +29,12 @@ const _spawn_:any = _util_.promisify(_child_process_.spawn);
 
 const RE_REPLACE:RegExp = /[-\/\\^$*+?.()|[\]{}]/g;
 
+export type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+export interface JsonArray extends Array<JsonValue> { }
+export interface JsonObject {
+    [key: string]: JsonValue;
+}
+
 function checksum(str:string, algorithm:string ='md5', encoding:any ='hex'):string {
     return crypto
       .createHash(algorithm || 'md5')
@@ -172,10 +178,11 @@ export default class Util {
      * @param str
      * @param pNoRmCrlf
      */
-    static trim(str:string, pNoRmCrlf=false):string{
+    static trim(str:string, pNoRmCrlf=false, pRmUTF = false):string{
         //if(!(str instanceof String)) console.error("trim() : the argument must be a string");
 
         const wl = (pNoRmCrlf ? ["\t"," "] : ["\t"," ","\r","\n"]);
+        if(pRmUTF) wl.push("\ufeff");
 
 //        while(str[0]!=undefined && (str[0]=="\t"||str[0]==" "))
         while(str[0]!=undefined && (wl.indexOf(str[0])>-1))

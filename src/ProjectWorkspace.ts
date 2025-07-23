@@ -235,9 +235,6 @@ export default class ProjectWorkspace
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.APP_OUT))){
             this.mkWDir(DIR_NAME.APP_OUT);
         }
-        if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.HKWS))){
-            this.mkWDir(DIR_NAME.HKWS);
-        }
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.AUDIT))){
             this.mkWDir(DIR_NAME.AUDIT);
         }
@@ -250,7 +247,7 @@ export default class ProjectWorkspace
             _ws:this
         });
 
-        if(DexcaliburEngine.getInstance().isUpdateMode()){
+        if (this.hookWS.isReady() || DexcaliburEngine.getInstance().isUpdateMode()) {
             await this.hookWS.init();
         }
 
@@ -419,17 +416,17 @@ export default class ProjectWorkspace
      * @param pType
      */
     changeMainAppBinary( pPath:string, pType:Nullable<string> = 'bin'){
-        console.log('[PROJECT WORKSPACE][changeMainAppBinary] Input Path = '+pPath+' (type='+pType+')');
+        Logger.info('[PROJECT WORKSPACE][changeMainAppBinary] Input Path = '+pPath+' (type='+pType+')');
         const targetPath = this.getTargetAppPath(pType);
         _fs_.copyFileSync( pPath, targetPath);
-        console.log('[PROJECT WORKSPACE][changeMainAppBinary] Output Path = '+this.getAppPath());
         this.mainApp = new TargetApp( pType, targetPath);
+        Logger.info('[PROJECT WORKSPACE][changeMainAppBinary] Output Path = '+this.getAppPath());
         return this.mainApp;
     }
 
     async getHookWorkspace():Promise<HookWorkspace> {
 
-        if(!this.hookWS.isReady()){
+        if (!this.hookWS.isReady()) {
             await this.hookWS.init();
         }
 
@@ -476,7 +473,7 @@ export default class ProjectWorkspace
             }
 
             const ext = (pInput.extractOpts.type!=null ? '.'+pInput.extractOpts.type : '');
-            path = _path_.join(this.getInputDir(),pInput.purpose);
+            path = _path_.join(this.getInputDir(), pInput.purpose);
             if(!_fs_.existsSync(path+ext)){
                 return path+ext;
             }
@@ -484,7 +481,8 @@ export default class ProjectWorkspace
             let newPath:string;
             let i=1;
             do{
-                newPath = path+"_"+i+ext;
+                newPath = path + "_" + i + ext;
+                i++;
             }while(_fs_.existsSync(newPath));
 
             return newPath;
