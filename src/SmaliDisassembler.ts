@@ -5,6 +5,8 @@ import {ModelPackedSwitchStatement, ModelSwitchCase} from "./ModelSwitch.js";
 import {CONST} from "./CoreConst.js";
 import ModelCatchStatement from "./ModelCatchStatement.js";
 import * as Log from "./Logger.js";
+import {AndroidResourceType} from "./android/AndroidResource.js";
+import ModelInstruction from "./ModelInstruction.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -161,6 +163,7 @@ export default class SmaliDisassembler
         let bbe:any={}, line:any={}, result:any=[], c:any={};
         let placeholder:number = -1, ln:number = -1;
 
+        // loop over basic block
         for(let i in pMethod.instr){
             bb=pMethod.instr[i];
             bbe={
@@ -225,6 +228,7 @@ export default class SmaliDisassembler
                 bbe.tag = bb.tag;
             }
 
+            // loop over instruction inside basic block
             if(bb.stack.length > 0){
                 let j:number = 0;
 
@@ -248,28 +252,26 @@ export default class SmaliDisassembler
                         const: false,
                         tag: bb.tag,
                         bb_offset: i,
-                        bb_roffset: j
+                        bb_roffset: j,
+                        op: (bb.stack[j].opcode!=null ? bb.stack[j].opcode.instr : null),
+                        r: (bb.stack[j].right!=null ? ModelInstruction.operandToJson(bb.stack[j].right) : null),
+                        l: (bb.stack[j].left!=null ? ModelInstruction.operandToJson(bb.stack[j].left) : null),
                     };
 
                     if(bb.stack[j].opcode.instr.indexOf("if-")>-1){
                         line.if = true;
-                        line.value = bb.stack[j]._raw;
                     }
                     else if(bb.stack[j].opcode.type==CONST.INSTR_TYPE.GOTO){
                         line.goto = true;
-                        line.value = bb.stack[j]._raw;
                     }
                     else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
-                        line.value = bb.stack[j]._raw;
+                        //
                     }
                     else if(bb.stack[j].opcode.instr.indexOf("const-string")>-1){
                         line.string = true;
-                        line.value = bb.stack[j]._raw;
-                    }
-                    else{
-                        line.value = bb.stack[j]._raw;
                     }
 
+                    line.value = bb.stack[j].getRaw();
                     bbe.instr.push(line);
                     j++;
 

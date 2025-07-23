@@ -318,8 +318,36 @@ ModelInstruction.TYPE.updateProperties([
     (new NodeProperty("iline")).type(DbDataType.NUMERIC).def(-1),
     (new NodeProperty("_raw")).type(DbDataType.STRING),
     (new NodeProperty("_call")).volatile().type(DbDataType.STRING),
-    (new NodeProperty("left")).type(DbDataType.BLOB).def(false),
-    (new NodeProperty("right")).type(DbDataType.BLOB).def(null),
+    (new NodeProperty("left"))
+        .type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState)=>{
+            if(x.p !=null){
+                return  ModelInstruction.operandToJson(x.p);
+            }
+            return null;
+        })
+        .wakeUp( (x:NodePropertyState) =>  {
+            if(x.p !=null){
+                return ModelInstruction.operandFromJson(x.p);
+            }
+            return null;
+        })
+        .def(null),
+    (new NodeProperty("right"))
+        .type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState)=>{
+            if(x.p !=null){
+                return ModelInstruction.operandToJson(x.p);
+            }
+            return null;
+        })
+        .wakeUp( (x:NodePropertyState) =>  {
+            if(x.p !=null){
+                return ModelInstruction.operandFromJson(x.p);
+            }
+            return null;
+        })
+        .def(null),
     (new NodeProperty("opcode")).type(DbDataType.BLOB).def([]),
     (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
     (new NodeProperty("value")).type(DbDataType.BLOB).def(null),
@@ -332,7 +360,7 @@ ModelBasicBlock.TYPE.updateProperties([
     (new NodeProperty("_parent")).volatile().single(ModelMethod.TYPE),
     (new NodeProperty("line")).type(DbDataType.NUMERIC).def(-1),
     (new NodeProperty("prologue")).type(DbDataType.BOOLEAN).def(false),
-    (new NodeProperty("stack")).volatile().multiple(ModelInstruction.TYPE).embed(),
+    (new NodeProperty("stack")).multiple(ModelInstruction.TYPE).embed(),
     (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
 
     (new NodeProperty("cond_name")).type(DbDataType.STRING).def(null),
@@ -455,7 +483,7 @@ ModelPackage.TYPE.updateProperties([
             (new NodeProperty("children")).volatile(),
             (new NodeProperty("tags")).type(DbDataType.STRING),
             (new NodeProperty("alias")).type(DbDataType.STRING),
-    ]).dataSource("MEM").builder(ModelPackage);
+    ]).dataSource("PROJECT_DB").builder(ModelPackage);
 
 
 ModelClass.TYPE.updateProperties([
@@ -465,7 +493,7 @@ ModelClass.TYPE.updateProperties([
             (new NodeProperty("source")).type(DbDataType.STRING),
             (new NodeProperty("modifiers")).type(DbDataType.STRING),
 
-            (new NodeProperty("package")).volatile().single(ModelPackage.TYPE),
+            (new NodeProperty("package")).single(ModelPackage.TYPE),
             (new NodeProperty("implements")).multiple(ModelClass.TYPE),
             (new NodeProperty("extends")).single(ModelClass.TYPE),
             (new NodeProperty("supers")).multiple(ModelClass.TYPE),
@@ -490,7 +518,7 @@ ModelClass.TYPE.updateProperties([
             (new NodeProperty("__p"))
                 .type(DbDataType.STRING)
 
-    ]).dataSource("MEM").builder(ModelClass);
+    ]).dataSource("PROJECT_DB").builder(ModelClass);
 
 
 KeyPoint.TYPE.updateProperties([

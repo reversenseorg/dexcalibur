@@ -141,6 +141,7 @@ export default class RadareHelper implements INativeHelper
      async parseSections(pOut:any):Promise<ModelExecutableSection[]> {
         let secs:ModelExecutableSection[] = [];
 
+        console.log(pOut);
 
         pOut.map( vSec => {
             secs.push(new ModelExecutableSection({
@@ -172,7 +173,7 @@ export default class RadareHelper implements INativeHelper
         let fns:ModelFunction[] = [];
 
 
-        Logger.info("R2 > parse functions ...");
+        Logger.debug("R2 > parse functions ...");
 
         try{
             pOut.map( vFn => {
@@ -330,7 +331,7 @@ export default class RadareHelper implements INativeHelper
 
 
 
-        Logger.info('[R2] Run command : '+pCommands.join(','));
+        Logger.debug('[R2] Run command : '+pCommands.join(','));
 
         for(let i=0; i<pCommands.length; i++){
 
@@ -451,7 +452,7 @@ export default class RadareHelper implements INativeHelper
             data: null
         };
         try {
-            Logger.info(`[R2] (extraCmds=${pCommands.join(',')}) Start analysis of : ${this.target.getPath()} `)
+            Logger.debug(`[R2] (extraCmds=${pCommands.join(',')}) Start analysis of : ${this.target.getPath()} `)
             this._p = R2Pipe.open(this.target.getPath());
 
             let res:any = await this._p.runCmd("aa;aac", { json:false, ignoreErr:true });
@@ -496,7 +497,6 @@ export default class RadareHelper implements INativeHelper
                     Logger.error(`[R2] Error 'tj' : ${err.message}`)
                 });
 
-                console.log(data);
 
                 if(typeof data.data === 'string'){
                     data = JSON.parse(data.data);

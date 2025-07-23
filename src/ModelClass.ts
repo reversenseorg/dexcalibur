@@ -17,6 +17,7 @@ import {
     INode, SerializeOptions
 } from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "./core/CoreDebug.js";
+import type = Mocha.utils.type;
 
 
 interface IClassSet {
@@ -482,7 +483,13 @@ export default class ModelClass extends Savable implements INode, IPersistent
             }
             else if(i == "__p"){
                 if(this.__p.loc != null){
-                    obj.location = this.__p.loc.toJsonObject();
+
+                    console.log(this.__p.loc.toJsonObject);
+                    if(typeof this.__p.loc.toJsonObject == 'function'){
+                        obj.location = this.__p.loc.toJsonObject();
+                    }else{
+                        obj.location = this.__p.loc;
+                    }
                 }
             }
             else if(i == "_callers"){

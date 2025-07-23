@@ -112,6 +112,11 @@ export class ModelBasicType extends Savable
         CoreDebug.checkJsonSerialize(obj, "ModelBasicType");
         return obj;
     }
+
+
+    static fromJsonObject(pObj:any):ModelBasicType {
+        return new ModelBasicType(pObj._hashcode,pObj.arr);
+    }
 }
 
 
@@ -188,6 +193,12 @@ export class ModelObjectType extends Savable
         obj.primitive = false;
         CoreDebug.checkJsonSerialize(obj, "ModelObjectType");
         return obj;
+    }
+
+    static fromJsonObject(pObj:any):ModelObjectType {
+        const o = new ModelObjectType(null,pObj.arr);
+        o._hashcode = o._name = o.name = pObj.name;
+        return o;
     }
 
     isArray():boolean{

@@ -127,14 +127,25 @@ export class PrivacyScanner extends AssuranceScanner {
         for(let vRuleOffset=0; vRuleOffset<rules.length; vRuleOffset++){
             vRule = rules[vRuleOffset];
             if(!vRule.hasBusSubscriber()){
+
                 if(Merlin.isRule(vRule)){
 
                     try{
                         if(vRule.hasErrors()){
-                            Logger.error(`Rule [uid=${pCtrlNode.ctrl.id}#${vRuleOffset}] has errors (${vRule.getErrors().length}`);
+                            Logger.error(`Rule [uid=${pCtrlNode.canonicalID}#${vRuleOffset}] has errors (${vRule.getErrors().length}`);
                             continue;
                         }
+
+                        if(pCtrlNode.canonicalID.startsWith("*.4091cae9-")){
+                            console.log("BEFORE EXEC >",pCtrlNode.canonicalID, vRuleOffset, vRule.toSearchString());
+                        }
+
                         res = await vRule.execute(this.project);
+
+                        if(pCtrlNode.canonicalID.startsWith("*.4091cae9-")){
+                            console.log("AFTER EXEC >",pCtrlNode.canonicalID, vRuleOffset, res.count());
+                        }
+
                         if(res.count()>0){
                             console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
                             res.foreach((offset:number,x:any) => {
@@ -325,10 +336,12 @@ export class PrivacyScanner extends AssuranceScanner {
         // get atomic assessments
         const leafs = this.model.getControlLeafsFrom(CANONICALIZED_ROOT);
 
+
         // build
         leafs.map((vNode)=>{
             if(vNode.ctrl.isControlAssessment()){
                 const assesst = (vNode.ctrl as ControlAssessment);
+                console.log((vNode.canonicalID.indexOf('4091cae9-dc3a-4027-b6d4-b5500edb561a')>-1),vNode.canonicalID, assesst.testType);
                 tests[assesst.testType].push(vNode);
             }
         });
@@ -417,7 +430,19 @@ export class PrivacyScanner extends AssuranceScanner {
                 let m:Match, n:any[];
                 for(let sdkID in this.report.matches){
                     m = this.report.matches[sdkID];
-                    n = m.match.map(x => x.node);
+
+                    // m.assessment =>W ControlAssessment
+                    // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+
+                    console.log(m);
+
+                    if(m.assessment.ctrl==null) continue;
+
+                    /*if(m.assessment.ctrl.test!=null){}
+                    for(let k=0; k<m.match.length;k++){
+
+                    }*/
+                    //n = m.match.map(x => x.node);
                     //n = this._retrieveOosCaller(n);
                 }
 

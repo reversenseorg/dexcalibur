@@ -43,7 +43,7 @@ export default class RadareFactory
      * @return {RadareHelper}
      */
     getHelperFor(pBinary:ModelFile):RadareHelper {
-        Logger.raw(Object.keys(this.helpers).join(";"),"          '",pBinary.getUID(),"'")
+      //  Logger.raw(Object.keys(this.helpers).join(";"),"          '",pBinary.getUID(),"'")
         return this.helpers[pBinary.getUID()];
     }
 
