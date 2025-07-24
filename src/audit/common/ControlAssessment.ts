@@ -84,12 +84,23 @@ interface Match {
     match: INode | any;
 }
 
+
 export enum MetadataTopic {
     DFLOW_STEP="step",
     IMPACT="impact",
     CRITICITY="criticity",
-    PREFERED_ABI='prefered abi',
-    CATEGORY="category"
+    GROUP='grp',
+    CATEGORY='category',
+    ADVISORY='recommandation',
+    RECO="recommandation",
+    COUNTRY='country',
+    PURPOSE='sbom.purpose',
+    WEBSITE='www',
+    COMPANY='company',
+    REVISION='rev',
+    EXTRACT='ext',
+    CTRL='ctrl',
+    PREFERED_ABI='pabi'
 }
 
 

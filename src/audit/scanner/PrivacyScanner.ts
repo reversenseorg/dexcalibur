@@ -16,17 +16,18 @@ import {BusSubscriber} from "../../Bus.js";
 import {AssuranceScannerException} from "../errors/AssuranceScannerException.js";
 import AnalyzerDatabase from "../../AnalyzerDatabase.js";
 import {AssuranceModelUUID, CANONICALIZED_ROOT, ControlNode} from "../common/AssuranceModel.js";
-import ControlAssessment from "../common/ControlAssessment.js";
+import ControlAssessment, {MetadataTopic} from "../common/ControlAssessment.js";
 import {TestPlan, TestStep, TestType} from "../common/TestPlan.js";
 import Control from "../common/Control.js";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import * as sea from "node:sea";
 import ModelStringValue from "../../ModelStringValue.js";
 import {SearchAPI} from "../../SearchAPI.js";
-import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, NodeUtils, Tag} from "@dexcalibur/dexcalibur-orm";
 import {LicenceManager} from "../../credit/LicenceManager.js";
 import {ReversenseProduct} from "../../billing/ReversenseProduct.js";
 import {ProductRelease} from "../../billing/ProductRelease.js";
+import {MetadataType} from "../common/Metadata.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -377,7 +378,7 @@ export class PrivacyScanner extends AssuranceScanner {
 
         // TODO : prepare test plan by gathering, categorizing and prioritizing tests
 
-        // 0.b prepare test plan
+        // 0.b prepare test planx
         const plan = this._prepareTestPlan();
 
         // 1. configure main Bus
@@ -413,20 +414,194 @@ export class PrivacyScanner extends AssuranceScanner {
         });
 
         let crossReport:Nullable<AssuranceReport> = null;
-        let filteredMatches:Record<string, any> = {};
+
+        const intern:Tag = pContext.getTagManager().getTag("discover.internal");
+
+        // 5' : Filter / transform results
+        let m:Match;
+        for(let sdkID in this.report.matches){
+            m = this.report.matches[sdkID];
+
+            m.match = m.match.filter( occ => {
+                if(occ.node==null) /* skip */ return;
+
+                switch (occ.node.__){
+                    case NodeInternalType.STRING:
+                        if((occ.node as ModelStringValue).src!=null){
+                            if(Array.isArray(occ.node.src)){
+                                occ.node.src.map((n,i)=>{
+                                    if(n.__==NodeInternalType.STRING) return /* avoid infinite loop */;
+                                    if(i!=0){
+                                        m.match.push({
+                                            node: n,
+                                            ruleIdx: occ.ruleIdx,
+                                            meta:[{
+                                                type: MetadataType.ANY,
+                                                key: MetadataTopic.EXTRACT,
+                                                value: occ.node.value
+                                            }]
+                                        });
+                                        return;
+                                    }
+                                    occ.node = n;
+                                });
+                            }else{
+                                occ.node = occ.node.src;
+                                if(occ.meta==null) occ.meta = [];
+                                occ.meta.push({
+                                    type: MetadataType.ANY,
+                                    key: MetadataTopic.EXTRACT,
+                                    value: occ.node.value
+                                });
+                            }
+                        }
+                        return true;
+                        break;
+                    case NodeInternalType.METHOD:
+                        // remove internal match (tagged 'discover.internal')
+                        if((occ.node as INode).tags.indexOf(intern.getUUID())>0){
+                            return false;
+                        }else{
+                            return true;
+                        }
+                        // search xref to remove dead code
+                        break;
+                    default:
+                        return true;
+                }
+            });
+
+
+            // m.assessment =>W ControlAssessment
+            // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+        }
+
+        // 5''. Deduplicate matching node (merge matching ctrl ID in metadata)
 
         // 6. post process : sample results
         switch(this.model.getID()){
             case "privacy.pii3":
                 // check if report of "privacy.trackers.shared" is available
                 crossReport = await this._getExtraReport("privacy.trackers.shared");
-                if(crossReport!=null){
-                    this._updatePiiWithExternalSDK(crossReport);
+                if(crossReport!=null && crossReport.matches!=null){
+
+                    const sdkNode:Record<number/*NodeInternalType*/, Record<string /* UID */, {ctrl:string,idx:number}[]>> = {};
+
+
+                    // sort extra matches by noderef
+                    let m:Match;
+                    for(let ecuid in crossReport.matches){
+                        m = crossReport.matches[ecuid];
+                        if(m.match!=null){
+                            m.match.map(n => {
+                                if(n.node!=null){
+                                    if(sdkNode[n.node.__]==null){
+                                        sdkNode[n.node.__] = {};
+                                    }
+                                    if(sdkNode[n.node.__][n.node.uid]==null){
+                                        sdkNode[n.node.__][n.node.uid] = [];
+                                    }
+                                    sdkNode[n.node.__][n.node.uid].push({
+                                        ctrl: ecuid,
+                                        idx: n.ruleIdx
+                                    });
+                                }
+
+                            })
+                        }
+                    }
+
+
+                    // search directly
+
+                    let n:any[];
+                    for(let piiID in this.report.matches){
+                        m = this.report.matches[piiID];
+
+                        m.match.map( occ => {
+                            if(occ.node==null) /* skip */ return;
+
+                            // preprocess
+
+                            let ref = NodeUtils.asNodeRef(occ.node);
+
+                            let xref:any = sdkNode[ref.__];
+                            if(xref==null) return;
+                            xref = xref[ref._uid];
+                            if(xref==null) return;
+
+                            // a match in privacy.trackers.shared also exists in pii3
+                            //occ.g = occ.ctrl;
+
+                            //console.log(occ);
+                        });
+
+
+                        // m.assessment =>W ControlAssessment
+                        // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+                    }
                 }
                 break;
             case "privacy.trackers.shared":
+
+                // check if report of "privacy.trackers.shared" is available
+                crossReport = await this._getExtraReport("privacy.trackers.shared");
+                if(crossReport!=null && crossReport.matches!=null){
+
+                    const piiNode:Record<number/*NodeInternalType*/, Record<string /* UID */, {ctrl:string,idx:number}[]>> = {};
+
+                    // sort extra matches by noderef
+                    let m:Match;
+                    for(let ecuid in (crossReport.matches) as any){
+                        m = crossReport.matches[ecuid];
+                        if(m.match!=null){
+                            m.match.map(n => {
+                                if(n.node!=null){
+                                    if(piiNode[n.node.__]==null){
+                                        piiNode[n.node.__] = {};
+                                    }
+                                    if(piiNode[n.node.__][n.node.uid]==null){
+                                        piiNode[n.node.__][n.node.uid] = [];
+                                    }
+                                    piiNode[n.node.__][n.node.uid].push({
+                                        ctrl: ecuid,
+                                        idx: n.ruleIdx
+                                    });
+                                }
+
+                            })
+                        }
+                    }
+                    let n:any[];
+                    for(let sdkID in this.report.matches){
+                        m = this.report.matches[sdkID];
+
+                        m.match.map( occ => {
+                            if(occ.node==null) /* skip */ return;
+
+                            // preprocess
+                            let ref = NodeUtils.asNodeRef(occ.node);
+                            let xref:any = piiNode[ref.__];
+                            if(xref==null) return;
+                            xref = xref[ref._uid];
+                            if(xref==null) return;
+
+                            // a match in privacy.trackers.shared also exists in pii3
+                            //occ.g = occ.ctrl;
+                            //console.log(occ);
+                        });
+
+
+                        // m.assessment =>W ControlAssessment
+                        // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+                    }
+
+                    //this._updatePiiWithExternalSDK(crossReport);
+                }
+
                 // filter results to keep only call from code out of SDK to SDK (such as call to SDK API)
                 // check if report of "privacy.pii3" is available
+                /*
                 let m:Match, n:any[];
                 for(let sdkID in this.report.matches){
                     m = this.report.matches[sdkID];
@@ -434,18 +609,10 @@ export class PrivacyScanner extends AssuranceScanner {
                     // m.assessment =>W ControlAssessment
                     // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
 
-                    console.log(m);
-
-                    if(m.assessment.ctrl==null) continue;
-
-                    /*if(m.assessment.ctrl.test!=null){}
-                    for(let k=0; k<m.match.length;k++){
-
-                    }*/
                     //n = m.match.map(x => x.node);
                     //n = this._retrieveOosCaller(n);
                 }
-
+*/
 
                 break;
         }
@@ -613,11 +780,31 @@ export class PrivacyScanner extends AssuranceScanner {
         );
 
         // search report for the same project in app unit
-        const reports = await eng.getAuditManager().getReportsByAppRelease(
+        let reports = await eng.getAuditManager().getReportsByAppRelease(
             eng.getInternalAcc(), app, this.project.getUID()
         );
 
-        return reports.find((r:AssuranceReport)=> r.getModel()===pModel);
+        // filter to keep only terminated, sort from newest to oldest
+        reports = reports
+            .filter(r => {
+                return (r.terminated>-1) && (r.getModel()===pModel);
+            })
+            .sort((r1,r2)=>{
+                if(r1.started>r2.started){
+                    return -1;
+                }else{
+                    return 1;
+                }
+            });
+
+
+        console.log(reports);
+        if(reports.length>0){
+            console.log(pModel,reports[0]);
+            return reports[0];
+        }else{
+            return null;
+        }
     }
 
     private _updatePiiWithExternalSDK(pSdkReport: Nullable<AssuranceReport>) {

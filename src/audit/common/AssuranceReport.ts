@@ -29,12 +29,24 @@ import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {DeviceUUID} from "../../Device.js";
 import ModelStringValue from "../../ModelStringValue.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
+import {INodeRef} from "../../INode.js";
+import {Metadata} from "./Metadata.js";
 
+export interface MatchGroup {
+    model: AssuranceModelUUID,
+    cuid: string // canonical uuid
+}
 
+export interface MatchingNode {
+    node: (INode|INodeRef);
+    ruleIdx?:number;
+    m?:Metadata[];
+}
 export interface Match {
     assessment?: ControlNode;
     ruleIdx?: number;
-    match: any;
+    match: any; // MatchingNode[]; //any;
+    g?:Nullable<MatchGroup>;
 }
 
 
