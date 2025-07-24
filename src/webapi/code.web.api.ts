@@ -1134,8 +1134,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 if(result.count()>0){
-
-                    console.log(result.get(0));
                     $.sendSuccess( res, result.get(0).toJsonObject());
                 }else{
                     $.sendSuccess( res, null);

@@ -1962,24 +1962,8 @@ The Reversense Team
             pAccount
         );
 
-        const org = await this.getOrganization(pAccount, pOrgUUID);
 
-        try{
-            return org.getBusinessPlan().thresholds;
-        }catch(err){
-            // bp is missing
-            if((err as OrganizationManagerException).getCode()==(ErrorCode.ORGANIZATION + 31)){
-                org.setBusinessPlan(( new BusinessPlan({ org:pOrgUUID })).setQuotas({ concurrentNodes: 3}));
-
-                await this._ctx.getEngineDB()
-                    .getCollectionOf(OrganizationUnit.TYPE.getType())
-                    .asyncUpdateEntry(org, { replace:false, $set:['businessPlan']});
-
-                return org.getBusinessPlan().thresholds
-            }else{
-                 throw err;
-            }
-        }
+        return (await this.getOrganization(pAccount, pOrgUUID)).getBusinessPlan().thresholds;
     }
 
     /**

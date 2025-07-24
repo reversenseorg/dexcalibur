@@ -540,7 +540,7 @@ export class EngineNode implements INode {
                     });
                 }
             }else{
-                console.log("NEXT OPERATION BUT NODE IS NOT READY, WAITING ...",this.state,pOrder);
+                console.log("NEXT OPERATION BUT NODE IS NOT READY, WAITING ...",this.state);//,pOrder);
             }
         });
 
@@ -918,6 +918,9 @@ export class EngineNode implements INode {
         }else{
             const opts = pOrder.getOption('extra');
 
+            // refresh waitingQueue
+            await this.refreshWaitingQueue();
+
             // check if the order is already in the queue
             if(this.waitingQueue.find( o => (o.order == pOrder.getUUID())!=null)){
                 return;
@@ -959,6 +962,11 @@ export class EngineNode implements INode {
                     throw EngineNodeException.DOWN_NODE(this.UUID,"startScan");
                     break;
             }
+
+
+            // TODO : save waitingQueue in DB
+            await this._engine.getEngineDB().updateOrder(pOrder,['dates','waitingQueue']);
+            await this.save(['waitingQueue']);
 
             return;
         }
