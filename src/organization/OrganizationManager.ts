@@ -46,7 +46,7 @@ import {AccessAttribute} from "../user/acl/AccessAttribute.js";
 import {AccessControlException} from "../errors/AccessControlException.js";
 import {Auditable} from "../Auditable.js";
 import {EngineNode, EngineNodeUUID} from "../core/EngineNode.js";
-import {Policy} from "../audit/Policy.js";
+import {Policy, PolicyUUID} from "../audit/Policy.js";
 import {ApkeepHelper} from "../android/ApkeepHelper.js";
 import {UploadedResource} from "../common/UploadedResource.js";
 import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
@@ -2653,58 +2653,51 @@ The Reversense Team
     }
 
 
-    async updateOrgPolicy(pUser: UserAccount, pOrg: OrganizationUnit,
+    async updateOrgAppPolicy(pUser: UserAccount, pScope: OrganizationUnit|ApplicationUnit,
                           pPolicy: Policy, pRemove = false):Promise<Policy> {
-        AccessControl.isAuthorized(
-            AccessControl.access.ORG_OU_MODIFY,
-            pUser,
-            pOrg,
-            [
-                OrganizationAccessControl.attr.MEMBER_GRP,
-                OrganizationAccessControl.attr.OWNER
-            ]
-        );
+
+        if(pScope==null || [NodeInternalType.APP_UNIT,NodeInternalType.ORG_UNIT].indexOf(pScope.__)==-1){
+            throw new Error('Scope not supported');
+        }
+
+        if(pScope.__===NodeInternalType.APP_UNIT){
+            AccessControl.isAuthorized(
+                AccessControl.access.ORG_AU_MODIFY,
+                pUser,
+                pScope,
+                [
+                    OrganizationAccessControl.attr.MEMBER_GRP,
+                    OrganizationAccessControl.attr.OWNER
+                ]
+            );
+        }else{
+            AccessControl.isAuthorized(
+                AccessControl.access.ORG_OU_MODIFY,
+                pUser,
+                pScope,
+                [
+                    OrganizationAccessControl.attr.MEMBER_GRP,
+                    OrganizationAccessControl.attr.OWNER
+                ]
+            );
+        }
+
 
         let pol:Nullable<Policy> = null;
         if(pRemove){
-             pOrg.removePolicy(pPolicy.getUID());
+            pScope.removePolicy(pPolicy.getUID());
         }else{
-             pol = pOrg.addPolicy(pPolicy);
+             pol = pScope.addPolicy(pPolicy);
         }
 
 
         await this._ctx.getEngineDB()
-            .getCollectionOf(OrganizationUnit.TYPE.getType())
-            .asyncUpdateEntry(pOrg, {replace:false, $set:['policies'] });
+            .getCollectionOf(pScope.__)
+            .asyncUpdateEntry(pScope, {replace:false, $set:['policies'] });
 
         return pol;
     }
 
-    async updateAppPolicy(pUser: UserAccount, pOrg: OrganizationUnit,
-                          pApp:ApplicationUnit, pPolicy: Policy, pRemove = false):Promise<Policy> {
-        AccessControl.isAuthorized(
-            AccessControl.access.ORG_AU_MODIFY,
-            pUser,
-            pOrg,
-            [
-                OrganizationAccessControl.attr.MEMBER_GRP,
-                OrganizationAccessControl.attr.OWNER
-            ]
-        );
-
-        let pol:Nullable<Policy> = null;
-        if(pRemove){
-            pApp.removePolicy(pPolicy.getUID());
-        }else{
-            pol = pApp.addPolicy(pPolicy);
-        }
-
-        await this._ctx.getEngineDB()
-            .getCollectionOf(ApplicationUnit.TYPE.getType())
-            .asyncUpdateEntry(pApp, {replace:false, $set:['policies'] });
-
-        return pol;
-    }
 
 
     /**
@@ -2791,4 +2784,23 @@ The Reversense Team
         return info;
     }
 
+    /**
+     * To remove a policy from an organization or an application
+     *
+     * @param pUser
+     * @param pScope
+     * @param pPolicy
+     */
+    async dropPolicy(pUser: UserAccount, pScope: OrganizationUnit | ApplicationUnit,
+                     pPolicy: PolicyUUID) {
+
+        if(pScope==null || [NodeInternalType.APP_UNIT,NodeInternalType.ORG_UNIT].indexOf(pScope.__)==-1){
+            throw new Error('Scope not supported');
+        }
+
+        pScope.removePolicy(pPolicy);
+
+        return await (this._ctx.getEngineDB().getCollectionOf(pScope.__) as MongodbDbCollection)
+            .asyncUpdateEntry(pScope, { replace:false, $set:['policies'] });
+    }
 }

@@ -55,10 +55,9 @@ export class PolicyRuleFactory {
             condition: PolicyRuleCondition.METADATA_IN_LIST,
             thresholds: [
                 {
-                    key: MetadataTopic.CATEGORY,
-                    in: [
-                        ""
-                    ]
+                    type: "meta",
+                    key: MetadataTopic.PURPOSE,
+                    in: []
                 }
             ],
             control: null,

@@ -122,6 +122,8 @@ export interface OrderTicket<T,O> extends GenericOrderTicket {
 
 
 
+
+
 export type Order = OrderTicket<OperationType.SCAN_ORDER, ScanOrderUUID>
                         | OrderTicket<OperationType.NEW_PROJ|OperationType.OPEN_PROJ, ProjectOrderUUID>
                         | OrderTicket<OperationType.USER_WEB_REQUEST|OperationType.APP_WEB_REQUEST, any>;
@@ -515,7 +517,7 @@ export class EngineNode implements INode {
                             console.log(err.stack);
                         })
                 }else{
-                    Logger.info(`[ENGINE NODE][${this.UUID}][2] Retrieve next operation from waiting queue. State = ${this.isReady()}, Queue = ${this.waitingQueue.length}`)
+                    //Logger.info(`[ENGINE NODE][${this.UUID}][2] Retrieve next operation from waiting queue. State = ${this.isReady()}, Queue = ${this.waitingQueue.length}`)
                     this.nextWaitingOpe().then((vOrder)=>{
                         if(vOrder==null){
                             Logger.info(`[ENGINE NODE][${this.UUID}][2] Waiting queue is empty. State = ${this.isReady()}`)
@@ -1732,17 +1734,42 @@ export class EngineNode implements INode {
      */
     async nextWaitingOpe():Promise<Nullable<Order>> {
 
-        const self = await (this._engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
-            .asyncGetEntry({ UUID: this.getUID() });
+        // slave waiting queue is empty
 
-        if(self==null) return null;
+        Logger.info(`[ENGINE NODE][${this.UUID}][2] Retrieve next operation from waiting queue. State = ${this.isReady()}, Queue = ${this.waitingQueue.length}`)
 
-        let nextOpe = self.waitingQueue.shift();
-        this.waitingQueue = self.waitingQueue;
+        if(this._engine==null){
+            throw new Error("Engine node manager cannot be retrieve");
+        }
 
-        if(nextOpe!=null){
-            this.activeOpe = nextOpe;
-            await this.save(["activeOpe","waitingQueue"]);
+        let nextOpe:Order;
+
+        // ask next operation to master
+        if((this._engine as DexcaliburEngine).isSlaveNode()){
+            nextOpe = await (this._engine as DexcaliburEngine)
+                                    .getNodeManager()
+                                    .askWaitingOrderFromMaster(this.UUID /*this.UUID*/);
+        }else{
+            const self = await (this._engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+                .asyncGetEntry({ UUID: this.UUID /* this.getUID() */ });
+
+            if(self==null) return null;
+
+            self.waitingQueue.find((o:Order) => {
+                if(o.order!=null && o.order.orgUnit){
+                    console.log(o)
+                   // if(o.order.orgUnit!=null && o.order.orgUnit!=null){}
+                }
+            })
+
+            nextOpe = self.waitingQueue.shift();
+            this.waitingQueue = self.waitingQueue;
+
+            if(nextOpe!=null){
+                this.activeOpe = nextOpe;
+                await this.save(["activeOpe","waitingQueue"]);
+            }
+
         }
 
         return nextOpe;
@@ -1830,6 +1857,10 @@ export class EngineNode implements INode {
             this.idleSince = (new Date().getTime());
             await this.save(['idleSince']);
         }
+    }
+
+    static serializeOrder(pOrder:Order):any {
+        return pOrder;
     }
 }
 EngineNode.TYPE.builder(EngineNode);

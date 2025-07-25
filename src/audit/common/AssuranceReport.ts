@@ -16,7 +16,7 @@ import {
     DbSerialize,
     INode,
     NodeProperty,
-    NodeType,
+    NodeType, NodeUtils,
     SerializeOptions,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
@@ -40,7 +40,7 @@ export interface MatchGroup {
 export interface MatchingNode {
     node: (INode|INodeRef);
     ruleIdx?:number;
-    m?:Metadata[];
+    meta?:Metadata[];
 }
 export interface Match {
     assessment?: ControlNode;
@@ -521,10 +521,15 @@ export default class AssuranceReport implements INode {
         pMatch.match.map((v:any)=>{
             s.match.push({
                 node: {
+                    // new format : node is as INodeRef object
                     __:  v.node.__,
+                    _uid: NodeUtils.asNodeRef(v.node)._uid,
+                    // 'uid' is deprecated
                     uid: (v.node.getUID!=null)? v.node.getUID() : v.node.uid,
-                    value: (v.node.getUID!=null)? AssuranceReport._extractNodeValue("",v) : null
+                    // 'value' should be moved to Metadata
+                    value: (v.node.getUID!=null)? AssuranceReport._extractNodeValue("",v) : null,
                 },
+                meta: v.meta,
                 ruleIdx: v.ruleIdx //pMatch.ruleIdx
             })
         });

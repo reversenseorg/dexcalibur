@@ -2685,7 +2685,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
             // save model
             //await this.pdb.saveAnalyzerDB(this.analyze.getData());
-            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), this.tagManager.getTag("discover.internal"));
+            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
 
 
             // load hooks

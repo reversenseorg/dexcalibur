@@ -1,11 +1,12 @@
 import {IChange} from "../common/Change.js";
-import {DbDataType, NodeProperty, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {DbDataType, NodeProperty, NodePropertyState, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {ValidationRule} from "../Validator.js";
 import {ProjectInputPurpose} from "../analyzer/ProjectInput.js";
 import {PolicyRule, PolicyRuleOptions} from "./PolicyRule.js";
 import {PolicyException} from "./errors/PolicyException.js";
 import {AssuranceModelUUID} from "./common/AssuranceModel.js";
+import {BusinessPlan} from "../billing/BusinessPlan.js";
 
 export enum PolicyZone {
     NONE='none',
@@ -66,7 +67,23 @@ export class Policy {
         (new NodeProperty("changes")).type(DbDataType.BLOB),
         (new NodeProperty("scope")).type(DbDataType.BLOB),
         (new NodeProperty("enabled")).type(DbDataType.BLOB),
-        (new NodeProperty("rules")).type(DbDataType.BLOB),
+        (new NodeProperty("rules"))
+            .type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                return x.p.map(r => r.toJsonObject());
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+
+                /*const bp = BusinessPlan.fromJsonObject(x.p);
+                bp.setWallet(x.p.wallet.map(p => {
+                    return new Purchase(p);
+                }));*/
+
+                return x.p.map( r => new PolicyRule(r));
+            })
+            .def([]),
         (new NodeProperty("tags")).type(DbDataType.BLOB),
         (new NodeProperty("model")).type(DbDataType.STRING)
     ])).dataSource("PROJECT_DB");
@@ -198,9 +215,12 @@ export class Policy {
             rules: []
         });
 
-        pOptions.rules.map(((vRule) => {
-            policy.addRule(new PolicyRule(vRule));
-        }));
+        if(pOptions.rules!=null ){
+            pOptions.rules.map(((vRule) => {
+                policy.addRule(new PolicyRule(vRule));
+            }));
+        }
+
 
         return policy;
     }

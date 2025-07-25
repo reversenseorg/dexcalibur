@@ -133,6 +133,41 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
     }
 );
 
+NODE_MGR_WEB_API.addAsyncPublicRoute(
+    '/webhook/waiting_orders',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // retireve registration key
+                let unsafeKey = req.headers['x-dxc-'+$.context.nodeManager.getRegistrationKeyName()];
+
+                if(Array.isArray(unsafeKey) && unsafeKey.length>0){
+                    unsafeKey = unsafeKey[0];
+                }
+
+                const unsafeHost = req.headers[EngineNodeManager.HEADER_NODE_HOST];
+
+                // validate
+                const orders = await $.context.nodeManager.nextGloballyWaitingOpe(req.body.node);
+
+                console.log("waiting_orders > ",orders);
+
+                $.sendSuccess(res, orders);
+            }catch(err){
+                Logger.error("[API][NODE] Node cannot be registered.",err.stack);
+                //console.log(req.headers);
+                $.sendErrorAfterException(
+                    res,
+                    NODE_MGR_WEB_API.name,
+                    "Node cannot be registered",
+                    err);
+            }
+        }
+    }
+);
+
 
 
 /**

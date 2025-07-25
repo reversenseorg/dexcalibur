@@ -931,57 +931,9 @@ export class ProjectManager {
             remoteNode.suspendQueue(false);
             remoteNode.resumeQueue();
 
-
-
-            //console.log("REMOTE NODE : ", remoteNode);
-            // to subsribe to state changes
-            /*remoteNode.nodeState$.subscribe((vChange  )=>{
-
-                // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per nod
-
-                console.log(" ProjectManager > open > nodeState$ = "+vChange.new);
-                if(vChange.new==NodeState.REGISTERED){
-                    //remoteNode.start("Slave registered");
-                    // to open associated project
-                    remoteNode.open(pExtraOpts).then((r)=>{
-                        //remoteNode.nodeState$
-                        remoteNode.setState(NodeState.IDLE); //.then(()=>{});
-                    })
-                }
-
-                // the sequence NodeState.STARTING -> NodeState.IDLE happens only a single time per node
-                if(vChange.new==NodeState.IDLE && vChange.before==NodeState.STARTING){
-                    // to open associated project
-                    remoteNode.open(pExtraOpts).then((r)=>{
-                        //remoteNode.nodeState$
-                        remoteNode.setState(NodeState.IDLE); //.then(()=>{});
-                    })
-                }
-                if(vChange.new==NodeState.IDLE && ([NodeState.BUSY,NodeState.IDLE].indexOf(vChange.before)>-1) ){
-
-                    if(scanOrders.length>0){
-
-                        let order = scanOrders.pop();
-
-                        // to open associated project
-                        remoteNode.startScan(order).then((r)=>{
-                            //remoteNode.nodeState$
-                            //remoteNode.setState(NodeState.IDLE); //.then(()=>{});
-                        });
-                    }
-                }
-            });*/
-
-
-            // to start the node
-            /*if([NodeState.NEW,NodeState.UNKNOW,NodeState.QUEUED].indexOf(remoteNode.state)>-1){
-                await remoteNode.start("Opening project");
-            }*/
-
             if(!remoteNode.isRunning()){
                 await remoteNode.start("Opening project");
             }
-
 
             return remoteNode;
         }
@@ -1171,9 +1123,6 @@ export class ProjectManager {
             if(currNode==null){
                 throw EngineNodeException.MISSING_NODE(this._ctx.getNodeUUID(),"_openLocally");
             }
-
-            // nextOpe should be new/open proj
-            //const ope = await  currNode.nextWaitingOpe();
 
             currNode.setState(NodeState.BUSY);
             await currNode.save(['state','idleSince']);

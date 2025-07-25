@@ -2,7 +2,7 @@ import * as _fs_ from "fs";
 
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
-import {EngineNode, EngineNodeUUID, NodePurpose, StateChangeEvent} from "./EngineNode.js";
+import {EngineNode, EngineNodeUUID, NodePurpose, Order, StateChangeEvent} from "./EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import got from "got";
 import * as Log from "../Logger.js";
@@ -23,6 +23,8 @@ import DexcaliburWorkspace from "../DexcaliburWorkspace.js";
 import UT from "../Utils.js";
 import * as _path_ from "path";
 import {ChildProcess} from "child_process";
+import {ScanOrder} from "../audit/common/ScanOrder.js";
+import {ProjectOrder} from "../project/ProjectOrder.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -52,6 +54,15 @@ export interface NodeLockTimeout {
     node: number
 }
 
+export interface AskWaitingOrderOptions {
+    masterURI:string;
+    http:number;
+    https:number;
+    hostIP?:string;
+    timeout:number;
+    nodeUUID?:EngineNodeUUID;
+}
+
 export interface RegisterNodeOptions {
     masterURI:string;
     regKeyName:string;
@@ -63,6 +74,8 @@ export interface RegisterNodeOptions {
     timeout:number;
     pollLimit:number;
 }
+
+
 
 
 export enum NodeState {
@@ -181,7 +194,11 @@ export class EngineNodeManager {
                 .asyncUpdateEntry(this, { replace:false, $set:['uuid']})
                 .then(()=>{
                     console.log('Saved UUID');
-                })
+                    // on K8s, pull waiting_order from master ?
+                    if(process.env.KUBERNETES_PORT!=null){
+
+                    }
+                });
         });
 
         if(process.env.DXC_MAX_IDLETIME!=null){
@@ -777,6 +794,42 @@ export class EngineNodeManager {
         return;
     }
 
+    async askWaitingOrderFromMaster(pNode:EngineNodeUUID):Promise<Nullable<Order>> {
+
+        if(this.masterURI==null){
+            throw EngineNodeException.INVALID_MASTER_URI('notify');
+        }
+
+
+        Logger.info(`[NODE MANAGER][${pNode}] Ask waiting orders from master. URI :`+this.masterURI+"/api/node/webhook/waiting_orders");
+        const response = await GOT(this.masterURI+"/api/node/webhook/waiting_orders", {
+            method: 'POST',
+            headers: {
+                // this one is mandatory to be processed by master middleware of /api/node/** routes
+                [EngineNodeManager.HEADER_NODE_HOST]: (process.env.DXC_PRIV_IP!=null ? process.env.DXC_PRIV_IP:'127.0.0.1'),
+                //['x-dxc-'+pOptions.regKeyName]: pOptions.regKey
+                // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
+            },
+            json: {
+                node: pNode
+            }
+        });
+
+        if(response.body!=null){
+            const repData  = JSON.parse(response.body);
+            if((repData as any).success==true){
+                Logger.success("[NODE MANAGER] Waiting orders retrieved registered : "+repData.data);
+                console.log(repData.data);
+
+
+
+                return repData.data;
+            }
+        }
+
+        return null;
+    }
+
 
     /**
      * SLAVE MODE
@@ -915,18 +968,6 @@ export class EngineNodeManager {
         if(vEvent.new==NodeState.IDLE || vEvent.new==NodeState.REGISTERED){
 
             node.operation$.next(null);
-            /*
-            //console.log(node);
-
-            // retrieve the next operation from waiting queue
-            const o = await node.nextWaitingOpe();
-
-            if(o!=null){
-                node.operation$.next(o);
-            }else{
-                // no more order to process
-            }*/
-
         }
     }
 
@@ -1271,9 +1312,14 @@ export class EngineNodeManager {
         let nextNode = await  this._getNextNode();
 
 
+
+        Logger.info(`[ENGINE NODE MANAGER][REGISTER][host=${pHostname}] Next node found ${nextNode==null ? 'but empty':''}`);
+        console.log(nextNode);
+
         // if the queue is empty kill the fresh node
         if(nextNode==null){
             // kill;
+            Logger.info(`[ENGINE NODE MANAGER][REGISTER][host=${pHostname}] create new free node `);
             nextNode = await this.createFreeNode();
             //return;
         }
@@ -1318,11 +1364,7 @@ export class EngineNodeManager {
         // save node state
         await nextNode.saveInternalState();
 
-        // retrieve the next operation from waiting queue
-        //const order = await nextNode.nextWaitingOpe();
-
         // send order to slave node
-
         nextNode.nodeState$.subscribe((vEvent:StateChangeEvent    )=>{
             (async ()=>{ await this.onNodeStateChanged(vEvent); })();
         });
@@ -1490,4 +1532,56 @@ export class EngineNodeManager {
     }
 
 
+
+    /**
+     *
+     * To return waiting orders for the organization owning the specified node
+     *
+     * To pop the next queued order from the waiting queue,
+     * set it at active ope, update in DB and return order (or NULL)
+     *
+     * @method
+     * @async
+     * @since 1.8.0
+     */
+    async nextGloballyWaitingOpe(pNode:EngineNodeUUID):Promise<Nullable<Order>> {
+
+        // slave waiting queue is empty
+
+        Logger.info(`[ENGINE NODE][${this._self.UUID}][nextGloballyWaitingOpe] Retrieve next operation from waiting queue. State = ${this._self.isReady()}, Queue = ${this._self.waitingQueue.length}`)
+
+        if(this.engine==null){
+            throw new Error("Engine is not readye");
+        }
+
+        let nextOpe:Order;
+
+        // ask next operation to master
+        if(this.engine.isSlaveNode()){
+            nextOpe = await this.engine.getNodeManager()
+                .askWaitingOrderFromMaster(this._self.UUID);
+        }else{
+            const self = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
+                .asyncGetEntry({ UUID: pNode /* this.getUID() */ });
+
+            if(self==null) return null;
+
+            self.waitingQueue.find((o:Order) => {
+                if(o.order!=null && o.order.orgUnit){
+                    console.log(o)
+                    // if(o.order.orgUnit!=null && o.order.orgUnit!=null){}
+                }
+            })
+
+            nextOpe = self.waitingQueue.shift();
+
+            if(nextOpe!=null){
+                self.activeOpe = nextOpe;
+                await self.save(["activeOpe","waitingQueue"]);
+            }
+
+        }
+
+        return nextOpe;
+    }
 }

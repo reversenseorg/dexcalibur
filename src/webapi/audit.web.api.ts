@@ -1072,11 +1072,11 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 let policy:Nullable<Policy> = null;
                 switch (req.body.policy.scope.type){
                     case PolicyZone.ORG:
-                        policy = await $.context.getOrgManager().updateOrgPolicy(req.user, org, proto);
+                        policy = await $.context.getOrgManager().updateOrgAppPolicy(req.user, org, proto);
                         break;
                     case PolicyZone.APP:
                         const app = await $.context.getOrgManager().getApplication(req.user, req.body.oid, req.body.policy.scope.uid);
-                        policy = await $.context.getOrgManager().updateAppPolicy(req.user, org, app, proto);
+                        policy = await $.context.getOrgManager().updateOrgAppPolicy(req.user, app, proto);
                         break;
                     default:
                         throw new Error("Scope not supported");
@@ -1149,22 +1149,22 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 // target org
                 const org = await $.context.getOrgManager().getOrganization(req.user, req.params.oid);
 
-                let proto:Nullable<Policy> = Policy.fromUnsafeObject(req.body);
-                let policy:Nullable<Policy> = null;
-                switch (req.params.scope){
-                    case PolicyZone.ORG:
-                        policy = await $.context.getOrgManager().updateOrgPolicy(req.user, org, proto);
-                        break;
-                    case PolicyZone.APP:
-                        if(req.body.aid!=null){
-                            throw new Error("Application UUID is mandatory");
-                        }
-                        const app = await $.context.getOrgManager().getApplication(req.user, org, req.body.aid);
-                        policy = await $.context.getOrgManager().updateAppPolicy(req.user, org, app, proto);
-                        break;
-                    default:
-                        throw new Error("Scope not supported");
+
+                // target org
+                let scope:Nullable<OrganizationUnit|ApplicationUnit> = null;
+                if(req.params.scope==="org"){
+                    scope = await $.context.getOrgManager().getOrganization(req.user, req.params.oid);
+                }else if(req.params.scope==="app"){
+                    scope = await $.context.getOrgManager().getDirectApplication(req.user, req.params.oid);
                 }
+
+                if(scope==null){
+                    throw new Error("Scope not supported");
+                }
+
+                const policy = await $.context.getOrgManager()
+                        .updateOrgAppPolicy(req.user, scope, Policy.fromUnsafeObject(req.body.policy));
+
 
                 $.sendSuccess( res, {
                     uid: policy.getUID()
@@ -1179,28 +1179,22 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 // target org
-                const org = await $.context.getOrgManager().getOrganization(req.user, req.params.oid);
-
-                let proto:Nullable<Policy> = Policy.fromUnsafeObject(req.body);
-                let policy:Nullable<Policy> = null;
-                switch (req.params.scope){
-                    case PolicyZone.ORG:
-                        policy = await $.context.getOrgManager().updateOrgPolicy(req.user, org, proto, true);
-                        break;
-                    case PolicyZone.APP:
-                        if(req.body.aid!=null){
-                            throw new Error("Application UUID is mandatory");
-                        }
-                        const app = await $.context.getOrgManager().getApplication(req.user, org, req.body.aid);
-                        policy = await $.context.getOrgManager().updateAppPolicy(req.user, org, app, proto, true);
-                        break;
-                    default:
-                        throw new Error("Scope not supported");
+                let scope:Nullable<OrganizationUnit|ApplicationUnit> = null;
+                if(req.params.scope==="org"){
+                    scope = await $.context.getOrgManager().getOrganization(req.user, req.params.oid);
+                }else if(req.params.scope==="app"){
+                    scope = await $.context.getOrgManager().getDirectApplication(req.user, req.params.oid);
                 }
 
-                $.sendSuccess( res, {
-                    uid: proto.getUID()
-                });
+                if(scope==null){
+                    throw new Error("Scope not supported");
+                }
+
+                await $.context.getOrgManager()
+                    .updateOrgAppPolicy(req.user, scope,
+                        new Policy({ uuid:req.params.pid }), true );
+
+                $.sendSuccess( res, {});
             }catch(err){
                 Logger.error("[API][AUDIT] Policy cannot be modified. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Policy cannot be modified. Cause : " + err.message);

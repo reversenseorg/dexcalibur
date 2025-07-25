@@ -1983,9 +1983,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // if the engine is a SLAVE instance, notify the MASTER the instance is started
         if(this.getEngineMode()==DexcaliburEngineMode.SLAVE){
             if(this.nodeManager.selfRegistration){
-                this.nodeManager.registerMaster();
+                this.nodeManager.registerMaster().then((vRaw:any)=>{
+                    console.log("MASTER RESPONSE TO REGISTER > ",vRaw);
+                })
             }else{
-                this.nodeManager.notifyMaster(NodeState.IDLE);
+                this.nodeManager.notifyMaster(NodeState.IDLE).then((vRaw:any)=>{
+                    console.log("MASTER RESPONSE TO NOTIFY > ",vRaw);
+                })
             }
         }
 
