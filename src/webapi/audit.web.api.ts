@@ -1271,7 +1271,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess(res, await am.listPurposes());
             }catch(err){
                 Logger.error("[API][AUDIT] BOM purposes cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "BOM purposes cannot be listed. Cause : " + err.message);
+                $.sendError(res, "BOM purposes cannot be listed.");
             }
         }
     },{

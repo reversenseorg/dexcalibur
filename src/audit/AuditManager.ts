@@ -639,7 +639,7 @@ export class AuditManager {
      * @param pUser
      * @param pModelID
      */
-    async getReport( pUser:UserAccount, pReportUUID:AssuranceReportUUID, pApp:ApplicationUnit):Promise<Nullable<AssuranceModel>> {
+    async getReport( pUser:UserAccount, pReportUUID:AssuranceReportUUID, pApp:ApplicationUnit):Promise<Nullable<AssuranceReport>> {
 
         // TODO check assurance ACL
         const report = await (this.engine.getEngineDB()

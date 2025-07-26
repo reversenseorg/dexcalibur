@@ -377,18 +377,6 @@ export default class AssuranceReport implements INode {
                             //assessment: null,
                             match: [] //
                         };
-                        /*
-                        if(match==null){
-                            o.matches[canonicalUID] = {
-                                //assessment: null,
-                                match: [] //
-                            };
-                        }else{
-                            o.matches[canonicalUID] = {
-                                //assessment: (typeof match.assessment==='string')? match.assessment : match.assessment.canonicalID,
-                                match: [] //
-                            };
-                        }*/
 
                         this.matches[canonicalUID].match.map((x)=>{
 
@@ -430,7 +418,8 @@ export default class AssuranceReport implements INode {
                                 if(node!=null){
                                     o.matches[canonicalUID].match.push({
                                         ruleIdx: x.ruleIdx,
-                                        node: node
+                                        node: node,
+                                        meta: x.meta
                                     });
                                 }
 

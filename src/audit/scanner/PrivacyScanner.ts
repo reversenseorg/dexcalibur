@@ -402,7 +402,7 @@ export class PrivacyScanner extends AssuranceScanner {
                     if(x.model===this.model.getID()){
                         x.rules.map( r => {
                             if(r.enabled){
-                                policies[r.name] = r;
+                                policies[r.id] = r;
                             }
                         })
                     }

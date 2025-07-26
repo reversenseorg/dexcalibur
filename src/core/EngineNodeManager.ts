@@ -402,7 +402,7 @@ export class EngineNodeManager {
         };
 
         if(pOrg!=null){
-            filter._orgUUID = { $in: [pOrg] };
+            filter._orgUUID = { $in: [pOrg,null] };
         }else{
             filter._orgUUID = null;
 
