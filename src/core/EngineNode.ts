@@ -742,7 +742,8 @@ export class EngineNode implements INode {
         Logger.info("[ENGINE NODE] There are "+size+" nodes running, increasing by one ....");
 
         if(process.env.KUBERNETES_PORT!=null){
-            return await K8sHelper.scale(K8ResourceType.STATEFULSET, 'dxcslaves', size+1, "default");
+            // size = minimal/current statefulset size
+            return await K8sHelper.scale(K8ResourceType.STATEFULSET, 'dxcslaves', (size==0?1:size)+1, "default");
         }else{
             return await this.spawn(pCause, false, pNodeOpts);
         }
