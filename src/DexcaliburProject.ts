@@ -2630,7 +2630,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         // save model
         //await this.pdb.saveAnalyzerDB(this.analyze.getData());
-        await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), internTag);
+        if(this._createMode){
+            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), internTag);
+        }
 
         this.getWorkflow().pushStatus(new StatusMessage(14, "Deploying inspectors for [POST_PLATFORM_SCAN]"));
 
@@ -2685,8 +2687,10 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
             // save model
             //await this.pdb.saveAnalyzerDB(this.analyze.getData());
-            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
-
+            // update DB only on first open
+            if(this._createMode){
+                await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
+            }
 
             // load hooks
             await this.hook.load();
@@ -2811,7 +2815,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
 
         // save nodes (code only) created by static analysis
-        await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag);
+        if(this._createMode){
+            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag);
+        }
 
         //this.analyze.execDelayedTagging(TAG.Discover.Statically);
 
@@ -2891,8 +2897,10 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             [dastTag]);
 
 
+        if(this._createMode){
+            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), dastTag);
+        }
 
-        await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag);
 
         //}
         this._emit("dxc.fullscan.post_dast_tag");

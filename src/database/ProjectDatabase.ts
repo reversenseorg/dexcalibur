@@ -759,22 +759,12 @@ export class ProjectDatabase implements IFileDatabase {
             result = await (pDB.getDataSetFromNodeType(types[i].getType()) as InMemoryDbCollection).search(
                 req,
                 result
-            ); //.getAsList();
-/*
-            let filters:any[] = [];
-            let updt:any[] = [];
-            result.map(x => {
-                const pk = types[i].getprimarykey().getname();
-                filters.push({ [pk]: x[pk] });
-                updt.push({ $set: result[i] });
-                return { $set: };
-            });*/
+            );
 
             try{
                 Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
                 if(result.size()>0){
                     await ((this.getCollectionOf(types[i].getType()) as MongodbDbCollection).updateMany(result.getAsList(), {upsert:true}));
-                    //await this.saveMany(result.getAsList(), types[i].getType());
                 }
             }catch (e){
                 Logger.error(e.message);
