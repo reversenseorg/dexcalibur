@@ -761,7 +761,7 @@ export class EngineNode implements INode {
      */
     async open(pExtraOpts:any):Promise<any> {
 
-        if(this.state!==NodeState.IDLE){
+        if([NodeState.IDLE,NodeState.REGISTERED].indexOf(this.state)==-1){
             throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node : '+this.state);
         }
 
