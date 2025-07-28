@@ -675,6 +675,7 @@ export default class WebServer
                 $.logs.access.push("[200]:" + mime + " " + vUnsafeReq.path + " => " + localPath);
 
                 res.status(200).send(data);
+                return;
             });
         }
     }

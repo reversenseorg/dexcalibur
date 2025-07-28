@@ -6,6 +6,7 @@ import * as _path_ from "path";
 import {Connection, ConnectionProtocol} from "../organization/conn/Connection.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
+import Util from "../Utils.js";
 
 
 export interface ApkDownloaderOptions {
@@ -120,8 +121,8 @@ export class ApkeepHelper extends  External.ExternalHelper {
 
         return output;
     }
-
-
-
-
+}
+const p = Util.whereIs(ApkeepHelper.BIN);
+if(p!=null){
+    ApkeepHelper.BIN = p;
 }

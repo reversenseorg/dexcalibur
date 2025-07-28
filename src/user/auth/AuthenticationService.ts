@@ -918,6 +918,7 @@ export class AuthenticationService {
                     const o = (kReq.session as UserSession).getData('org');
                     if(o != null && OrganizationUnit.VALIDATE.uuid.test(o)){
                         kRes.status(200).redirect((process.env.DXC_REL_PATH!=null?process.env.DXC_REL_PATH:'')+`/home/?org=${o}`);
+                        return;
                     }
                 }
 
