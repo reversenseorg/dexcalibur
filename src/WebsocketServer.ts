@@ -15,6 +15,8 @@ import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import {HookManager} from "./hook/HookManager.js";
 import {EngineNodeUUID, NodePurpose, WebSocketClient} from "./core/EngineNode.js";
 import {UserAccountUUID} from "./user/UserAccount.js";
+import {ValidationRule} from "./Validator.js";
+import {DexcaliburProjectException} from "./errors/DexcaliburProjectException.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -331,12 +333,14 @@ export class WebsocketServer
 
                                         }else{
 
-                                            console.log("HOOK > ProcessCommand > ",self.engine.engine_type,unsafeJSON);
+                                            if(!ValidationRule.uuid().test(unsafeJSON['prj'])){
+                                                throw DexcaliburProjectException.INVALID_UUID_FMT(unsafeJSON['prj'])
+                                            }
+
                                             const p = self.engine.getProject(unsafeJSON['prj']);
-                                            console.log("HOOK > ProcessCommand > project ",self.engine.engine_type, p);
+                                            Logger.info(`HOOK > ProcessCommand > project [uid=${p.getUID()}][mode=${self.engine.engine_type} `);
 
                                             if(p!=null) {
-                                                Logger.info('Retrieving hook Message from project ' + p.uid);
                                                 (p.hook as HookManager).processCommand(user, conn, message.utf8Data);
                                             }
                                         }

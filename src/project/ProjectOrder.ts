@@ -330,9 +330,8 @@ export class ProjectOrder implements INode {
             appUnit: this.appUnit,
             orgUnit: this.orgUnit,
             owner: this.owner,
-
             signatures: this.signatures,
-            options: this.options,
+            options: {},
             state: this.state,
             tags: this.tags,
             dates: this.dates,
@@ -344,6 +343,12 @@ export class ProjectOrder implements INode {
         this.inputs.map(vIn => {
             obj.inputs.push(vIn.toJsonObject());
         });
+
+        for(let o in this.options){
+            if(o!='extra'){ // skip extra
+                obj.options[o]=this.options[o];
+            }
+        }
 
         CoreDebug.checkJsonSerialize(obj, "ProjectOrder");
         return obj;

@@ -1548,7 +1548,7 @@ export class EngineNodeManager {
 
         // slave waiting queue is empty
 
-        Logger.info(`[ENGINE NODE][${this._self.UUID}][nextGloballyWaitingOpe] Retrieve next operation from waiting queue. State = ${this._self.isReady()}, Queue = ${this._self.waitingQueue.length}`)
+        Logger.info(`[ENGINE NODE][${this._self.UUID}][nextGloballyWaitingOpe] Retrieve next operation from waiting queue of [slave=${pNode}]. State = ${this._self.isReady()}, Queue = ${this._self.waitingQueue.length}`)
 
         if(this.engine==null){
             throw new Error("Engine is not readye");

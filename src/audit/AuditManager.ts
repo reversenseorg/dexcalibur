@@ -478,23 +478,7 @@ export class AuditManager {
 
         // run scanner
         for(let i=0; i<scanners.length; i++){
-            //console.log("Run scans ("+i+") : "+scanners[i].name);
             flows.push(scheduler.newScan(scanners[i]));
-            /*
-            scanners[i].run(project, {});
-            console.log("Save all reports  ("+i+") : "+scanners[i].name);
-            data[scanners[i].name] = [];
-            scanners[i].getReports().map(x => {
-                console.log("Save single reports  ("+i+") : "+scanners[i].name);
-                try{
-                    const path = am.saveReport(project, x);
-                    data[scanners[i].name].push(x.toJsonObject());
-                }catch(err1){
-                    console.log(err1.message);
-                    console.log("Save single reports  FAILED ("+i+") : "+scanners[i].name+" "+err1.stack);
-                }
-
-            });*/
         }
 
         return  scheduler.start(200);

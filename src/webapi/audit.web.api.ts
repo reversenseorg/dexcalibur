@@ -18,6 +18,7 @@ import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 import {Policy, PolicyZone} from "../audit/Policy.js";
 import {PolicyRuleFactory} from "../audit/PolicyRuleFactory.js";
 import {PolicyActionFactory} from "../audit/PolicyActionFactory.js";
+import Util from "../Utils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -172,6 +173,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
 // to perform a scan of the model
 // deprecated since any scan must be ordered
+/*
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/scan/:modelID',
     {
@@ -198,7 +200,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 const report = scanner.getReport();
 
                 // save report
-                am.saveReport(req.project, report);
+                // am.saveReport(req.project, report);
 
                 // get hook instance by ID
                 const data = {
@@ -239,7 +241,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     },{
         lazyProject: true
     }
-);
+);*/
 
 
 /**
@@ -554,6 +556,33 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/ctrl/:modelID/:ctrl',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = $.context.getAuditManager();
+//                const models = await am.getModelFor(req.project, req.params.modelID);
+                const model = await am.getModelByUID(req.user, req.params.modelID);
+                
+                if(model==null){ throw new Error("Assurance model cannot be retrieved. This organization is not authorized. "); }
+                
+                const ctrl = model.getControlNode( Util.decodeURI(req.params.ctrl));
+                if(ctrl!=null){
+                    $.sendSuccess(res, ctrl.toJsonObject());
+                }else{
+                    throw new Error("Control point not found.");
+                }
+            }catch(err){
+                Logger.error("[API][AUDIT] Model cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },DEFAULT_OPTIONS);
 
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
@@ -1272,6 +1301,34 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }catch(err){
                 Logger.error("[API][AUDIT] BOM purposes cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "BOM purposes cannot be listed.");
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
+    }
+);
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/report/:unsafeReportUUID/:aid',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                $.sendSuccess(res, (await am.getReport(
+                    req.user, req.params.unsafeReportUUID, app)).toJsonObject());
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
             }
         }
     },{

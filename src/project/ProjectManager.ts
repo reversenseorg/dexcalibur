@@ -1083,6 +1083,7 @@ export class ProjectManager {
      */
     async preloadForDirect(pUser:UserAccount, pUID:DexcaliburProjectUUID):Promise<DexcaliburProject> {
 
+        //console.log(this._preload, this._waitingPreload, pUID);
         if(this._preload[pUID]!=null){
             return this._preload[pUID];
         }else if(this._waitingPreload[pUID]==null){
@@ -1094,7 +1095,7 @@ export class ProjectManager {
             this._preload[pUID] = prj;
             return prj;
         }else {
-            throw new Error("Project not ready");
+            throw new Error("Project preload not ready");
         }
     }
 

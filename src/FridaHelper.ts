@@ -3,8 +3,6 @@ import * as _fs_ from "fs";
 import * as _path_ from "path";
 import * as _stream_ from 'stream';
 import * as _co_ from 'co';
-import * as Got from "got";
-const got = Got.default;
 import * as _xz_ from "xz";
 import {promisify} from 'util';
 import * as Frida from 'frida';
@@ -23,6 +21,7 @@ import {FridaHelperException} from "./errors/FridaHelperException.js";
 import {Architecture} from "./Architecture.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {SemVerData, SemVerHelper} from "./util/semver/SemverHelper.js";
+import Downloader from "./Downloader.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -354,6 +353,8 @@ export default class FridaHelper extends External.ExternalHelper
 
         
         // download file
+        tmp = await Downloader.download( pRemotepPath, tmp, { mode:0o777, encoding: 'binary'} );
+        /*
         await pipeline(
             got.stream(pRemotepPath),
             _fs_.createWriteStream( tmp, {
@@ -361,7 +362,7 @@ export default class FridaHelper extends External.ExternalHelper
                 mode: 0o777,
                 encoding: 'binary' 
             } )
-        );
+        );*/
 
         Logger.info(`[FRIDA HELPER] ${pRemotepPath}  downloaded. `);
 

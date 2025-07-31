@@ -573,8 +573,9 @@ export class PrivacyScanner extends AssuranceScanner {
 
             if(cross[this.model.getID()]!=null){
 
+                const extraModel = cross[this.model.getID()];
                 // check if report of "privacy.trackers.shared" is available
-                crossReport = await this._getExtraReport(cross[this.model.getID()]);
+                crossReport = await this._getExtraReport(extraModel);
 
                 if(crossReport!=null && crossReport.matches!=null){
 
@@ -624,13 +625,17 @@ export class PrivacyScanner extends AssuranceScanner {
                             // a match in privacy.trackers.shared also exists in pii3
                             if(occ.meta==null) occ.meta = [];
 
+                            //console.log(occ);
+
                             occ.meta.push({
                                 type: MetadataType.ANY,
                                 key: MetadataTopic.CTRL,
-                                value: occ.ctrl
+                                value: {
+                                    model: extraModel,
+                                    ctrl: xref.ctrl
+                                }
                             });
 
-                            console.log(occ);
                         });
 
 

@@ -977,15 +977,21 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 
                     // get the reference to the file where the function is declared
                     const lib = meth.getDeclaringFile();
-                    if( (typeof lib) ==='string'){
-                        file = project.find.get.files(lib as string);
-                        if(file != null){
-                            // update function
-                            (meth as ModelFunction).setDeclaringFile(file);
+                    if(lib!=null){
+                        if( (typeof lib) ==='string'){
+                            // @ts-ignore
+                            file = project.find.get.files(lib as string);
+                            if(file != null){
+                                // update function
+                                (meth as ModelFunction).setDeclaringFile(file);
+                            }
+                        }else if(lib instanceof ModelFile){
+                            file = project.find.get.files((lib as ModelFile).getUID()) ;
+                        }else if(lib.__>0 && lib._uid!=null){
+                            file = project.find.get.files(lib._uid) ;
                         }
-                    }else if(lib != null){
-                        file = project.find.get.files((lib as ModelFile).getUID()) ;
                     }
+
 
                     //file = project.find.get.files(meth.getDeclaringFile()) file('_uid:'+meth.getDeclaringFile());
 

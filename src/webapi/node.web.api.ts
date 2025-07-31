@@ -141,11 +141,11 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
 
             try{
                 // retireve registration key
-                let unsafeKey = req.headers['x-dxc-'+$.context.nodeManager.getRegistrationKeyName()];
+                /*let unsafeKey = req.headers['x-dxc-'+$.context.nodeManager.getRegistrationKeyName()];
 
                 if(Array.isArray(unsafeKey) && unsafeKey.length>0){
                     unsafeKey = unsafeKey[0];
-                }
+                }*/
 
                 const unsafeHost = req.headers[EngineNodeManager.HEADER_NODE_HOST];
 

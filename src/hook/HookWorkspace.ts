@@ -8,16 +8,24 @@ import DexcaliburEngine from "../DexcaliburEngine.js";
 import {spawnSync} from "child_process";
 import * as VM from "vm";
 import * as FridaCompile from "@dexcalibur/dexcalibur-frida-compile";
-import * as OriginalFridaCompile from "@dexcalibur/dxc-frida-compile";
+import * as TS_OriginalFridaCompile from "@dexcalibur/dxc-frida-compile";
 import ts  from "@dexcalibur/dxc-frida-compile/ext/typescript.js";
+import { performance } from "perf_hooks";
+import * as Frida from "frida";
+
 import {TargetLanguage} from "./common.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import {getNodeSystem} from "./ext/System.js";
+import chalk from "chalk";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
+const styleReset = chalk.reset;
+const styleFile = chalk.cyan.bold;
+const styleLocation = chalk.yellow.bold;
+const styleCode = chalk.gray;
 
 
 export interface TsDiagnosticMessage {
@@ -246,7 +254,9 @@ export default class HookWorkspace {
 
         ready = ready && _fs_.existsSync(this._base);
 
-        return ready;
+        const status = this._checkRequirements();
+
+        return ready && status.fridaCompile && status.interruptor;
     }
 
     getTsConfig():any {
@@ -354,7 +364,7 @@ export default class HookWorkspace {
              JSON.stringify(this.getTsConfig())
         );
 
-        const isInstalled = await this._checkRequirements();
+        const isInstalled = this._checkRequirements();
 
         // install requirements
         if(!isInstalled.interruptor) await this.installInterruptor();
@@ -366,7 +376,7 @@ export default class HookWorkspace {
         return true;
     }
 
-    private async _checkRequirements():Promise<HookRequirements>{
+    private _checkRequirements():HookRequirements{
         const reqs:HookRequirements = {
             interruptor: false,
             fridaCompile: false
@@ -501,6 +511,167 @@ export default class HookWorkspace {
         }
     }
 
+    private static _formatFilename(pPath:string, pPwd:string): string {
+        const c = _path_.resolve(pPwd);
+        const p = _path_.resolve(pPath);
+
+        if (p.startsWith(c + _path_.sep)) {
+            return p.slice(c.length + 1);
+        }
+
+        return pPath;
+    }
+
+    private static _formatCompiling( pPath:string, pPwd:string):string {
+        return styleReset("")+
+            "Compiling "+
+            styleFile(HookWorkspace._formatFilename(pPath, pPwd))+
+            styleReset("")+"...";
+    }
+
+    private static _formatCompiled( pPath:string, pPwd:string, pStarted:number, pFinished:number):string {
+        return styleReset("")+
+            "Compiled "+
+            styleFile(HookWorkspace._formatFilename(pPath, pPwd))+
+            styleReset("")+
+            styleCode(` (${Math.floor(pFinished-pStarted)})`)+
+            styleReset("")+"...";
+    }
+
+
+    private static _formatDiag( pDiag:any, pPwd:string):string {
+        const { category, code, text, file } = pDiag;
+
+        let prefix = "";
+        if (file !== undefined) {
+            const filename = HookWorkspace._formatFilename(file.path, pPwd);
+            const line = file.line + 1;
+            const character = file.character + 1;
+
+            const pathSegment = styleFile(filename);
+            const lineSegment = styleLocation(String(line));
+            const charSegment = styleLocation(String(character));
+
+            prefix = `${pathSegment}:${lineSegment}:${charSegment} - `;
+        }
+
+        //const categoryStyler = CATEGORY_STYLE[category] ?? styleReset;
+       //const styledCategory = categoryStyler(category);
+        const styledCode = styleCode(`TS${code}`);
+
+        return `${prefix}${category}${styleReset("")} ${styledCode}${styleReset("")}: ${text}`;
+    }
+
+
+    /*private _compileListeners():any {
+        return {
+            onDiagnostic: ( pDiagMsg :ts.Diagnostic):void => {
+                if (pDiagMsg.file !== undefined) {
+                    const { line, character } = ts.getLineAndCharacterOfPosition(pDiagMsg.file, pDiagMsg.start!);
+                    const message = ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n");
+                    Logger.error(` ${pDiagMsg.file.fileName} (${line + 1},${character + 1}): ${message}`);
+
+                    compilerOutputs.diags.push({
+                        file: pDiagMsg.file.fileName,
+                        line: line + 1,
+                        character: character + 1,
+                        messageText: message,
+                        logMsg: `${pDiagMsg.file.fileName} (${line + 1},${character + 1}): ${message}`
+                    });
+                } else {
+                    compilerOutputs.diags.push({
+                        logMsg: ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n")
+                    });
+                    Logger.error(ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n"));
+                }
+            },
+        }
+    }*/
+
+    /**
+     *
+     * @param pInputFile
+     * @param pOutputFile
+     * @param pOptions
+     */
+    async compileTsScript(pInputFile:Nullable<string>=null,pOutputFile:Nullable<string>=null,
+                           pOptions:any={
+                                verbose:false,
+                                typeCheck:"full",
+                                bundleFmt:"esm",
+                                outputFmt:"unescaped" }):Promise<ScriptCompilerOutput> {
+
+        let compilerOutputs:ScriptCompilerOutput = {
+            bundle: null,
+            compiler: "ts",
+            diags: []
+        };
+
+        const input = _path_.join(this._base,(pInputFile!=null ? pInputFile : this._defaultName+"ts"));
+        const output = _path_.join(this._base, (pOutputFile!=null ? pOutputFile : this._defaultName+"js"));
+        const outputDir = _path_.dirname(output);
+        const fullOutputPath = output;
+        let compilationStarted = -1;
+
+        // check if input file exists
+        if(!_fs_.existsSync(input)){
+            throw HookManagerException.COMPILER_INPUT_NOT_FOUND();
+        }
+
+        const compiler = new Frida.Compiler(Frida.getDeviceManager());
+
+        const options:any /*Frida.CompilerOptions*/ = {
+            projectRoot: this._base,
+            outputFormat: pOptions.outputFmt,
+            sourceMaps: pOptions.sourceMaps ? Frida.SourceMaps.Included : Frida.SourceMaps.Omitted,
+            compression: pOptions.compress ? Frida.JsCompression.Terser : Frida.JsCompression.None,
+            typeCheck: pOptions.typeCheck
+        };
+
+
+        if(pOptions.verbose){
+            compiler.starting.connect(()=>{
+                compilationStarted = performance.now();
+                /*
+                                if (opts.watch) {
+                                    readline.cursorTo(process.stdout, 0, 0);
+                                    readline.clearScreenDown(process.stdout);
+                                }
+                */
+                console.log(
+                    HookWorkspace._formatCompiling(input, options.projectRoot)
+                );
+            });
+            compiler.finished.connect(()=>{
+                const timeFinished = performance.now();
+
+                console.log(
+                    HookWorkspace._formatCompiled(input, options.projectRoot, compilationStarted, timeFinished)
+                );
+            });
+        }
+        compiler.diagnostics.connect((diagnostics: any) => {
+            compilerOutputs.diags = diagnostics;
+            for (const diag of diagnostics) {
+                console.log(HookWorkspace._formatDiag(diag, options.projectRoot));
+            }
+        })
+
+        try{
+            compilerOutputs.bundle = await compiler.build(input, options);
+
+            // write bundle
+            _fs_.mkdirSync(outputDir, { recursive: true });
+            _fs_.writeFileSync(fullOutputPath, compilerOutputs.bundle!);
+        }catch(err){
+            Logger.error(err.message);
+            Logger.error(err.stack);
+            //throw HookC
+        }
+
+        return compilerOutputs;
+    }
+
 
 
     /**
@@ -511,7 +682,7 @@ export default class HookWorkspace {
      * @return {Nullable<string>}
      * @method
      */
-    async compileTsScript(pInputFile:Nullable<string>=null,pOutputFile:Nullable<string>=null, pOptions:TsCompilerOptions={}):Promise<ScriptCompilerOutput> {
+    async compileTsScriptOLD(pInputFile:Nullable<string>=null,pOutputFile:Nullable<string>=null, pOptions:TsCompilerOptions={}):Promise<ScriptCompilerOutput> {
 
         let script:Nullable<string> = null;
         let compilerOutputs:ScriptCompilerOutput = {
@@ -527,6 +698,8 @@ export default class HookWorkspace {
 
         // sanity check of hook folder, detect missing parts of frida-compile
         let compilerRoot:string;
+
+
         const fridaSystemRoot = _path_.join(this._base,"node_modules","frida-compile","dist","system","node.js");
 
 
@@ -538,9 +711,9 @@ export default class HookWorkspace {
         }
 
         const system:ts.System = getNodeSystem(fridaSystemRoot);
-        const assets  = OriginalFridaCompile.queryDefaultAssets(this._base, system, compilerRoot);
+        const assets  = TS_OriginalFridaCompile.queryDefaultAssets(this._base, system, compilerRoot);
 
-        const options:OriginalFridaCompile.BuildOptions = {
+        const options:TS_OriginalFridaCompile.BuildOptions = {
             entrypoint: input,
             projectRoot: this._base,
             sourceMaps: pOptions.sourceMaps ? "included" : "omitted",
@@ -571,7 +744,7 @@ export default class HookWorkspace {
         };
 
         try{
-            compilerOutputs.bundle = OriginalFridaCompile.build(options);
+            compilerOutputs.bundle = TS_OriginalFridaCompile.build(options);
 
             // write bundle
             _fs_.mkdirSync(outputDir, { recursive: true });

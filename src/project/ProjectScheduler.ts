@@ -86,54 +86,6 @@ export class ProjectScheduler {
     }
 
     /**
-     *
-     * @param pProject
-     * @param pOrder
-     */
-    /*async newStandaloneOrder(pOrder:ProjectOrder):Promise<DexcaliburProject> {
-        const edb = this._ctx.getEngineDB();
-        const am = AuditManager.getInstance();
-
-
-        console.log("order save NEW SCAN ORDER> ",await edb.save(pOrder));
-        //await edb.save(pOrder);
-
-        const model = await am.getModelFor(pProject, pOrder.getModelUID());
-        const scanner:AssuranceScanner = LicenceManager.getProduct(pProject,model.scannerID) as AssuranceScanner;
-
-        const opts = scanner.validateOptions(pOrder.options);
-
-        scanner.setModel(model);
-
-        pOrder.setState(ScanState.RUNNING);
-        pOrder.setDate( ACTION_DATE.START );
-
-
-        console.log("order save BEFORE SCAN START> ",await edb.save(pOrder));
-        //await edb.save(pOrder);
-
-        // check credit
-        //scanner.hasCredit()
-        await scanner.run(pProject, opts);
-        pOrder.setDate( ACTION_DATE.STOP );
-        pOrder.setState(ScanState.GENERATE_REPORT);
-
-        console.log("order save BEFORE REPORT SAVING> ",await edb.save(pOrder));
-        //await edb.save(pOrder);
-
-        // get report
-        const report = scanner.getReport();
-        // save report
-        am.saveReport(pProject, report);
-        //pOrder.report = report;
-        pOrder.setState(ScanState.TERMINATED);
-        console.log("order save TERMINATED> ",await edb.save(pOrder));
-        //await edb.save(pOrder);
-        // get hook instance by ID
-        return report;
-    }*/
-
-    /**
      * To start a new scan
      *
      * @param pOrder

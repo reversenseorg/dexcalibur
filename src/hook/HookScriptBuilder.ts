@@ -400,8 +400,6 @@ Java.deoptimizeBoot();`
         const kpm:KeyPointManager  =  this._hm.getKeyPointManager();
         const topl_kps:KeyPoint[] = await kpm.getTopLevelKeyPoints();
 
-        //console.log("Top KPs : ",topl_kps);
-
         const leaf_kps:KeyPoint[] = await kpm.getLeafKeyPoints();
         const req:any = await kpm.getGlobalRequirements();
         const deopt:DEOPT_TYPE = await  kpm.needDeoptimize();
@@ -434,11 +432,12 @@ Java.deoptimizeBoot();`
 
         // process top-level key point
         const tokens = await this.buildNestedScript(topl_kps, pOptions as ScriptWriterOptions);
-        console.log(tokens);
+        //console.log(tokens);
 
         topl_kps.map( (vKP:KeyPoint) => {
 
-            console.log(" KP >> ",vKP.enabled,vKP.getCodeCache(),vKP);
+            Logger.info(` KP >> ${vKP.getName()} [${vKP.getToken()}] [enabled=${vKP.enabled?'TRUE':'FALSE'}]`);
+
             if(vKP.getCodeCache() != null && vKP.enabled){
                 script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n`;
                 //Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);

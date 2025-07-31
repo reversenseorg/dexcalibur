@@ -202,13 +202,13 @@ export class ScanScheduler {
         await this.saveOrder(pOrder, ['dates','state','stateDates'])
         //await edb.save(pOrder);
 
-        console.log("report save BEFORE REPORT SAVING> ");
+        console.log("Finalize report ... ");
         //await edb.save(pOrder);
 
         // get report
         //const report = scanner.getReport();
         // save report
-        await am.saveReport(project, report);
+        await am.updateReport(project, report, ['application','project']);
         //pOrder.report = report;
         pOrder.setState(ScanState.TERMINATED);
         console.log("report & order SAVED ");

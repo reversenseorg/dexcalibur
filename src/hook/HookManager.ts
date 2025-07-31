@@ -554,7 +554,6 @@ export class HookManager
 
         //try{
         script = await this.builder.build(pOptions);
-        //console.log(script);
 
         Logger.info("[HOOK MANAGER] Hook script template built")
         ws.writeDefaultScript(script, this.builder.getLanguage());
@@ -1230,7 +1229,6 @@ export class HookManager
         }
 
         for(const i in h){
-            Logger.raw(JSON.stringify(h[i].toJsonObject()));
             if(h[i].getTarget().getUID() == method.getUID()){
                 hook = h[i];
                 break;
@@ -2035,7 +2033,6 @@ export class HookManager
                     }));
                 }catch(exception){
                     Logger.error("[HOOK MANAGER] processCommand [cmd=start] : "+exception.toString()+" \n "+exception.stack);
-                    Logger.raw(JSON.stringify(exception));
 
                     let extra:any = null;
                     if(exception.getCode!=null && exception.getCode()==HookManagerException.ERR.CANNOT_START_HOOK_BECAUSE_SYNTAX_ERR){

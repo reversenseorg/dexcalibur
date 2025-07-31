@@ -1113,7 +1113,33 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
 
 CODE_WEB_API.addAsyncAuthenticatedRoute(
-    '/direct/:puid/:nodetype/search',
+    '/preload',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+            let $: WebServer = req.dxc.$;
+
+            try{
+                const proj = (await $.context.getProjectManager().preloadForDirect(req.user, req.body.pid));
+
+                if(proj != null ){
+                    $.sendSuccess( res, true);
+                }else{
+                    $.sendSuccess( res, false);
+                }
+            }catch(err){
+                //Logger.error("[API][CODE] Search failure from node ref. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Search failure from node ref. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
+    }
+);
+
+
+CODE_WEB_API.addAsyncAuthenticatedRoute(
+    '/direct/:pid/:nodetype/search',
     {
         'post': async (req:DelegateRequest, res:DelegateResponse) => {
 
@@ -1125,7 +1151,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 const nodeType = req.params.nodetype;
                 const nodeUID = req.body.nodeuid;
 
-                const proj = (await $.context.getProjectManager().preloadForDirect(req.user, req.params.puid));
+                const proj = (await $.context.getProjectManager().preloadForDirect(req.user, req.params.pid));
 
                 const result = (await (MerlinSearchRequest.getByRef({
                     __:parseInt(nodeType,10),
