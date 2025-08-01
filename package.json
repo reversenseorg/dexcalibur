@@ -81,7 +81,7 @@
     "start": "node --max-old-space-size=4096 ./dist/dexcalibur.js",
     "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"es2020\"}' DEXCALIBUR_TEST=1 DEXCALIBUR_PORT=8081 DEXCALIBUR_HOST=127.0.0.1 mocha -r ts-node/register test/*.test.ts",
     "test:node": "DXC_TEST=1 npm run build:node && npm run test",
-    "postinstall": "node ./scripts/postinstall.js && node ./scripts/patch_esm_got.js",
+    "postinstall": "node ./scripts/postinstall.js",
     "o_prebuilt:node:publish": "npmrc dxc-npm &&  cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt && cp .npmignore.default .npmignore",
     "electron:rebuild": "",
     "patch:node": "node ./scripts/run_os_script.mjs prebuild-node",
