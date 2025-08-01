@@ -19,6 +19,8 @@ import {Policy, PolicyZone} from "../audit/Policy.js";
 import {PolicyRuleFactory} from "../audit/PolicyRuleFactory.js";
 import {PolicyActionFactory} from "../audit/PolicyActionFactory.js";
 import Util from "../Utils.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {IControl} from "../audit/common/IControl.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -558,7 +560,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
-    '/ctrl/:modelID/:ctrl',
+    '/ctrl/:modelID/:ctrl/:type',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
@@ -571,9 +573,18 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 
                 if(model==null){ throw new Error("Assurance model cannot be retrieved. This organization is not authorized. "); }
                 
-                const ctrl = model.getControlNode( Util.decodeURI(req.params.ctrl));
+                const ctrlNode = model.getControlNode( Util.decodeURI(req.params.ctrl));
+                let ctrl:IControl = ctrlNode.ctrl;
+
+                if(req.params.type == "ctrl"){
+                    if(ctrlNode.ctrl.isControlAssessment() && ctrlNode.parent!=null){
+                        ctrl = ctrlNode.parent.ctrl;
+                    }
+                }
+
+
                 if(ctrl!=null){
-                    $.sendSuccess(res, ctrl.toJsonObject());
+                    $.sendSuccess(res, (ctrl !=null ? (ctrl as any).toJsonObject():null ) );
                 }else{
                     throw new Error("Control point not found.");
                 }
@@ -583,6 +594,38 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },DEFAULT_OPTIONS);
+
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/report/:unsafeReportUUID/:aid/kpi/:kpiid',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+
+               // (await am.getReportKpi(req.user, req.params.unsafeReportUUID, app, req.params.kpiid)).toJsonObject()
+
+                $.sendSuccess(res, null );
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
+    }
+);
+
 
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(

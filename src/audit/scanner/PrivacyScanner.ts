@@ -20,7 +20,6 @@ import ControlAssessment, {MetadataTopic} from "../common/ControlAssessment.js";
 import {TestPlan, TestStep, TestType} from "../common/TestPlan.js";
 import Control from "../common/Control.js";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
-import * as sea from "node:sea";
 import ModelStringValue from "../../ModelStringValue.js";
 import {SearchAPI} from "../../SearchAPI.js";
 import {INode, NodeType, NodeUtils, Tag} from "@dexcalibur/dexcalibur-orm";
@@ -34,6 +33,9 @@ import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 import chalk from "chalk";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+//type MatchCtrlAss = { ctrl:string, idx:number };
+type NodeMatchTree = Record<number, Record<string, Record<string, number[]>>>;
 
 export interface PrivacyScanOptions {
     trackersLib:boolean,
@@ -564,6 +566,13 @@ export class PrivacyScanner extends AssuranceScanner {
         // 6. post process : cross results
         if(policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null){
 
+            try{
+                this.report = await this._crossReportConsolidating(this.report);
+            }catch (e){
+                console.error(e.stack);
+            }
+
+            /*
             Logger.info(chalk.yellow("Cross analysis policy enabled"));
 
             const cross:any = {
@@ -573,13 +582,15 @@ export class PrivacyScanner extends AssuranceScanner {
 
             if(cross[this.model.getID()]!=null){
 
+                this.report = await this._crossReportConsolidating(this.report);
+
                 const extraModel = cross[this.model.getID()];
                 // check if report of "privacy.trackers.shared" is available
                 crossReport = await this._getExtraReport(extraModel);
 
                 if(crossReport!=null && crossReport.matches!=null){
 
-                    const extraNode:Record<number/*NodeInternalType*/, Record<string /* UID */, {ctrl:string,idx:number}[]>> = {};
+                    const extraNode:Record<number, Record<string , {ctrl:string,idx:number}[]>> = {};
 
                     // sort extra matches by noderef
                     let m:Match;
@@ -611,7 +622,7 @@ export class PrivacyScanner extends AssuranceScanner {
                         m = this.report.matches[piiID];
 
                         m.match.map( occ => {
-                            if(occ.node==null) /* skip */ return;
+                            if(occ.node==null)return;
 
                             // preprocess
 
@@ -646,7 +657,7 @@ export class PrivacyScanner extends AssuranceScanner {
                     }
 
                 }
-            }
+            }*/
         }
 
 
@@ -685,6 +696,194 @@ export class PrivacyScanner extends AssuranceScanner {
         }*/
 
 
+    }
+
+    /**
+     * To build 2lvl-depth tree where node are NodeTypeInternal and NodeUID, and leafs are matches
+     *
+     *                    [NodeInternalType]
+     *        [NodeUuid]-----|          |-------[NodeUuid]
+     *         |      |                          |      |
+     *(ctrl,rule)[]   (ctrl,rule)[]   (ctrl,rule)[]   (ctrl,rule)[]
+     *
+     * @param pMatches
+     * @private
+     */
+    private _buildControlTreeFromMatches(pMatches:Record<string, Match>) : NodeMatchTree {
+
+        // sort extra matches by noderef
+        let m:Match;
+        let tree:NodeMatchTree = {};
+
+        for(let ecuid in pMatches){
+            m = pMatches[ecuid];
+            if(m.match!=null){
+                m.match.map(n => {
+                    if(n.node!=null){
+                        if(tree[n.node.__]==null){
+                            tree[n.node.__] = {};
+                        }
+                        if(tree[n.node.__][n.node.uid]==null){
+                            tree[n.node.__][n.node.uid] = {};
+                        }
+                        if(tree[n.node.__][n.node.uid][ecuid]==null){
+                            tree[n.node.__][n.node.uid][ecuid] = []
+                        }
+
+                        console.log(`${n.node.__} - ${n.node.uid} - ${ecuid} => ${n.ruleIdx}`);
+                        tree[n.node.__][n.node.uid][ecuid].push(n.ruleIdx);
+                    }
+                })
+            }
+        }
+
+        return tree;
+    }
+
+    private async _consolidateOnJoin( pModel:AssuranceModelUUID, pTree:NodeMatchTree,
+                                      pReport:AssuranceReport):Promise<AssuranceReport> {
+        let n:any[];
+        let m:Match;
+
+        for(let piiID in pReport.matches){
+            m = pReport.matches[piiID];
+
+            m.match.map( occ => {
+                if(occ.node==null) /* skip */ return;
+
+                let ref = NodeUtils.asNodeRef(occ.node);
+
+                let xref:any = pTree[ref.__];
+                if(xref==null) return;
+                xref = xref[ref._uid];
+                if(xref==null) return;
+
+                // a match in privacy.trackers.shared also exists in pii3
+                if(occ.meta==null) occ.meta = [];
+
+                for(let ecuid in xref){
+                    occ.meta.push({
+                        type: MetadataType.ANY,
+                        key: MetadataTopic.CTRL,
+                        value: {
+                            model: pModel,
+                            ctrl: ecuid,
+                            idx: xref[ecuid]
+                        }
+                    });
+                }
+            });
+
+            // m.assessment =>W ControlAssessment
+            // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+        }
+
+        return pReport;
+    }
+
+
+    private async _consolidateOnParent( pModel:AssuranceModelUUID, pTree:NodeMatchTree,
+                                      pReport:AssuranceReport):Promise<AssuranceReport> {
+        let n:any[];
+        let m:Match;
+
+        for(let piiID in pReport.matches){
+            m = pReport.matches[piiID];
+
+            m.match.map( occ => {
+                if(occ.node==null) /* skip */ return;
+
+                let ref = NodeUtils.asNodeRef(occ.node);
+
+
+                let xref:any = pTree[ref.__];
+                if(xref==null) return;
+                xref = xref[ref._uid];
+                if(xref==null) return;
+
+                // a match in privacy.trackers.shared also exists in pii3
+                if(occ.meta==null) occ.meta = [];
+
+                occ.meta.push({
+                    type: MetadataType.ANY,
+                    key: MetadataTopic.CTRL,
+                    value: {
+                        model: pModel,
+                        ctrl: xref.ctrl
+                    }
+                });
+            });
+
+            // m.assessment =>W ControlAssessment
+            // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+        }
+
+        return pReport;
+    }
+
+    private async _crossReportConsolidating(pReport:AssuranceReport):Promise<AssuranceReport> {
+
+        Logger.info(chalk.yellow("Cross analysis policy enabled"));
+
+        const cross:any = {
+            "privacy.pii3":"privacy.trackers.shared",
+            "privacy.trackers.shared":"privacy.pii3",
+        }
+
+        if(cross[this.model.getID()]==null) return pReport;
+
+        const extraModel = cross[this.model.getID()];
+        const crossReport = await this._getExtraReport(extraModel);
+        let extraNode:NodeMatchTree = {};
+        let m:any;
+
+        if(crossReport!=null && crossReport.matches!=null){
+            // sort extra matches by noderef
+            extraNode = this._buildControlTreeFromMatches(crossReport.matches);
+
+            // 1st level intersection
+
+            // Parent intersection (class or package)
+
+            // search directly
+            pReport = await this._consolidateOnJoin(extraModel, extraNode, pReport);
+            /*
+            let n:any[];
+            for(let piiID in this.report.matches){
+                m = this.report.matches[piiID];
+
+                m.match.map( occ => {
+                    if(occ.node==null)  return;
+
+                    // preprocess
+
+                    let ref = NodeUtils.asNodeRef(occ.node);
+
+                    let xref:any = extraNode[ref.__];
+                    if(xref==null) return;
+                    xref = xref[ref._uid];
+                    if(xref==null) return;
+
+                    // a match in privacy.trackers.shared also exists in pii3
+                    if(occ.meta==null) occ.meta = [];
+
+                    occ.meta.push({
+                        type: MetadataType.ANY,
+                        key: MetadataTopic.CTRL,
+                        value: {
+                            model: extraModel,
+                            ctrl: xref.ctrl
+                        }
+                    });
+                });
+
+                // m.assessment =>W ControlAssessment
+                // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+            }*/
+
+        }
+
+        return pReport;
     }
 
     /**

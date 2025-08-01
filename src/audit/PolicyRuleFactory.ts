@@ -14,12 +14,12 @@ export class PolicyRuleFactory {
             id: "alert",
             name: "Alert on new finding",
             description: "To warn and perform assigned actions when a scan found new things related to previous version of the same application",
-            version: "1.0",
+            version: "1.1",
             condition: PolicyRuleCondition.NEWOCC,
             thresholds: [1],
             control: null,
             actions: [
-                PolicyActionFactory.createAction(ActionType.SEND_EMAIL)
+                PolicyActionFactory.createAction(ActionType.REPORT_WARNING)
             ]
         }),
         high_pii_criticity: new PolicyRule({
@@ -71,14 +71,16 @@ export class PolicyRuleFactory {
             name: "Group by Third-party SDKs",
             description: "To group results by third-party SDKs",
             version: "1.0",
-            condition: PolicyRuleCondition.NONE
+            condition: PolicyRuleCondition.NONE,
+            actions:[]
         }),
         analyze_pii: new PolicyRule({
             id: "analyze_pii",
             name: "Search PII manipulated by SDKs",
             description: "To search manipulated personal data for each detected SDK.",
             version: "1.0",
-            condition: PolicyRuleCondition.NONE
+            condition: PolicyRuleCondition.NONE,
+            actions:[]
         })
     }
 
@@ -90,6 +92,7 @@ export class PolicyRuleFactory {
             version: "1.0",
             rules: [
                 PolicyRuleFactory.ALL.alert,
+                //PolicyRuleFactory.ALL.high_country_criticity,
                 PolicyRuleFactory.ALL.analyze_tp_sdk
             ]
         }),

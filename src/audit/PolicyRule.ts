@@ -70,9 +70,7 @@ export class PolicyRule {
 
     thresholds: Threshold[] = [];
 
-    actions: PolicyAction[] = [
-        { type:ActionType.SEND_EMAIL, opts:{} }
-    ];
+    actions: PolicyAction[] = [];
 
 
 
