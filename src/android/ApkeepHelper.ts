@@ -43,7 +43,7 @@ export class ApkeepHelper extends  External.ExternalHelper {
      * @param pConnection
      * @param pDest
      */
-    downloadWith( pUser:UserAccount, pPackageID:string, pOrg:OrganizationUnit, pConnection:Connection, pDest:string):string[]{
+    downloadWith( pUser:UserAccount, pPackageID:string, pOrg:OrganizationUnit, pConnection:Connection, pDest:string):string{
 
         const opts:ApkDownloaderOptions = {
             store: "",
@@ -79,16 +79,17 @@ export class ApkeepHelper extends  External.ExternalHelper {
      * @param pPackageID
      * @param pConnection
      */
-    download( pUser:UserAccount, pPackageID:string, pOptions:ApkDownloaderOptions):string[] {
+    download( pUser:UserAccount, pPackageID:string, pOptions:ApkDownloaderOptions):string {
         let args:string[] = [];
 
-        if(/^[a-zA-Z0-9_][a-zA-Z0-9._]+(@[0-9]+\.[0-9]+\.[0-9]+)?$/.test(pPackageID)===false){
+        const pkgid = Util.trim(pPackageID,false,true);
+        /*if(/^[a-zA-Z0-9_][a-zA-Z0-9._]+(@[0-9]+\.[0-9]+\.[0-9]+)?$/.test(pkgid)===false){
             throw new Error("Package ID has invalid format.")
-        }
+        }*/
 
         // package
         args.push(`-a`);
-        args.push(pPackageID);
+        args.push(pkgid);
 
         // store
         args.push(`-d`);
@@ -108,18 +109,18 @@ export class ApkeepHelper extends  External.ExternalHelper {
             _fs_.mkdirSync(pOptions.destFolder);
         }
 
-        const destFile =  _path_.join( pOptions.destFolder, pPackageID+'.apk');
         args.push(pOptions.destFolder);
 
         const result = _proc_.spawnSync(ApkeepHelper.BIN, args, {
-            stdio: ['ignore', process.stdout, process.stderr /*'pipe', 'pipe'*/ ],
+            stdio: ['ignore', 'pipe', 'pipe'],
         });
 
-        if(!_fs_.existsSync(destFile)){
+        const output = _path_.join( pOptions.destFolder, pkgid+'.apk');
+        if(!_fs_.existsSync(output)){
             throw new Error("Application package cannot be downloaded.")
         }
 
-        return [destFile];
+        return output;
     }
 }
 const p = Util.whereIs(ApkeepHelper.BIN);
