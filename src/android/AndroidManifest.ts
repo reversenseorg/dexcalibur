@@ -1,5 +1,5 @@
 import DexcaliburProject from "../DexcaliburProject.js";
-import {AndroidPermission, AndroidPermissionGroup, AndroidPermissionSdk23, AndroidPermissionTree} from "./Permissions.js";
+import {ModelPermission, AndroidPermissionGroup, AndroidPermissionSdk23, AndroidPermissionTree} from "./ModelPermission.js";
 import AndroidApplication from "./AndroidApplication.js";
 import {AndroidAttributeSet} from "./AndroidAttribute.js";
 import {
@@ -51,8 +51,8 @@ export class AndroidManifest implements INode
 
     attributes:AndroidAttributeSet = {};
 
-    usesPermissions:AndroidPermission[] = [];
-    permissions:AndroidPermission[] = [];
+    usesPermissions:ModelPermission[] = [];
+    permissions:ModelPermission[] = [];
     permissionTrees:AndroidPermissionTree[] = [];
     permissionGroups:AndroidPermissionGroup[] = [];
     instrumentation:AndroidInstrumentation[] = [];
@@ -105,12 +105,12 @@ export class AndroidManifest implements INode
                     break;
                 case 'uses-permission':
                     config['uses-permission'].map(function(k){
-                        self.usesPermissions.push(AndroidPermission.fromXml(k.$));
+                        self.usesPermissions.push(ModelPermission.fromXml(k.$));
                     });
                     break;
                 case 'permission':
                     config['permission'].map(function(k){
-                        self.permissions.push(AndroidPermission.fromXml(k.$));
+                        self.permissions.push(ModelPermission.fromXml(k.$));
                     });
                     break;
                 case 'permission-group':
@@ -371,12 +371,12 @@ export class AndroidManifest implements INode
 
     /**
      * To check is the application require the given permission
-     * @param {AndroidPermission | String} perm The permission to search
+     * @param {ModelPermission | String} perm The permission to search
      * @returns {Boolean} Return TRUE if the given permission is required, else FALSE
      */
-    requirePermission(perm:AndroidPermission|string):boolean{
+    requirePermission(perm:ModelPermission|string):boolean{
         let res:boolean = false;
-        if(perm instanceof AndroidPermission){
+        if(perm instanceof ModelPermission){
             this.usesPermissions.map(function(p){
                 if(p.getName()===perm.getName())
                     res = true;

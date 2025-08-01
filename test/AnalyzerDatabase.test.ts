@@ -47,7 +47,7 @@ describe('AnalyzerDatabase', function() {
             expect(db.receivers).to.be.an.instanceOf(InMemoryDbCollection);
             expect(db.services).to.be.an.instanceOf(InMemoryDbCollection);
             expect(db.providers).to.be.an.instanceOf(InMemoryDbCollection);
-            expect(db.permissions).to.be.an.instanceOf(InMemoryDbIndex);
+            expect(db.permissions).to.be.an.instanceOf(InMemoryDbCollection);
         });
     });
 

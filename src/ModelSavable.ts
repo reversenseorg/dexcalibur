@@ -30,7 +30,8 @@ export enum STUB_TYPE {
     UI_EVT,
     UI_CMP_TYPE,
     UI_CMP,
-    UI_ROLE
+    UI_ROLE,
+    PERMISSION
 }
 
 

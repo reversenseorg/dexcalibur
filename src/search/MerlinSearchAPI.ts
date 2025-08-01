@@ -15,7 +15,7 @@ import AndroidActivity from "../android/AndroidActivity.js";
 import AndroidService from "../android/AndroidService.js";
 import AndroidReceiver from "../android/AndroidReceiver.js";
 import AndroidProvider from "../android/AndroidProvider.js";
-import {AndroidPermission} from "../android/Permissions.js";
+import {ModelPermission} from "../android/ModelPermission.js";
 import ModelCall from "../ModelCall.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelSyscall from "../ModelSyscall.js";
@@ -169,7 +169,7 @@ export class MerlinSearchAPI<T>
   }
 
   permission(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
-    return MerlinSearchRequest.fromCondition(this, AndroidPermission.TYPE, pattern, pOptions);
+    return MerlinSearchRequest.fromCondition(this, ModelPermission.TYPE, pattern, pOptions);
   }
 
   call(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{

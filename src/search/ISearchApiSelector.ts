@@ -8,7 +8,7 @@ import AndroidActivity from "../android/AndroidActivity.js";
 import AndroidProvider from "../android/AndroidProvider.js";
 import AndroidReceiver from "../android/AndroidReceiver.js";
 import AndroidService from "../android/AndroidService.js";
-import {AndroidPermission} from "../android/Permissions.js";
+import {ModelPermission} from "../android/ModelPermission.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelFile from "../ModelFile.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
@@ -36,7 +36,7 @@ export interface ISearchAPISelector<T>
 
     service(id:string):AndroidService;
 
-    permission(id:number):AndroidPermission;
+    permission(id:string):ModelPermission;
 
     func(id:string):ModelFunction;
 

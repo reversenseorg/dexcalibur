@@ -62,7 +62,7 @@ export default class AnalyzerDatabase
     receivers:IDbCollection = null;
     services:IDbCollection = null;
     providers:IDbCollection = null;
-    permissions:IDbIndex = null;
+    permissions:IDbCollection = null;
 
     resources:IDbCollection = null;
     // Manifest node
@@ -113,7 +113,7 @@ export default class AnalyzerDatabase
         this.receivers =this.conn.getCollection("receivers");
         this.services =this.conn.getCollection("services");
         this.providers =this.conn.getCollection("providers");
-        this.permissions =this.conn.getIndex("permissions");
+        this.permissions =this.conn.getCollection("permission");
         this.resources =this.conn.getCollection("resources");
         this.funcs =this.conn.getCollection("funcs");
 

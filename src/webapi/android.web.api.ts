@@ -9,7 +9,6 @@ import AndroidActivity from "../android/AndroidActivity.js";
 import AndroidReceiver from "../android/AndroidReceiver.js";
 import AndroidProvider from "../android/AndroidProvider.js";
 import AndroidService from "../android/AndroidService.js";
-import {AndroidPermission} from "../android/Permissions.js";
 import {FinderResult} from "../search/FinderResult.js";
 import AndroidAppAnalyzer from "../android/AndroidAppAnalyzer.js";
 import {NodeInternalType}

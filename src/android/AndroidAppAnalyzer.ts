@@ -582,6 +582,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			this.context.getProjectDB().getCollectionOf(ModelResource.TYPE.getType());
 		}else{
 			await this.parseResources(this._getResourcesFolder(), pkgScope);
+			await this.context.getProjectDB().saveMany(this.context.getAnalyzer().getData().permissions.getAsList(),
+				NodeInternalType.ANDROID_PERM);
 		}
 
 
@@ -1162,7 +1164,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			});
 
 			if(pExtra.fresh){
-				codeAnal.db.permissions.insert(x, false);
+				this.context.getAnalyzer().getData().permissions.addEntry(x.getUID(), x);
 			}
 
 			//Logger.debug("[Manifest] Permission found : ",x.name);

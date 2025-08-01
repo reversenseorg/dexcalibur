@@ -1,49 +1,74 @@
-import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType, INode, Tag} from "@dexcalibur/dexcalibur-orm";
+import {
+    NodeType,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    INode,
+    Tag,
+    DbSerialize,
+    TagUUID, SerializeOptions
+} from "@dexcalibur/dexcalibur-orm";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import ControlAssessment from "../audit/common/ControlAssessment.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
+import ModelCall from "../ModelCall.js";
+import {Metadata, MetadataType} from "../audit/common/Metadata.js";
+import {Savable, STUB_TYPE} from "../ModelSavable.js";
+import {ModelLocation} from "../ModelLocation.js";
+import {SecurityZone} from "../security/SecurityZone.js";
 
-export class AndroidPermission implements INode
+export enum AccessControlModel {
+    DAC = 'DAC',
+    RBAC = 'RBAC',
+    MAC = 'MAC',
+    ABAC = 'ABAC',
+    PBAC = 'PBAC',
+}
+
+const PREFIX_UID_ANDROID_PERMISSION = "ANDROID__";
+
+export class ModelPermission extends Savable
 {
-    static TYPE:NodeType = (new NodeType( "androidPermission", NodeInternalType.ANDROID_PERM, [
-        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    static TYPE:NodeType = (new NodeType( "permission", NodeInternalType.ANDROID_PERM, [
+        (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("name")).type(DbDataType.STRING),
+        (new NodeProperty("alias")).type(DbDataType.STRING).def(null),
         (new NodeProperty("description")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("label")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("protectionLevel")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("apiVersion")).type(DbDataType.INT).def(1),
-        (new NodeProperty("controls")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("query")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("__custom")).type(DbDataType.BOOLEAN).def(0),
-    ]))
-        .dataSource("MEM", "androidPermission");
+        (new NodeProperty("os")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("sources")).type(DbDataType.BLOB).def([]),
+        (new NodeProperty("controls")).type(DbDataType.BLOB).def([]),
+        (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
+        (new NodeProperty("accessControl")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("metadata")).type(DbDataType.BLOB).def([])
+    ])).dataSource("PROJECT_DB");
 
     __:NodeInternalType = NodeInternalType.ANDROID_PERM;
 
-    description:string = null;
-    label:string = null;
-    name:string = null;
-    permissionGroup:AndroidPermissionGroup = null;
-    protectionLevel:any = null;
-    apiVersion:number = 1;
-    controls:any = null;
-    query:any = null;
+    name: string = null;
+    alias: string = null;
+    description: string = null;
+    os: OperatingSystem = null;
+    sources: ModelLocation[] = null;
+    controls: string[] = null; // list of Controls._uid
+    tags: TagUUID[] = [];
+    accessControl: AccessControlModel;
+    metadata: Metadata[] = [];
 
-    __custom:boolean = false;
-    tags:number[] = [];
     __raw:any = null;
 
     constructor(config:any=null){
-
-        if(config != null){
-            for(let i in config){
+        super(STUB_TYPE.PERMISSION);
+        if (config != null) {
+            for (let i in config) {
                 this[i] = config[i];
             }
         }
     }
 
     getUID():string {
-        return  this.name;
+        return  this._uid;
     }
 
     getName():string{
@@ -70,16 +95,7 @@ export class AndroidPermission implements INode
         return this.tags;
     }
 
-
-    isCustom():boolean{
-        return this.__custom===true;
-    }
-
-    setCustom(bool:boolean){
-        this.__custom = bool;
-    }
-
-    update(otherPerm:AndroidPermission, override:boolean=false){
+    update(otherPerm:ModelPermission, override:boolean=false){
         for(let i in otherPerm){
             if(override || (this[i]===null)){
                 this[i] = otherPerm[i];
@@ -97,53 +113,54 @@ export class AndroidPermission implements INode
         return o;
     }
 
-    static fromXml(xmlobj:any):AndroidPermission{
-        let p:AndroidPermission = new AndroidPermission();
+    static fromXml(xmlobj:any):ModelPermission{
+        let p:ModelPermission = new ModelPermission();
 
         p.__raw = xmlobj;
-        for(let i in xmlobj){
-            if(i.startsWith('android:')){
-                p[i.substr(8)] = xmlobj[i];
-            }else{
-                p[i] = xmlobj[i];
+        for (let i in xmlobj) {
+            if (i.startsWith('android:')) {
+                if (i.substring(8) == 'name') {
+                    p.name = xmlobj[i];
+                    p._uid = PREFIX_UID_ANDROID_PERMISSION + p.name.substring(p.name.lastIndexOf(".") + 1);
+                } else {
+                    // maxSdkVersion
+                    let meta:Metadata = {'key':i.substring(8), 'type':MetadataType.TEXT, 'value':xmlobj[i]};
+                    p.metadata.push(meta);
+                }
+            } else {
+                let meta:Metadata = {'key':i, 'type':MetadataType.TEXT, 'value':xmlobj[i]};
+                p.metadata.push(meta)
             }
         }
 
         return p;
     }
 
-    toJsonObject():any{
+    toJsonObject(pOptions:SerializeOptions = {}, pZone = SecurityZone.PUBLIC):any{
         let o:any = {};
 
+        o.uid = this._uid;
         o.name = this.name;
-        o.label = this.label;
+        o.alias = this.alias;
         o.description = this.description;
-        o.apiVersion = this.apiVersion;
+        o.os = this.os;
+        o.sources = this.sources;
         o.controls = this.controls;
-        o.query = this.query;
-
-
-        if(this.permissionGroup != null)
-            o.permissionGroup = this.permissionGroup.name;
-        else
-            o.permissionGroup = null;
-
-
-        if(this.protectionLevel != null){
-            if(this.protectionLevel instanceof Array){
-                o.protectionLevel = [];
-                for(let i=0; i<o.protectionLevel.length; i++){
-                    o.protectionLevel.push(this.protectionLevel[i].name);
+        o.tags = this.tags;
+        o.accessControl = this.accessControl;
+        if (this.metadata != null && Array.isArray(this.metadata)) {
+            o.metadata = this.metadata.map(m => {
+                let v = {key: m.key, type: m.type, value:m.value};
+                if (m.value.toJsonObject != null) {
+                    v.value = m.value.toJsonObject();
                 }
-            }else
-                o.protectionLevel = this.protectionLevel.name;
-        }else
-            o.protectionLevel = null;
-
-        CoreDebug.checkJsonSerialize(o, "Permission");
+                return v;
+            });
+        }
         return o;
     }
 }
+ModelPermission.TYPE.builder(ModelPermission);
 
 
 export class AndroidPermissionGroup
@@ -152,7 +169,7 @@ export class AndroidPermissionGroup
     label:string = null;
     name:string = null;
 
-    children:AndroidPermission[] = [];
+    children:ModelPermission[] = [];
 
     constructor(config=null){
 
@@ -162,12 +179,13 @@ export class AndroidPermissionGroup
                 if(this[i] !==  undefined)
                     this[i] = config[i];
         }
-
+/*
         for(let i=0; i<this.children.length; i++){
             if(this.children[i].permissionGroup === null){
                 this.children[i].permissionGroup = this;
             }
         }
+ */
     }
 
 

@@ -5,7 +5,6 @@ import ModelClass from "../ModelClass.js";
 import ModelMethod from "../ModelMethod.js";
 import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {MerlinRule, MerlinRuleOptions, MerlinRuleType, SearchOptions } from "./MerlinRule.js";
-import {AndroidPermission} from "../android/Permissions.js";
 import {SerializedSearchRequest} from "../audit/common/SerializedMerlinPrimitive.js";
 import {Nullable} from "../core/IStringIndex.js";
 

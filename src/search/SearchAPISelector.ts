@@ -12,7 +12,7 @@ import AndroidActivity from "../android/AndroidActivity.js";
 import AndroidProvider from "../android/AndroidProvider.js";
 import AndroidReceiver from "../android/AndroidReceiver.js";
 import AndroidService from "../android/AndroidService.js";
-import {AndroidPermission} from "../android/Permissions.js";
+import {ModelPermission} from "../android/ModelPermission.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelFile from "../ModelFile.js";
 import {ISearchAPISelector} from "./ISearchApiSelector.js";
@@ -62,7 +62,7 @@ export class SearchAPISelector implements ISearchAPISelector<AnalyzerDatabase>
     return this._db.services.getEntry(id)
   }
 
-  permission(id:number):AndroidPermission{
+  permission(id:string):ModelPermission{
     return this._db.permissions.getEntry(id)
   }
 

@@ -1,7 +1,7 @@
 import * as Log from '../Logger.js';
 import {IntentFilter} from "./IntentFilter.js";
 import AndroidComponent from "./AndroidComponent.js";
-import {AndroidPermission} from "./Permissions.js";
+import {ModelPermission} from "./ModelPermission.js";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {
@@ -26,7 +26,7 @@ class AndroidActivityAlias
     icon:string =null;
     label:string =null;
     name:string =null;
-    permission:AndroidPermission =null;
+    permission:ModelPermission =null;
     targetActivity:AndroidActivity =null;
 
     constructor(config:any=null){

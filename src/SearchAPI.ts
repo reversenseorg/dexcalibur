@@ -17,7 +17,7 @@ import AndroidActivity from "./android/AndroidActivity.js";
 import AndroidReceiver from "./android/AndroidReceiver.js";
 import AndroidProvider from "./android/AndroidProvider.js";
 import AndroidService from "./android/AndroidService.js";
-import {AndroidPermission} from "./android/Permissions.js";
+import {ModelPermission} from "./android/ModelPermission.js";
 import {CONST} from "./CoreConst.js";
 import {ModelFunction} from "./ModelFunction.js";
 import DataScope, {DataScopeMap} from "./DataScope.js";
@@ -48,7 +48,7 @@ const DataModel = {
     receiver: new AndroidReceiver(),
     provider: new AndroidProvider(),
     service: new AndroidService(),
-    permission: new AndroidPermission(),
+    permission: new ModelPermission(),
 };
 
 
@@ -96,7 +96,7 @@ export class SearchAPISelector
         return this._db.services.getEntry(id)
     }
 
-    permission(id:number):AndroidPermission{
+    permission(id:string):ModelPermission{
         return this._db.permissions.getEntry(id)
     }
 
