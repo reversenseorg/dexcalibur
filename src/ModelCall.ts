@@ -20,6 +20,10 @@ import {CoreDebug} from "./core/CoreDebug.js";
 import {INode, INodeRef} from "./INode.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 import Platform from "./platform/Platform.js";
+import ModelField from "./ModelField.js";
+import ModelSyscall from "./ModelSyscall.js";
+import ModelStringValue from "./ModelStringValue.js";
+import {ModelFunction} from "./ModelFunction.js";
 
 /**
  * Represents a call to a method, a field or a class
@@ -108,9 +112,8 @@ export default class ModelCall implements INode
 
     instr:ModelInstruction = null;
     caller:ModelMethod = null;
-    calleed:ModelMethod = null;
+    calleed:(ModelMethod|ModelClass|ModelField|ModelFunction|ModelStringValue) = null;
 
-    _instr:Nullable<any> = null;
     _caller:Nullable<INodeRef> = null;
     _called:Nullable<INodeRef> = null;
 
@@ -140,8 +143,11 @@ export default class ModelCall implements INode
     set _uid(value:string){
         this.__uid = value;
     }
+
     private _genUID():string{
-        return CryptoUtils.sha256(`${this.instr.opcode}:${this.caller.getUID()}=>${this.calleed.getUID()}`);
+
+//        return CryptoUtils.sha256(`${this.instr.opcode}:${this.caller.getUID()}=>${this.calleed.getUID()}`);
+        return CryptoUtils.sha256(`${this.instr.opcode.instr}:${this.caller.__}:${this.caller.getUID()}:${this.calleed.__}:${this.calleed.getUID()}`);
     }
 
     getUID(): string {
@@ -151,7 +157,7 @@ export default class ModelCall implements INode
     print(){
         console.log("\t"+this.caller.hashCode()+" [:line"+this.instr.getLine()+"] > \n\t\t"
             +this.instr.opcode.instr+" "
-            +this.calleed.hashCode());
+            +this.calleed.getUID());
     }
 
     setCaller(pNode:INode){
@@ -203,25 +209,22 @@ export default class ModelCall implements INode
                 obj.tags = this.tags;
             }
             else if(i == "caller" && this.caller != null){
-                obj.caller = this.caller.__signature__;
+                obj.caller = this.caller.getUID();
             }
-            else if(i == "calleed"){
-                if(this.calleed instanceof ModelClass)
-                    obj.callee = this.calleed.name;
-                else if(obj.callee != null)
-                    obj.callee = this.calleed.__signature__;
+            else if(i == "calleed" && this.calleed != null){
+                obj.callee = this.calleed.getUID();
             }
             else if(i == "instr"){
-                obj.instr = this.instr.exportType(); //toJsonObject(["name"]);
+                obj.instr = this.instr.exportType();
             }
             else if(i == "_uid"){
-                obj._uid = this._uid; //toJsonObject(["name"]);
+                obj._uid = this._uid;
             }
             else if(i == "_caller"){
-                obj._caller = this._caller; //toJsonObject(["name"]);
+                obj._caller = this._caller;
             }
             else if(i == "_called"){
-                obj._called = this._called; //toJsonObject(["name"]);
+                obj._called = this._called;
             }
         }
 

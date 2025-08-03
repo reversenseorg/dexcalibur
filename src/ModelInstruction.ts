@@ -10,6 +10,7 @@ import {SecurityZone} from "./security/SecurityZone.js";
 import {CodeLabel, ModelRegisterReference} from "./ModelReference.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelConstantValue from "./ModelConstantValue.js";
+import {ElixirOpcodeDefinition} from "./Opcode.js";
 
 /**
  * Represents an instruction from the Application bytecode
@@ -32,7 +33,7 @@ export default class ModelInstruction extends Savable
     iline:Nullable<number> = null;
 
     // operands
-    opcode:any = null;
+    opcode:Nullable<ElixirOpcodeDefinition> = null;
     left:any = null;
     right:any = null;
 

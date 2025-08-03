@@ -565,99 +565,11 @@ export class PrivacyScanner extends AssuranceScanner {
 
         // 6. post process : cross results
         if(policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null){
-
             try{
                 this.report = await this._crossReportConsolidating(this.report);
             }catch (e){
                 console.error(e.stack);
             }
-
-            /*
-            Logger.info(chalk.yellow("Cross analysis policy enabled"));
-
-            const cross:any = {
-                "privacy.pii3":"privacy.trackers.shared",
-                "privacy.trackers.shared":"privacy.pii3",
-            }
-
-            if(cross[this.model.getID()]!=null){
-
-                this.report = await this._crossReportConsolidating(this.report);
-
-                const extraModel = cross[this.model.getID()];
-                // check if report of "privacy.trackers.shared" is available
-                crossReport = await this._getExtraReport(extraModel);
-
-                if(crossReport!=null && crossReport.matches!=null){
-
-                    const extraNode:Record<number, Record<string , {ctrl:string,idx:number}[]>> = {};
-
-                    // sort extra matches by noderef
-                    let m:Match;
-                    for(let ecuid in crossReport.matches){
-                        m = crossReport.matches[ecuid];
-                        if(m.match!=null){
-                            m.match.map(n => {
-                                if(n.node!=null){
-                                    if(extraNode[n.node.__]==null){
-                                        extraNode[n.node.__] = {};
-                                    }
-                                    if(extraNode[n.node.__][n.node.uid]==null){
-                                        extraNode[n.node.__][n.node.uid] = [];
-                                    }
-                                    extraNode[n.node.__][n.node.uid].push({
-                                        ctrl: ecuid,
-                                        idx: n.ruleIdx
-                                    });
-                                }
-
-                            })
-                        }
-                    }
-
-                    // search directly
-
-                    let n:any[];
-                    for(let piiID in this.report.matches){
-                        m = this.report.matches[piiID];
-
-                        m.match.map( occ => {
-                            if(occ.node==null)return;
-
-                            // preprocess
-
-                            let ref = NodeUtils.asNodeRef(occ.node);
-
-                            let xref:any = extraNode[ref.__];
-                            if(xref==null) return;
-                            xref = xref[ref._uid];
-                            if(xref==null) return;
-
-                            // a match in privacy.trackers.shared also exists in pii3
-                            if(occ.meta==null) occ.meta = [];
-
-                            //console.log(occ);
-
-                            occ.meta.push({
-                                type: MetadataType.ANY,
-                                key: MetadataTopic.CTRL,
-                                value: {
-                                    model: extraModel,
-                                    ctrl: xref.ctrl
-                                }
-                            });
-
-                        });
-
-
-                        // m.assessment =>W ControlAssessment
-                        // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
-
-                        console.log(piiID, this.report.matches);
-                    }
-
-                }
-            }*/
         }
 
 
@@ -675,27 +587,6 @@ export class PrivacyScanner extends AssuranceScanner {
 
         // 9. Save
         AuditManager.getInstance().saveReport(pContext, this.report);
-
-        //
-        /*switch(this.model.getID()){
-            case "privacy.pii3":
-                // check if report of "privacy.trackers.shared" is available
-                crossReport = await this._getExtraReport("privacy.trackers.shared");
-                if(crossReport!=null){
-                    this._generateCrossReport(crossReport,this.report);
-                }
-                break;
-            case "privacy.trackers.shared":
-                // filter results to keep only call from code out of SDK to SDK (such as call to SDK API)
-                // check if report of "privacy.pii3" is available
-                crossReport = await this._getExtraReport("privacy.pii3");
-                if(crossReport!=null){
-                    this._generateCrossReport(this.report,crossReport);
-                }
-                break;
-        }*/
-
-
     }
 
     /**
@@ -847,40 +738,6 @@ export class PrivacyScanner extends AssuranceScanner {
 
             // search directly
             pReport = await this._consolidateOnJoin(extraModel, extraNode, pReport);
-            /*
-            let n:any[];
-            for(let piiID in this.report.matches){
-                m = this.report.matches[piiID];
-
-                m.match.map( occ => {
-                    if(occ.node==null)  return;
-
-                    // preprocess
-
-                    let ref = NodeUtils.asNodeRef(occ.node);
-
-                    let xref:any = extraNode[ref.__];
-                    if(xref==null) return;
-                    xref = xref[ref._uid];
-                    if(xref==null) return;
-
-                    // a match in privacy.trackers.shared also exists in pii3
-                    if(occ.meta==null) occ.meta = [];
-
-                    occ.meta.push({
-                        type: MetadataType.ANY,
-                        key: MetadataTopic.CTRL,
-                        value: {
-                            model: extraModel,
-                            ctrl: xref.ctrl
-                        }
-                    });
-                });
-
-                // m.assessment =>W ControlAssessment
-                // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
-            }*/
-
         }
 
         return pReport;

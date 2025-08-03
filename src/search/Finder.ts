@@ -13,26 +13,6 @@ import {ModelObjectType} from "../ModelType.js";
 
 const Logger: Log.Logger = Log.newLogger() as Log.Logger;
 
-/*
-const DataModel = {
-    package: new ModelPackage("stub"),
-    class: new ModelClass(),
-    field: new ModelField(),
-    method: new ModelMethod(),
-    call: new ModelCall(),
-    objectType: new ModelObjectType(),
-    basicType: new ModelBasicType(),
-    value: new ModelConstantValue(),
-    string: new ModelStringValue(),
-    syscall: new ModelSyscall(),
-    file: new ModelFile(),
-    datablock: new ModelDataBlock(),
-    activity: new AndroidActivity(),
-    receiver: new AndroidReceiver(),
-    provider: new AndroidProvider(),
-    service: new AndroidService(),
-    permission: new AndroidPermission(),
-};*/
 
 const TAG_TOKEN = '@';
 const SEP_TOKEN = ':';

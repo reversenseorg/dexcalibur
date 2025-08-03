@@ -141,7 +141,7 @@ export default class RadareHelper implements INativeHelper
      async parseSections(pOut:any):Promise<ModelExecutableSection[]> {
         let secs:ModelExecutableSection[] = [];
 
-        console.log(pOut);
+        if(pOut==null || pOut.length==0) return secs;
 
         pOut.map( vSec => {
             secs.push(new ModelExecutableSection({
@@ -345,6 +345,7 @@ export default class RadareHelper implements INativeHelper
 
                     if(data.success){
                         this._h.sections = true;
+
                         data.data = await this.parseSections(data.data);
                         res.push(data);
 

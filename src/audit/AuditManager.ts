@@ -25,6 +25,7 @@ import {OrganizationManagerException} from "../errors/OrganizationManagerExcepti
 import {ReversenseProductUUID} from "../billing/ReversenseProduct.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {BomPurpose} from "../bom/BomPurpose.js";
+import Util from "../Utils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -42,7 +43,12 @@ interface AssuranceModelMap {
     [id:string] : AssuranceModel;
 }
 
-
+interface AmCache {
+    purp: Nullable<{
+        time: number,
+        data: BomPurpose[]
+    }>
+}
 
 /**
  * Class to load, store and manage assurance model
@@ -55,6 +61,8 @@ export class AuditManager {
     engine:DexcaliburEngine;
 
     scanfact: ScannerFactory;
+
+    private _cache:AmCache = { purp:null };
 
     genericModels:AssuranceModel[] = [];
 
@@ -840,7 +848,14 @@ export class AuditManager {
         return [];
     }
 
-    async listPurposes():Promise<BomPurpose[]> {
-        return await this.engine.getSignatureServer().getBomPurposes();
+    async listPurposes(pForce = false):Promise<BomPurpose[]> {
+        if(this._cache.purp==null || pForce || ((Util.now() - this._cache.purp.time)>(3600*1000))){
+            this._cache.purp = {
+                time: Util.now(),
+                data: await this.engine.getSignatureServer().getBomPurposes()
+            };
+        }
+
+        return this._cache.purp.data;
     }
 }

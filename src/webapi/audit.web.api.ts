@@ -1339,7 +1339,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 const am = $.context.getAuditManager();
-
                 $.sendSuccess(res, await am.listPurposes());
             }catch(err){
                 Logger.error("[API][AUDIT] BOM purposes cannot be listed. Cause : " + err.message + "\n\t" + err.stack);

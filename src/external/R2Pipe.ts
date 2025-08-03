@@ -226,7 +226,7 @@ export class R2Pipe {
             }
             if(this.cmdList.length==0){
                 // continue to buffer
-                console.log("CMD LIST IS EMPTY ",this.out_buff.toString());
+                // console.log("CMD LIST IS EMPTY ",this.out_buff.toString());
                 return;
             }
 
@@ -250,7 +250,7 @@ export class R2Pipe {
                         if(this.out_buff[eoc+2]!=0x00){
                             // command ended but result is incomplete (not null terminated)
                             if(data.length<8192){
-                                console.log(this.out_buff.slice(eoc,eoc+4).toString('hex'));
+                            //    console.log(this.out_buff.slice(eoc,eoc+4).toString('hex'));
                             }
                             // console.log(`wait ... RESULT NOT TERMINATED BY NULL (blk=${data.length}, eoc=${eoc}, total=${this.out_buff.length})`);//,this.out_buff.toString('hex'));
                             return;
@@ -266,7 +266,7 @@ export class R2Pipe {
                     return;
                 }
 
-                console.log("RESOLVED CMD ",cmd.cmd);
+                //console.log("RESOLVED CMD ",cmd.cmd);
 
                 cmd.onres({ cmd:cmd.cmd, data:this.out_buff.slice(0,eoc+3) });
                 // update buffer
@@ -304,18 +304,18 @@ export class R2Pipe {
                     }else{
                         this.cmdErr = [];
 
-                        console.log(`RADARE2 stderr => stdout (_onResults : ${data}`);
+                        // console.log(`RADARE2 stderr => stdout (_onResults : ${data}`);
                         //self._onResults( { cmd:this.cmdList.shift(), data: Buffer.from([]) });
 
                     }
                 }else{
-                    console.log(`RADARE2 stderr (cmd): ${data}`);
+                    //  console.log(`RADARE2 stderr (cmd): ${data}`);
                     this.cmdErr.push(data.toString());
                     this.err.push(data);
                     //self._onError(data);
                 }
             }else{
-                console.log(`RADARE2 stderr: ${data}`);
+                // console.log(`RADARE2 stderr: ${data}`);
                 this.err.push(data);
                 //self._onError(data);
             }

@@ -7,16 +7,17 @@ import Util from "./Utils.js";
 
 import * as Log from './Logger.js';
 import DalvikInstructionFormat from "./DalvikInstructionFormat.js";
-import {OPCODE} from "./Opcode.js";
+import {ElixirOpcodeDefinition, OPCODE} from "./Opcode.js";
 import ModelInstruction from "./ModelInstruction.js";
 import DexcaliburProject from "./DexcaliburProject.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface MethodInfo {
     name:string;
     args:(ModelBasicType|ModelObjectType)[];
     ret:ModelBasicType|ModelObjectType;
-};
+}
 
 
 export default class OpcodeSmaliParser
@@ -230,20 +231,6 @@ export default class OpcodeSmaliParser
         return null;
     }
 
-    /**
-     * To find an opcode by its literal name
-     * @param {string} instr Instruction name
-     * @return {any} Opcode
-     * @static
-     * @method
-     */
-    static find(instr:string){
-        for(let op in OPCODE){
-            // if(i==10) console.log(instr,OPCODE[op].instr);
-            if(instr==OPCODE[op].instr) return OPCODE[op];
-        }
-        return null;
-    }
 
     /**
      * To find a Dalvik opcode by its literal name
@@ -252,11 +239,11 @@ export default class OpcodeSmaliParser
      * @return {any} Opcode
      * @method
      */
-    findInContext(instr:string){
+    findInContext(instr:string):Nullable<ElixirOpcodeDefinition>{
         for(const op in OPCODE){
-            // if(i==10) console.log(instr,OPCODE[op].instr);
             if(instr==OPCODE[op].instr) return OPCODE[op];
         }
+        //throw new Error(`Instruction not found (2) : unknown opcode for : ${instr}`);
         return null;
     }
 
@@ -267,7 +254,7 @@ export default class OpcodeSmaliParser
      * @param src_line
      */
     parse(src:string[], raw_src:string, src_line:number):ModelInstruction{
-        let op:any = this.findInContext(src[0]), instr:ModelInstruction = null;
+        let op:ElixirOpcodeDefinition = this.findInContext(src[0]), instr:ModelInstruction = null;
         this.instrCtr++;
 
         // return UNKNOW instr
@@ -275,31 +262,6 @@ export default class OpcodeSmaliParser
 
         if(op.parse != undefined){
             instr = op.parse(src,raw_src.substr(raw_src.indexOf(CONST.LEX.TOKEN.SPACE)),this.tags);
-            instr.opcode = op;
-            //instr.oline = src_line; // line number into smali file
-            instr._raw = raw_src;
-        }
-
-        return instr;
-        /* if(op.byte == OPCODE.SGET_CHAR.byte)
-            console.log("[!] Instr sget-char : "+raw_instr.join(" "));*/
-    }
-
-    /**
-     *
-     * @param src
-     * @param raw_src
-     * @param src_line
-     */
-    static parse(src:string[], raw_src:string, src_line:number):ModelInstruction{
-        let op:any = this.find(src[0]), instr:ModelInstruction = null;
-        OpcodeSmaliParser.CTR++;
-
-        // return UNKNOW instr
-        if(op == null) return null;
-
-        if(op.parse != undefined){
-            instr = op.parse(src,raw_src.substr(raw_src.indexOf(CONST.LEX.TOKEN.SPACE)),OpcodeSmaliParser.STATIC_TAGS);
             instr.opcode = op;
             //instr.oline = src_line; // line number into smali file
             instr._raw = raw_src;

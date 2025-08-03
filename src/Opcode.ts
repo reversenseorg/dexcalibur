@@ -3,7 +3,6 @@ import {CONST} from "./CoreConst.js";
 import DalvikInstructionFormat from "./DalvikInstructionFormat.js";
 import * as Core from './CoreParser.js';
 import {Endianness} from "./core/Endianness.js";
-import ModelInstruction from "./ModelInstruction.js";
 
 
 const LEX = Core.LEX;
@@ -24,7 +23,7 @@ LEX.REG = {
 	p: RegType.PARAM
 };
 
-export interface DalvikOpcodeDefinition {
+export interface ElixirOpcodeDefinition {
 	/**
 	 * Opcode
 	 */
@@ -54,7 +53,7 @@ export interface DalvikOpcodeDefinition {
  
 
 
-export const OPCODE:Record<string,DalvikOpcodeDefinition> = {
+export const OPCODE:Record<string,ElixirOpcodeDefinition> = {
 	NOP:{ 
 		byte:0x00, 
 		instr:"nop", 
