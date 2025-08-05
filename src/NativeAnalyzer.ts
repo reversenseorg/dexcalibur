@@ -809,8 +809,14 @@ export default class NativeAnalyzer {
             if(res.success){
                 // discover functions
                 const funcs = await helper.listFunctions();
-                Logger.info("[NATIVE ANALYZER] "+funcs.length+` functions have been successfully analyzed in : ${pFile.getRelativePath()}`);
-                await this._pdb.saveMany(funcs, ModelFunction.TYPE.getType());
+
+                if(funcs.length>0){
+                    Logger.info("[NATIVE ANALYZER] "+funcs.length+` functions have been successfully analyzed in : ${pFile.getRelativePath()}`);
+                    await this._pdb.saveMany(funcs, ModelFunction.TYPE.getType());
+                }else{
+                    Logger.error(`[NATIVE ANALYZER] No functions found  in : ${pFile.getRelativePath()}`);
+                }
+
 
                 // discover sections
                 const sections = await helper.listSections();

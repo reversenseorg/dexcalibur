@@ -4,11 +4,16 @@ import Threat from "./Threat.js";
 import {ConstraintMatch} from "./ConstraintMatch.js";
 import CodeConstraint from "./CodeConstraint.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../../DexcaliburProject.js";
-import AssuranceModel, {AssuranceModelUUID, ControlNode, ControlNodeCanonicalUID} from "./AssuranceModel.js";
+import AssuranceModel, {
+    AssuranceModelUUID,
+    ControlNode,
+    ControlNodeCanonicalUID,
+    ControlTree
+} from "./AssuranceModel.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {FinderResult} from "../../search/FinderResult.js";
 import {
     DbDataType,
@@ -26,11 +31,17 @@ import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
 import {randomUUID} from "crypto";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {DeviceUUID} from "../../Device.js";
+import {Device, DeviceUUID} from "../../Device.js";
 import ModelStringValue from "../../ModelStringValue.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
 import {INodeRef} from "../../INode.js";
 import {Metadata} from "./Metadata.js";
+import {ApplicationUnit} from "../../organization/ApplicationUnit.js";
+import {Indicator} from "./Indicator.js";
+import {ExportOptions} from "../ExplainedReport.js";
+import ControlAssessment from "./ControlAssessment.js";
+import Control from "./Control.js";
+import {IControl} from "./IControl.js";
 
 export interface MatchGroup {
     model: AssuranceModelUUID,
@@ -74,6 +85,15 @@ export interface AssuranceReportOptions {
     secondaryAssets?:ConstraintMatch<Asset>[];
     globalThreats?:ConstraintMatch<Threat>[];
     matches?:Record<string, Match>;
+
+    // expl
+    deviceInfo?:any;
+    appInfo?:any;
+    title?:string;
+    description?:string;
+    controls?:ControlNode[];
+    meta?:Metadata[];
+    indicators?: Indicator[];
 }
 
 export type AssuranceReportUUID = string;
@@ -118,6 +138,7 @@ export default class AssuranceReport implements INode {
     _model:Nullable<AssuranceModel> = null;
 
     model:AssuranceModelUUID;
+    modelInfo:any = {};
 
     primaryAssets:ConstraintMatch<Asset>[] = [];
     secondaryAssets:ConstraintMatch<Asset>[] = [];
@@ -127,6 +148,28 @@ export default class AssuranceReport implements INode {
     matches:Record<ControlNodeCanonicalUID, Match> = {};
 
     tags:TagUUID[] = [];
+
+    // private _project: DexcaliburProject;
+    private _device: Device;
+    private _options: ExportOptions;
+
+
+    // --- BEGIN OF EXPLAINED REPORT ---
+    title: string;
+
+    description = "";
+
+    controls: ControlNode[] = [];
+
+    metadata: Metadata[] = [];
+
+    indicators: Indicator[] = [];
+
+    // --- END OF EXPLAINED REPORT ---
+    private deviceInfo: Nullable<{ uid: string; os: OperatingSystem; emulated: boolean; arch: string }> = null;
+    private appInfo: Nullable<{ package: string; os: OperatingSystem; version:string }>=null;
+
+
 
 
     constructor( pConfig:AssuranceReportOptions = {}) {
@@ -168,13 +211,6 @@ export default class AssuranceReport implements INode {
     }
     getSecondaryAssets():ConstraintMatch<Asset>[] {
         return this.secondaryAssets;
-    }
-
-    setProject(pProject:DexcaliburProject):void {
-        if(this.project==null) {
-            this.project = pProject.getUID();
-        }
-        this._proj = pProject;
     }
 
     addCodeMatch( pConstraint:CodeConstraint, pSubject:any):void {
@@ -342,21 +378,13 @@ export default class AssuranceReport implements INode {
             }
 
             switch (i){
+                case "_model":
                 case "_proj":
-                    if(this._proj!=null){
-                        o.project = this.projectToJsonObject(this._proj);
-                    }
                     break;
                 case "project":
                     if(this._proj==null){
                         o.project = this.project;
                     }
-                    /*if(this.project.toJsonObject==null){
-                        o.project = (this.project as any)
-                    }else{
-                        o.project = this._projectToJsonObject();
-                    }
-                    break;*/
                     break;
                 case "uid":
                 case "time":
@@ -366,6 +394,13 @@ export default class AssuranceReport implements INode {
                 case "device":
                 case "tags":
                 case "model":
+                    // context :
+                case "appInfo":
+                case "deviceInfo":
+                case "title":
+                case "description":
+                case "metadata":
+                case "indicators":
                     o[i] = this[i];
                     break;
                 case "matches":
@@ -392,19 +427,20 @@ export default class AssuranceReport implements INode {
                                 try{
                                     node = {
                                         __: x.node.__,
-                                        uid: (x.node.getUID!=null)? x.node.getUID() : x.node.uid,
-                                        val: AssuranceReport._extractNodeValue(canonicalUID,x)
+                                        uid: (x.node.getUID!=null)? x.node.getUID() : (x.node.uid!=null ? x.node.uid : x.node._uid),
+                                        val: "" //AssuranceReport._extractNodeValue(canonicalUID,x)
                                     };
                                     if(node.uid==null){
                                         throw new Error();
                                     }
                                 }catch(err){
+                                    console.log(err);
                                     switch(x.node.__){
                                         case NodeInternalType.STRING:
                                             node = {
                                                 __: x.node.__,
                                                 uid: (typeof x.node==='string')? x.node : x.node._uid,
-                                                val: AssuranceReport._extractNodeValue(canonicalUID,x)
+                                                val: "" //AssuranceReport._extractNodeValue(canonicalUID,x)
                                             };
                                             break;
                                         default:
@@ -428,6 +464,10 @@ export default class AssuranceReport implements INode {
                         })
                     }
                     break;
+                case "controls":
+                    o.controls = [];
+                    this.controls.map(x => o.controls.push(AssuranceReport.controlTreeToJsonObject(x)));
+                    break;
             }
         }
 
@@ -443,18 +483,6 @@ export default class AssuranceReport implements INode {
 
     isDirty():boolean {
         return this._dirty;
-    }
-
-    setModel(pModel:AssuranceModel){
-        this.model = pModel.getUID();
-        if(this._dirty){
-            // restore matches
-            for(let canonicalUID in this.matches){
-                if(typeof this.matches[canonicalUID].assessment==='string'){
-                    this.matches[canonicalUID].assessment = pModel.getControlNode(this.matches[canonicalUID].assessment as any);
-                }
-            }
-        }
     }
 
     /**
@@ -512,7 +540,7 @@ export default class AssuranceReport implements INode {
                 node: {
                     // new format : node is as INodeRef object
                     __:  v.node.__,
-                    _uid: NodeUtils.asNodeRef(v.node)._uid,
+                    _uid: (v.node.getUID!=null ? NodeUtils.asNodeRef(v.node)._uid : v.node._uid),
                     // 'uid' is deprecated
                     uid: (v.node.getUID!=null)? v.node.getUID() : v.node.uid,
                     // 'value' should be moved to Metadata
@@ -545,42 +573,6 @@ export default class AssuranceReport implements INode {
         return s as Match;
     }
 
-    /*
-    static unserializeMatches( pMatches:Record<string, Match>, pModel:AssuranceModel|string, pContext:DexcaliburEngine):Match {
-
-        if(pModel==null){
-            throw AuditManagerException.MODEL_NOT_FOUND();
-        }
-
-        const model:AssuranceModel;
-        // get model
-        if(typeof pModel==='object'){
-            model = pModel as AssuranceModel;
-        }else{
-            model = await pContext.getAuditManager().getModelByUID(
-                pContext.getInternalAcc(),
-                pModel as string
-            );
-        }
-
-        const s:any = {
-            assessment: (pModel!=null ? pModel.getControlNode(pMatch.assessment) : null),
-            match: []
-        };
-
-
-        pMatch.match.map((v:any)=>{
-            s.match.push({
-                node: {
-                    __:  v.node.__,
-                    uid: (v.node.getUID!=null)? v.node.getUID() : v.node.uid
-                },
-                ruleIdx: pMatch.ruleIdx
-            })
-        });
-
-        return s as Match;
-    }*/
     static _extractNodeValue(pCanonicalUID: string, pMatch:any) {
         switch (pMatch.node.__){
             case NodeInternalType.STRING:
@@ -588,6 +580,330 @@ export default class AssuranceReport implements INode {
             default:
                 return null;
         }
+    }
+
+
+
+    private _doSampling(pMatches: any[], pOptions: any): any {
+
+        let out: any[] = [];
+
+        if (pOptions.grpNode) {
+            const groups: any = {};
+
+            pMatches.map(m => {
+                if (groups[m.node.__] == null) {
+                    groups[m.node.__] = [];
+                }
+                if (groups[m.node.__].length < pOptions.grpSize) {
+                    groups[m.node.__].push(m);
+                }
+            });
+
+
+            console.log("EXPLAIN :  SAMPLED (WITH GRP) : ", out);
+            Object.values(groups).map(x => {
+                out = out.concat(x)
+            });
+        } else {
+
+            console.log("EXPLAIN :  SAMPLED (NO GRP): ", out);
+            out = pMatches.slice(0, pOptions.grpSize);
+        }
+        return out;
+    }
+
+    setModel(pModel: AssuranceModel): void {
+        this._model = pModel;
+
+        this.model = pModel.getUID();
+
+        if(this._dirty){
+            // restore matches
+            for(let canonicalUID in this.matches){
+                if(typeof this.matches[canonicalUID].assessment==='string'){
+                    this.matches[canonicalUID].assessment = pModel.getControlNode(this.matches[canonicalUID].assessment as any);
+                }
+            }
+        }
+
+        // explained report =>
+        this.title = pModel.name;
+        this.description = pModel.description;
+        this.modelInfo = {
+            uid: pModel.getID(),
+            version: pModel.getVersion(),
+            official: pModel.generic,
+            authors: pModel.getAuthor(),
+            release: pModel.getRelease(),
+            links: pModel.getLinks()
+        };
+    }
+
+    setAppUnit(pApp: ApplicationUnit): void {
+        this.application = pApp.getUID();
+        this.appInfo = {
+            package: pApp.packageID,
+            os: pApp.os,
+            version: "?"
+        }
+    }
+
+    setProject(pProject: DexcaliburProject): void {
+
+        if(this.project==null) {
+            this.project = pProject.getUID();
+        }
+
+        this._proj = pProject;
+
+        if (this.appInfo != null) {
+            (this.appInfo as any).version = pProject.meta['version'];
+        }
+    }
+
+
+    setDevice(pDevice: Device): void {
+        this._device = pDevice;
+
+        this.deviceInfo = {
+            uid: pDevice.getUID(),
+            os: pDevice.os,
+            emulated: pDevice.isEmulated,
+            arch: pDevice.model
+        };
+    }
+
+    // ------------ EXPLAIN REPORT -------------------
+
+    private _transformMatches(pMatches: any[]): any[] {
+
+        return pMatches.map((x: Match) => {
+            // @ts-ignore
+            x.node.__ = NodeInternalTypeName[x.node.__] as any;
+            return x;
+        });
+    }
+
+    private _cleanControl(pControl: ControlAssessment | Control): any {
+        let out: any = {
+            metadata: pControl.metadata,
+            name: pControl.name,
+            id: pControl.id,
+            links: (pControl as any).links
+        };
+
+        // removed : assessments
+
+        ['tags', 'children'].map(x => {
+            if ((pControl as any)[x] != null
+                && Array.isArray((pControl as any)[x])
+                && (pControl as any)[x].length > 0) {
+                out[x] = (pControl as any)[x];
+            }
+        });
+
+        ['verified', 'country', 'addDate', 'category'].map(x => {
+            if ((pControl as any)[x] != null) {
+                out[x] = (pControl as any)[x];
+            }
+        });
+
+
+        return out;
+    }
+
+    private _buildControlResults(pOptions: any): void {
+
+        let ctrl: IControl;
+        let r: Record<string, any> = {};
+        let tree: ControlTree = {};
+
+
+        for (let canonicalUID in this.matches) {
+            ctrl = this._model.searchControlByCID(canonicalUID);
+            if (ctrl != null) {
+                (ctrl as ControlAssessment).matches = this.matches[canonicalUID].match;
+            }
+
+            r[canonicalUID] = {
+                control: ctrl,
+                match: this.matches[canonicalUID]
+            };
+        }
+
+        console.log("_buildControlResults", r);
+
+        Object.keys(r).sort((a: string, b: string) => {
+            return (a.localeCompare(b) > 0 ? 1 : -1);
+        }).map(x => {
+            let p = x.split('.');
+            let uid: string = "";
+            let node: ControlNode;
+            let root = tree;
+
+            if (p[0] == "*") p.shift();
+
+            let o = x.lastIndexOf('.');
+            let s = -1;
+            let e: ControlNode;
+            let part: string;
+
+
+            for (let i = 0; i < p.length + (x.indexOf(':') > o ? 1 : 0); i++) {
+                part = p[(i < p.length ? i : p.length - 1)];
+                s = part.indexOf(':');
+
+                if (i == p.length) {
+                    uid = x;
+                } else {
+                    if (s > -1) {
+                        part = part.slice(0, s);
+                    }
+                    uid += (i > 0 ? "." : "") + part;
+                }
+
+                if (root[part] == null) {
+                    node = root[part] = {
+                        //parent: (i>0 ? tree[p[i-1]] : undefined),
+                        ctrl: (pOptions.clean === true ? this._cleanControl(this._model.searchControlByCID(uid)) : this._model.searchControlByCID(uid)),
+                        canonicalID: uid,
+                        children: {}
+                    };
+
+
+                    if (i > 0) {
+                        e = (i < p.length ? root[p[i - 1]] : root[p[i - 2]]);
+                        if (e != null) {
+                            if (e.children == null) {
+                                e.children = {};
+                            }
+                            e.children[part] = node;
+                        }
+                    }
+                } else {
+                    node = root[part];
+                }
+
+                if (r["*." + uid] != null) {
+                    if (this._options.sampling == true) {
+                        node.matches = this._doSampling(
+                            r["*." + uid].match.match,
+                            {
+                                grpSize: this._options.samplingSize,
+                                grpNode: this._options.groupSampleByNode
+                            }
+                        );
+                    } else {
+                        node.matches = r["*." + uid].match.match;
+                    }
+                    node.matches = this._transformMatches(node.matches);
+                }
+
+                if (node.children != null) {
+                    root = node.children;
+                }
+            }
+        });
+
+        this.controls = Object.values(tree);
+    }
+
+    /**
+     * To build final report by merging ControlTree from the model with the list of
+     * @param pOptions
+     */
+    build( pOptions: Nullable<ExportOptions> = null): AssuranceReport {
+
+        this._options = pOptions;
+        console.log("BUILD CONTROL RESULTS > ");
+        this._buildControlResults(pOptions);
+        this._buildKpis();
+        console.log("BUILT REPORT > ", this);
+        return this;
+    }
+
+    private _buildKpis(): void {
+
+    }
+
+
+    static controlTreeToJsonObject(pRoot:ControlNode):any {
+        const o:any = {
+            canonicalID: pRoot.canonicalID,
+            parent: (pRoot.parent!=null ? pRoot.parent.canonicalID : null),
+            ctrl: (pRoot.ctrl!=null ? (pRoot.ctrl as Control).toJsonObject() : null),
+            children: {}
+        };
+
+        if((pRoot.ctrl as ControlAssessment).matches!=null){
+            o.ctrl.matches = [];
+            (pRoot.ctrl as ControlAssessment).matches.map((vMatch:any) => {
+                o.ctrl.matches.push({
+                    node: {
+                        // new format : node is as INodeRef object
+                        __:  vMatch.node.__,
+                        _uid: NodeUtils.asNodeRef(vMatch.node)._uid,
+                        // 'uid' is deprecated
+                        uid: (vMatch.node.getUID!=null)? vMatch.node.getUID() : vMatch.node.uid,
+                        // 'value' should be moved to Metadata
+                        value: (vMatch.node.getUID!=null)? AssuranceReport._extractNodeValue("",vMatch) : null,
+                    },
+                    meta: vMatch.meta,
+                    ruleIdx: vMatch.ruleIdx //pMatch.ruleIdx
+                });
+            })
+        }
+        if(pRoot.children != null){
+            for(let k in pRoot.children){
+                o.children[k] = AssuranceReport.controlTreeToJsonObject(pRoot.children[k]);
+            }
+        }
+        return o;
+    }
+
+
+    static controlTreeFromJsonObject(pRoot:any):any {
+        const o:any = {
+            canonicalID: pRoot.canonicalID,
+            parent: (pRoot.parent!=null ? pRoot.parent.canonicalID : null),
+            ctrl:null,
+            children: {}
+        };
+
+
+
+        if((pRoot.ctrl as any).analType!==undefined){
+            o.ctrl = new ControlAssessment(pRoot.ctrl as any);
+        }else{
+            o.ctrl = new Control(pRoot.ctrl as any);
+        }
+
+        if((pRoot.ctrl as ControlAssessment).matches!=null){
+            o.ctrl.matches = [];
+            (pRoot.ctrl as ControlAssessment).matches.map((vMatch:any) => {
+                o.ctrl.matches.push({
+                    node: {
+                        // new format : node is as INodeRef object
+                        __:  vMatch.node.__,
+                        _uid:  vMatch.node._uid,
+                        // 'uid' is deprecated
+                        uid: vMatch.node._uid,
+                        // 'value' should be moved to Metadata
+                        value: vMatch.node.value,
+                    },
+                    meta: vMatch.meta,
+                    ruleIdx: vMatch.ruleIdx //pMatch.ruleIdx
+                });
+            })
+        }
+
+        if(pRoot.children != null){
+            for(let k in pRoot.children){
+                o.children[k] = AssuranceReport.controlTreeFromJsonObject(pRoot.children[k]);
+            }
+        }
+        return o;
     }
 }
 AssuranceReport.TYPE.builder(AssuranceReport);

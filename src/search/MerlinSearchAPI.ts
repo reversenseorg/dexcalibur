@@ -17,7 +17,6 @@ import AndroidReceiver from "../android/AndroidReceiver.js";
 import AndroidProvider from "../android/AndroidProvider.js";
 import {AndroidPermission} from "../android/Permissions.js";
 import ModelCall from "../ModelCall.js";
-import ModelString from "../ModelString.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {IAnalyzerUnit} from "../analyzer/IAnalyzerUnit.js";
@@ -28,6 +27,7 @@ import {CoreDebug} from "../core/CoreDebug.js";
 import {ISearchAPISelector} from "./ISearchApiSelector.js";
 import {INodeRef} from "../INode.js";
 import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import ModelStringValue from "../ModelStringValue.js";
 
 
 
@@ -177,7 +177,7 @@ export class MerlinSearchAPI<T>
   }
 
   strings(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
-    return MerlinSearchRequest.fromCondition(this, ModelString.TYPE, pattern, pOptions);
+    return MerlinSearchRequest.fromCondition(this, ModelStringValue.TYPE, pattern, pOptions);
   }
 
   func(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{

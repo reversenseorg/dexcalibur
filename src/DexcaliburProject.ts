@@ -99,6 +99,9 @@ import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
 import {TaintAnalyzer} from "./analyzer/taint/TaintAnalyzer.js";
 import {AbiManager, AbiType} from "./binary/ABI.js";
 import {ProgramManager} from "./core/ProgramManager.js";
+import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
+import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
+import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2590,6 +2593,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         const sastTag = this.tagManager.getTag("discover.static");
         const dastTag = this.tagManager.getTag("discover.dynamic");
+        const mixedTag = this.tagManager.getTag("discover.mixed");
         const internTag = this.tagManager.getTag("discover.internal");
         const codeRtBuffTag = this.tagManager.getTag("code.location.runtime.buffer");
         const codeRtLiveTag = this.tagManager.getTag("code.location.runtime.file");
@@ -2685,11 +2689,15 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             // TODO : multi threading
             await this.analyze.path( targetPath, CodeLocation.APP);
 
+            this.analyze.tagAllIf(
+                (k,x) => {  return !internTag.match(x); },
+                [sastTag]);
+
             // save model
             //await this.pdb.saveAnalyzerDB(this.analyze.getData());
             // update DB only on first open
             if(this._createMode){
-                await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
+               await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
             }
 
             // load hooks
@@ -2724,8 +2732,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     // detect and scan libs
                     // this.performNativeAnalysis(pkgScope);
                     const execFiles = await this.getDB().getFileDB().searchExecutables(pkgScope);
-
-                    console.log("EXECUTABLE FILES ",execFiles);
 
                     for(let i=0; i<execFiles.length; i++){
                         if(this.analyze.hasBeenAnalyzed(execFiles[i])){
@@ -2810,13 +2816,15 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         this.getWorkflow().pushStatus(new StatusMessage(96, "Tagging fresh data and elements"));
         this.analyze.tagAllIf(
-            (k,x) => {  return !internTag.match(x); },
-            [sastTag]);
+            (k,x) => {  return !internTag.match(x) && !sastTag.match(x); },
+            [mixedTag,sastTag]);
 
 
         // save nodes (code only) created by static analysis
         if(this._createMode){
-            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag);
+            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), mixedTag);
+            // save strings
+            //await this.pdb.updateStringValue(this.);
         }
 
         //this.analyze.execDelayedTagging(TAG.Discover.Statically);
@@ -2899,6 +2907,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         if(this._createMode){
             await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), dastTag);
+            await this.pdb.saveStrings();
         }
 
 

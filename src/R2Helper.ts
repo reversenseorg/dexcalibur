@@ -331,7 +331,7 @@ export default class RadareHelper implements INativeHelper
 
 
 
-        Logger.debug('[R2] Run command : '+pCommands.join(','));
+        Logger.info('[R2] Run command : '+pCommands.join(','));
 
         for(let i=0; i<pCommands.length; i++){
 

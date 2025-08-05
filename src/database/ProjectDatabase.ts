@@ -1,14 +1,12 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Settings} from "../Settings.js";
-import DatabaseSettings = Settings.DatabaseSettings;
 import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {IDbCollection, IDbIndex, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, NodeInternalTypeName} from "@dexcalibur/dxc-core-api";
 
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {AnalyzerState} from "../AnalyzerState.js";
@@ -60,6 +58,7 @@ import {ProjectFileDatabase} from "./ProjectFileDatabase.js";
 import {ModelFunction} from "../ModelFunction.js";
 import {MongoDbMerlinBackend} from "./MongoDbMerlinBackend.js";
 import ModelCall from "../ModelCall.js";
+import DatabaseSettings = Settings.DatabaseSettings;
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -164,6 +163,9 @@ export class ProjectDatabase implements IFileDatabase {
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
 
+    private _cache:Record<number, Record<string, INode>> = {};
+    private _strCache:Record<string, ModelStringValue> = {};
+    private _strCacheSz = 0;
 
     constructor(pDb:MongodbDb) {
         this._db = pDb;
@@ -191,6 +193,7 @@ export class ProjectDatabase implements IFileDatabase {
         this._merlinBE.setDB(this);
 
         this._initSubscriptions();
+
 
     }
 
@@ -678,42 +681,6 @@ export class ProjectDatabase implements IFileDatabase {
         );
     }
 
-    /**
-     * To persist the DB
-     * @param {AnalyzerDatabase} pDB
-     */
-    async saveAnalyzerDB(pDB: AnalyzerDatabase):Promise<void>  {
-
-        if(this._ctx.dryRun){
-            Logger.success("[PROJECT DB] Analyzer DB didnt  save : dry run mode");
-            return;
-        }
-
-        Logger.info("[PROJECT DB] Start to save Analyzer DB");
-        const startTime = Util.now();
-
-        const types = [
-            NodeInternalType.CLASS,
-            NodeInternalType.METHOD,
-            NodeInternalType.FIELD,
-            NodeInternalType.PACKAGE,
-            NodeInternalType.CALL
-        ];
-
-        let vals;
-        for(let i=0; i<types.length; i++){
-            vals = pDB.getDataSetFromNodeType(types[i]).getAsList();
-            try{
-                if(vals.length>0){
-                    await this.saveMany(vals, types[i]);
-                }
-            }catch (e){
-                Logger.error(e.message);
-            }
-        }
-
-        Logger.success("[PROJECT DB] Analyzer DB saved [duration="+((Util.now()-startTime)/1000)+"s]");
-    }
 
 
     /**
@@ -743,7 +710,8 @@ export class ProjectDatabase implements IFileDatabase {
             ModelField.TYPE,
             ModelMethod.TYPE,
             ModelPackage.TYPE,
-            ModelCall.TYPE
+            ModelCall.TYPE,
+            ModelStringValue.TYPE
         ];
 
 
@@ -759,14 +727,29 @@ export class ProjectDatabase implements IFileDatabase {
                 result
             );
 
-            try{
-                Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
-                if(result.size()>0){
-                    await ((this.getCollectionOf(types[i].getType()) as MongodbDbCollection).updateMany(result.getAsList(), {upsert:true}));
+            if(types[i].getType()!=ModelStringValue.TYPE.getType()){
+                try{
+                    Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
+                    if(result.size()>0){
+                        await ((this.getCollectionOf(types[i].getType()) as MongodbDbCollection).updateMany(result.getAsList(), {
+                            upsert:true
+                        }));
+                    }
+                }catch (e){
+                    Logger.error("[PROJECT DB] Nodes cannot be saved : "+e.message);
                 }
-            }catch (e){
-                Logger.error(e.message);
+            }else{
+
+                try{
+                    Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
+                    if(result.size()>0){
+                        await this.updateStringValue(result.getAsList());
+                    }
+                }catch (e){
+                    Logger.error("[PROJECT DB] Strings cannot be saved : "+e.message);
+                }
             }
+
         }
 
         Logger.success("[PROJECT DB] Analyzer DB saved [duration="+((Util.now()-startTime)/1000)+"s]");
@@ -808,4 +791,119 @@ export class ProjectDatabase implements IFileDatabase {
     }
 
 
+    /**
+     * To update and retrieve string value
+     *
+     * String can be found over different location. Instead of create duplicated nodes,
+     * ModelStringValue with identical value are merged in a single one
+     * with multiple 'src' (location where the string has been detected)
+     *
+     * This method retrieved existing duplicated string, update this with src of the string specified,
+     * save it again, and return the unique string.
+     *
+     * @param pString
+     */
+    async updateStringValue(pStrings:ModelStringValue[]):Promise<{ updated:number, inserted:number, untouched:number }> {
+
+        let ctrUp = 0, ctrIn = 0;
+
+
+        pStrings.map(vStr => {
+            const c = this._strCache[vStr.getUID()];
+            if(c==null){
+                this._strCache[vStr.getUID()] = vStr;
+                this._strCacheSz++;
+                ctrIn++;
+            }else{
+                c.updateSource(vStr);
+                ctrUp++;
+            }
+        })
+
+        return { updated:ctrUp, inserted:ctrIn, untouched: (this._strCacheSz-ctrUp-ctrIn)  };
+    }
+
+    async saveStrings():Promise<void> {
+
+        let i:number = 0;
+        let all:ModelStringValue[] = [];
+        try{
+            /*await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).updateMany(
+                Object.values(this._strCache), { replace:true, upsert:true, $set:['_uid','src','tags','value']}
+            );*/
+
+            //await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).addMany( Object.values(this._strCache));
+
+            all = Object.values(this._strCache);
+            for( i=0; i<all.length;i++){
+                await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).addMany( [all[i]]);
+            }
+
+        }catch (e){
+            Logger.error(`[PROJECT DB] Strings "${all[i].value}"(uid=${all[i]._uid}) (${i}) cannot be saved : `+e.message+"\n"+e.stack);
+            console.log(all[i]);
+        }
+
+
+        return ;
+    }
+
+
+    /**
+     * To update and retrieve string value
+     *
+     * String can be found over different location. Instead of create duplicated nodes,
+     * ModelStringValue with identical value are merged in a single one
+     * with multiple 'src' (location where the string has been detected)
+     *
+     * This method retrieved existing duplicated string, update this with src of the string specified,
+     * save it again, and return the unique string.
+     *
+     * @param pString
+     */
+    async updateResources(pObj:ModelResource[]):Promise<{ updated:number, inserted:number, untouched:number }> {
+
+        const all = await this.getCollectionOf(ModelResource.TYPE.getType()).getAsList(-1);
+        const existings:Record<string, ModelResource> = {};
+        all.map((s:ModelResource) => {
+            existings[s.getUID()] = s;
+        });
+
+        let insert:Record<string, ModelResource> = {};
+        let update:Record<string, ModelResource> = {};
+        let ctrUp = 0, ctrIn = 0;
+
+
+        pObj.map(vStr => {
+            const s = existings[vStr.getUID()];
+            if(s==null){
+                const c = insert[vStr.getUID()];
+                if(c==null){
+                    insert[vStr.getUID()] = vStr;
+                    ctrIn++;
+                }
+            }else{
+                update[s.getUID()] = s;
+                ctrUp++;
+            }
+        })
+
+        if(ctrUp>0){
+            await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                Object.values(update), { replace:false, upsert:false, $set:['ppts']}
+            );
+        }
+
+        if(ctrIn>0){
+            /*await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).addMany(
+                Object.values(insert)
+            );*/
+
+            await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                Object.values(insert), { replace:true, upsert:true, $set:['ppts']}
+            );
+        }
+
+        return { updated:ctrUp, inserted:ctrIn, untouched: (all.length-ctrUp)  };
+    }
 }

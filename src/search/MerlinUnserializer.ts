@@ -15,6 +15,7 @@ import {MerlinRule, MerlinRuleOptions, SearchOptions} from "./MerlinRule.js";
 import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {MerlinUnserializerException} from "./error/MerlinUnserializerException.js";
 import {MerlinSearchRequestException} from "./error/MerlinSearchRequestException.js";
+import ModelStringValue from "../ModelStringValue.js";
 
 
 export class MerlinUnserializer {
@@ -175,7 +176,12 @@ export class MerlinUnserializer {
         }
 
         // search node
-        nodeType = NodeType.getTypeByName(pRequest.node);
+        if(pRequest.node==="strings"){
+            nodeType = ModelStringValue.TYPE;
+        }else{
+            nodeType = NodeType.getTypeByName(pRequest.node);
+        }
+        //nodeType = NodeType.getTypeByName(pRequest.node);
 
         // unserialize single request
         if(pRequest.pattern!=null){
@@ -327,8 +333,12 @@ export class MerlinUnserializer {
 
             if(pObject.request!=null){
                 try{
-                    // search node
-                    nodeType = NodeType.getTypeByName(pObject.request.node);
+                    if(pObject.request.node==="strings"){
+                        nodeType = ModelStringValue.TYPE;
+                    }else{
+                        // search node
+                        nodeType = NodeType.getTypeByName(pObject.request.node);
+                    }
                     req.request = new MerlinSearchRequest(null, nodeType, reqOpers);
 
                 }catch(errNodeType:any){

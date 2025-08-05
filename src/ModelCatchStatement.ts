@@ -5,7 +5,7 @@ import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
 
-enum EBoundary {
+export enum EBoundary {
     ExceptionClass = 0,
     TryStart = 1,
     TryEnd = 2,

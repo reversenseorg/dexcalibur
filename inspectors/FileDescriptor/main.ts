@@ -120,7 +120,7 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
 
 
                 const s = pEvent.getContext().getAnalyzer().getData().newStringValue({
-                    src: pEvent,
+                    src: [pEvent],
                     value: path
                 });
 

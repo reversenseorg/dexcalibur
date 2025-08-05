@@ -1,3 +1,4 @@
+import {DbDataType, NodeProperty} from "@dexcalibur/dexcalibur-orm";
 
 
 export enum ActionType {
@@ -24,8 +25,14 @@ export interface Threshold {
 
 }
 
+export interface SendMailActionOptions {
+    email:string[],
+    comment?:string;
+}
+
+
 export interface PolicyAction {
-    type: string;
+    type: ActionType;
     name?:string;
     description?:string;
     opts: any;

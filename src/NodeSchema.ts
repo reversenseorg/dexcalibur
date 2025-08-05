@@ -39,7 +39,7 @@ import {CustomCode} from "./actionnable/CustomCode.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
 import AssuranceReport, {Match} from "./audit/common/AssuranceReport.js";
-import AssuranceModel from "./audit/common/AssuranceModel.js";
+import AssuranceModel, { ControlNode } from "./audit/common/AssuranceModel.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelInstruction from "./ModelInstruction.js";
@@ -49,6 +49,10 @@ import {HookVariableMap} from "./hook/common.js";
 import {Person} from "./user/Person.js";
 import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
 import {Cookie} from "./user/session/Cookie.js";
+import {Device} from "./Device.js";
+import Control from "./audit/common/Control.js";
+import ControlAssessment from "./audit/common/ControlAssessment.js";
+import ModelCatchStatement, {EBoundary} from "./ModelCatchStatement.js";
 
 
 
@@ -379,9 +383,27 @@ ModelBasicBlock.TYPE.updateProperties([
     (new NodeProperty("switch")).volatile().type(DbDataType.BLOB).def(null),
     (new NodeProperty("array_data_name")).type(DbDataType.BLOB),
     (new NodeProperty("array_data")).type(DbDataType.BLOB),
+
     (new NodeProperty("succ")).volatile().multiple(ModelBasicBlock.TYPE).def([]),
     (new NodeProperty("pred")).volatile().multiple(ModelBasicBlock.TYPE).def([]),
-    (new NodeProperty("catch")).volatile().type(DbDataType.BLOB).def(null),
+
+    (new NodeProperty("catch"))
+        .type(DbDataType.BLOB)
+        .sleep((x:NodePropertyState) => {
+            if(x.p==null) return null;
+            return x.p.toJsonObject();
+        })
+        .wakeUp( x => {
+            if(x.p==null)  return null;
+            const c = new ModelCatchStatement();
+            c.setException(x.p[EBoundary.ExceptionClass]);
+            c.setTarget(x.p[EBoundary.Target]);
+            c.setTryStart(x.p[EBoundary.TryStart]);
+            c.setTryEnd(x.p[EBoundary.TryEnd]);
+            return c;
+        })
+        .def(null),
+
     (new NodeProperty("visited")).type(DbDataType.BOOLEAN).def(false)
 
 ]).dataSource("MEM");
@@ -1052,43 +1074,86 @@ Brand.TYPE.updateProperties([
 AssuranceReport.TYPE.updateProperties([
     (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
     (new NodeProperty("line")).type(DbDataType.NUMERIC).def(null),
+
     (new NodeProperty("application")).type(DbDataType.STRING).def(null),
     (new NodeProperty("device")).type(DbDataType.STRING).def(null),
+
     (new NodeProperty("values")).type(DbDataType.BLOB).def(null),
     (new NodeProperty("time")).type(DbDataType.NUMERIC).def(null),
     (new NodeProperty("started")).type(DbDataType.NUMERIC).def(null),
     (new NodeProperty("terminated")).type(DbDataType.NUMERIC).def(null),
+
     (new NodeProperty("primaryAssets")).type(DbDataType.BLOB).def(null),
     (new NodeProperty("secondaryAssets")).type(DbDataType.BLOB).def(null),
     (new NodeProperty("globalThreats")).type(DbDataType.BLOB).def(null),
-    (new NodeProperty("primaryAssets")).type(DbDataType.BLOB).def(null),
-    (new NodeProperty("tags")).type(DbDataType.STRING),
+
+    (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
+
     (new NodeProperty("_proj")).volatile().single(DexcaliburProject.TYPE).def(null),
-    (new NodeProperty("project")).type(DbDataType.STRING).def(null),//.single(DexcaliburProject.TYPE),
-    /*
-    (new NodeProperty("project"))
-        .type(DbDataType.BLOB)
+    (new NodeProperty("_device")).volatile().single(Device.TYPE).def(null),
+
+    (new NodeProperty("project")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("appInfo")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("deviceInfo")).type(DbDataType.STRING).def(null),
+
+    (new NodeProperty("indicators")).type(DbDataType.STRING).def([]),
+    (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
+    (new NodeProperty("controls"))
+        .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => {
-            if(x.p!=null){
-                return (x.p.getUID!=null ? x.p.getUID() : x.p);
-            }else{
-                return null;
-            }
+            if(x.p==null || !Array.isArray(x.p)) return [];
+
+            const o:any = [];
+            x.p.map((vCtrl:ControlNode)=>{
+                const v = {
+                    parent: (vCtrl.parent!=null ? vCtrl.parent.canonicalID : null),
+                    canonicalID: vCtrl.canonicalID,
+                    ctrl: (vCtrl.ctrl!=null ? (vCtrl.ctrl as Control).toJsonObject(): null),
+                    children: {}
+                };
+
+                for(let k in vCtrl.children){
+                    v.children[k] = AssuranceReport.controlTreeToJsonObject(vCtrl.children[k]);
+                }
+
+                o.push(v);
+            });
+
+            return  o;
         })
         .wakeUp( (x:NodePropertyState) => {
+            if(x.p!=null && Array.isArray(x.p)){
+                const o:any = [];
+                x.p.map((vCtrl:ControlNode)=>{
+                    const v = {
+                        parent: (vCtrl.parent!=null ? vCtrl.parent.canonicalID : null),
+                        canonicalID: vCtrl.canonicalID,
+                        ctrl: null,
+                        children: {}
+                    };
 
-            if(x.p!=null){
-                (x.ctx as DexcaliburEngine).getProjectManager().getProject()
-                const o = [];
-                x.p.map( (data) => {
-                    o.push( HookTemplateFragment.fromJsonObject(data));
-                } );
-                return x;
+                    if((vCtrl.ctrl as any).analType!==undefined){
+                        v.ctrl = new ControlAssessment(vCtrl.ctrl as any);
+                    }else{
+                        v.ctrl = new Control(vCtrl.ctrl as any);
+                    }
+
+                    for(let k in vCtrl.children){
+                        v.children[k] = AssuranceReport.controlTreeFromJsonObject(vCtrl.children[k]);
+                    }
+
+                    o.push(v);
+                });
+
+                return o;
             }else{
-                return null;
+                return [];
             }
         })
-        .def(null),*/
+        .def([]),
+
+    (new NodeProperty("title")).type(DbDataType.STRING).def(""),
+    (new NodeProperty("description")).type(DbDataType.STRING).def(""),
     (new NodeProperty("model")).type(DbDataType.STRING).def(null),
     (new NodeProperty("matches"))
         .type(DbDataType.BLOB)

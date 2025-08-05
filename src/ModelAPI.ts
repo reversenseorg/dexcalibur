@@ -15,7 +15,6 @@ import ModelDataBlock from "./ModelDataBlock.js";
 import ModelExecutableSection from "./ModelExecutableSection.js";
 import ModelFileSection from "./ModelFileSection.js";
 import {ModelFunction} from "./ModelFunction.js";
-import ModelString from "./ModelString.js";
 import ModelCall from "./ModelCall.js";
 import {ModelLocation} from "./ModelLocation.js";
 import ModelMetadata from "./ModelMetadata.js";
@@ -136,8 +135,8 @@ export class ModelAPI {
         return new ModelRegisterReference(pOptions);
     }
 
-    newString( pOptions:any):ModelString {
-        return new ModelString(pOptions);
+    newString( pOptions:any):ModelStringValue {
+        return new ModelStringValue(pOptions);
     }
 
     newBasicType( pOptions:any):ModelBasicType {

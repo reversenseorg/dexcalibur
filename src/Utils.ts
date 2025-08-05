@@ -33,7 +33,7 @@ function checksum(str:string, algorithm:string ='md5', encoding:any ='hex'):stri
     return crypto
       .createHash(algorithm || 'md5')
       .update(str, 'utf8')
-      .digest(encoding || 'hex')
+      .digest(encoding || 'hex');
   }
 
 const NO_FLAG = 0x0;
@@ -670,7 +670,7 @@ export default class Util {
 
         for(let i=0; i<levels.length; i++){
             if((typeof (node) === 'object') && (node !== null) && (node !==undefined)){
-                if(node.hasOwnProperty(levels[i])){
+                if(node[levels[i]]!==undefined || node.hasOwnProperty(levels[i])){
                     node = node[levels[i]];
                 }else{
                     return null;

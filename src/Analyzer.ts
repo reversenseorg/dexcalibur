@@ -736,7 +736,10 @@ export default class Analyzer
                     (tmp as ModelCall).setCalled(instruct.right); //obj,
                     (tmp as ModelCall).setInstr(instruct);
 
-                    data.call.insert(tmp, false);
+                    if(!data.call.hasEntry((tmp as ModelCall).getUID()))
+                        data.call.addEntry((tmp as ModelCall).getUID(), tmp);
+
+                    //data.call.insert(tmp, false);
 
                     stats.methodCalls++;
 
@@ -792,8 +795,10 @@ export default class Analyzer
                     (c as ModelCall).setCalled(instruct.right); //obj,
                     (c as ModelCall).setInstr(instruct);
 
-                    data.call.insert(c, false);
+                    //data.call.insert(c, false);
 
+                    if(!data.call.hasEntry((c as ModelCall).getUID()))
+                        data.call.addEntry((c as ModelCall).getUID(), c);
 
 
                     stats.fieldCalls++;
@@ -812,10 +817,13 @@ export default class Analyzer
 
                     // add USAGE: NEW/READ/WRITE
                     const s = new ModelStringValue({
-                        src: pMethod,
-                        instr: instruct,
+                        // src: [pMethod],
+                        // instr: instruct,
                         value: instruct.right._value
                     });
+
+                    s.setInstrSource(pMethod, instruct);
+
 
                     if(s.value != 'Stub!'){
                         data.strings.insert(s, false);
@@ -846,7 +854,9 @@ export default class Analyzer
                         (c as ModelCall).setCaller(pMethod);
                         (c as ModelCall).setCalled(obj); //obj,
                         (c as ModelCall).setInstr(instruct);
-                        data.call.insert(c, false);
+                        //data.call.insert(c, false);
+                        if(!data.call.hasEntry((c as ModelCall).getUID()))
+                            data.call.addEntry((c as ModelCall).getUID(), c);
 
 
                     }

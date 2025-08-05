@@ -2,23 +2,15 @@ import {Product, ProductOptions} from "../../credit/Product.js";
 import AssuranceModel from "./AssuranceModel.js";
 import {DashBoard} from "./DashBoard.js";
 import AssuranceReport from "./AssuranceReport.js";
-import Asset from "./Asset.js";
 import CodeThreat, {CodeConstraintMap} from "./CodeThreat.js";
 import {NodeInternalType, NodeInternalTypeName}
 from "@dexcalibur/dxc-core-api";;
 import DexcaliburProject from "../../DexcaliburProject.js";
-import Util from "../../Utils.js";
-import {PrivacyFinding, PrivacyFindingType} from "../privacy/PrivacyFinding.js";
-import {TrackerInfo} from "../privacy/TrackerInfo.js";
-import ModelClass from "../../ModelClass.js";
 import ModelMethod from "../../ModelMethod.js";
 import CodeConstraint from "./CodeConstraint.js";
-import Threat from "./Threat.js";
-import { ConstraintMatch } from "./ConstraintMatch.js";
-import ModelString from "../../ModelString.js";
-import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 import {TestPlan} from "./TestPlan.js";
-import {ReversenseProduct, ReversenseProductUUID} from "../../billing/ReversenseProduct.js";
+import { ReversenseProductUUID} from "../../billing/ReversenseProduct.js";
+import ModelStringValue from "../../ModelStringValue.js";
 
 export interface AssuranceScannerOptions extends ProductOptions {
 
@@ -165,7 +157,7 @@ export class AssuranceScanner extends /* ReversenseProduct */ Product {
                     searchAPI
                         .getDatabase()
                         .strings
-                        .map((vIndex, vData:ModelString)=>{
+                        .map((vIndex, vData:ModelStringValue)=>{
                             this._codeConstr[vNodeType].map( (vConstraint:CodeConstraint) => {
                                 if((new RegExp(vConstraint.pattern)).test(vData.value)){
                                     console.log(`Constraint Match [string=${vConstraint.pattern}] > ${vData.value}`); //`"vMatchingNode.name);

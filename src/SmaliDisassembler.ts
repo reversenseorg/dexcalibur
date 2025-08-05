@@ -286,7 +286,8 @@ export default class SmaliDisassembler
             if(bb.hasCatchStatement()){
                 prefix = bb.getCatchStatements();
                 for(let k=0; k<prefix.length; k++){
-                    if(prefix[k].getException()==null)
+                    console.log("Prefix K :",prefix[k])
+                    if(prefix[k]!=null && prefix[k].getException()==null)
                         txt = `.catchall {${(prefix[k].getTryStart() as ModelBasicBlock).getTryStartLabel()} .. ${(prefix[k].getTryEnd() as ModelBasicBlock).getTryEndName()}} ${(prefix[k].getTarget() as ModelBasicBlock).getCatchLabel()}`;
                     else
                         txt = `.catch ${prefix[k].getException().name} {${(prefix[k].getTryStart() as ModelBasicBlock).getTryStartLabel()} .. ${(prefix[k].getTryEnd() as ModelBasicBlock).getTryEndName()}} ${(prefix[k].getTarget() as ModelBasicBlock).getCatchLabel()}`;

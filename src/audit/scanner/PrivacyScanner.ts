@@ -15,7 +15,7 @@ import {FinderResult} from "../../search/FinderResult.js";
 import {BusSubscriber} from "../../Bus.js";
 import {AssuranceScannerException} from "../errors/AssuranceScannerException.js";
 import AnalyzerDatabase from "../../AnalyzerDatabase.js";
-import {AssuranceModelUUID, CANONICALIZED_ROOT, ControlNode} from "../common/AssuranceModel.js";
+import AssuranceModel, {AssuranceModelUUID, CANONICALIZED_ROOT, ControlNode} from "../common/AssuranceModel.js";
 import ControlAssessment, {MetadataTopic} from "../common/ControlAssessment.js";
 import {TestPlan, TestStep, TestType} from "../common/TestPlan.js";
 import Control from "../common/Control.js";
@@ -31,6 +31,8 @@ import {PolicyRule} from "../PolicyRule.js";
 import {ApplicationUnit} from "../../organization/ApplicationUnit.js";
 import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 import chalk from "chalk";
+import {Device} from "../../Device.js";
+import {INodeRef} from "../../INode.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -85,6 +87,8 @@ export class PrivacyScanner extends AssuranceScanner {
     private _mainDB = 'global';
 
     private _searchContext:MerlinSearchAPI<any>|null = null;
+
+    private _device: Nullable<Device> = null;
 
     constructor(pConfig:PrivacyScannerOpts) {
         super({
@@ -207,42 +211,6 @@ export class PrivacyScanner extends AssuranceScanner {
                 }
             }
         }
-
-      /*  (pCtrlNode.ctrl as ControlAssessment).rules.map( (vRule,vRuleOffset) => {
-            if(!vRule.hasBusSubscriber()){
-                (async ()=>{
-                    let res:any;
-                    if(Merlin.isRule(vRule)){
-                        res = await vRule.execute(this.project);
-                        if(res.count()>0){
-                            console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
-                            res.getData().map((x:any) => {
-                                pReport.addMatch(
-                                    pCtrlNode,
-                                    vRuleOffset,
-                                    x
-                                );
-                            });
-                        }
-                    }else{
-                        (vRule as MerlinSearchRequest).setContext(this._searchContext);
-                        res = await vRule.execute(this.project);
-                        if(res.count()>0){
-                            console.log("[SCAN][FOUND](request) : "+res.count()+"  "+vRule.toSearchString());
-                            res.getData().map(x => {
-                                pReport.addMatch(
-                                    pCtrlNode,
-                                    vRuleOffset,
-                                    x
-                                );
-                            });
-                        }
-                    }
-
-                })();
-            }
-        });*/
-
 
         return ;
     }
@@ -386,7 +354,7 @@ export class PrivacyScanner extends AssuranceScanner {
         let org:Nullable<OrganizationUnit> = null;
 
 
-        // gather policies
+        // gather policies and device
         if(pContext.getAppUnit()!=null){
             app = await engine.getOrgManager().getDirectApplication(
                 engine.getInternalAcc(),
@@ -408,6 +376,12 @@ export class PrivacyScanner extends AssuranceScanner {
                             }
                         })
                     }
+                });
+            }
+
+            if(app.getTargetDevices().length>0){
+                this._device = await engine.getDeviceManager().getDevices(app.getTargetDevices()).find(x => {
+                    return (x.connected);
                 });
             }
 
@@ -442,14 +416,18 @@ export class PrivacyScanner extends AssuranceScanner {
 
         // TODO : execute TestPlan + attach matches to TestPlan step
 
-        // 2. perform scans
+        // 1'. prepare report
         this.report = new AssuranceReport({
             time:(new Date()).getTime(),
-            started:(new Date()).getTime(),
-            project: pContext.getUID(),
-            model: this.model.getID()
+            started:(new Date()).getTime()
         });
 
+        this.report.setProject(pContext);
+        this.report.setModel(this.model);
+        if(app!=null) this.report.setAppUnit(app);
+        if(this._device!=null) this.report.setDevice(this._device);
+
+        // 2. perform scans
         await plan.executeAsync(async (vStep:TestStep)=>{
             Logger.info("[SCANNER]["+this.name+"] Execute Test Step : "+vStep.type)
             let next = true;
@@ -459,7 +437,7 @@ export class PrivacyScanner extends AssuranceScanner {
                     await this._staticScan( this.report, vStep.controls, pOptions);
                     break;
                 case TestType.IAST:
-                    console.log("IAST : "+vStep.controls.length);
+                    console.log("IAST : "+vStep.controls.length); // TODO : add device
                     await this._iastScan( this.report, vStep.controls, pOptions);
                     break;
                 default:
@@ -473,7 +451,7 @@ export class PrivacyScanner extends AssuranceScanner {
 
         const intern:Tag = pContext.getTagManager().getTag("discover.internal");
 
-        // 5' : Filter / transform results
+        // 3 : Filter / transform results
         let m:Match;
         for(let sdkID in this.report.matches){
             m = this.report.matches[sdkID];
@@ -515,7 +493,7 @@ export class PrivacyScanner extends AssuranceScanner {
                         break;
                     case NodeInternalType.METHOD:
                         // remove internal match (tagged 'discover.internal')
-                        if((occ.node as INode).tags.indexOf(intern.getUUID())>0){
+                        if((occ.node as INode).tags!=null && (occ.node as INode).tags.indexOf(intern.getUUID())>0){
                             return false;
                         }else{
                             return true;
@@ -532,7 +510,7 @@ export class PrivacyScanner extends AssuranceScanner {
             // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
         }
 
-        // 5''. Deduplicate matching node (merge matching ctrl ID in metadata)
+        // 4. Deduplicate matching node (merge matching ctrl ID in metadata)
         let singles:Record<number,Record<string, any>> = {};
         let cleaned:Match[] = [];
         for(let k in this.report.matches){
@@ -541,7 +519,14 @@ export class PrivacyScanner extends AssuranceScanner {
             cleaned = [];
             this.report.matches[k].match.map( occ => {
                 if(singles[occ.node.__]==null) singles[occ.node.__]={};
-                const uid = (occ.node as INode).getUID();
+
+                let uid:string;
+                if(occ.node.getUID != null){
+                     uid = (occ.node as INode).getUID();
+                }else{
+                     uid = (occ.node as INodeRef)._uid;
+                }
+
                 if(singles[occ.node.__][uid]==null){
                     singles[occ.node.__][uid]={
                         ... occ,
@@ -562,6 +547,14 @@ export class PrivacyScanner extends AssuranceScanner {
             this.report.matches[k].match = cleaned;
         }
 
+        // 5. Explain report (explain results with model)
+        this.report.build({
+            sampling: false,
+            samplingSize: 100,
+            groupSampleByNode: false,
+            embedKpis: true,
+            clean: false
+        });
 
         // 6. post process : cross results
         if(policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null){
@@ -573,13 +566,12 @@ export class PrivacyScanner extends AssuranceScanner {
         }
 
 
-
         // 7. Apply policies
         if(policies["require_consent"]!=null){
-            Logger.info(chalk.yellow("Require_consent policy enabled"));
+            if(policies["require_consent"].thresholds.length>0){
+                await this._verifyConsent(this.report, policies["require_consent"]);
+            }
         }
-
-
 
         // 8. result
         this.report.terminated = (new Date()).getTime();
@@ -986,6 +978,72 @@ export class PrivacyScanner extends AssuranceScanner {
         }
 
         return filtered;
+    }
+
+    private async _verifyConsent(pReport: AssuranceReport, pRule: PolicyRule) {
+
+        const purps = pRule.thresholds[0]['in'];
+
+        if(purps==null || purps.length==0) return;
+
+        if(pReport.modelInfo.uid=="privacy.pii3"){
+
+            const trackerModel = await this.project.engine.getAuditManager()
+                .getModelByUID(
+                    this.project.engine.getInternalAcc(),
+                "privacy.trackers.shared"
+                );
+
+            for(let k in pReport.matches){
+                pReport.matches[k].match.map((m)=>{
+                    if(m.meta!=null && Array.isArray(m.meta)){
+                        const ctrls = m.meta.filter(x => (x.key===MetadataTopic.CTRL && x.value.model==="privacy.trackers.shared"));
+                        if(ctrls.length>0){
+                            const ectrl = trackerModel.getControlNode(ctrls[0].ctrl);
+                            if(ectrl==null){ return;  }
+
+                            const req = ectrl.metadata.filter(x =>{
+                                return ((x.key===MetadataTopic.PURPOSE) && (purps.indexOf(x.value)>-1));
+                            });
+
+                            if(req.length>0){
+                                m.meta.push({
+                                    type: MetadataType.PARAM,
+                                    key: MetadataTopic.ADVISORY,
+                                    value: {
+                                        id:"pii_consent",
+                                        style: "warning",
+                                        match: req
+                                    }
+                                })
+                            }
+                        }
+
+
+                    }
+                })
+            }
+        }else{
+            pReport.controls.map((vCtrl)=>{
+                const req = vCtrl.ctrl.metadata.filter(x =>{
+                    return ((x.key===MetadataTopic.PURPOSE) && (purps.indexOf(x.value)>-1));
+                });
+
+                if(req.length>0){
+                    vCtrl.ctrl.metadata.push({
+                        type: MetadataType.PARAM,
+                        key: MetadataTopic.ADVISORY,
+                        value: {
+                            id:"pii_consent",
+                            style: "warning",
+                            match: req
+                        }
+                    })
+                }
+            });
+        }
+
+
     }
 }
 

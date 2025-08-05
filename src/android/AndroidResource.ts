@@ -389,10 +389,10 @@ export class AndroidResource implements TreeNode<AndroidResource> {
         if(typeof this._value === 'string'){
             value = new ModelStringValue({
                 value: this._value,
-                src: {
+                src: [{
                     __: NodeInternalType.RESOURCE,
                     _uid: ResUID
-                }
+                }]
             });
         }else if(this._value != null){
             value = this._value;
@@ -406,10 +406,10 @@ export class AndroidResource implements TreeNode<AndroidResource> {
                 if(typeof this._attr[i] === 'string'){
                     attr[i] = new ModelStringValue({
                         value: this._attr[i],
-                        src: {
+                        src: [{
                             __: NodeInternalType.RESOURCE,
                             _uid: ResUID
-                        }
+                        }]
                     });
                 }else if(this._attr[i] != null){
                     attr[i] = this._attr[i];

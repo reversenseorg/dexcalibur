@@ -17,6 +17,7 @@ import ModelMethod from "./ModelMethod.js";
 import ModelField from "./ModelField.js";
 import ModelPackage from "./ModelPackage.js";
 import ModelStringValue from "./ModelStringValue.js";
+import ModelCall from "./ModelCall.js";
 
 
 export default class AnalyzerDatabase
@@ -42,7 +43,7 @@ export default class AnalyzerDatabase
     classes:IDbCollection = null;
     fields:IDbCollection = null;
     methods:IDbCollection = null;
-    call:IDbIndex = null;
+    call:IDbCollection = null;
     unmapped:IDbIndex = null;
     notbinded:IDbIndex = null;
     notloaded:IDbIndex = null;
@@ -94,7 +95,7 @@ export default class AnalyzerDatabase
         this.classes =this.conn.getCollection("classes");
         this.fields =this.conn.getCollection("fields");
         this.methods =this.conn.getCollection("methods");
-        this.call =this.conn.getIndex("call");
+        this.call =this.conn.getCollection("call"); //getIndex("call");
         this.unmapped =this.conn.getIndex("unmapped");
         this.notbinded =this.conn.getIndex("notbinded");
         this.notloaded =this.conn.getIndex("notloaded");
@@ -152,6 +153,9 @@ export default class AnalyzerDatabase
                 break;
             case NodeInternalType.RESOURCE:
                 res = this.resources.getEntry(pUID);
+                break;
+            case NodeInternalType.CALL:
+                res = this.call.getEntry(pUID);
                 break;
         }
         return res;
@@ -214,6 +218,7 @@ export default class AnalyzerDatabase
         this.fields = pProjectDB.getCollectionOf(ModelField.TYPE.getType());
         this.packages = pProjectDB.getCollectionOf(ModelPackage.TYPE.getType());
         this.classes = pProjectDB.getCollectionOf(ModelClass.TYPE.getType());
+        this.call = pProjectDB.getCollectionOf(ModelCall.TYPE.getType());
     }
 
     /**

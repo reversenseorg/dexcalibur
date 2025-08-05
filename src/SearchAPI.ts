@@ -149,14 +149,14 @@ export class SearchAPICallSelector
      * console-oriented API
      */
     print(){
-        this._db.call.map((k,v) => { v.print() });
+        //this._db.call.map((k,v) => { v.print() });
     }
 
     /**
      * console-oriented API
      */
     raw(){
-        this._db.call.map((k,v) => { console.log("\t"+v.instr._raw) });
+        //this._db.call.map((k,v) => { console.log("\t"+v.instr._raw) });
     }
 }
 

@@ -18,6 +18,7 @@ import {SearchToken} from "./SearchToken.js";
 import {MerlinSearchRequestException} from "./error/MerlinSearchRequestException.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {INodeRef} from "../INode.js";
+import ModelStringValue from "../ModelStringValue.js";
 
 const TAG_TOKEN = '@';
 const SEP_TOKEN = ':';
@@ -889,7 +890,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
           let o = ", {";
           const sArgs:SearchOperationArgs = x.args as SearchOperationArgs;
 
-          if(sArgs.pattern !=null){
+          if(sArgs.pattern !=null && sArgs.pattern.length>0){
             if(sArgs.pattern[0].opts!=null){
               if(sArgs.pattern[0].opts.query_string) o += ` query_string: ${JSON.stringify(sArgs.pattern[0].opts.query_string)},`;
               if(sArgs.pattern[0].opts.not) o += ` not: ${JSON.stringify(sArgs.pattern[0].opts.not)},`;
@@ -904,21 +905,24 @@ export class MerlinSearchRequest implements MerlinPrimitive{
             } else{
               o= "";
             }
+
+            if(nodeType==null)
+              s += `.search("${sArgs.pattern[0].raw}"${o})`;
+            else
+              s += `.${nodeType}("${sArgs.pattern[0].raw}"${o})`;
           }else{
             o = "";
+            s += `.search([])`;
           }
 
-          if(nodeType==null)
-            s += `.search("${sArgs.pattern[0].raw}"${o})`;
-          else
-            s += `.${nodeType}("${sArgs.pattern[0].raw}"${o})`;
+
 
           break;
         case OperationType.FILTER:
           let f = "";
           const fArgs:SearchOperationArgs = x.args as SearchOperationArgs;
 
-          if(fArgs.pattern!=null){
+          if(fArgs.pattern!=null  && fArgs.pattern.length>0){
             if(fArgs.pattern[0].opts!=null){
               f = ", {";
               if(fArgs.pattern[0].opts.query_string) f += ` query_string: ${JSON.stringify(fArgs.pattern[0].opts.query_string)},`;
@@ -1195,8 +1199,14 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
     const db = pProject.getAnalyzer().getInternalDB();
     if((typeof this._type)==="string"){
-      Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType "+this._type);
-      coll = db.getDataSetFromNodeType(NodeType.getTypeByName(this._type as string).getType());
+      Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType "+this._type)
+
+      if(this._type==="strings"){
+        coll = db.getDataSetFromNodeType(ModelStringValue.TYPE.getType());
+      }else{
+        coll = db.getDataSetFromNodeType(NodeType.getTypeByName(this._type as string).getType());
+      }
+
     }else{
       Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType "+(this._type as NodeType).getType());
       coll = db.getDataSetFromNodeType((this._type as NodeType).getType());
@@ -1306,7 +1316,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         _aggs: this._aggs,
         _options: this._options,
         _evt: this._evt,
-        _oper: this.getOperations(),
+        _oper: [],
         __stringified: "",
         _errors: this._errors
       };
@@ -1318,6 +1328,14 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         case OperationType.TAINT_SRC:
         case OperationType.TAINT_SINK:
           break;*/
+        case OperationType.SEARCH:
+        case OperationType.FILTER:
+          o._oper[vIdx] = vOpe;
+          o._oper[vIdx].args.pattern = [];
+          (vOpe.args as SearchOperationArgs).pattern.map( cond => {
+            o._oper[vIdx].args.pattern.push( (cond as SearchRequestCondition).toJsonObject() )
+          });
+          break;
         default:
           o._oper[vIdx] = vOpe;
           break;

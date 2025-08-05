@@ -183,6 +183,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			const res:ModelResource[] = vEvent.getData().res;
 			const pkgScope = vEvent.getContext().getDataAnalyzer().getScope("PKG");
 
+			let pdb = vEvent.getContext().getProjectDB();
 
 
 			let resSaved:any = this.state.getProperty("resSaved");
@@ -245,12 +246,13 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 				try{
 					if(strings.length>0){
-						vEvent.getContext().getProjectDB().saveMany(strings, NodeInternalType.STRING)
+						pdb.updateStringValue(strings)
 							.catch((err)=>{
 								Logger.error(`[LISTENER][app.res.parsed] Save of string from resources failed (1): `+err);
 							})
-							.then((vResult:INode[])=>{
-								Logger.info(`[LISTENER][app.res.parsed] Save of string from resources [${resType}] successful [${strings.length} strings].`);
+							.then((vStat:any)=>{
+								if(vStat!=null)
+									Logger.info(`[LISTENER][app.res.parsed] Save of string from resources [${resType}] successful. ${vStat.updated} updated,  ${vStat.inserted} created, ${vStat.untouched} untouched`);
 							});
 					}
 				}catch(e){
@@ -259,20 +261,24 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 				if(res.length>0){
 					// save resources
-					this.context.getProjectDB().saveMany(res,NodeInternalType.RESOURCE)
+					pdb.updateResources(res)
 						.catch((err)=>{
 							Logger.error(`[LISTENER][app.res.parsed] Save error : `+err);
 						})
-						.then((pResult:INode[])=>{
-							// success
-							resSaved = this.state.getProperty("resSaved");
-							if(resSaved==null){
-								resSaved = {};
+						.then((pResult:any)=>{
+
+							if(pResult.created>0 || pResult.updated>0){
+								// success
+								resSaved = this.state.getProperty("resSaved");
+								if(resSaved==null){
+									resSaved = {};
+								}
+
+								resSaved[resType] = Object.values(res).length;
+								this.state.setProperty("resSaved",resSaved);
+								this.state.save().then(()=>{});
 							}
 
-							resSaved[resType] = Object.values(res).length;
-							this.state.setProperty("resSaved",resSaved);
-							this.state.save().then(()=>{});
 						});
 				}else{
 					Logger.info(`[LISTENER][app.res.parsed] No resources to saved  : `+resType);

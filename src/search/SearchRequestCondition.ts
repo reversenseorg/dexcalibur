@@ -203,4 +203,17 @@ export class SearchRequestCondition implements IStringIndex<any>{
   getFieldParts():string[] {
     return  this.field.split(SearchRequestCondition.FIELD_TOK);
   }
+
+  toJsonObject():any {
+    return {
+      depth: this.depth,
+      tagKey: this.tagKey,
+      pattern: this.pattern,
+      field: this.field,
+      raw: this.raw,
+      regexp: this.regexp,
+      error: this.error,
+      opts: this.opts,
+    };
+  }
 }

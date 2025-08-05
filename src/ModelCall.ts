@@ -147,7 +147,10 @@ export default class ModelCall implements INode
     private _genUID():string{
 
 //        return CryptoUtils.sha256(`${this.instr.opcode}:${this.caller.getUID()}=>${this.calleed.getUID()}`);
-        return CryptoUtils.sha256(`${this.instr.opcode.instr}:${this.caller.__}:${this.caller.getUID()}:${this.calleed.__}:${this.calleed.getUID()}`);
+        return CryptoUtils.sha256(
+            `${this.instr.opcode.instr}:${this.caller.__}:${this.caller.getUID()}:${this.calleed.__}:${this.calleed.getUID()}`,
+            'hex', true
+        );
     }
 
     getUID(): string {

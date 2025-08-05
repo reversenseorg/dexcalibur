@@ -8,6 +8,8 @@ import {CoreDebug} from "../../core/CoreDebug.js";
 import {Metadata} from "./Metadata.js";
 import {MerlinPrimitive, MerlinType} from "../../search/MerlinPrimitive.js";
 import {MerlinUnserializer} from "../../search/MerlinUnserializer.js";
+import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import AssuranceReport from "./AssuranceReport.js";
 
 /**
  * TODO : move into separate package shared with signature-server
@@ -159,20 +161,25 @@ export default class ControlAssessment implements IControl {
 
         for(let i in this){
             switch (i){
-                /*case "matches":
+                case "matches":
                     o.matches = [];
-                    this.matches.map( x => {
-                       // o.matches.push( x.toJsonObject());
-                        if(x!=null){
-                            o.matches.push( {
-                                ctrl: x.ctrl!=null ? x.ctrl.id : null,
-                                assess: x.assess!=null ?x.assess : null,
-                                rule: x.rule!=null ? x.rule.toSearchString() : null,
-                                match: x.match!=null ? x.match.toJsonObject() : null,
-                            });
-                        }
+
+                    this.matches.map((vMatch:any)=>{
+                        o.matches.push({
+                            node: {
+                                // new format : node is as INodeRef object
+                                __:  vMatch.node.__,
+                                _uid: NodeUtils.asNodeRef(vMatch.node)._uid,
+                                // 'uid' is deprecated
+                                uid: (vMatch.node.getUID!=null)? vMatch.node.getUID() : vMatch.node.uid,
+                                // 'value' should be moved to Metadata
+                                value: (vMatch.node.getUID!=null)? AssuranceReport._extractNodeValue("",vMatch) : null,
+                            },
+                            meta: vMatch.meta,
+                            ruleIdx: vMatch.ruleIdx //pMatch.ruleIdx
+                        });
                     });
-                    break;*/
+                    break;
                 case "rules":
                     o.rules = [];
                     this.rules.map( x => {

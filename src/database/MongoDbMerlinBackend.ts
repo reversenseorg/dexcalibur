@@ -14,6 +14,7 @@ import {NodeInternalTypeName, Nullable} from "@dexcalibur/dxc-core-api";
 import {MerlinSearchRequestException} from "../search/error/MerlinSearchRequestException.js";
 import {EngineDatabase} from "./EngineDatabase.js";
 import {ProjectDatabase} from "./ProjectDatabase.js";
+import ModelStringValue from "../ModelStringValue.js";
 
 
 interface InternalJoinStep {
@@ -53,7 +54,15 @@ export class MongoDbMerlinBackend {
 
         let type:NodeType;
         if(typeof pType==="string"){
-            type = NodeType.getTypeByName(pType);
+
+            if(pType==="strings"){
+                type = ModelStringValue.TYPE;
+            }else{
+                // search node
+                type = NodeType.getTypeByName(pType);
+            }
+
+            //type = NodeType.getTypeByName(pType);
         }else{
             type = pType;
         }
