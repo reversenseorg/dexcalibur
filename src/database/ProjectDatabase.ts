@@ -881,6 +881,7 @@ export class ProjectDatabase implements IFileDatabase {
                 if(c==null){
                     insert[vStr.getUID()] = vStr;
                     ctrIn++;
+
                 }
             }else{
                 update[s.getUID()] = s;
@@ -888,10 +889,22 @@ export class ProjectDatabase implements IFileDatabase {
             }
         })
 
+        let batch:any = [];
         if(ctrUp>0){
-            await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
-                Object.values(update), { replace:false, upsert:false, $set:['ppts']}
-            );
+
+            for(let i=0; i<Math.floor(ctrUp/100)+1; i++){
+                batch = Object.values(update).slice(i*100, (i+1)*100);
+
+                if(batch.length>0){
+                    Logger.info(`Save update batch ${i*100} => ${(i+1)*100} (total=${ctrUp}, batch size: ${batch.length})`);
+                    await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                        batch, { replace:false, upsert:false }
+                    );
+                }
+            }
+           /* await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                Object.values(update), { replace:false, upsert:false }
+            );*/
         }
 
         if(ctrIn>0){
@@ -899,9 +912,20 @@ export class ProjectDatabase implements IFileDatabase {
                 Object.values(insert)
             );*/
 
+            for(let i=0; i<Math.floor(ctrIn/100)+1; i++){
+                batch = Object.values(insert).slice(i*100, (i+1)*100);
+
+                if(batch.length>0){
+                    Logger.info(`Save insert batch ${i*100} => ${(i+1)*100} (total=${ctrIn}, batch size: ${batch.length})`);
+                    await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                        batch, { replace:false, upsert:true }
+                    );
+                }
+            }
+            /*
             await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
-                Object.values(insert), { replace:true, upsert:true, $set:['ppts']}
-            );
+                Object.values(insert), { replace:true, upsert:true }
+            );*/
         }
 
         return { updated:ctrUp, inserted:ctrIn, untouched: (all.length-ctrUp)  };
