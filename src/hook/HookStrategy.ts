@@ -333,6 +333,7 @@ export default class HookStrategy implements INode{
         const res=results.list();
         let pRes:any;
         let success = false;
+        let t:ModelMethod[] = [];
 
         Logger.info(`[HOOK STRATEGY] [uid=${this.getUID()}] _runOnSEResults : ${res.length}`);
 
@@ -348,6 +349,19 @@ export default class HookStrategy implements INode{
                     }
 
                     continue;
+                }
+
+                if(pRes._uid!=null && pRes.__signature__==null){
+                    // node ref
+                    t = await pContext.getProjectDB().search({
+                        __signature__:pRes._uid
+                    }, NodeInternalType.METHOD);
+                    if(t.length>0){
+                        pRes = t[0];
+                    }else{
+                        Logger.info(`[HOOK STRATEGY] [uid=${this.getUID()}] _runOnSEResults : skip result ${pRes._uid}`);
+                        continue;
+                    }
                 }
 
                 let h:JavaMethodHook = hm.getJavaMethodHook(pRes);

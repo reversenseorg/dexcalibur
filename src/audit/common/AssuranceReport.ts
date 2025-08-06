@@ -905,5 +905,11 @@ export default class AssuranceReport implements INode {
         }
         return o;
     }
+
+    withoutMatches():AssuranceReport {
+        const r = new AssuranceReport(this as any);
+        r.matches = {};
+        return r;
+    }
 }
 AssuranceReport.TYPE.builder(AssuranceReport);

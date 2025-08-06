@@ -438,7 +438,37 @@ export class AuditManager {
 
             pReport.uid = uuid;
 
+            const coll:MongodbDbCollection = this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType()) as MongodbDbCollection;
+
+            const ctrls = pReport.controls;
+
+            //pReport.matches = {};
+            console.log("Save report");
             await this.engine.getEngineDB().save(pReport);
+
+            // save structure without matches
+
+            console.log("Save report controls")
+
+           /*
+            for(let i=0; i<ctrls.length; i++){
+                await coll.asyncUpdateEntry(
+                    { uid: pReport.getUID() },
+                    { upsert:false, $set:{
+                        controls: {
+
+                        }
+                    }}
+                );
+            }*/
+
+
+
+            // add matches sequentially
+
+
+
+
         }catch (err){
             console.log(err,err.code);
         }

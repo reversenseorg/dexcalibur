@@ -1108,7 +1108,7 @@ AssuranceReport.TYPE.updateProperties([
                 const v = {
                     parent: (vCtrl.parent!=null ? vCtrl.parent.canonicalID : null),
                     canonicalID: vCtrl.canonicalID,
-                    ctrl: (vCtrl.ctrl!=null ? (vCtrl.ctrl as Control).toJsonObject(): null),
+                    ctrl: (vCtrl.ctrl!=null? ( (vCtrl.ctrl as Control).toJsonObject ? (vCtrl.ctrl as Control).toJsonObject() : (vCtrl.ctrl)) : null),
                     children: {}
                 };
 

@@ -140,7 +140,6 @@ export class PrivacyScanner extends AssuranceScanner {
             if(!vRule.hasBusSubscriber()){
 
                 if(Merlin.isRule(vRule)){
-
                     try{
                         if(vRule.hasErrors()){
                             Logger.error(`Rule [uid=${pCtrlNode.canonicalID}#${vRuleOffset}] has errors (${vRule.getErrors().length}`);
@@ -459,12 +458,20 @@ export class PrivacyScanner extends AssuranceScanner {
             m.match = m.match.filter( occ => {
                 if(occ.node==null) /* skip */ return;
 
+                if((occ.node as INode).tags!=null && (occ.node as INode).tags.indexOf(intern.getUUID())>0){
+                    return false;
+                }
+
                 switch (occ.node.__){
                     case NodeInternalType.STRING:
                         if((occ.node as ModelStringValue).src!=null){
                             if(Array.isArray(occ.node.src)){
                                 occ.node.src.map((n,i)=>{
                                     if(n.__==NodeInternalType.STRING) return /* avoid infinite loop */;
+                                    if((n as INode).tags!=null && (n as INode).tags.indexOf(intern.getUUID())>0){
+                                        return false;
+                                    }
+
                                     if(i!=0){
                                         m.match.push({
                                             node: n,
@@ -549,11 +556,11 @@ export class PrivacyScanner extends AssuranceScanner {
 
         // 5. Explain report (explain results with model)
         this.report.build({
-            sampling: false,
+            sampling: true,
             samplingSize: 100,
-            groupSampleByNode: false,
+            groupSampleByNode: true,
             embedKpis: true,
-            clean: false
+            clean: true
         });
 
         // 6. post process : cross results
@@ -613,7 +620,7 @@ export class PrivacyScanner extends AssuranceScanner {
                             tree[n.node.__][n.node.uid][ecuid] = []
                         }
 
-                        console.log(`${n.node.__} - ${n.node.uid} - ${ecuid} => ${n.ruleIdx}`);
+                        //console.log(`${n.node.__} - ${n.node.uid} - ${ecuid} => ${n.ruleIdx}`);
                         tree[n.node.__][n.node.uid][ecuid].push(n.ruleIdx);
                     }
                 })
@@ -741,8 +748,12 @@ export class PrivacyScanner extends AssuranceScanner {
      * @private
      */
     private async _staticScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<void[]> {
+        const max = pControlNodes.length;
+        let passed = 0;
         return await Promise.all(pControlNodes.map(async (vCtrl) => {
             await this.doAssessment(pReport, vCtrl);
+            passed++;
+            Logger.info(`${passed} / ${max}`);
         }));
     }
 
@@ -1040,6 +1051,7 @@ export class PrivacyScanner extends AssuranceScanner {
                         }
                     })
                 }
+
             });
         }
 
