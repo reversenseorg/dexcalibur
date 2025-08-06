@@ -832,7 +832,7 @@ export default class AssuranceReport implements INode {
         const o:any = {
             canonicalID: pRoot.canonicalID,
             parent: (pRoot.parent!=null ? pRoot.parent.canonicalID : null),
-            ctrl: (pRoot.ctrl!=null ? (pRoot.ctrl as Control).toJsonObject() : null),
+            ctrl: (pRoot.ctrl!=null ? ((pRoot.ctrl as Control).toJsonObject !=null ? (pRoot.ctrl as Control).toJsonObject() : pRoot.ctrl)  : null),
             children: {}
         };
 
