@@ -560,7 +560,7 @@ export class PrivacyScanner extends AssuranceScanner {
             samplingSize: 100,
             groupSampleByNode: true,
             embedKpis: true,
-            clean: true
+            clean: false
         });
 
         // 6. post process : cross results

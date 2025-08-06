@@ -382,7 +382,7 @@ export default class AssuranceReport implements INode {
                 case "_proj":
                     break;
                 case "project":
-                    if(this._proj==null){
+                    if((this.project!=null) && (typeof this.project==='string')){
                         o.project = this.project;
                     }
                     break;
@@ -448,7 +448,7 @@ export default class AssuranceReport implements INode {
                                             break;
                                     }
                                 }
-                                
+
 
 
                                 if(node!=null){
@@ -797,7 +797,7 @@ export default class AssuranceReport implements INode {
                     } else {
                         node.matches = r["*." + uid].match.match;
                     }
-                    node.matches = this._transformMatches(node.matches);
+                    //node.matches = this._transformMatches(node.matches);
                 }
 
                 if (node.children != null) {

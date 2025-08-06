@@ -1083,9 +1083,9 @@ AssuranceReport.TYPE.updateProperties([
     (new NodeProperty("started")).type(DbDataType.NUMERIC).def(null),
     (new NodeProperty("terminated")).type(DbDataType.NUMERIC).def(null),
 
-    (new NodeProperty("primaryAssets")).type(DbDataType.BLOB).def(null),
-    (new NodeProperty("secondaryAssets")).type(DbDataType.BLOB).def(null),
-    (new NodeProperty("globalThreats")).type(DbDataType.BLOB).def(null),
+    (new NodeProperty("primaryAssets")).volatile().type(DbDataType.BLOB).def(null),
+    (new NodeProperty("secondaryAssets")).volatile().type(DbDataType.BLOB).def(null),
+    (new NodeProperty("globalThreats")).volatile().type(DbDataType.BLOB).def(null),
 
     (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
 
