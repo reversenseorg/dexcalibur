@@ -2,8 +2,25 @@ import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, TagUUID} from "@de
 import { NodeInternalType } from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Metadata} from "./Metadata.js";
+import {Nullable} from "../../core/IStringIndex.js";
 
 
+
+export enum IndicatorViewType {
+    NONDE='none',
+    DOUGHNUT='doughnut',
+    RADAR='radar',
+    CURV='curv',
+    PLOT='plot',
+    STACK='stack'
+}
+
+export interface DataSegment {
+    value: number;
+    label:string;
+    color?: string;
+    [extra:string]:any;
+}
 
 export interface IndicatorOptions {
     uuid?:IndicatorUUID;
@@ -15,6 +32,17 @@ export interface IndicatorOptions {
     version?:any[];
     view?:any;
     enable?:boolean;
+}
+
+
+
+export interface KpiRule {
+    on:string;
+    data: string,
+    filter? :any[],
+    countNone?:boolean;
+    nonePpt?:string;
+
 }
 
 export type IndicatorUUID = string;
@@ -35,6 +63,7 @@ export class Indicator implements INode {
         (new NodeProperty("description")).type(DbDataType.STRING).def(""),
         (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
         (new NodeProperty("rules")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("data")).type(DbDataType.BLOB).def([]),
         (new NodeProperty("view")).type(DbDataType.STRING).def(null),
         (new NodeProperty("enable")).type(DbDataType.BOOLEAN).def(true),
         (new NodeProperty("version")).type(DbDataType.BLOB).def({}),
@@ -46,12 +75,12 @@ export class Indicator implements INode {
     title:string = "";
     description:string = "";
     metadata:Metadata[] = [];
-    rules:any[] = [];
-    view:string = "";
+    rules:KpiRule[] = [];
+    view:IndicatorViewType = IndicatorViewType.DOUGHNUT;
     enable = true;
     version:any[] = []
-
     tags:TagUUID[] = [];
+    data?:Nullable<DataSegment[]> = [];
     // metric: Metric = null;
     // events: any[] = [];
 
@@ -128,9 +157,17 @@ export class Indicator implements INode {
             rules: this.rules,
             view: this.view,
             enable: this.enable,
-            version: this.version
+            version: this.version,
+            data: []
         };
 
+        this.data.map((ds:DataSegment) => {
+            o.data.push({
+                value: ds.value,
+                label: ds.label,
+                extra: ds.extra
+            })
+        })
 
         CoreDebug.checkJsonSerialize(o, "Indicator");
         return o;
@@ -140,6 +177,17 @@ export class Indicator implements INode {
         const i:any = new Indicator(pObj);
 
         return i;
+    }
+
+    /**
+     * To clone the indicator and populate data
+     *
+     * @param pData
+     */
+    createWithData(pData:DataSegment[]):Indicator {
+        const kpi = new Indicator(this);
+        kpi.data = pData;
+        return kpi;
     }
 }
 Indicator.TYPE.builder(Indicator);

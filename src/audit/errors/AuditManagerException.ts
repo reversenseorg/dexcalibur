@@ -2,6 +2,7 @@ import {ErrorCode, MonitoredError} from "../../errors/MonitoredError.js";
 import {DexcaliburProjectUUID} from "../../DexcaliburProject.js";
 import {AssuranceScannerUID} from "../common/AssuranceScanner.js";
 import {AssuranceReportUUID} from "../common/AssuranceReport.js";
+import {AssuranceModelUUID} from "../common/AssuranceModel.js";
 
 export class AuditManagerException extends MonitoredError {
 
@@ -33,6 +34,14 @@ export class AuditManagerException extends MonitoredError {
         return new AuditManagerException(`Cannot merge newest model with old [uuid=${pNew}][new=${pNewVersion}][old=${pOldVersion}]`,
             ErrorCode.AUDIT_MANAGER + 10) };
 
+    static KPI_NOT_FOUND = (pRep:AssuranceReportUUID,pModel:AssuranceModelUUID,pKpiID:string)=>{
+        return new AuditManagerException(`Cannot find indicator in report `,
+            ErrorCode.AUDIT_MANAGER + 11, {
+                report: pRep,
+                model: pModel,
+                kpi: pKpiID
+            }) };
+
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
@@ -40,4 +49,5 @@ export class AuditManagerException extends MonitoredError {
         this.code = pCode;
         this.extra = pExtra;
     }
+
 }

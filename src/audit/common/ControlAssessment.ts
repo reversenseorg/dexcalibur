@@ -10,6 +10,8 @@ import {MerlinPrimitive, MerlinType} from "../../search/MerlinPrimitive.js";
 import {MerlinUnserializer} from "../../search/MerlinUnserializer.js";
 import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import AssuranceReport from "./AssuranceReport.js";
+import {MatchOccurence} from "./Match.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 /**
  * TODO : move into separate package shared with signature-server
@@ -126,6 +128,9 @@ export enum DataOperationSource {
  */
 export default class ControlAssessment implements IControl {
 
+
+    __ = NodeInternalType.CTRL_ASMT;
+
     id:string;
 
     name:string;
@@ -142,7 +147,9 @@ export default class ControlAssessment implements IControl {
 
     rules:MerlinPrimitive[] = [];
 
-    matches:Match[] = [];
+    matches:MatchOccurence<any>[] = [];
+
+    //matches:Match[] = [];
 
     constructor( pConfig:ControlAssessmentOpts = null) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
@@ -173,7 +180,7 @@ export default class ControlAssessment implements IControl {
                                 // 'uid' is deprecated
                                 uid: (vMatch.node.getUID!=null)? vMatch.node.getUID() : vMatch.node.uid,
                                 // 'value' should be moved to Metadata
-                                value: (vMatch.node.getUID!=null)? AssuranceReport._extractNodeValue("",vMatch) : null,
+                                // value: (vMatch.node.getUID!=null)? AssuranceReport._extractNodeValue("",vMatch) : null,
                             },
                             meta: vMatch.meta,
                             ruleIdx: vMatch.ruleIdx //pMatch.ruleIdx

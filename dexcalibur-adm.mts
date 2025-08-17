@@ -1626,7 +1626,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                                         console.log(`[AUDIT] Results : `);
                                         let match:Match, ctrlNode:ControlNode;
                                         console.log(Object.values(report.matches).length);
-                                        for(let key in report.matches){
+                                        /*for(let key in report.matches){
                                             console.log(key);
                                             match = report.matches[key];
 
@@ -1645,7 +1645,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                                                 }
                                                 console.log("   "+chalk.greenBright(m.node.getUID())+" ");
                                             });
-                                        }
+                                        }*/
                                     }
                                 })
 

@@ -277,4 +277,8 @@ export class BusinessPlan {
 
         return bp;
     }
+
+    getPurchases():MarketplacePurchase[] {
+        return this.mkpPurchases;
+    }
 }

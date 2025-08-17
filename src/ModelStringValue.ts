@@ -37,7 +37,8 @@ export interface  IInstrRef {
     o: number
 }
 export interface IStringCtxRef extends INodeRef {
-    instr?:IInstrRef
+    instr?:IInstrRef;
+    tags?:number[];
 }
 
 export default class ModelStringValue extends Savable implements INode
@@ -214,8 +215,15 @@ export default class ModelStringValue extends Savable implements INode
     setInstrSource(pMethod: ModelMethod, pInstruct: ModelInstruction) {
         const r = NodeUtils.asNodeRef(pMethod)
         this.src.push({
-            __: r.__, _uid: r._uid, instr: { o: pInstruct.offset, bb:(pInstruct._parent!=null ? (pInstruct._parent as ModelBasicBlock).offset:null)  },
-        })
+            __: r.__,
+            _uid: r._uid,
+            tags: pMethod.tags,
+            instr: { o: pInstruct.offset, bb:(pInstruct._parent!=null ? (pInstruct._parent as ModelBasicBlock).offset:null)  },
+        });
+
+        pMethod.tags.map(t =>{
+            if(this.tags.indexOf(t)==-1) this.tags.push(t);
+        });
     }
 }
 

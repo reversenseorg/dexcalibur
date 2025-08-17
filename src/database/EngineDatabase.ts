@@ -170,7 +170,7 @@ export class EngineDatabase implements IFileDatabase {
         this._opts = pOptions;
 
         if(pOptions!=null){
-            this._connector = this._init(pOptions);
+            this._connector = this._init(pOptions/*, { clientOpts: 1000000 }*/);
         }
     }
 

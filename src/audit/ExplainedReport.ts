@@ -6,7 +6,6 @@ import {Device} from "../Device.js";
 import Asset from "./common/Asset.js";
 import Threat from "./common/Threat.js";
 import {Metadata} from "./common/Metadata.js";
-import {Indicator} from "./common/Indicator.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import ControlAssessment from "./common/ControlAssessment.js";
 import Control from "./common/Control.js";
@@ -55,7 +54,6 @@ export class ExplainedReport {
 
     metadata: Metadata[] = [];
 
-    indicators: Indicator[] = [];
 
     device: any = null;
 
@@ -88,17 +86,9 @@ export class ExplainedReport {
         console.log("BUILD CONTROL RESULTS > ");
         rep._buildControlResults(pOptions);
 
-        if (pOptions.embedKpis) {
-            rep._buildKpis();
-        }
-
 
         console.log("BUILT REPORT > ", rep);
         return rep;
-    }
-
-    private _buildKpis(): void {
-
     }
 
     private _doSampling(pMatches: any[], pOptions: any): any {
@@ -219,7 +209,7 @@ export class ExplainedReport {
         let r: Record<string, any> = {};
         let tree: ControlTree = {};
 
-
+/*
         for (let canonicalUID in this._report.matches) {
             ctrl = this._model.searchControlByCID(canonicalUID);
             if (ctrl != null) {
@@ -306,7 +296,7 @@ export class ExplainedReport {
             }
         });
 
-        this.controls = Object.values(tree);
+        this.controls = Object.values(tree);*/
     }
 
     toJsonObject(): any {

@@ -1,5 +1,13 @@
 
-import {DbDataType, DbKeyType, INode, NodeProperty, NodePropertyState, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {
+    DbDataType,
+    DbKeyType,
+    INode,
+    NodeProperty,
+    NodePropertyState,
+    NodeType,
+    ValidationRule
+} from "@dexcalibur/dexcalibur-orm";
 import {ProductRelease} from "./ProductRelease.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
@@ -36,7 +44,10 @@ export class ReversenseProduct implements INode
     __ = NodeInternalType.REVERSENSE_PRODUCT;
 
     static TYPE:NodeType = (new NodeType( "products", NodeInternalType.REVERSENSE_PRODUCT, [
-        (new NodeProperty("code")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("code"))
+            .type(DbDataType.STRING)
+            .rule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_\\.]+$/))
+            .key(DbKeyType.PRIMARY),
         (new NodeProperty("name")).type(DbDataType.STRING),
         (new NodeProperty("description")).type(DbDataType.STRING).def(""),
         (new NodeProperty("type")).type(DbDataType.NUMERIC).def(-1),

@@ -217,6 +217,10 @@ export class AssuranceScanner extends /* ReversenseProduct */ Product {
         // nothing to do
     }
 
+    computeKPI():void {
+
+    }
+
     public _prepareTestPlan():TestPlan {
         return new TestPlan();
     }

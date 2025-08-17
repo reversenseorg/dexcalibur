@@ -4,6 +4,9 @@ import {Metadata} from "./Metadata.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Nullable} from "../../core/IStringIndex.js";
+import {Match} from "./AssuranceReport.js";
+import {MatchOccurence} from "./Match.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 export interface ControlMap {
     [key:string] :Control|ControlAssessment;
@@ -34,6 +37,7 @@ export type ControlUUID = string;
  */
 export default class Control implements IControl {
 
+    __ = NodeInternalType.CONTROL;
     /**
      * Unique control ID
      * @type {string}
@@ -64,6 +68,8 @@ export default class Control implements IControl {
 
     tags:number[] = [];
 
+    matches:MatchOccurence<any>[] = [];
+
 
     constructor( pConfig:ControlOptions = null) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
@@ -89,6 +95,7 @@ export default class Control implements IControl {
         if(pConfig.metadata!=null) this.metadata = pConfig.metadata;
         if(pConfig.country!=null) this.country = pConfig.country;
         if(pConfig.category!=null) this.category = pConfig.category;
+        if(pConfig.matches!=null) this.matches = pConfig.matches;
 
         if(pUpdateChildren){
             if(pConfig.children!=null) this.children = pConfig.children;
@@ -116,6 +123,7 @@ export default class Control implements IControl {
 
     toJsonObject():any {
         let o:any = {
+            __: this.__,
             id: this.id,
             name: this.name,
             description: this.description,
@@ -124,7 +132,8 @@ export default class Control implements IControl {
             assessments: [],
             metadata: this.metadata,
             category: this.category,
-            country: this.country
+            country: this.country,
+            matches: this.matches
         };
 
         if(this.hasChildren()){

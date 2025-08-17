@@ -15,7 +15,7 @@ import {FinderResult} from "../../search/FinderResult.js";
 import {BusSubscriber} from "../../Bus.js";
 import {AssuranceScannerException} from "../errors/AssuranceScannerException.js";
 import AnalyzerDatabase from "../../AnalyzerDatabase.js";
-import AssuranceModel, {AssuranceModelUUID, CANONICALIZED_ROOT, ControlNode} from "../common/AssuranceModel.js";
+import {AssuranceModelUUID, CANONICALIZED_ROOT, ControlNode, ControlTree} from "../common/AssuranceModel.js";
 import ControlAssessment, {MetadataTopic} from "../common/ControlAssessment.js";
 import {TestPlan, TestStep, TestType} from "../common/TestPlan.js";
 import Control from "../common/Control.js";
@@ -26,13 +26,16 @@ import {INode, NodeType, NodeUtils, Tag} from "@dexcalibur/dexcalibur-orm";
 import {LicenceManager} from "../../credit/LicenceManager.js";
 import {ReversenseProduct} from "../../billing/ReversenseProduct.js";
 import {ProductRelease} from "../../billing/ProductRelease.js";
-import {MetadataType} from "../common/Metadata.js";
+import {Metadata, MetadataType} from "../common/Metadata.js";
 import {PolicyRule} from "../PolicyRule.js";
 import {ApplicationUnit} from "../../organization/ApplicationUnit.js";
 import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 import chalk from "chalk";
 import {Device} from "../../Device.js";
 import {INodeRef} from "../../INode.js";
+import {IControl} from "../common/IControl.js";
+import {MatchOccurence} from "../common/Match.js";
+import {IndicatorBuilder} from "../kpi/IndicatorBuilder.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -123,7 +126,7 @@ export class PrivacyScanner extends AssuranceScanner {
      * @param pReport
      * @param pCtrlNode
      */
-    async doAssessment(pReport:AssuranceReport, pCtrlNode:ControlNode):Promise<void> {
+    async doAssessment(pReport:AssuranceReport, pCtrlNode:ControlNode, vIndex:number =-1):Promise<void> {
 
         if(!pCtrlNode.ctrl.isControlAssessment()){
             Logger.info(`[SCANNER][${PrivacyScanner.DEFAULT_NAME}][doAssessment] skip control node (cause= control node is not a set of rules) : `+pCtrlNode.canonicalID);
@@ -134,9 +137,11 @@ export class PrivacyScanner extends AssuranceScanner {
         let vRule:MerlinPrimitive;
         let vRuleOffset:number;
         let res:FinderResult;
+        let startTime:number;
 
         for(let vRuleOffset=0; vRuleOffset<rules.length; vRuleOffset++){
             vRule = rules[vRuleOffset];
+
             if(!vRule.hasBusSubscriber()){
 
                 if(Merlin.isRule(vRule)){
@@ -146,19 +151,19 @@ export class PrivacyScanner extends AssuranceScanner {
                             continue;
                         }
 
-                        if(pCtrlNode.canonicalID.startsWith("*.4091cae9-")){
-                            console.log("BEFORE EXEC >",pCtrlNode.canonicalID, vRuleOffset, vRule.toSearchString());
-                        }
 
+                        startTime = (new Date()).getTime();
+                        Logger.info(` Execute [${vIndex}][${vRuleOffset}]...`);
                         res = await vRule.execute(this.project);
+                        Logger.info(` Execute [${vIndex}][${vRuleOffset}] : (ms) ${Math.floor((new Date()).getTime()-startTime)} : ${res.count()}`);
 
                         if(pCtrlNode.canonicalID.startsWith("*.4091cae9-")){
-                            console.log("AFTER EXEC >",pCtrlNode.canonicalID, vRuleOffset, res.count());
+                            console.log("AFTER EXEC >",pCtrlNode.canonicalID, vRuleOffset, vRule.toSearchString(), res.count());
                         }
 
                         if(res.count()>0){
                             console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
-                            res.foreach((offset:number,x:any) => {
+                            res.foreach((offset:number,vDetectedNode:any) => {
                                 // console.log('^ addMatch',  vRuleOffset, offset, x );
 
                                 // x => matching node
@@ -166,7 +171,7 @@ export class PrivacyScanner extends AssuranceScanner {
                                 pReport.addMatch(
                                     pCtrlNode,
                                     vRuleOffset,
-                                    x
+                                    vDetectedNode
                                 );
                             });
                         }
@@ -191,7 +196,12 @@ export class PrivacyScanner extends AssuranceScanner {
                         }
 
                         (vRule as MerlinSearchRequest).setContext(this._searchContext);
+                        //res = await vRule.execute(this.project);
+
+                        startTime = (new Date()).getTime();
                         res = await vRule.execute(this.project);
+                        Logger.info(` Execute [${vIndex}][${vRuleOffset}] : (ms) ${Math.floor((new Date()).getTime()-startTime)} : ${res.count()}`);
+
                         if(res.count()>0){
                             console.log("[SCAN][FOUND](request) : "+res.count()+"  "+vRule.toSearchString());
                             res.foreach((offset:number,x) => {
@@ -212,14 +222,6 @@ export class PrivacyScanner extends AssuranceScanner {
         }
 
         return ;
-    }
-
-    generateReport():AssuranceReport {
-        const report = new AssuranceReport({
-            model: this.model.getID()
-        });
-
-        return report;
     }
 
     /**
@@ -259,6 +261,176 @@ export class PrivacyScanner extends AssuranceScanner {
         }
 
         return reqs;
+    }
+
+
+    private async _getNodeByRef(pProject:DexcaliburProject, pRef:INodeRef):Promise<Nullable<INode>> {
+
+        let node = pProject.getAnalyzer().searchNode(pRef.__, pRef._uid);
+        if(node!=null) return node;
+
+        console.log(`[SCANNER][MATCH NOT FOUND IN MEMORY. TRY MERLIN IN MEM] ${pRef.__} ${pRef._uid}`);
+        let res:FinderResult = await (MerlinSearchRequest.getByRef(pRef,pProject.getMerlinEngine() )).execute(pProject);
+
+
+
+        if(res.count()===0){
+            console.log(`[SCANNER][MATCH NOT FOUND IN MEMORY. TRY MERLIN IN PDB] ${pRef.__} ${pRef._uid}`);
+            res = await (MerlinSearchRequest.getByRef(pRef,pProject.getMerlinEngine() )).executePDB(pProject);
+            if(res.count() === 0){
+                console.log(`[SCANNER][MATCH NOT FOUND IN DB] ${pRef.__} ${pRef._uid}`);
+                return null;
+            }
+        }
+
+
+        return (res.count()>0 ? res.get(0) : null);
+    }
+    /**
+     * To filter matches to remove
+     *
+     * @private
+     */
+    private async _filterMatches(pProject:DexcaliburProject, pPre:MatchOccurence<INode>[]):Promise<MatchOccurence<(INode|INodeRef)>[]> {
+        const post:MatchOccurence<(INode|INodeRef)>[] = [];
+        let occ:MatchOccurence<(INode|INodeRef)>;
+        let n:any;
+        let search:FinderResult;
+        let meta:Metadata[] = [];
+
+        const intern:Tag = pProject.getTagManager().getTag("discover.internal");
+
+        for(let i=0; i<pPre.length; i++){
+
+            occ = pPre[i];
+
+            if(occ.node==null) /* skip */ continue;
+
+
+
+            switch (occ.node.__){
+                case NodeInternalType.STRING:
+                    if((occ.node as ModelStringValue).src!=null){
+
+                        if((occ.node as any).src!=null && !Array.isArray((occ.node as any).src)){
+                            throw Error(`Strings src not an array : ${occ.node.__} ${occ.node._uid}`);
+                        }
+
+                        if((occ.node as INode).tags!=null
+                            && (occ.node as INode).tags.indexOf(intern.getUUID())>-1
+                            && (occ.node as any).tags.length===1){
+                            // exclude internal strings
+                            continue;
+                        }
+
+                        // replace original ModelStringValue match by related sources where the strings appears
+
+                        for(let k=0; k<(occ.node as ModelStringValue).src.length;k++){
+                            n = (occ.node as ModelStringValue).src[k];
+
+                            if(n.__==NodeInternalType.STRING) return /* avoid infinite loop */;
+
+
+                            if((n as INode).tags!=null
+                                && (n as INode).tags.length==1
+                                && (n as INode).tags.indexOf(intern.getUUID())>-1){
+                                // skip
+                                continue;
+                            }
+
+                            if(n.getUID==null){
+                                n = await this._getNodeByRef( pProject, n);
+                                if(n == null) n = (occ.node as ModelStringValue).src[k];
+                            }
+
+                            if(occ.meta!=null){
+                                occ.meta.map( (vMeta)=>{
+                                    meta.push(vMeta);
+                                });
+                            }
+
+                            post.push({
+                                node: n,
+                                ruleIdx: occ.ruleIdx,
+                                meta: meta/*{
+                                    type: MetadataType.ANY,
+                                    key: MetadataTopic.EXTRACT,
+                                    value: {
+                                        __:NodeInternalType.STRING,
+                                        _uid: (occ.node as ModelStringValue).src[k].getUID()
+                                    }
+                                }*/
+                            });
+                        }
+
+                        continue;
+                    }else{
+                        throw Error("Strings src null ");
+                    }
+                    break;
+                case NodeInternalType.CLASS:
+                case NodeInternalType.PACKAGE:
+                case NodeInternalType.METHOD:
+                case NodeInternalType.FIELD:
+                default:
+
+                    if((occ.node as INode).tags!=null
+                        && (occ.node as any).tags.length==1
+                        && (occ.node as INode).tags[0]===intern.getUUID()){
+                        // skip match in device code
+                        continue;
+                    }
+                    break;
+            }
+
+            post.push(occ);
+        }
+
+        return post;
+    }
+
+
+    private _deduplicateNode( pMatches:MatchOccurence<(INode|INodeRef)>[] ):MatchOccurence<(INode|INodeRef)>[] {
+
+
+
+        let singles:Record<number,Record<string, MatchOccurence<(INode|INodeRef)>>> = {};
+        let cleaned:MatchOccurence<(INode|INodeRef)>[] = [];
+        let occ:MatchOccurence<(INode|INodeRef)>;
+        let uid:string;
+
+        for(let i=0; i<pMatches.length;i++){
+            occ = pMatches[i];
+
+            if(singles[occ.node.__]==null) singles[occ.node.__]={};
+
+            if((occ.node as any).getUID != null){
+                uid = (occ.node as INode).getUID();
+            }else{
+                uid = (occ.node as INodeRef)._uid;
+            }
+
+            if(singles[occ.node.__][uid]==null){
+                singles[occ.node.__][uid]= occ;
+                if(occ.meta==null) occ.meta=[];
+            }
+
+            // 5'''. Update metadata (merge)
+            if(occ.meta !=null && occ.meta.length>0){
+                singles[occ.node.__][uid].meta = singles[occ.node.__][uid].meta.concat(occ.meta);
+
+                /*
+                singles[occ.node.__][uid].meta.push({
+                    type: MetadataType.TEXT,
+                    key: MetadataTopic.EXTRACT,
+                    value: { tags: occ.node.tags }
+                });*/
+            }
+        }
+
+        Object.values(singles).map(x => cleaned = cleaned.concat(Object.values(x)));
+
+        return cleaned;
     }
 
 
@@ -367,7 +539,6 @@ export class PrivacyScanner extends AssuranceScanner {
                 );
 
                 org.policies.map(x => {
-                    console.log(x.model,this.model.getID());
                     if(x.model===this.model.getID()){
                         x.rules.map( r => {
                             if(r.enabled){
@@ -398,9 +569,7 @@ export class PrivacyScanner extends AssuranceScanner {
         }
 
 
-        Logger.info(chalk.yellow("ACTIVATED POLICIES : "));
-        console.log(policies);
-
+        Logger.info(chalk.yellow(`ACTIVATED POLICIES : ${Object.values(policies).map(x => x.id).join(" , ")}`));
 
         // 0. Create dashboard
         this._createMainDashboard(pOptions.dashboard);
@@ -437,7 +606,7 @@ export class PrivacyScanner extends AssuranceScanner {
                     break;
                 case TestType.IAST:
                     console.log("IAST : "+vStep.controls.length); // TODO : add device
-                    await this._iastScan( this.report, vStep.controls, pOptions);
+                    //await this._iastScan( this.report, vStep.controls, pOptions);
                     break;
                 default:
                     Logger.info("[SCAN][NOT SUPPORTED][STEP="+vStep.type+"] model="+this.model.getID());
@@ -446,112 +615,45 @@ export class PrivacyScanner extends AssuranceScanner {
             return next;
         });
 
-        let crossReport:Nullable<AssuranceReport> = null;
-
-        const intern:Tag = pContext.getTagManager().getTag("discover.internal");
-
-        // 3 : Filter / transform results
+        const matchUIDs = this.report.getRawMatchUIDs();
         let m:Match;
-        for(let sdkID in this.report.matches){
-            m = this.report.matches[sdkID];
-
-            m.match = m.match.filter( occ => {
-                if(occ.node==null) /* skip */ return;
-
-                if((occ.node as INode).tags!=null && (occ.node as INode).tags.indexOf(intern.getUUID())>0){
-                    return false;
-                }
-
-                switch (occ.node.__){
-                    case NodeInternalType.STRING:
-                        if((occ.node as ModelStringValue).src!=null){
-                            if(Array.isArray(occ.node.src)){
-                                occ.node.src.map((n,i)=>{
-                                    if(n.__==NodeInternalType.STRING) return /* avoid infinite loop */;
-                                    if((n as INode).tags!=null && (n as INode).tags.indexOf(intern.getUUID())>0){
-                                        return false;
-                                    }
-
-                                    if(i!=0){
-                                        m.match.push({
-                                            node: n,
-                                            ruleIdx: occ.ruleIdx,
-                                            meta:[{
-                                                type: MetadataType.ANY,
-                                                key: MetadataTopic.EXTRACT,
-                                                value: occ.node.value
-                                            }]
-                                        });
-                                        return;
-                                    }
-                                    occ.node = n;
-                                });
-                            }else{
-                                occ.node = occ.node.src;
-                                if(occ.meta==null) occ.meta = [];
-                                occ.meta.push({
-                                    type: MetadataType.ANY,
-                                    key: MetadataTopic.EXTRACT,
-                                    value: occ.node.value
-                                });
-                            }
-                        }
-                        return true;
-                        break;
-                    case NodeInternalType.METHOD:
-                        // remove internal match (tagged 'discover.internal')
-                        if((occ.node as INode).tags!=null && (occ.node as INode).tags.indexOf(intern.getUUID())>0){
-                            return false;
-                        }else{
-                            return true;
-                        }
-                        // search xref to remove dead code
-                        break;
-                    default:
-                        return true;
-                }
-            });
+        let filteredOcc:MatchOccurence<any>[];
 
 
-            // m.assessment =>W ControlAssessment
-            // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+        // 4. Deduplicate matching node, potentially resulting from different rules in same ctrl
+        // (merge matching ctrl ID / rule in metadata)
+
+        for(let i=0; i<matchUIDs.length; i++){
+            m =  this.report.getRawMatch(matchUIDs[i]);
+            this.report.setRawMatchOccurences(
+                matchUIDs[i],
+                this._deduplicateNode( m.match )
+            );
         }
 
-        // 4. Deduplicate matching node (merge matching ctrl ID in metadata)
-        let singles:Record<number,Record<string, any>> = {};
-        let cleaned:Match[] = [];
-        for(let k in this.report.matches){
+        // 6. post process : cross results
+        if(policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null){
+            try{
+                this.report = await this._crossReportConsolidating(this.report,true);
+            }catch (e){
+                console.error(e.stack);
+            }
+        }
 
-            singles = {};
-            cleaned = [];
-            this.report.matches[k].match.map( occ => {
-                if(singles[occ.node.__]==null) singles[occ.node.__]={};
 
-                let uid:string;
-                if(occ.node.getUID != null){
-                     uid = (occ.node as INode).getUID();
-                }else{
-                     uid = (occ.node as INodeRef)._uid;
-                }
+        // 3 : Filter / transform results
+        for(let i=0; i<matchUIDs.length; i++){
+            m =  this.report.getRawMatch(matchUIDs[i]);
+            filteredOcc = await this._filterMatches( pContext, m.match);
+            if(filteredOcc.length>0){
+                this.report.setRawMatchOccurences(
+                    matchUIDs[i],
+                    filteredOcc
+                );
+            }else{
+                this.report.removeRawMatch(matchUIDs[i]);
+            }
 
-                if(singles[occ.node.__][uid]==null){
-                    singles[occ.node.__][uid]={
-                        ... occ,
-                        meta: []
-                    };
-                }
-
-                // 5'''. Update metadata (merge)
-                if(occ.node.value!=null){
-                    singles[occ.node.__][uid].meta.push({
-                        type: MetadataType.TEXT,
-                        key: MetadataTopic.EXTRACT,
-                        value: occ.node.value
-                    });
-                }
-            });
-            Object.values(singles).map(x => cleaned = cleaned.concat(Object.values(x)));
-            this.report.matches[k].match = cleaned;
         }
 
         // 5. Explain report (explain results with model)
@@ -560,25 +662,34 @@ export class PrivacyScanner extends AssuranceScanner {
             samplingSize: 100,
             groupSampleByNode: true,
             embedKpis: true,
-            clean: false
+            clean: true
         });
 
         // 6. post process : cross results
-        if(policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null){
+        /*if(policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null){
             try{
                 this.report = await this._crossReportConsolidating(this.report);
             }catch (e){
                 console.error(e.stack);
             }
-        }
+        }*/
 
 
         // 7. Apply policies
         if(policies["require_consent"]!=null){
             if(policies["require_consent"].thresholds.length>0){
-                await this._verifyConsent(this.report, policies["require_consent"]);
+               await this._verifyConsent(this.report, policies["require_consent"]);
             }
         }
+
+        // 8. Compute KPIs
+        const kpiBuilder = new IndicatorBuilder({});
+        for(let i=0; i<this.model.indicators.length;i++){
+            this.report.addIndicator(
+                await kpiBuilder.process( this.report, this.model.indicators[i])
+            );
+        }
+
 
         // 8. result
         this.report.terminated = (new Date()).getTime();
@@ -620,7 +731,6 @@ export class PrivacyScanner extends AssuranceScanner {
                             tree[n.node.__][n.node.uid][ecuid] = []
                         }
 
-                        //console.log(`${n.node.__} - ${n.node.uid} - ${ecuid} => ${n.ruleIdx}`);
                         tree[n.node.__][n.node.uid][ecuid].push(n.ruleIdx);
                     }
                 })
@@ -630,20 +740,146 @@ export class PrivacyScanner extends AssuranceScanner {
         return tree;
     }
 
-    private async _consolidateOnJoin( pModel:AssuranceModelUUID, pTree:NodeMatchTree,
-                                      pReport:AssuranceReport):Promise<AssuranceReport> {
+    /**
+     * To build 2lvl-depth tree where node are NodeTypeInternal and NodeUID, and leafs are matches
+     *
+     *                    [NodeInternalType]
+     *        [NodeUuid]-----|          |-------[NodeUuid]
+     *         |      |                          |      |
+     *(ctrl,rule)[]   (ctrl,rule)[]   (ctrl,rule)[]   (ctrl,rule)[]
+     *
+     * @param pMatches
+     * @private
+     */
+    private _buildControlTreeNodeFromMatches(pCtrls:ControlNode[]) : NodeMatchTree {
+
+        // sort extra matches by noderef
+        let tree:NodeMatchTree = {};
+        let n:ControlNode;
+        let ns:ControlNode[];
+
+        function walk(pNode:ControlTree){
+            for(let uid in pNode.children){
+                n = pNode.children[uid];
+                ns = Object.values(n.children);
+
+                if(ns.length>0){
+                    walk(n.children);
+                }
+
+                if(n.ctrl !=null && n.ctrl.matches.length>0){
+                    n.ctrl.matches.map( occ => {
+                        if(occ.node!=null){
+                            if(tree[occ.node.__]==null){
+                                tree[occ.node.__] = {};
+                            }
+                            if(tree[occ.node.__][occ.node._uid]==null){
+                                tree[occ.node.__][occ.node._uid] = {};
+                            }
+                            if(tree[occ.node.__][occ.node._uid][n.canonicalID]==null){
+                                tree[occ.node.__][occ.node._uid][n.canonicalID] = []
+                            }
+
+                            tree[occ.node.__][occ.node._uid][n.canonicalID].push(occ.ruleIdx);
+                        }
+                    })
+                }
+            }
+        }
+
+        const root:ControlTree = {};
+
+
+        pCtrls.map(x => {
+            walk(x);
+        });
+
+        //dump tree
+        let m = 0;
+        for(let c in tree){
+            console.log(c);
+            for(let u in tree[c]){
+                console.log("\t"+u);
+                for(let ecuid in tree[c][u]){
+                    m += tree[c][u][ecuid].length;
+                    console.log("\t\t"+ecuid+"\t\t"+tree[c][u][ecuid].length);
+                }
+            }
+        }
+        console.log("total extra match :"+m);
+
+        return tree;
+    }
+
+    /**
+     * To build 2lvl-depth tree where node are NodeTypeInternal and NodeUID, and leafs are matches
+     *
+     *                    [NodeInternalType]
+     *        [NodeUuid]-----|          |-------[NodeUuid]
+     *         |      |                          |      |
+     *(ctrl,rule)[]   (ctrl,rule)[]   (ctrl,rule)[]   (ctrl,rule)[]
+     *
+     * @param pMatches
+     * @private
+     */
+    private _buildControlTreeNodeFromRawMatches(pRaw:Record<string, Match>) : NodeMatchTree {
+
+        let tree:NodeMatchTree = {};
+
+        for(let uid in pRaw){
+            pRaw[uid].match.map( occ => {
+                if(occ.node!=null){
+                    if(tree[occ.node.__]==null){
+                        tree[occ.node.__] = {};
+                    }
+                    if(tree[occ.node.__][occ.node._uid]==null){
+                        tree[occ.node.__][occ.node._uid] = {};
+                    }
+                    if(tree[occ.node.__][occ.node._uid][uid]==null){
+                        tree[occ.node.__][occ.node._uid][uid] = []
+                    }
+
+                    tree[occ.node.__][occ.node._uid][uid].push(occ.ruleIdx);
+                }
+            })
+        }
+
+
+        //dump tree
+        let m = 0;
+        for(let c in tree){
+            console.log(c);
+            for(let u in tree[c]){
+                console.log("\t"+u);
+                for(let ecuid in tree[c][u]){
+                    m += tree[c][u][ecuid].length;
+                    console.log("\t\t"+ecuid+"\t\t"+tree[c][u][ecuid].length);
+                }
+            }
+        }
+        console.log("total extra match (raw) :"+m);
+
+        return tree;
+    }
+
+    private async _consolidateOnJoin( pModel:AssuranceModelUUID, pExtraTree:NodeMatchTree,
+                                      pUpdatedReport:AssuranceReport):Promise<AssuranceReport> {
         let n:any[];
-        let m:Match;
+        let m:IControl;
+        let c:ControlNode;
 
-        for(let piiID in pReport.matches){
-            m = pReport.matches[piiID];
+        for(let i=0; i<pUpdatedReport.matches.length; i++){
 
-            m.match.map( occ => {
+            c = pUpdatedReport.searchControlNode(pUpdatedReport.matches[i]);
+
+            if(c==null) continue;
+
+            c.ctrl.matches.map( occ => {
                 if(occ.node==null) /* skip */ return;
 
-                let ref = NodeUtils.asNodeRef(occ.node);
+                let ref = (occ.node.getUID!=null ? NodeUtils.asNodeRef(occ.node) : occ.node);
 
-                let xref:any = pTree[ref.__];
+                let xref:any = pExtraTree[ref.__];
                 if(xref==null) return;
                 xref = xref[ref._uid];
                 if(xref==null) return;
@@ -668,25 +904,22 @@ export class PrivacyScanner extends AssuranceScanner {
             // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
         }
 
-        return pReport;
+        return pUpdatedReport;
     }
 
+    private async _consolidateOnRawJoin( pModel:AssuranceModelUUID, pExtraTree:NodeMatchTree,
+                                      pUpdatedReport:AssuranceReport):Promise<AssuranceReport> {
 
-    private async _consolidateOnParent( pModel:AssuranceModelUUID, pTree:NodeMatchTree,
-                                      pReport:AssuranceReport):Promise<AssuranceReport> {
-        let n:any[];
-        let m:Match;
+        const raw = pUpdatedReport.getRawMatches();
 
-        for(let piiID in pReport.matches){
-            m = pReport.matches[piiID];
+        for(let uid in raw){
+            raw[uid].match.map( occ => {
 
-            m.match.map( occ => {
                 if(occ.node==null) /* skip */ return;
 
-                let ref = NodeUtils.asNodeRef(occ.node);
+                let ref = (occ.node.getUID!=null ? NodeUtils.asNodeRef(occ.node) : occ.node);
 
-
-                let xref:any = pTree[ref.__];
+                let xref:any = pExtraTree[ref.__];
                 if(xref==null) return;
                 xref = xref[ref._uid];
                 if(xref==null) return;
@@ -694,24 +927,34 @@ export class PrivacyScanner extends AssuranceScanner {
                 // a match in privacy.trackers.shared also exists in pii3
                 if(occ.meta==null) occ.meta = [];
 
-                occ.meta.push({
-                    type: MetadataType.ANY,
-                    key: MetadataTopic.CTRL,
-                    value: {
-                        model: pModel,
-                        ctrl: xref.ctrl
-                    }
-                });
-            });
 
-            // m.assessment =>W ControlAssessment
-            // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
+                for(let ecuid in xref){
+                    console.log(`${uid} => ${ref.__} ${ref._uid} => ${ecuid}`);
+                    occ.meta.push({
+                        type: MetadataType.ANY,
+                        key: MetadataTopic.CTRL,
+                        value: {
+                            model: pModel,
+                            ctrl: ecuid,
+                            idx: xref[ecuid]
+                        }
+                    });
+                }
+            })
         }
 
-        return pReport;
+        return pUpdatedReport;
     }
 
-    private async _crossReportConsolidating(pReport:AssuranceReport):Promise<AssuranceReport> {
+    /**
+     * To search linked occurrences over 2 reports
+     * Link is established if:
+     * - a node in occurrence 1 from report A, exists also in occurrence 2 from report B
+     *
+     * @param {AssuranceReport} pReport Report to update
+     * @private
+     */
+    private async _crossReportConsolidating(pReport:AssuranceReport, pOnRaw = false):Promise<AssuranceReport> {
 
         Logger.info(chalk.yellow("Cross analysis policy enabled"));
 
@@ -723,20 +966,26 @@ export class PrivacyScanner extends AssuranceScanner {
         if(cross[this.model.getID()]==null) return pReport;
 
         const extraModel = cross[this.model.getID()];
-        const crossReport = await this._getExtraReport(extraModel);
-        let extraNode:NodeMatchTree = {};
+        const crossReport:AssuranceReport = await this._getExtraReport(extraModel);
+        let extraTreeNode:NodeMatchTree = {};
         let m:any;
 
-        if(crossReport!=null && crossReport.matches!=null){
+        if(crossReport!=null && crossReport.controls!=null){
+
             // sort extra matches by noderef
-            extraNode = this._buildControlTreeFromMatches(crossReport.matches);
+            extraTreeNode = this._buildControlTreeNodeFromMatches(crossReport.controls);
 
             // 1st level intersection
 
+            // search directly
+            if(pOnRaw){
+                pReport = await  this._consolidateOnRawJoin(extraModel, extraTreeNode, pReport);
+            }else{
+                pReport = await this._consolidateOnJoin(extraModel, extraTreeNode, pReport);
+            }
+
             // Parent intersection (class or package)
 
-            // search directly
-            pReport = await this._consolidateOnJoin(extraModel, extraNode, pReport);
         }
 
         return pReport;
@@ -750,16 +999,24 @@ export class PrivacyScanner extends AssuranceScanner {
     private async _staticScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<void[]> {
         const max = pControlNodes.length;
         let passed = 0;
-        return await Promise.all(pControlNodes.map(async (vCtrl) => {
-            await this.doAssessment(pReport, vCtrl);
+        return await Promise.all(pControlNodes.map(async (vCtrl, vI) => {
+
+            Logger.info(`Start SAST Assessment : ${vI} / ${max}`);
+            await this.doAssessment(pReport, vCtrl, vI);
             passed++;
             Logger.info(`${passed} / ${max}`);
         }));
     }
 
     private async _iastScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<void[]> {
-        return await Promise.all(pControlNodes.map(async (vCtrl) => {
-            await this.doAssessment(pReport, vCtrl);
+        const max = pControlNodes.length;
+        let passed = 0;
+        return await Promise.all(pControlNodes.map(async (vCtrl, vI) => {
+
+            Logger.info(`Start IAST Assessment : ${vI} / ${max}`);
+            await this.doAssessment(pReport, vCtrl, vI);
+            passed++;
+            Logger.info(`${passed} / ${max}`);
         }));
     }
 
@@ -994,10 +1251,11 @@ export class PrivacyScanner extends AssuranceScanner {
     private async _verifyConsent(pReport: AssuranceReport, pRule: PolicyRule) {
 
         const purps = pRule.thresholds[0]['in'];
+        let c:Nullable<ControlNode> = null;
 
         if(purps==null || purps.length==0) return;
 
-        if(pReport.modelInfo.uid=="privacy.pii3"){
+       /* if(pReport.modelInfo.uid=="privacy.pii3"){
 
             const trackerModel = await this.project.engine.getAuditManager()
                 .getModelByUID(
@@ -1005,12 +1263,19 @@ export class PrivacyScanner extends AssuranceScanner {
                 "privacy.trackers.shared"
                 );
 
-            for(let k in pReport.matches){
-                pReport.matches[k].match.map((m)=>{
-                    if(m.meta!=null && Array.isArray(m.meta)){
-                        const ctrls = m.meta.filter(x => (x.key===MetadataTopic.CTRL && x.value.model==="privacy.trackers.shared"));
+            for(let i=0; i<pReport.matches.length; i++){
+
+                c = pReport.searchControlNode(pReport.matches[i]);
+
+                if(c==null) continue;
+
+                c.ctrl.matches.map( occ => {
+
+                    if(occ.meta!=null && Array.isArray(occ.meta)){
+                        const ctrls = occ.meta.filter(x => (x.key===MetadataTopic.CTRL && x.value.model==="privacy.trackers.shared"));
+
                         if(ctrls.length>0){
-                            const ectrl = trackerModel.getControlNode(ctrls[0].ctrl);
+                            const ectrl = trackerModel.getControlNode(ctrls[0].value.ctrl);
                             if(ectrl==null){ return;  }
 
                             const req = ectrl.metadata.filter(x =>{
@@ -1018,7 +1283,7 @@ export class PrivacyScanner extends AssuranceScanner {
                             });
 
                             if(req.length>0){
-                                m.meta.push({
+                                occ.meta.push({
                                     type: MetadataType.PARAM,
                                     key: MetadataTopic.ADVISORY,
                                     value: {
@@ -1032,9 +1297,13 @@ export class PrivacyScanner extends AssuranceScanner {
 
 
                     }
-                })
+                });
+
+                // m.assessment =>W ControlAssessment
+                // m.match => [ { node: <INode>, ruleIdx: <offset> }, ... ]
             }
-        }else{
+
+        }else{*/
             pReport.controls.map((vCtrl)=>{
                 const req = vCtrl.ctrl.metadata.filter(x =>{
                     return ((x.key===MetadataTopic.PURPOSE) && (purps.indexOf(x.value)>-1));
@@ -1053,9 +1322,7 @@ export class PrivacyScanner extends AssuranceScanner {
                 }
 
             });
-        }
-
-
+        // }
     }
 }
 

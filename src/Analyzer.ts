@@ -1654,12 +1654,14 @@ export default class Analyzer
         const stats:Record<string, number> = {};
 
         // TODO : optimize
-        stats[ModelPackage.TYPE.getName()] = this.tagIf(pCondition, "packages", pTags);
-        stats[ModelClass.TYPE.getName()]  =this.tagIf(pCondition, "classes", pTags);
-        stats[ModelField.TYPE.getName()]  =this.tagIf(pCondition, "fields", pTags);
-        stats[ModelMethod.TYPE.getName()]  =this.tagIf(pCondition, "methods", pTags);
-        stats[ModelStringValue.TYPE.getName()]  =this.tagIf(pCondition, "strings", pTags);
-        stats[ModelCall.TYPE.getName()]  =this.tagIf(pCondition, "call", pTags);
+        stats[ModelPackage.TYPE.getName()] = this.tagIf<any>(pCondition, "packages", pTags);
+        stats[ModelClass.TYPE.getName()]  =this.tagIf<any>(pCondition, "classes", pTags);
+        stats[ModelField.TYPE.getName()]  =this.tagIf<any>(pCondition, "fields", pTags);
+        stats[ModelMethod.TYPE.getName()]  =this.tagIf<any>(pCondition, "methods", pTags);
+        stats[ModelStringValue.TYPE.getName()]  =this.tagIf<any>(pCondition, "strings", pTags);
+        stats[ModelCall.TYPE.getName()]  =this.tagIf<any>(pCondition, "call", pTags);
+
+
 
         return stats;
     }
@@ -1673,18 +1675,18 @@ export default class Analyzer
      * @return {number} The number of element tagged
      * @method
      */
-    tagIf(pConditionFn:((vKey:any,vVal:any)=>boolean), pType:string, pTags:Tag[]):number{
+    tagIf<T extends INode>(pConditionFn:((vKey:any,vVal:T)=>boolean), pType:string, pTags:Tag[]):number{
         const l = pTags.length;
         let ctr = 0;
         if(pTags.length==1){
-            this.db[pType].map(function(k:any,v:any){
+            this.db[pType].map(function(k:any,v:T){
                 if(pConditionFn(k,v)){
                     v.addTag(pTags[0]);
                     ctr++;
                 }
             });
         }else{
-            this.db[pType].map(function(k:any,v:any){
+            this.db[pType].map(function(k:any,v:T){
                 if(pConditionFn(k,v)){
                     for(let i=0;i<l;i++){
                         v.addTag(pTags[i]);

@@ -29,6 +29,27 @@ import DataFlow = CycloneDX.DataFlow;
 import AssuranceReport from "./AssuranceReport.js";
 import {ExplainedReport, ExportOptions} from "../ExplainedReport.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
+import {ReversenseProductUUID} from "../../billing/ReversenseProduct.js";
+
+
+export interface IndicatorPreview {
+    uuid:IndicatorUUID;
+    name:string;
+    title?:string;
+}
+
+
+export interface AssuranceModelPreview {
+    id: AssuranceModelUUID,
+    scannerID: ReversenseProductUUID,
+    name: string,
+    indicators: Indicator[],
+    metadata?: Metadata[],
+    exp?:{
+        scan?:number,
+        subs?:number
+    }
+}
 
 export type AssuranceModelUUID = string;
 export enum AssuranceModelType {
@@ -874,7 +895,7 @@ export default class AssuranceModel extends Auditable implements INode {
     }
 
 
-    searchControlByCID(pCanonUID:string):any {
+    searchControlByCID(pCanonUID:string):Nullable<Control|ControlAssessment> {
         const lvl = pCanonUID.split(".");
 
         let found:Nullable<Control|ControlAssessment> = null;

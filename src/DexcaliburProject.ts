@@ -102,6 +102,7 @@ import {ProgramManager} from "./core/ProgramManager.js";
 import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
 import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
 import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection.js";
+import ModelStringValue from "./ModelStringValue.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2691,6 +2692,14 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
             this.analyze.tagAllIf(
                 (k,x) => {  return !internTag.match(x); },
+                [sastTag]);
+
+            this.analyze.tagIf<ModelStringValue>(
+                (k,x) => {
+                    let e = x.src.find( s => internTag.match(s));
+                    return (e!=null);
+                },
+                "strings",
                 [sastTag]);
 
             // save model

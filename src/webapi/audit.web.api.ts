@@ -509,9 +509,11 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 let rap = await am.getLatestReport(req.user, app);
 
-                //am.explainKpis(rap)
-
-                $.sendSuccess(res, (rap!=null ? rap.toJsonObject(): null));
+                if(rap!=null){
+                    $.sendSuccess(res, rap.asPreview());
+                }else{
+                    $.sendSuccess(res, null);
+                }
             }catch(err){
                 $.sendErrorAfterException(res,
                     AUDIT_WEB_API.name,
@@ -627,6 +629,26 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/kpis/:modelID',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = $.context.getAuditManager();
+//                const models = await am.getModelFor(req.project, req.params.modelID);
+                const models = await am.getModelByUID(req.user, req.params.modelID);
+
+                $.sendSuccess(res, models.indicators.map(x => x.toJsonObject()));
+            }catch(err){
+                Logger.error("[API][AUDIT] Model cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },DEFAULT_OPTIONS);
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/model/:modelID',

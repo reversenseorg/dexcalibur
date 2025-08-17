@@ -16,6 +16,8 @@ import {UserServiceException} from "../errors/UserServiceException.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import AssuranceReport, {AssuranceReportUUID} from "../audit/common/AssuranceReport.js";
+import {DataSegment} from "../audit/common/Indicator.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi("ORG");
@@ -1494,6 +1496,62 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
 
 ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/app/:aid/report/:mid/:kid',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const app = await $.context.getOrgManager()
+                    .getDirectApplication(pReq.user, pReq.params.aid);
+
+                let options:any = {
+                    limit: 1,
+                    offset: -1,
+                    sort: ['created_asc'],
+                    terminated: true
+                };
+
+                if(pReq.body.filter!=null){
+                    if(pReq.body.filter.limit)
+                        options.limit = pReq.body.filter.limit;
+                    if(pReq.body.filter.offset)
+                        options.offset = pReq.body.filter.offset;
+                    if(pReq.body.filter.sort)
+                        options.sort = pReq.body.filter.sort;
+                    if(pReq.body.filter.terminated)
+                        options.terminated = pReq.body.filter.terminated;
+                }
+
+                // search report by Model UID and filters
+                const reports = await $.context.getAuditManager()
+                    .searchReports(
+                        pReq.user,
+                        app,
+                        pReq.params.mid, options);
+
+                if(reports.length==0){
+                    $.sendSuccess( pRes, {});
+                    return;
+                }
+
+                let result:Record<AssuranceReportUUID, DataSegment[]> = {};
+                reports.map( (r:AssuranceReport) => {
+                    if(r.hasIndicator(pReq.params.kid)){
+                        result[r.getUID()] = r.getIndicator(pReq.params.kid).data;
+                    }
+                })
+
+                $.sendSuccess( pRes, result);
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/app/:aid/dev/:action',
     {
         'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
@@ -1760,3 +1818,29 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
         }
     }
 );
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/licenses',
+    {
+        'get': async function (pReq:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = pReq.dxc.$;
+
+            try{
+                // target app
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                $.sendSuccess(res,await $.context.getOrgManager().listActivatedModels(
+                    (pReq as any).user, org
+                ));
+            }catch(err){
+                $.sendErrorAfterException(
+                    res, ORG_WEB_API.name,
+                    "Activated assurance models cannot be retrieved.",err,
+                    { cause:err.message });
+            }
+        }
+    });

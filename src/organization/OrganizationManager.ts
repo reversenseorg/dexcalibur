@@ -52,6 +52,7 @@ import {UploadedResource} from "../common/UploadedResource.js";
 import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
 import {ReversenseProduct, ReversenseProductUUID} from "../billing/ReversenseProduct.js";
 import {INodeRef} from "../INode.js";
+import {AssuranceModelPreview, AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2802,5 +2803,31 @@ The Reversense Team
 
         return await (this._ctx.getEngineDB().getCollectionOf(pScope.__) as MongodbDbCollection)
             .asyncUpdateEntry(pScope, { replace:false, $set:['policies'] });
+    }
+
+    /**
+     * To remove a policy from an organization or an application
+     *
+     * @param pUser
+     * @param pScope
+     * @param pPolicy
+     */
+    async listActivatedModels(pUser: UserAccount,
+                             pOrg: OrganizationUnit):Promise<Record<AssuranceModelUUID, AssuranceModelPreview>> {
+
+        const p = pOrg.getBusinessPlan().getPurchases();
+        let m:AssuranceModelPreview[];
+        let models:Record<AssuranceModelUUID, AssuranceModelPreview> = {};
+
+        for(let i=0;i<p.length; i++){
+            m = await this._ctx.getAuditManager().listModelsByProduct(pUser, p[i].product);
+            m.map(x => {
+                if(models[x.id]==null){
+                    models[x.id] = x;
+                }
+            })
+        }
+
+        return models;
     }
 }

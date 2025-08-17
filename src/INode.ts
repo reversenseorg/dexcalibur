@@ -5,6 +5,7 @@ import {IPersistent} from "./persist/orm/IPersistent.js";
 export interface INodeRef {
     __:NodeInternalType;
     _uid?:any;
+    tags?:number[];
     //getUID():string;
 }
 

@@ -1,5 +1,5 @@
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
-import AssuranceModel, {AssuranceModelUUID} from "./common/AssuranceModel.js";
+import AssuranceModel, {AssuranceModelPreview, AssuranceModelUUID} from "./common/AssuranceModel.js";
 import AssuranceReport, {AssuranceReportUUID} from "./common/AssuranceReport.js";
 import {AuditManagerException} from "./errors/AuditManagerException.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
@@ -390,6 +390,18 @@ export class AuditManager {
         return remoteSharedModels;
     }
 
+    /**
+     * To retrieve an assurance model by its uid
+     * @param pUser
+     * @param pModelID
+     */
+    async listModelsByProduct( pUser:UserAccount, pProduct:ReversenseProductUUID):Promise<Nullable<AssuranceModelPreview[]>> {
+
+        // TODO check assurance ACL
+
+        return await this.engine.getSignatureServer().listModelsByProduct(pProduct);
+    }
+
 
 
 
@@ -703,12 +715,37 @@ export class AuditManager {
     }
 
 
+
+
     /**
      * To retrieve an assurance model by its uid
      * @param pUser
      * @param pModelID
      */
     async getLatestReport( pUser:UserAccount, pApp:ApplicationUnit):Promise<Nullable<AssuranceReport>> {
+
+        let reports = await this.getReports(pUser, pApp);
+
+        // sort by create date
+        if(reports.length==0) return null;
+
+        reports = reports
+            .filter(x => {
+                return (x.terminated>-1) && (x.indicators.length>0)
+            })
+            .sort((r1:AssuranceReport, r2:AssuranceReport)=>{
+                return (r1.terminated>r2.terminated ? 1 : -1);
+            });
+
+        return reports[0];
+    }
+
+    /**
+     * To retrieve an assurance model by its uid
+     * @param pUser
+     * @param pModelID
+     */
+    async getLatestReports( pUser:UserAccount, pApp:ApplicationUnit):Promise<Nullable<AssuranceReport>> {
 
         let reports = await this.getReports(pUser, pApp);
 
@@ -887,5 +924,56 @@ export class AuditManager {
         }
 
         return this._cache.purp.data;
+    }
+
+    async searchReports(pUser: UserAccount, pApp: ApplicationUnit,
+                       pModel: AssuranceModelUUID, pFilter:any = {}) {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.AUDIT_REPORT_READ,
+            pUser,
+            pApp,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.APP_MEMBER,
+            ]
+        );
+
+        let reports = await this.engine.getEngineDB().search({
+            model: pModel,
+            application: pApp.getUID(),
+        }, new AssuranceReport());
+
+
+        if(pFilter.terminated){
+            reports = reports.filter(r =>(r.terminated>-1));
+        }
+
+        if(pFilter.sort!=null){
+            pFilter.sort.map(x => {
+                switch (x){
+                    case 'create_asc':
+                        reports = reports.sort( (r1:AssuranceReport, r2:AssuranceReport) => {
+                            return (r1.terminated < r2.terminated)? -1 : 1;
+                        });
+                        break;
+                    case 'create_desc':
+                        reports = reports.sort( (r1:AssuranceReport, r2:AssuranceReport) => {
+                            return (r1.terminated < r2.terminated)? 1 : -1;
+                        });
+                        break;
+                }
+            })
+        }
+
+        if(pFilter.offset > -1){
+            reports = reports.slice(pFilter.offset);
+        }
+
+        if(pFilter.limit > -1){
+            reports = reports.slice(0, pFilter.limit);
+        }
+
+        return reports;
     }
 }

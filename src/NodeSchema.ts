@@ -53,6 +53,7 @@ import {Device} from "./Device.js";
 import Control from "./audit/common/Control.js";
 import ControlAssessment from "./audit/common/ControlAssessment.js";
 import ModelCatchStatement, {EBoundary} from "./ModelCatchStatement.js";
+import {Indicator} from "./audit/common/Indicator.js";
 
 
 
@@ -1096,7 +1097,7 @@ AssuranceReport.TYPE.updateProperties([
     (new NodeProperty("appInfo")).type(DbDataType.STRING).def(null),
     (new NodeProperty("deviceInfo")).type(DbDataType.STRING).def(null),
 
-    (new NodeProperty("indicators")).type(DbDataType.STRING).def([]),
+    (new NodeProperty("indicators")).multiple(Indicator.TYPE).embed().def([]),
     (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
     (new NodeProperty("controls"))
         .type(DbDataType.STRING)
@@ -1112,10 +1113,14 @@ AssuranceReport.TYPE.updateProperties([
                     children: {}
                 };
 
+                let i=0;
                 for(let k in vCtrl.children){
                     v.children[k] = AssuranceReport.controlTreeToJsonObject(vCtrl.children[k]);
+                    i++;
                 }
 
+                if(v.parent==null) delete v.parent;
+                if(i===0) delete v.children;
                 o.push(v);
             });
 
@@ -1155,43 +1160,10 @@ AssuranceReport.TYPE.updateProperties([
     (new NodeProperty("title")).type(DbDataType.STRING).def(""),
     (new NodeProperty("description")).type(DbDataType.STRING).def(""),
     (new NodeProperty("model")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_rawMatches")).volatile().type(DbDataType.BLOB).def({}),
     (new NodeProperty("matches"))
         .type(DbDataType.BLOB)
-        .sleep( (x:NodePropertyState) => {
-            if(x.p!=null){
-                const o:any = {};
-                let match:Match;
-                for(let k in x.p){
-                    match = (x.p)[k] as Match;
-
-                    /*entry = {
-                        assessment: x.p[k].assessment.canonicalID,
-                        ruleIdx: x.p[k].ruleIdx,
-                        match: x.p[k].match,
-                    }*/
-
-                    o[k] = AssuranceReport.serializeMatch(match);
-                }
-                return  o;
-            }else{
-                return {};
-            }
-        })
-        .wakeUp( (x:NodePropertyState) => {
-            if(x.p!=null){
-                /*const o:any = {};
-
-                for(let k in x.p){
-                    o[k] = AssuranceReport.unserializeMatch(
-                        (x.p)[k]
-                    );
-                }*/
-                return x.p;
-            }else{
-                return {};
-            }
-        })
-        .def({}),
+        .def([]),
 ]);
 
 AssuranceModel.TYPE.dataSource("SIGNATURE_DB");

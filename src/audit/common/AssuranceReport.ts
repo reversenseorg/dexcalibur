@@ -1,4 +1,3 @@
-import * as _fs_ from 'fs';
 import Asset from "./Asset.js";
 import Threat from "./Threat.js";
 import {ConstraintMatch} from "./ConstraintMatch.js";
@@ -15,25 +14,12 @@ import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 
 import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {FinderResult} from "../../search/FinderResult.js";
-import {
-    DbDataType,
-    DbKeyType,
-    DbSerialize,
-    INode,
-    NodeProperty,
-    NodeType, NodeUtils,
-    SerializeOptions,
-    TagUUID
-} from "@dexcalibur/dexcalibur-orm";
-import ModelMethod from "../../ModelMethod.js";
+import {INode, NodeType, NodeUtils, SerializeOptions, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../../core/IStringIndex.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
-import {randomUUID} from "crypto";
-import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {Device, DeviceUUID} from "../../Device.js";
 import ModelStringValue from "../../ModelStringValue.js";
-import {AssuranceScanner} from "./AssuranceScanner.js";
 import {INodeRef} from "../../INode.js";
 import {Metadata} from "./Metadata.js";
 import {ApplicationUnit} from "../../organization/ApplicationUnit.js";
@@ -41,7 +27,7 @@ import {Indicator} from "./Indicator.js";
 import {ExportOptions} from "../ExplainedReport.js";
 import ControlAssessment from "./ControlAssessment.js";
 import Control from "./Control.js";
-import {IControl} from "./IControl.js";
+import {MatchOccurence} from "./Match.js";
 
 export interface MatchGroup {
     model: AssuranceModelUUID,
@@ -56,7 +42,7 @@ export interface MatchingNode {
 export interface Match {
     assessment?: ControlNode;
     ruleIdx?: number;
-    match: any; // MatchingNode[]; //any;
+    match: MatchOccurence<any>[]; // MatchingNode[]; //any;
     g?:Nullable<MatchGroup>;
 }
 
@@ -145,7 +131,9 @@ export default class AssuranceReport implements INode {
     globalThreats:ConstraintMatch<Threat>[] = [];
     assets:ConstraintMatch<Asset>[] = [];
 
-    matches:Record<ControlNodeCanonicalUID, Match> = {};
+    matches:ControlNodeCanonicalUID[] = [];
+
+    private _rawMatches:Record<ControlNodeCanonicalUID, Match> = {};
 
     tags:TagUUID[] = [];
 
@@ -182,6 +170,10 @@ export default class AssuranceReport implements INode {
      */
     getUID(): AssuranceReportUUID | null {
         return this.uid;
+    }
+
+    getContext(): Nullable<DexcaliburProject> {
+        return this._proj;
     }
 
     /**
@@ -261,15 +253,15 @@ export default class AssuranceReport implements INode {
      */
     addMatch(  pControl:ControlNode, pRuleOffset:number, pNode:any):void {
         //console.log('> addMatch : ',pControl.canonicalID, pRuleOffset, pNode);
-        if(this.matches[pControl.canonicalID]==null) {
+        if(this._rawMatches[pControl.canonicalID]==null) {
 
-            this.matches[pControl.canonicalID] = {
+            this._rawMatches[pControl.canonicalID] = {
                 assessment: pControl,
                 match: []
             };
         }
 
-        this.matches[pControl.canonicalID].match.push({
+        this._rawMatches[pControl.canonicalID].match.push({
             node: pNode,
             ruleIdx: pRuleOffset
         });
@@ -352,6 +344,8 @@ export default class AssuranceReport implements INode {
                 case "started":
                 case "terminated":
                 case "application":
+                case "indicators":
+                case "metadata":
                 case "device":
                 case "tags":
                 case "model":
@@ -401,22 +395,23 @@ export default class AssuranceReport implements INode {
                 case "description":
                 case "metadata":
                 case "indicators":
+                case "matches":
                     o[i] = this[i];
                     break;
-                case "matches":
-                    o.matches = {};
-                    for(let canonicalUID in this.matches){
-                        match = this.matches[canonicalUID];
+                case "_rawMatches":
+                    o._rawMatches = {};
+                    /*
+                    for(let canonicalUID in this._rawMatches){
+                        match = this._rawMatches[canonicalUID];
 
-                        o.matches[canonicalUID] = {
-                            //assessment: null,
+                        o._rawMatches[canonicalUID] = {
                             match: [] //
                         };
 
-                        this.matches[canonicalUID].match.map((x)=>{
+                        this._rawMatches[canonicalUID].match.map((x)=>{
 
                             if(x.node==null){
-                                o.matches[canonicalUID].match.push({
+                                o._rawMatches[canonicalUID].match.push({
                                     ruleIdx: x.ruleIdx,
                                     node: null
                                 });
@@ -427,8 +422,7 @@ export default class AssuranceReport implements INode {
                                 try{
                                     node = {
                                         __: x.node.__,
-                                        uid: (x.node.getUID!=null)? x.node.getUID() : (x.node.uid!=null ? x.node.uid : x.node._uid),
-                                        val: "" //AssuranceReport._extractNodeValue(canonicalUID,x)
+                                        uid: (x.node.getUID!=null)? x.node.getUID() : (x.node.uid!=null ? x.node.uid : x.node._uid)
                                     };
                                     if(node.uid==null){
                                         throw new Error();
@@ -452,7 +446,7 @@ export default class AssuranceReport implements INode {
 
 
                                 if(node!=null){
-                                    o.matches[canonicalUID].match.push({
+                                    o._rawMatches[canonicalUID].match.push({
                                         ruleIdx: x.ruleIdx,
                                         node: node,
                                         meta: x.meta
@@ -462,7 +456,7 @@ export default class AssuranceReport implements INode {
                             }
 
                         })
-                    }
+                    }*/
                     break;
                 case "controls":
                     o.controls = [];
@@ -492,10 +486,14 @@ export default class AssuranceReport implements INode {
         if(!this._dirty) return;
 
         //let merlin = new MerlinSearchAPI(this.project.getSearchEngine().getDatabase());
+
+        /*
         let meth:string;
         let result:FinderResult;
-        for(let canonicalUID in this.matches){
-            this.matches[canonicalUID].match.map(vMatch => {
+        for(let canonicalUID in this.controls){
+
+
+            this.controls[canonicalUID].match.map(vMatch => {
                 if(vMatch.node != null && vMatch.node.uid != null){
 
                     try{
@@ -511,7 +509,7 @@ export default class AssuranceReport implements INode {
 
                 }
             });
-        }
+        }*/
         this._dirty = false;
     }
 
@@ -526,7 +524,7 @@ export default class AssuranceReport implements INode {
      *
      * @param pMatches
      */
-    static serializeMatch( pMatch:Match, pSerializeControlNode = false):any {
+    static serializeMatch( pMatch:any, pSerializeControlNode = false):any {
         const s:any = {
             match: []
         };
@@ -535,7 +533,11 @@ export default class AssuranceReport implements INode {
             s.assessment = pMatch.assessment.canonicalID;
         }
 
-        pMatch.match.map((v:any)=>{
+        if(pMatch.matches==null){
+            return s;
+        }
+
+        pMatch.matches.map((v:any)=>{
             s.match.push({
                 node: {
                     // new format : node is as INodeRef object
@@ -584,12 +586,12 @@ export default class AssuranceReport implements INode {
 
 
 
-    private _doSampling(pMatches: any[], pOptions: any): any {
+    private _doSampling(pMatches: MatchOccurence<any>[], pOptions: any): MatchOccurence<any>[] {
 
-        let out: any[] = [];
+        let out: MatchOccurence<any>[] = [];
 
         if (pOptions.grpNode) {
-            const groups: any = {};
+            const groups: Record<number, MatchOccurence<any>[]> = {};
 
             pMatches.map(m => {
                 if (groups[m.node.__] == null) {
@@ -600,15 +602,31 @@ export default class AssuranceReport implements INode {
                 }
             });
 
+            if(pOptions.grpSize>-1){
 
-            console.log("EXPLAIN :  SAMPLED (WITH GRP) : ", out);
+                // sort to keep occurance with metadata at begin of list
+
+
+                for(let n in groups){
+                    groups[n] = groups[n].sort((a, b) => {
+                        return  b.meta.length - a.meta.length ;
+                    });
+                    groups[n] = groups[n].slice(0, pOptions.grpSize);
+                }
+            }
+
             Object.values(groups).map(x => {
                 out = out.concat(x)
             });
+
+            // console.log("EXPLAIN :  SAMPLED (WITH GRP) : ", out.length);
         } else {
 
-            console.log("EXPLAIN :  SAMPLED (NO GRP): ", out);
+            pMatches = pMatches.sort((a, b) => {
+                return b.meta.length - a.meta.length ;
+            });
             out = pMatches.slice(0, pOptions.grpSize);
+            // console.log("EXPLAIN :  SAMPLED (NO GRP): ", out.length);
         }
         return out;
     }
@@ -620,11 +638,11 @@ export default class AssuranceReport implements INode {
 
         if(this._dirty){
             // restore matches
-            for(let canonicalUID in this.matches){
+            /*for(let canonicalUID in this.matches){
                 if(typeof this.matches[canonicalUID].assessment==='string'){
                     this.matches[canonicalUID].assessment = pModel.getControlNode(this.matches[canonicalUID].assessment as any);
                 }
-            }
+            }*/
         }
 
         // explained report =>
@@ -686,94 +704,76 @@ export default class AssuranceReport implements INode {
     }
 
     private _cleanControl(pControl: ControlAssessment | Control): any {
-        let out: any = {
-            metadata: pControl.metadata,
-            name: pControl.name,
-            id: pControl.id,
-            links: (pControl as any).links
-        };
-
-        // removed : assessments
-
-        ['tags', 'children'].map(x => {
-            if ((pControl as any)[x] != null
-                && Array.isArray((pControl as any)[x])
-                && (pControl as any)[x].length > 0) {
-                out[x] = (pControl as any)[x];
-            }
-        });
-
-        ['verified', 'country', 'addDate', 'category'].map(x => {
-            if ((pControl as any)[x] != null) {
-                out[x] = (pControl as any)[x];
-            }
-        });
-
-
-        return out;
-    }
-
-    private _buildControlResults(pOptions: any): void {
-
-        let ctrl: IControl;
-        let r: Record<string, any> = {};
-        let tree: ControlTree = {};
-
-
-        for (let canonicalUID in this.matches) {
-            ctrl = this._model.searchControlByCID(canonicalUID);
-            if (ctrl != null) {
-                (ctrl as ControlAssessment).matches = this.matches[canonicalUID].match;
-            }
-
-            r[canonicalUID] = {
-                control: ctrl,
-                match: this.matches[canonicalUID]
+        let o:any;
+        if( pControl.__ === NodeInternalType.CONTROL){
+            o = {
+                __: pControl.__,
+                metadata: pControl.metadata,
+                name: pControl.name,
+                id: pControl.id,
+                matches: pControl.matches
+            };
+        }else{
+            o = {
+                __: pControl.__,
+                metadata: pControl.metadata,
+                name: pControl.name,
+                id: pControl.id,
+                analType: (pControl as ControlAssessment).analType,
+                testType: (pControl as ControlAssessment).testType,
+                matches: pControl.matches
             };
         }
 
-        console.log("_buildControlResults", r);
+        if(pControl.description!="") o.description = pControl.description;
 
-        Object.keys(r).sort((a: string, b: string) => {
+        return o;
+    }
+
+    private _buildControlResults2(pOptions: any): void {
+
+        let tree: ControlTree = {};
+
+        Object.keys(this._rawMatches).sort((a: string, b: string) => {
             return (a.localeCompare(b) > 0 ? 1 : -1);
-        }).map(x => {
-            let p = x.split('.');
+        }).map(canonUID => {
+            let uidParts = canonUID.split('.');
             let uid: string = "";
             let node: ControlNode;
             let root = tree;
-
-            if (p[0] == "*") p.shift();
-
-            let o = x.lastIndexOf('.');
+            let o = canonUID.lastIndexOf('.');
             let s = -1;
             let e: ControlNode;
             let part: string;
+            let relCUID = "";
 
+            if (uidParts[0] == "*") uidParts.shift();
 
-            for (let i = 0; i < p.length + (x.indexOf(':') > o ? 1 : 0); i++) {
-                part = p[(i < p.length ? i : p.length - 1)];
+            for (let i = 0; i < uidParts.length + (canonUID.indexOf(':') > o ? 1 : 0); i++) {
+                part = uidParts[(i < uidParts.length ? i : uidParts.length - 1)];
+
                 s = part.indexOf(':');
 
-                if (i == p.length) {
-                    uid = x;
+                if (i == uidParts.length) {
+                    relCUID = uid = canonUID;
                 } else {
                     if (s > -1) {
                         part = part.slice(0, s);
                     }
                     uid += (i > 0 ? "." : "") + part;
+                    relCUID = "*."+ uid;
                 }
 
                 if (root[part] == null) {
                     node = root[part] = {
                         //parent: (i>0 ? tree[p[i-1]] : undefined),
                         ctrl: (pOptions.clean === true ? this._cleanControl(this._model.searchControlByCID(uid)) : this._model.searchControlByCID(uid)),
-                        canonicalID: uid,
+                        canonicalID: relCUID,
                         children: {}
                     };
 
-
                     if (i > 0) {
-                        e = (i < p.length ? root[p[i - 1]] : root[p[i - 2]]);
+                        e = (i < uidParts.length ? root[uidParts[i - 1]] : root[uidParts[i - 2]]);
                         if (e != null) {
                             if (e.children == null) {
                                 e.children = {};
@@ -785,19 +785,18 @@ export default class AssuranceReport implements INode {
                     node = root[part];
                 }
 
-                if (r["*." + uid] != null) {
+                if (this._rawMatches[relCUID] != null) {
                     if (this._options.sampling == true) {
-                        node.matches = this._doSampling(
-                            r["*." + uid].match.match,
+                        (node.ctrl as any).matches = this._doSampling(
+                            this._rawMatches[relCUID].match,
                             {
                                 grpSize: this._options.samplingSize,
                                 grpNode: this._options.groupSampleByNode
                             }
                         );
                     } else {
-                        node.matches = r["*." + uid].match.match;
+                        node.ctrl.matches = this._rawMatches[relCUID].match;
                     }
-                    //node.matches = this._transformMatches(node.matches);
                 }
 
                 if (node.children != null) {
@@ -806,7 +805,9 @@ export default class AssuranceReport implements INode {
             }
         });
 
+        // set structured matches
         this.controls = Object.values(tree);
+        this.matches = Object.keys(this._rawMatches);
     }
 
     /**
@@ -817,14 +818,12 @@ export default class AssuranceReport implements INode {
 
         this._options = pOptions;
         console.log("BUILD CONTROL RESULTS > ");
-        this._buildControlResults(pOptions);
-        this._buildKpis();
-        console.log("BUILT REPORT > ", this);
+        this._buildControlResults2(pOptions);
+        console.log(`BUILT REPORT :
+\t Project : ${this._proj.getUID()}
+\t DB : ${this._proj.getProjectDB().name}
+\t Report : ${this.getUID()}`);
         return this;
-    }
-
-    private _buildKpis(): void {
-
     }
 
 
@@ -835,33 +834,118 @@ export default class AssuranceReport implements INode {
             ctrl: (pRoot.ctrl!=null ? ((pRoot.ctrl as Control).toJsonObject !=null ? (pRoot.ctrl as Control).toJsonObject() : pRoot.ctrl)  : null),
             children: {}
         };
+        let matches:MatchOccurence<any>[] = [];
 
         if((pRoot.ctrl as ControlAssessment).matches!=null){
-            o.ctrl.matches = [];
             (pRoot.ctrl as ControlAssessment).matches.map((vMatch:any) => {
-                o.ctrl.matches.push({
+                matches.push({
                     node: {
                         // new format : node is as INodeRef object
                         __:  vMatch.node.__,
-                        _uid: NodeUtils.asNodeRef(vMatch.node)._uid,
-                        // 'uid' is deprecated
-                        uid: (vMatch.node.getUID!=null)? vMatch.node.getUID() : vMatch.node.uid,
-                        // 'value' should be moved to Metadata
-                        value: (vMatch.node.getUID!=null)? AssuranceReport._extractNodeValue("",vMatch) : null,
+                        _uid: (vMatch.node.getUID != null ? NodeUtils.asNodeRef(vMatch.node)._uid : vMatch.node._uid)
                     },
                     meta: vMatch.meta,
                     ruleIdx: vMatch.ruleIdx //pMatch.ruleIdx
                 });
-            })
+            });
+            o.ctrl.matches = matches;
         }
+
+        let i=0;
         if(pRoot.children != null){
             for(let k in pRoot.children){
                 o.children[k] = AssuranceReport.controlTreeToJsonObject(pRoot.children[k]);
+                i++;
             }
         }
+        if(i===0) delete o.children;
+        if(o.parent===null) delete o.parent;
+
+
         return o;
     }
 
+    searchControlNode(pCanonicalUID:ControlNodeCanonicalUID):Nullable<ControlNode> {
+
+        const l = pCanonicalUID.lastIndexOf(':');
+
+        const parts = pCanonicalUID.split(".");
+        const pt = (parts[parts.length-1].indexOf(":")>-1)? parts[parts.length-1].split(":"):[parts[parts.length-1]];
+
+        parts[parts.length-1] = pt[0];
+
+        //const parts = (l>-1 ? pCanonicalUID.substring(0,l):pCanonicalUID).split('.');
+        let root:ControlNode[] = this.controls;
+        let node:Nullable<ControlNode> = null;
+        let start = (parts[0]=="*"?"*.":"");
+
+        if(parts[0]=="*") parts.shift();
+
+        for(let i=0; i<parts.length; i++){
+            node = root.find(x => ( x.canonicalID === start+parts[i]));
+            if(node != null && Object.keys(node.children).length>0){
+                start += parts[i]+".";
+                root = Object.values(node.children);
+            }
+        }
+
+        if(root.length>0 && pt.length>1 && pCanonicalUID.lastIndexOf(':',l)>-1){
+            // canonicalUID point to control assessment
+            node = root.find(x => (x.canonicalID === pCanonicalUID));
+        }
+
+        return node;
+    }
+
+    OLD_searchControlNode(pCanonicalUID:ControlNodeCanonicalUID):Nullable<ControlNode> {
+
+        const l = pCanonicalUID.lastIndexOf(':');
+
+        const parts = (l>-1 ? pCanonicalUID.substring(0,l):pCanonicalUID).split('.');
+        let root:ControlNode[] = this.controls;
+        let node:Nullable<ControlNode> = null;
+        let start = (parts[0]=="*"?"*.":"");
+
+        if(parts[0]=="*") parts.shift();
+
+        for(let i=0; i<parts.length; i++){
+            node = root.find(x => ( x.canonicalID === start+parts[i]));
+            if(node != null && Object.keys(node.children).length>0){
+                start += parts[i]+".";
+                root = Object.values(node.children);
+            }
+        }
+
+        if(root.length>0 && l>-1 && pCanonicalUID.lastIndexOf(':',l)>-1){
+            // canonicalUID point to control assessment
+            node = root.find(x => (x.canonicalID === pCanonicalUID));
+        }
+
+        return node;
+    }
+
+    getRawMatchUIDs():ControlNodeCanonicalUID[] {
+        return Object.keys(this._rawMatches);
+    }
+
+    getRawMatch(pUID:ControlNodeCanonicalUID):Nullable<Match> {
+        return this._rawMatches[pUID];
+    }
+
+    setRawMatchOccurences(pUID:ControlNodeCanonicalUID, pOcc:MatchOccurence<any>[]):void {
+        this._rawMatches[pUID].match = pOcc;
+    }
+
+    removeRawMatch(pUID:ControlNodeCanonicalUID):void {
+
+        let n:Record<string, Match> = {};
+        for(let u in this._rawMatches) {
+            if(u!==pUID){
+                n[u] = this._rawMatches[u];
+            }
+        }
+        this._rawMatches = n;
+    }
 
     static controlTreeFromJsonObject(pRoot:any):any {
         const o:any = {
@@ -906,10 +990,45 @@ export default class AssuranceReport implements INode {
         return o;
     }
 
-    withoutMatches():AssuranceReport {
-        const r = new AssuranceReport(this as any);
-        r.matches = {};
-        return r;
+
+    /**
+     * Add indicator
+     *
+     * @param pKPI
+     */
+    addIndicator( pKPI:Indicator):void {
+        for(let i=0; i<this.indicators.length; ++i){
+            if(this.indicators[i].getUID()===pKPI.getUID()){
+                // exists
+                this.indicators[i] = pKPI;
+                return;
+            }
+        }
+
+        this.indicators.push(pKPI);
+        return;
+    }
+
+    removeIndicator( pKPI:Indicator):void {
+        this.indicators = this.indicators.filter(x => (x.getUID()!==pKPI.getUID()));
+    }
+
+    getRawMatches():Record<string, Match> {
+        return this._rawMatches;
+    }
+
+    hasIndicator(pUID: string) {
+        return (this.indicators.find( i => (i.getUID()===pUID))!=null);
+    }
+
+    getIndicator(pUID: string):Indicator {
+        const kpi = this.indicators.find( i => (i.getUID()===pUID));
+
+        if(kpi==null){
+            throw AuditManagerException.KPI_NOT_FOUND(this.uid, this.model,pUID);
+        }
+
+        return kpi;
     }
 }
 AssuranceReport.TYPE.builder(AssuranceReport);

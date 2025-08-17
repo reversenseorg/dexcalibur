@@ -1,7 +1,7 @@
 import got, {Options} from "got";
 import {IStringIndex} from "../core/IStringIndex.js";
 import Control from "./common/Control.js";
-import AssuranceModel from "./common/AssuranceModel.js";
+import AssuranceModel, {AssuranceModelPreview} from "./common/AssuranceModel.js";
 import {DeviceModel} from "../DeviceModel.js";
 import {Brand} from "../Brand.js";
 import * as Log from "../Logger.js";
@@ -9,6 +9,7 @@ import {INode, TagCategory} from "@dexcalibur/dexcalibur-orm";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {BomPurpose} from "../bom/BomPurpose.js";
+import {ReversenseProduct, ReversenseProductUUID} from "../billing/ReversenseProduct.js";
 const GOT = got.default;
 
 
@@ -111,14 +112,20 @@ export class SignatureServerAPI {
      */
     async getBomPurposes():Promise<BomPurpose[]> {
 
-        const response = await GOT(this.baseURL+"api/signatures/bompurposes");
-        const raw = JSON.parse(response.body);
+        try{
+            const response = await GOT(this.baseURL+"api/signatures/bompurposes");
+            const raw = JSON.parse(response.body);
 
-        if(raw.success && Array.isArray(raw.data)){
-            return raw.data;
-        }else{
+            if(raw.success && Array.isArray(raw.data)){
+                return raw.data;
+            }else{
+                return [];
+            }
+        }catch (err){
+            console.log(err.msg,err.stack);
             return [];
         }
+
     }
 
     /**
@@ -210,5 +217,20 @@ export class SignatureServerAPI {
      */
     async listTrackerPurpose():Promise<TagCategory[]> {
         return [];
+    }
+
+    async listModelsByProduct(pProduct: ReversenseProductUUID):Promise<AssuranceModelPreview[]> {
+        // prevent SSRF
+        const safeUID =  ReversenseProduct.TYPE.getProperty("code").sanitize(pProduct);
+
+        const response = await GOT(this.baseURL+"api/signatures/search/preview/by/scannerID/"+safeUID.getValue());
+
+        const raw = JSON.parse(response.body);
+
+        if(raw.success){
+            return raw.data;
+        }else{
+            return [];
+        }
     }
 }
