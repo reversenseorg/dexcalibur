@@ -9,6 +9,7 @@ import DexcaliburProject from "../../DexcaliburProject.js";
 import Util from "../../Utils.js";
 import {MatchOccurence} from "../common/Match.js";
 import {NodeInternalTypeName} from "@dexcalibur/dxc-core-api";
+import {BomPurpose, BomPurposeUID} from "../../bom/BomPurpose.js";
 
 
 
@@ -127,13 +128,18 @@ export class IndicatorBuilder {
         const grouped:Record<string, any> = {};
         let groupOn:any;
         let c:ControlNode;
-        const purps = await (pReport.getContext().getContext().getSignatureServer()).getBomPurposes();
+        const purps:Record<BomPurposeUID, BomPurpose> = {};
+
         let datapath = pRule.data;
         let goUp = 0;
         while(datapath.startsWith('parent.')){
             datapath = datapath.substring('parent.'.length);
             goUp++;
         }
+
+        (await (pReport.getContext().getContext().getSignatureServer()).getBomPurposes()).map(p => {
+            purps[p.uid] = p;
+        })
 
         if(datapath.startsWith('metadata[')){
             // @ts-ignore
@@ -160,7 +166,7 @@ export class IndicatorBuilder {
 
                             if(grouped[p]==null){
                                 grouped[p] = {
-                                    name:  (v===MetadataTopic.PURPOSE? purps[p]?.label : p),
+                                    name:  (v===MetadataTopic.PURPOSE && purps[p]!=null? purps[p].label : p),
                                     controls: [c.canonicalID],
                                     evidences: c.ctrl.matches.length
                                 };

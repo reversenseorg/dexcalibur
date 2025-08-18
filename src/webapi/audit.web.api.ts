@@ -366,6 +366,39 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/report/:unsafeReportUUID/:aid/kpis',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                let rep = (await am.getReport(req.user, req.params.unsafeReportUUID, app));
+
+                if(rep!=null){
+                    $.sendSuccess(res, rep.toJsonObject().indicators);
+                }else{
+                    throw new Error("Report not found.")
+                }
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
+    }
+);
+
 /*
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/report/:modelID',
@@ -1388,8 +1421,15 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     req.params.aid as string
                 );
 
-                $.sendSuccess(res, (await am.getReport(
-                    req.user, req.params.unsafeReportUUID, app)).toJsonObject());
+                const rep = (await am.getReport(req.user, req.params.unsafeReportUUID, app));
+                if(req.query.preview != null
+                    && (typeof req.query.preview==='string')
+                    && parseInt(req.query.preview,10)===1){
+                    $.sendSuccess(res, rep.asPreview());
+                }else{
+                    $.sendSuccess(res, rep.toJsonObject());
+                }
+
             }catch(err){
                 Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
@@ -1400,3 +1440,4 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
         nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
+
