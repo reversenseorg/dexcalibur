@@ -19,15 +19,6 @@ ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
 ARG dxc_heap_size=4096
 
-# Open ID Connect arguments
-ARG dxc_oidc_server="http://127.0.0.1:8088"
-ARG dxc_oidc_client_id="dxcengine_api"
-ARG dxc_oidc_client_secret=""
-ARG dxc_oidc_redirect_uris=["${dxc_oidc_server}/api-auth/cb"]
-ARG dxc_oidc_post_logout_redirect_uris=["${dxc_oidc_server}/api-logout"]
-ARG dxc_oidc_discover_uri="${dxc_oidc_server}/realms/dxc-stagging"
-ARG dxc_oidc_response_type=["code"]
-
 # Obsolete. Standlone auth have been replaced by SSO
 # ARG dxc_admin="admin"
 # ARG dxc_pwd="dxcserver"
@@ -141,9 +132,11 @@ USER $DXC_USER_SRV
 WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
-    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt && \
-    sudo npm install -g npm@10.0.0 && \
-    (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
+    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt \
+
+RUN sudo npm install -g npm@10.0.0
+
+RUN  (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
     export PATH=$HOME/.cargo/bin:$PATH && \
     ls -la $HOME/.cargo/bin
 
@@ -151,7 +144,7 @@ RUN sudo apt-get update && \
 # Install Android SDKManager, and pip
 # ===============================
 
-RUN wget https://dl.google.com/android/repository/${ANDROID_CMD_VERSION} -P /tmp && \
+RUN wget -q https://dl.google.com/android/repository/${ANDROID_CMD_VERSION} -P /tmp && \
     unzip -d $ANDROID_SDK_ROOT /tmp/$ANDROID_CMD_VERSION && \
     mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && cd $ANDROID_SDK_ROOT/cmdline-tools && \
     mkdir tools && \
@@ -159,7 +152,8 @@ RUN wget https://dl.google.com/android/repository/${ANDROID_CMD_VERSION} -P /tmp
     cd $ANDROID_SDK_ROOT/cmdline-tools/tools && \
     mkdir $TMP_FOLDER && \
     curl -sSL https://bootstrap.pypa.io/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
-    python3 $TMP_FOLDER/"get-pip.py"
+    python3 $TMP_FOLDER/"get-pip.py" && \
+    rm -f /tmp/$ANDROID_CMD_VERSION
 
 ENV PATH="$PATH:$DXC_USER_HOME/.local/bin:$ANDROID_SDK_ROOT/cmdline-tools/tools:$ANDROID_SDK_ROOT/cmdline-tools/tools/bin:$ANDROID_SDK_ROOT/emulator:$ANDROID_SDK_ROOT/tools/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/${ANDROID_BUILD_TOOLS_VERSION}"
 
