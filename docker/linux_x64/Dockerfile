@@ -132,7 +132,7 @@ USER $DXC_USER_SRV
 WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
-    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt \
+    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt
 
 RUN sudo npm install -g npm@10.0.0
 
@@ -176,7 +176,8 @@ RUN curl -L -o "$TMP_FOLDER/apkeep.zip" "https://github.com/EFForg/apkeep/archiv
     mkdir $DXC_USER_HOME/bin && \
     cp ./target/release/apkeep $DXC_USER_HOME/apkeep && \
     sudo chmod +x $DXC_USER_HOME/apkeep && \
-    cd $DXC_USER_HOME
+    cd $DXC_USER_HOME && \
+    rm -rf ./apkeep-$DXC_V_APKEEP
 
 
 # ===============================
@@ -200,7 +201,8 @@ RUN curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/
     sudo chmod 777 /usr/local/bin/binwalk && \
     cp ./target/release/binwalk $DXC_USER_HOME/binwalk && \
     sudo chmod +x $DXC_USER_HOME/binwalk && \
-    cd $DXC_USER_HOME
+    cd $DXC_USER_HOME && \
+    rm -rf ./binwalk-$DXC_V_BINWALK
 
 # Enable this environment variable to remove extractor top-level symlink,
 # as the symlink target path in the docker environment will not match that of the host.
@@ -220,7 +222,8 @@ RUN curl -L -o "$TMP_FOLDER/apktool.jar" "https://bitbucket.org/iBotPeaches/apkt
 # ===============================
 RUN yes Y | sdkmanager --verbose --no_https "platform-tools" && \
     cd $TMP_FOLDER && git clone https://github.com/radareorg/radare2 && \
-    chmod a+x ./radare2/sys/install.sh && ./radare2/sys/install.sh
+    chmod a+x ./radare2/sys/install.sh && ./radare2/sys/install.sh && \
+    rm -rf ./radare2
 
 
 
