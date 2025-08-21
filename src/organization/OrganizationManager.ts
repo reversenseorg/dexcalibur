@@ -154,27 +154,6 @@ export class OrganizationManager {
 
         // build email and send it
         await this._emailSender.sendPreparedMail( emailAddr, this._emailBuilder.buildActivationEmail(pUserAccount, token, pTokenLifetime, pOrg));
-
-        /*
-        await this._emailSender.sendMail(
-            email,
-            'Activate your Reversense account',
-            `
-
-Hi there,
-
-Thank you for signing up for Reversense. Click on the link below to verify your email:
-
-${link}
-
-This link will expire in ${expire}.
-
-Best,
-
-The Reversense Team
-            `,
-            this._getActivateEmailTemplate(link,expire)
-        );*/
     }
 
     /**

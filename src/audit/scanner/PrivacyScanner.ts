@@ -7,25 +7,18 @@ import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
 import {Merlin} from "../../search/Merlin.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 import * as Log from "../../Logger.js";
-import {CoreDebug} from "../../core/CoreDebug.js";
 import {AuditManager} from "../AuditManager.js";
 import {MerlinPrimitive} from "../../search/MerlinPrimitive.js";
 import {MerlinRule} from "../../search/MerlinRule.js";
 import {FinderResult} from "../../search/FinderResult.js";
 import {BusSubscriber} from "../../Bus.js";
-import {AssuranceScannerException} from "../errors/AssuranceScannerException.js";
-import AnalyzerDatabase from "../../AnalyzerDatabase.js";
-import {AssuranceModelUUID, CANONICALIZED_ROOT, ControlNode, ControlTree} from "../common/AssuranceModel.js";
+import AssuranceModel, {AssuranceModelUUID, CANONICALIZED_ROOT, ControlNode, ControlTree} from "../common/AssuranceModel.js";
 import ControlAssessment, {MetadataTopic} from "../common/ControlAssessment.js";
 import {TestPlan, TestStep, TestType} from "../common/TestPlan.js";
 import Control from "../common/Control.js";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import ModelStringValue from "../../ModelStringValue.js";
-import {SearchAPI} from "../../SearchAPI.js";
 import {INode, NodeType, NodeUtils, Tag} from "@dexcalibur/dexcalibur-orm";
-import {LicenceManager} from "../../credit/LicenceManager.js";
-import {ReversenseProduct} from "../../billing/ReversenseProduct.js";
-import {ProductRelease} from "../../billing/ProductRelease.js";
 import {Metadata, MetadataType} from "../common/Metadata.js";
 import {PolicyRule} from "../PolicyRule.js";
 import {ApplicationUnit} from "../../organization/ApplicationUnit.js";
@@ -36,6 +29,14 @@ import {INodeRef} from "../../INode.js";
 import {IControl} from "../common/IControl.js";
 import {MatchOccurence} from "../common/Match.js";
 import {IndicatorBuilder} from "../kpi/IndicatorBuilder.js";
+import ModelCall from "../../ModelCall.js";
+import {AssuranceScannerException} from "../errors/AssuranceScannerException.js";
+import AnalyzerDatabase from "../../AnalyzerDatabase.js";
+import {ProductRelease} from "../../billing/ProductRelease.js";
+import {LicenceManager} from "../../credit/LicenceManager.js";
+import {ReversenseProduct} from "../../billing/ReversenseProduct.js";
+import {SearchAPI} from "../../SearchAPI.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -57,7 +58,8 @@ interface BusBasedControl {
 }
 
 export interface GenericScanOptions {
-    dashboard?:DashBoardOpts
+    dashboard?:DashBoardOpts;
+    extraScan?:boolean;
 }
 
 export interface DashBoardOpts {
@@ -631,8 +633,9 @@ export class PrivacyScanner extends AssuranceScanner {
             );
         }
 
+
         // 6. post process : cross results
-        if(policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null){
+        if(pOptions.extraScan!==true && (policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null)){
             try{
                 this.report = await this._crossReportConsolidating(this.report,true);
             }catch (e){
@@ -642,28 +645,41 @@ export class PrivacyScanner extends AssuranceScanner {
 
 
         // 3 : Filter / transform results
-        for(let i=0; i<matchUIDs.length; i++){
-            m =  this.report.getRawMatch(matchUIDs[i]);
-            filteredOcc = await this._filterMatches( pContext, m.match);
-            if(filteredOcc.length>0){
-                this.report.setRawMatchOccurences(
-                    matchUIDs[i],
-                    filteredOcc
-                );
-            }else{
-                this.report.removeRawMatch(matchUIDs[i]);
+       //if(pOptions.extraScan!==true){
+            for(let i=0; i<matchUIDs.length; i++){
+                m =  this.report.getRawMatch(matchUIDs[i]);
+                filteredOcc = await this._filterMatches( pContext, m.match);
+                if(filteredOcc.length>0){
+                    this.report.setRawMatchOccurences(
+                        matchUIDs[i],
+                        filteredOcc
+                    );
+                }else{
+                    this.report.removeRawMatch(matchUIDs[i]);
+                }
             }
+        //}
 
-        }
 
         // 5. Explain report (explain results with model)
-        this.report.build({
-            sampling: true,
-            samplingSize: 100,
-            groupSampleByNode: true,
-            embedKpis: true,
-            clean: true
-        });
+        if(pOptions.extraScan!==true){
+            this.report.build({
+                sampling: true,
+                samplingSize: 100,
+                groupSampleByNode: true,
+                embedKpis: true,
+                clean: true
+            });
+        }else{
+            this.report.build({
+                sampling: false,
+                //samplingSize: 100,
+                //groupSampleByNode: true,
+                //embedKpis: false,
+                clean: true
+            });
+        }
+
 
         // 6. post process : cross results
         /*if(policies["analyze_tp_sdk"]!=null || policies["analyze_pii"]!=null){
@@ -683,20 +699,24 @@ export class PrivacyScanner extends AssuranceScanner {
         }
 
         // 8. Compute KPIs
-        const kpiBuilder = new IndicatorBuilder({});
-        for(let i=0; i<this.model.indicators.length;i++){
-            this.report.addIndicator(
-                await kpiBuilder.process( this.report, this.model.indicators[i])
-            );
+        if(pOptions.extraScan!==true){
+            const kpiBuilder = new IndicatorBuilder({});
+            for(let i=0; i<this.model.indicators.length;i++){
+                this.report.addIndicator(
+                    await kpiBuilder.process( this.report, this.model.indicators[i])
+                );
+            }
         }
 
 
         // 8. result
         this.report.terminated = (new Date()).getTime();
-        this.reports.push(this.report);
 
         // 9. Save
-        AuditManager.getInstance().saveReport(pContext, this.report);
+        if(pOptions.extraScan!==true){
+            this.reports.push(this.report);
+            AuditManager.getInstance().saveReport(pContext, this.report);
+        }
     }
 
     /**
@@ -773,14 +793,16 @@ export class PrivacyScanner extends AssuranceScanner {
                             if(tree[occ.node.__]==null){
                                 tree[occ.node.__] = {};
                             }
-                            if(tree[occ.node.__][occ.node._uid]==null){
-                                tree[occ.node.__][occ.node._uid] = {};
+
+                            const node_uid = (occ.node.getUID!=null ? occ.node.getUID() : occ.node._uid);
+                            if(tree[occ.node.__][node_uid]==null){
+                                tree[occ.node.__][node_uid] = {};
                             }
-                            if(tree[occ.node.__][occ.node._uid][n.canonicalID]==null){
-                                tree[occ.node.__][occ.node._uid][n.canonicalID] = []
+                            if(tree[occ.node.__][node_uid][n.canonicalID]==null){
+                                tree[occ.node.__][node_uid][n.canonicalID] = []
                             }
 
-                            tree[occ.node.__][occ.node._uid][n.canonicalID].push(occ.ruleIdx);
+                            tree[occ.node.__][node_uid][n.canonicalID].push(occ.ruleIdx);
                         }
                     })
                 }
@@ -929,7 +951,71 @@ export class PrivacyScanner extends AssuranceScanner {
 
 
                 for(let ecuid in xref){
-                    console.log(`${uid} => ${ref.__} ${ref._uid} => ${ecuid}`);
+                    console.log(`[On Raw join] ${uid} => ${ref.__} ${ref._uid} => ${ecuid}`);
+                    occ.meta.push({
+                        type: MetadataType.ANY,
+                        key: MetadataTopic.CTRL,
+                        value: {
+                            model: pModel,
+                            ctrl: ecuid,
+                            idx: xref[ecuid]
+                        }
+                    });
+                }
+            })
+        }
+
+        return pUpdatedReport;
+    }
+
+    private async _consolidateOnXref( pModel:AssuranceModelUUID, pExtraTree:NodeMatchTree,
+                                         pUpdatedReport:AssuranceReport):Promise<AssuranceReport> {
+
+        const raw = pUpdatedReport.getRawMatches();
+
+        // create node tree from matches on ModelCall
+        if(pExtraTree[NodeInternalType.CALL]==null) return pUpdatedReport;
+
+        const tree:NodeMatchTree = {};
+        let c:ModelCall, n:INode;
+        for(let k in pExtraTree[NodeInternalType.CALL]){
+            n = await this._getNodeByRef( this.project, {
+                __: NodeInternalType.CALL,
+                _uid: k
+            });
+
+            if(n!=null) {
+                c = (n as ModelCall);
+                ['_called','_caller'].map(x => {
+                    if(c[x]!=null){
+                        if(tree[c[x]]==null)
+                            tree[c[x]] = {};
+
+                        if(tree[c[x]][c._uid]==null)
+                            tree[c[x]][c._uid] = pExtraTree[NodeInternalType.CALL][k];
+                    }
+                });
+            }
+        }
+
+        for(let uid in raw){
+            raw[uid].match.map( occ => {
+
+                if(occ.node==null) /* skip */ return;
+
+                let ref = (occ.node.getUID!=null ? NodeUtils.asNodeRef(occ.node) : occ.node);
+
+                let xref:any = tree[ref.__];
+                if(xref==null) return;
+                xref = xref[ref._uid];
+                if(xref==null) return;
+
+                // a match in privacy.trackers.shared also exists in pii3
+                if(occ.meta==null) occ.meta = [];
+
+
+                for(let ecuid in xref){
+                    console.log(`[On Xref] ${uid} => ${ref.__} ${ref._uid} => ${ecuid}`);
                     occ.meta.push({
                         type: MetadataType.ANY,
                         key: MetadataTopic.CTRL,
@@ -965,8 +1051,18 @@ export class PrivacyScanner extends AssuranceScanner {
 
         if(cross[this.model.getID()]==null) return pReport;
 
-        const extraModel = cross[this.model.getID()];
-        const crossReport:AssuranceReport = await this._getExtraReport(extraModel);
+        const extraModelUID = cross[this.model.getID()];
+        const extraModel = await this.project.getContext().getAuditManager().getModelByUID(
+            this.project.getContext().getInternalAcc(),
+            cross[this.model.getID()]
+        )
+
+        // instead of getting existing report, perform scan and get unfiltered report
+        const crossReport:AssuranceReport = await this._extraRun(
+            this.project, extraModel
+        );
+
+        // await this._getExtraReport(extraModel);
         let extraTreeNode:NodeMatchTree = {};
         let m:any;
 
@@ -975,14 +1071,18 @@ export class PrivacyScanner extends AssuranceScanner {
             // sort extra matches by noderef
             extraTreeNode = this._buildControlTreeNodeFromMatches(crossReport.controls);
 
-            // 1st level intersection
-
             // search directly
             if(pOnRaw){
-                pReport = await  this._consolidateOnRawJoin(extraModel, extraTreeNode, pReport);
+                pReport = await  this._consolidateOnRawJoin(extraModelUID, extraTreeNode, pReport);
             }else{
-                pReport = await this._consolidateOnJoin(extraModel, extraTreeNode, pReport);
+                pReport = await this._consolidateOnJoin(extraModelUID, extraTreeNode, pReport);
             }
+
+            // 1st level intersection (search in both parts of ModelCall)
+            if(pOnRaw){
+                pReport = await  this._consolidateOnXref(extraModelUID, extraTreeNode, pReport);
+            }
+
 
             // Parent intersection (class or package)
 
@@ -991,7 +1091,7 @@ export class PrivacyScanner extends AssuranceScanner {
         return pReport;
     }
 
-    /**
+    /**a
      * To scan existing data
      *
      * @private
@@ -1052,7 +1152,9 @@ export class PrivacyScanner extends AssuranceScanner {
 
 
         //if(this.reports.length==0){
-            await this._firstScan( this.project, pOptions);
+        if(pOptions.extraScan==null) pOptions.extraScan = false;
+
+        await this._firstScan( this.project, pOptions);
         /*}else{
 
             this.report = new AssuranceReport({
@@ -1066,6 +1168,38 @@ export class PrivacyScanner extends AssuranceScanner {
             //this.reports.push(this.report);
         }*/
 
+    }
+
+    /**
+     * To perform a scan of the same DexcaliburProject with the same scanner type but
+     * versus a different model.
+     *
+     * @param {DexcaliburProject} pContext
+     * @param {AssuranceModel} pModel
+     * @async
+     * @private
+     */
+    private async _extraRun( pContext:DexcaliburProject, pModel:AssuranceModel):Promise<AssuranceReport>{
+
+        const extScanner = new PrivacyScanner({ project:pContext });
+        extScanner.setModel(pModel);
+
+        if(extScanner.model==null){
+            throw AssuranceScannerException.MODEL_UNDEFINED(extScanner.name, pContext.getUID());
+        }
+
+        if(extScanner._searchContext==null){
+            extScanner._searchContext = new MerlinSearchAPI<AnalyzerDatabase>(pContext.getSearchEngine().getDatabase());
+        }
+
+        Logger.info(`[SCANNER][${extScanner.name}] Start extra scan of model [model=${extScanner.model.getUID()}]`);
+
+        await extScanner._firstScan( this.project, {
+            extraScan: true
+        });
+        Logger.info(`[SCANNER][${extScanner.name}] Extra scan [model=${extScanner.model.getUID()}] is done.` );
+
+        return extScanner.getReport();
     }
 
     async runModel(pContext:DexcaliburProject):Promise<AssuranceReport>{
@@ -1109,7 +1243,7 @@ export class PrivacyScanner extends AssuranceScanner {
             o.dashboards[name] = this.dashboards[name].toJsonObject();
         }
 
-        CoreDebug.checkJsonSerialize(o, "GenericScanner");
+        CoreDebug.checkJsonSerialize(o, "PrivacyScanner");
 
         return o;
     }

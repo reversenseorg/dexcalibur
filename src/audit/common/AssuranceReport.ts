@@ -585,15 +585,31 @@ export default class AssuranceReport implements INode {
     }
 
 
-
+    /**
+     * To sample match occurences to avoid to produce huge report
+     * The most interesting finding are:
+     * - findings linked to control point from extra report
+     * - have the highest entropy result set (from node signatures) to keep useful data
+     *
+     * @param pMatches
+     * @param pOptions
+     * @private
+     */
     private _doSampling(pMatches: MatchOccurence<any>[], pOptions: any): MatchOccurence<any>[] {
 
         let out: MatchOccurence<any>[] = [];
+        let inp: MatchOccurence<any>[] = pMatches;
+
+
+        // sort to keep occurance with metadata at begin of list
+        inp = inp.sort((a,b)=>{
+            return  b.meta.length - a.meta.length ;
+        });
 
         if (pOptions.grpNode) {
             const groups: Record<number, MatchOccurence<any>[]> = {};
 
-            pMatches.map(m => {
+            inp.map(m => {
                 if (groups[m.node.__] == null) {
                     groups[m.node.__] = [];
                 }
@@ -604,13 +620,11 @@ export default class AssuranceReport implements INode {
 
             if(pOptions.grpSize>-1){
 
-                // sort to keep occurance with metadata at begin of list
-
 
                 for(let n in groups){
-                    groups[n] = groups[n].sort((a, b) => {
+                    /*groups[n] = groups[n].sort((a, b) => {
                         return  b.meta.length - a.meta.length ;
-                    });
+                    });*/
                     groups[n] = groups[n].slice(0, pOptions.grpSize);
                 }
             }
@@ -622,10 +636,10 @@ export default class AssuranceReport implements INode {
             // console.log("EXPLAIN :  SAMPLED (WITH GRP) : ", out.length);
         } else {
 
-            pMatches = pMatches.sort((a, b) => {
+            inp = inp.sort((a, b) => {
                 return b.meta.length - a.meta.length ;
             });
-            out = pMatches.slice(0, pOptions.grpSize);
+            out = inp.slice(0, pOptions.grpSize);
             // console.log("EXPLAIN :  SAMPLED (NO GRP): ", out.length);
         }
         return out;
