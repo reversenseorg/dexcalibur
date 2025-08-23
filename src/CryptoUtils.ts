@@ -126,6 +126,6 @@ export class CryptoUtils {
     static sha256_file(pPath:string):string {
         return CryptoUtils.sha256(
             _fs_.readFileSync(pPath, {encoding:'utf8'}),
-            'binary', true);
+            'hex', true);
     }
 }

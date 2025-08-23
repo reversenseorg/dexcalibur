@@ -43,7 +43,7 @@ export class ApkeepHelper extends  External.ExternalHelper {
      * @param pConnection
      * @param pDest
      */
-    downloadWith( pUser:UserAccount, pPackageID:string, pOrg:OrganizationUnit, pConnection:Connection, pDest:string):string{
+    downloadWith( pUser:UserAccount, pPackageID:string, pOrg:OrganizationUnit, pConnection:Connection, pDest:string):string[]{
 
         const opts:ApkDownloaderOptions = {
             store: "",
@@ -79,7 +79,7 @@ export class ApkeepHelper extends  External.ExternalHelper {
      * @param pPackageID
      * @param pConnection
      */
-    download( pUser:UserAccount, pPackageID:string, pOptions:ApkDownloaderOptions):string {
+    download( pUser:UserAccount, pPackageID:string, pOptions:ApkDownloaderOptions):string[] {
         let args:string[] = [];
 
         if(/^[a-zA-Z0-9_][a-zA-Z0-9._]+(@[0-9]+\.[0-9]+\.[0-9]+)?$/.test(pPackageID)===false){
@@ -108,18 +108,20 @@ export class ApkeepHelper extends  External.ExternalHelper {
             _fs_.mkdirSync(pOptions.destFolder);
         }
 
+        const destFile =  _path_.join( pOptions.destFolder, pPackageID+'.apk');
         args.push(pOptions.destFolder);
 
+        console.log(args);
+
         const result = _proc_.spawnSync(ApkeepHelper.BIN, args, {
-            stdio: ['ignore', 'pipe', 'pipe'],
+            stdio: ['ignore', process.stdout, process.stderr /*'pipe', 'pipe'*/ ],
         });
 
-        const output = _path_.join( pOptions.destFolder, pPackageID+'.apk');
-        if(!_fs_.existsSync(output)){
+        if(!_fs_.existsSync(destFile)){
             throw new Error("Application package cannot be downloaded.")
         }
 
-        return output;
+        return [destFile];
     }
 }
 const p = Util.whereIs(ApkeepHelper.BIN);

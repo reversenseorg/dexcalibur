@@ -75,7 +75,7 @@ export default class Uploader {
     }
 
     async save(pRes: UploadedResource, pFields: string[] = []): Promise<any> {
-        if (pFields.length > 0) {
+        if (pRes.getUID()!=null && pFields.length > 0) {
             return await (this._ctx.getEngineDB()
                 .getCollectionOf(UploadedResource.TYPE.getType()) as MongodbDbCollection)
                 .asyncUpdateEntry(pRes, {replace: false, $set: pFields});

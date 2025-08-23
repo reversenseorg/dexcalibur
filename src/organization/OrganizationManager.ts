@@ -2704,29 +2704,35 @@ export class OrganizationManager {
         }
 
 
+
+        const sessDestFolder = _path_.join(destFolder,Util.now()+"");
+
         let helper:any;
-        let path:string = null;
+        let path:string[] = [];
         switch(conn.type){
             case ConnectionProtocol.FDROID:
             case ConnectionProtocol.APKPURE:
             case ConnectionProtocol.HUAWAIAPPG:
             case ConnectionProtocol.PLAYSTORE:
                 helper = new ApkeepHelper();
-                path = (helper as ApkeepHelper).downloadWith( pUser, pApp.packageID, pOrg, conn, destFolder);
+                path = (helper as ApkeepHelper).downloadWith( pUser, pApp.packageID, pOrg, conn, sessDestFolder);
                 break;
         }
 
-        if(path==null){
+        if(path==null || path.length==0){
             return null;
         }
 
         if(pCheckExists){
             // TODO : gather checksum of inputs and check if exists
         }
-        const uplres = await this._ctx.getWebserver().uploader.uploadFile(pUser, path, path);
+        const uplres = await this._ctx.getWebserver().uploader.uploadFile(pUser, path[0], path[0]);
 
 
         await this._ctx.getEngineDB().save(uplres);
+
+        // Importent : don't remove file here
+        _fs_.rm(sessDestFolder,{ recursive:true },()=>{  });
 
         return uplres;
     }
@@ -2740,7 +2746,7 @@ export class OrganizationManager {
                 let tmpDl = pRes.path;
                 if(!_fs_.existsSync(tmpDl)){
                     tmpDl = this._ctx.getWorkspace().createTempFile("apkdl_",false);
-                    const res = this._ctx.getWebserver().uploader.downloadFile(pRes.getUID(),tmpDl);
+                    const res = await this._ctx.getWebserver().uploader.downloadFile(pRes.getUID(),tmpDl);
                     if(!_fs_.existsSync(tmpDl)){
                         throw new Error("Information cannot be extracted from package");
                     }

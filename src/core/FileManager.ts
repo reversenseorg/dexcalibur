@@ -1,7 +1,5 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {GridFSBucket, GridFSBucketReadStream} from "mongodb";
-import {EngineDatabase} from "../database/EngineDatabase.js";
-import {ProjectDatabase} from "../database/ProjectDatabase.js";
 import {IFileDatabase} from "./commons.js";
 import {Readable} from "stream";
 import * as _fs_ from "fs";
@@ -48,7 +46,7 @@ export class FileManager {
      */
     async writeFile(pBucket:string, pPath:string, pFileID:string, pMetadata:any):Promise<any> {
 
-        return this.writeFileStream(pBucket, _fs_.createReadStream(pPath), pFileID, pMetadata);
+        return await this.writeFileStream(pBucket, _fs_.createReadStream(pPath), pFileID, pMetadata);
     }
 
     /**
@@ -67,9 +65,19 @@ export class FileManager {
             pFileID, { metadata: pMetadata }
         );
 
-        pStream.pipe(bucketStream);
 
-        return bucketStream.id;
+
+        return new Promise<any>((resolve, reject) => {
+
+            pStream
+                .pipe(bucketStream)
+                .on('finish', () => {
+                    resolve(bucketStream.id);
+                })
+                .on('error', reject);
+        });
+
+        //return bucketStream.id;
     }
 
     /**
