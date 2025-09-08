@@ -111,8 +111,6 @@ export class ApkeepHelper extends  External.ExternalHelper {
         const destFile =  _path_.join( pOptions.destFolder, pPackageID+'.apk');
         args.push(pOptions.destFolder);
 
-        console.log(args);
-
         const result = _proc_.spawnSync(ApkeepHelper.BIN, args, {
             stdio: ['ignore', process.stdout, process.stderr /*'pipe', 'pipe'*/ ],
         });
