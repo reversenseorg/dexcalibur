@@ -5,7 +5,6 @@ import * as _fsPromise_ from "node:fs/promises"
 import * as _path_ from "path";
 
 import {Device} from "../../Device.js";
-import {AndroidPackageAnalyzerConfig} from "./AndroidPackageAnalyzerConfig.js";
 import {AnalyzerException} from "../../errors/AnalyzerException.js";
 import {InputSetPurpose, IPackageAnalyzer} from "../../analyzer/IPackageAnalyzer.js";
 import {AnalyzerState} from "../../AnalyzerState.js";
@@ -25,16 +24,20 @@ import {
 import {DexcaliburProjectException} from "../../errors/DexcaliburProjectException.js";
 import Util from "../../Utils.js";
 import {PackageAnalyzerException} from "../../errors/PackageAnalyzerException.js";
-import Platform from "../../platform/Platform.js";
 import {AndroidManifest} from "../AndroidManifest.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
 import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
-import base = Mocha.reporters.base;
-import {AppIcon} from "../../AppIcon.js";
 import {ApplicationIcon} from "../../organization/ApplicationUnit.js";
 import {ImageFormatHelper} from "../../platform/ImageFormat.js";
+import {OperatingSystem} from "../../platform/OperatingSystem.js";
+import {EFileFormat} from "../../formats/common/EFileFormat.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+export interface AndroidPackageAnalyzerOptions {
+    ssa_auto:boolean;
+    msa_auto:boolean;
+}
 
 /**
  * Android APK analyzer
@@ -46,7 +49,7 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
 
-    private _cfg:AndroidPackageAnalyzerConfig;
+    private _cfg:AndroidPackageAnalyzerOptions;
 
     state:AnalyzerState = new AnalyzerState({ _uid:'android-pkg'});
 
@@ -60,7 +63,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
     private _data:Record<string, any> = {};
 
-    constructor(pConfig:AndroidPackageAnalyzerConfig) {
+    constructor(pConfig:AndroidPackageAnalyzerOptions = { msa_auto:false, ssa_auto:false }) {
         this._cfg = pConfig;
 
         for(let i in pConfig){
@@ -86,6 +89,48 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             );
         }
 
+    }
+
+    async getAppIcon(): Promise<string> {
+
+        throw new Error("Method not implemented.");
+    }
+
+    async getVersion(): Promise<string> {
+        if(this._data._version!=null) return this._data._version;
+
+        if(this._data._rawManifest!=null){
+            // short access for package temporary extracted
+            const ver = /android:versionName="([^"]+)"/.exec(this._data._rawManifest);
+            return Promise.resolve( ver!=null && ver[1]!=null ? ver[1] : "");
+
+        } else if(this._data.manifest!=null){
+            // standard access
+            const manifest = await this.getManifest();
+            return manifest.getAttr('android:versionName');
+        } else{
+            throw PackageAnalyzerException.CANNOT_EXTRACT_VER('android',null);
+        }
+    }
+
+    async getPkgID(): Promise<string> {
+
+        let id:Nullable<string> = null;
+
+        if(this._data._rawManifest!=null){
+            const m = /package="([^"]+)"/.exec(this._data._rawManifest);
+            if(m!=null && m[1]!=null) id = m[1];
+        }
+
+        if(id==null && this._data.manifest!=null){
+            id = (await this.getManifest()).getAttr('package');
+        }
+
+        if(id==null){
+            throw PackageAnalyzerException.CANNOT_EXTRACT_PKGID('android',null);
+        }
+
+        return id;
     }
 
     setProject(pProject:DexcaliburProject):void {
@@ -211,7 +256,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         baseInput.data = basePath;
 
         // if enabled, search split apk on target device
-        if(this._cfg.mustSearchSplittedAPK() && (device!=null)){
+        if((this._cfg.ssa_auto===true) && (device!=null)){
 
             if(device == null){
                 throw AnalyzerException.ANDROID_SEARCH_SPLITTED_DEV_FAIL();
@@ -293,7 +338,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         // if enabled, merge package from splittedInput, this._base_apk  and  this._extra
         // into a single folder.
-        if(this._cfg.mustMergeSplittedAPK()){
+        if(this._cfg.msa_auto===true){
             // override options with options corresponding to freshly crafted package
             await this.mergeSplitApks(
                 baseInput,
@@ -306,7 +351,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
 
 
-        const icon = AndroidPackageAnalyzer.extractAppIcon(
+        const icon = await this.extractAppIcon(
             this._project.workspace.getApkDir()
         );
 
@@ -507,6 +552,36 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
     }
 
+    /**
+     * To attach new input to the analyzer instance
+     *
+     * It doesnt update state
+     *
+     * @param pInput
+     */
+    attachTempInput(pPath: string, pPurpose:ProjectInputPurpose):void {
+
+        const tmpInp = new ProjectInput({
+            data: pPath,
+            location: ProjectInputLocation.LOCAL,
+            type: ProjectInputType.REGULAR_FILE,
+            extractOpts: {type:'bin'},
+            purpose: pPurpose
+        })
+
+        switch (pPurpose){
+            case ProjectInputPurpose.MAIN:
+                this._base_apk = tmpInp;
+                break;
+            case ProjectInputPurpose.EXTRA:
+                if(this._extra.external==null){
+                    this._extra.external = [];
+                }
+                this._extra.external.push(tmpInp);
+                break;
+        }
+    }
+
     getBaseApkFromState():Nullable<ProjectInput> {
         const data:any = this.state.getProperty('_base_apk');
         if(data==null) return null;
@@ -656,105 +731,46 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
      */
     static async extractInfoTemporary(pPath:string, pOutput:string):Promise<any> {
 
-        // create temporary output
-        const success = await AndroidPackageAnalyzer.extractApk(
-            pPath,
-            pOutput, {
-                force: true,
-                match: true,
-                type: 'bin'
-            }
-        );
+        // create temporary analyzer output
+        const tanal = new AndroidPackageAnalyzer({
+            msa_auto: false,
+            ssa_auto: false
+        });
+
+        tanal.attachTempInput(pPath, ProjectInputPurpose.MAIN);
+
+        const success = await AndroidPackageAnalyzer.extractApk( pPath, pOutput, {
+            force: true,
+            match: true,
+            type: 'bin'
+        });
 
         if(success==false){
             throw new Error("Cannot extract package temporary.")
         }
 
-        // parse manifest to extract metadata and icon
-        // search by regexp instead of parsing
-        const manifestPath = _path_.join(pOutput,"AndroidManifest.xml");
-        const stringsPath = _path_.join(pOutput,"res","values","strings.xml");
+        await tanal._readManifest(pOutput);
+        await tanal._readStringsRsc(pOutput);
 
-        if(!_fs_.existsSync(manifestPath)){
-            throw new Error("Cannot extract manifest from package.")
-        }
-        if(!_fs_.existsSync(stringsPath)){
-            throw new Error("Cannot extract strings.")
-        }
-
-        const data = _fs_.readFileSync(manifestPath, { encoding: "utf8" });
-        const strings = _fs_.readFileSync(stringsPath, { encoding: "utf8" });
-
-        const meta = {
-            version: "",
-            name: "",
-            icons: {}
-        }
-
-        let ver = /android:versionName="([^"]+)"/.exec(data);
-        if(ver!=null){
-            meta.version = ver[1];
-        }
-
-        let appName = /android:label="([^"]+)"/.exec(data);
-        if(appName!=null){
-            meta.name = appName[1];
-            if(meta.name.startsWith("@string/")){
-               const label = (new RegExp(`<string name="${meta.name.substring(8)}">([^<]+)</string>`))
-                   .exec(strings);
-
-               if(label!=null){
-                   meta.name = label[1];
-               }
+        return  {
+            version: await tanal.getVersion(),
+            name: await tanal.getAppName(),
+            os: OperatingSystem.ANDROID,
+            fmt: EFileFormat.APK,
+            minOs: await tanal.getMinPlatform(),
+            targetOs: await tanal.getTargetPlatform(),
+            pkgId: await tanal.getPkgID(),
+            icons: {
+                icon: await tanal.extractAppIcon(pOutput)
             }
-
-        }
-        // icons
-        const icon = AndroidPackageAnalyzer.extractAppIcon(pOutput);
-        /*
-        const opts = ["-xxxhdpi","-xxhdpi","-xhdpi","-hdpi","","-mdpi"];
-
-        let mipmapPath:string;
-        let files:string[];
-
-        for(let i=0;i<opts.length; i++){
-            mipmapPath = _path_.join(pOutput,"res","mipmap"+opts[i]);
-
-            if(!_fs_.existsSync(mipmapPath)) continue;
-
-            try{
-                files = _fs_.readdirSync(mipmapPath);
-
-                files.map((vFile)=>{
-                    if(/ic_launcher/.test(vFile)){
-                        const p = _path_.join(mipmapPath,vFile);
-                        if(_fs_.existsSync(p)){
-                            meta.icons[vFile] = _fs_.readFileSync(p).toString('base64');
-                        }else{
-                            return null;
-                        }
-                    }
-                });
-            }catch(e){}
-
-
-            if(Object.keys(meta.icons).length>0) break;
-        }*/
-
-        if(icon!=null){
-            meta.icons = {
-                [icon.name]:icon
-            };
-        }
-
-        return meta;
+        };
     }
 
     /**
      *
      * @param pFolder
      */
-    static extractAppIcon(pFolder:string):Nullable<ApplicationIcon> {
+    async extractAppIcon(pFolder:string):Promise<Nullable<ApplicationIcon>> {
 
         let icon:Nullable<ApplicationIcon> = null;
 
@@ -838,5 +854,54 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
     async getTargetPlatform():Promise<string> {
         const manifest = await this.getManifest();
         return manifest.getTargetSdkVersion();
+    }
+
+    async getAppName():Promise<string> {
+
+        let appName:Nullable<string> = null;
+
+        if(this._data._rawManifest!=null){
+            const m = /android:label="([^"]+)"/.exec(this._data._rawManifest);
+            if(m!=null && m[1]!=null) appName = m[1];
+        }
+
+        if(appName==null && this._data.manifest!=null){
+            appName = (await this.getManifest()).getAttr('android:label');
+        }
+
+        if(appName==null){
+            throw PackageAnalyzerException.CANNOT_EXTRACT_NAME('android',null);
+        }
+
+        // try to resolve app name
+        if(appName.startsWith("@string/") && this._data._rawStrings!=null){
+            const label = (new RegExp(`<string name="${appName.substring(8)}">([^<]+)</string>`))
+                .exec(this._data._rawStrings);
+
+            if(label!=null){
+                return label[1];
+            }else{
+                return appName;
+            }
+        }else{
+            return appName;
+        }
+    }
+
+
+    private async _readManifest(pOutput: string) {
+        const p = _path_.join(pOutput,"AndroidManifest.xml");
+        if(!_fs_.existsSync(p)){
+            throw new Error("Cannot extract AndroidManifest.xml from package.")
+        }
+        this._data._rawManifest = _fs_.readFileSync(p, { encoding: "utf8" });
+    }
+
+    private async _readStringsRsc(pOutput: string) {
+        const p = _path_.join(pOutput,"res","values","strings.xml");
+        if(!_fs_.existsSync(p)){
+            throw new Error("Cannot extract strings.xml from package.")
+        }
+        this._data._rawStrings = _fs_.readFileSync(p, { encoding: "utf8" });
     }
 }

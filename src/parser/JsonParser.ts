@@ -1,7 +1,17 @@
-import {BufferEncoding} from "typescript";
+import {IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import ModelResource from "../ModelResource.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import {TagUUID} from "@dexcalibur/dexcalibur-orm";
+import ModelStringValue from "../ModelStringValue.js";
 
 
 export namespace Json {
+
+    export interface Results extends IResults<ModelResource<any>> {
+        ok: ModelResource<any>;
+        invalid: any[];
+    }
 
     export enum DataFormat {
         KEY_VALUE,
@@ -11,26 +21,60 @@ export namespace Json {
 
     export const SUPPORTED_FORMATS:string[] = ["json"];
 
+    export class Parser implements IParser<any> {
 
-    export class Parser {
+        FEATURES = [
+            IParserFeature.STRUCT
+        ];
 
-        static readonly UID = "json_1.0.0";
+        UID = "json_1.0.0";
 
-        static FORMAT_NAMES:string[] = ["json"];
+        FORMAT_NAMES:string[] = ["json"];
 
-        static FILE_EXTENSIONS:string[] = [".json"];
-        
-        dataFormat:DataFormat = DataFormat.KEY_VALUE;
+        FILE_EXTENSIONS:string[] = [".json"];
 
         static SUPPORTED_SEPARATORS = [':','='];
 
+        jsonTag:Nullable<TagUUID> =null;
 
-        static fromBuffer(pBuffer:Buffer, pOffset:number, pEncoding:BufferEncoding = 'utf-8'):any {
-            return JSON.parse(
-                pBuffer.subarray(pOffset).toString(pEncoding)
-                // TODO : add reviver with context
-            );
+        constructor() {
+
         }
 
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8'}):Promise<Results> {
+            const res =  {
+                ok: null,
+                invalid: []
+            };
+
+            const raw = pBuffer.subarray(pOffset).toString(pOptions.encoding);
+            const m = new ModelResource<any>({
+                value: null,
+                tags: [] //this.jsonTag]
+            });
+
+            const strings:Record<string,ModelStringValue> = {};
+
+            const data = JSON.parse(
+                raw,
+                function (this: any, key: string, value: any):any {
+                    //console.log(key + ' => ' + value);
+                    /*if(typeof value === 'string') {
+
+                    }*/
+                    return value;
+                }
+                // TODO : add reviver with context
+            );
+
+            m.setProperty('data',data);
+            res.ok = m;
+
+            return res;
+        }
+
+        setContext(pProject:DexcaliburProject):void {
+            //this.jsonTag = pProject.getTagManager().getTag("format.json").getUUID();
+        }
     }
 }

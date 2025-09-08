@@ -22,7 +22,7 @@ describe('DataFormatManager', function() {
         });
     });
 
-    describe('getParserByFormat', function() {
+    describe('getParserByFileExtension', function() {
 
         const dfm = new DataFormatManager();
 
@@ -33,7 +33,7 @@ describe('DataFormatManager', function() {
             let e = 0;
 
             try{
-                parsers = dfm.getParserByFormat(ext);
+                parsers = dfm.getParserByFileExtension(ext);
                 expect(ext).to.be.equals(".properties");
                 expect(parsers).to.not.be.null;
                 expect(parsers.length).to.be.equals(1);

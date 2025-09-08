@@ -29,6 +29,27 @@ export class GenericPackageAnalyzer implements IPackageAnalyzer {
         this._cfg = pConfig;
     }
 
+    getAppIcon(): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+    getVersion(): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+    getPkgID(): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+
+    getAppName(): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+
+    getMinPlatform() {
+        throw new Error("Method not implemented.");
+    }
+    getTargetPlatform() {
+        throw new Error("Method not implemented.");
+    }
+
     async attachInput(pInput:ProjectInput):Promise<any> {
 
     }

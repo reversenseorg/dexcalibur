@@ -1,5 +1,4 @@
 import {CoreDebug} from "./core/CoreDebug.js";
-import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
 
 export enum FileAnalysisType {
     MAGIC='magic',
@@ -12,7 +11,7 @@ export enum NativeAnalysisMode {
     MANUAL='manual'
 }
 
-export type PackageAnalyzerOptions = AndroidPackageAnalyzerConfig | any;
+export type PackageAnalyzerOptions =  any;
 /**
  *
  */

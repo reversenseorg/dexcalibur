@@ -317,7 +317,7 @@ export default class DexcaliburWorkspace
             fpath = _path_.join(this.tmpFolder, pPrefix+randomUUID());
         }while(_fs_.existsSync(fpath));
 
-        _fs_.mkdirSync(fpath, { mode: 0o444 });
+        _fs_.mkdirSync(fpath, { mode: 0o666 });
 
         return fpath;
     }

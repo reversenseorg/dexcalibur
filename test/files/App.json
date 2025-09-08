@@ -1,0 +1,64 @@
+{
+  "majcc_application_Pageload_majcc_consentementrgpd_interstitielpartagedonneestransactionnelles": {
+    "proprietes.regle": "Page load",
+    "ID TAG": "majcc_application_Pageload_majcc_consentementrgpd_interstitielpartagedonneestransactionnelles",
+    "proprietes.name": "Affichage majcc : consentement rgpd : interstitiel partage donnees transactionnelles",
+    "pages.pageName": "majcc : consentement rgpd : interstitiel partage donnees transactionnelles",
+    "pages.applicationType": "application",
+    "pages.applicationName": "deep purple app",
+    "pages.espace": "espace client",
+    "pages.univers": "profil",
+    "pages.fonctionnalite": "majcc",
+    "pages.pageType": "majcc : consentement rgpd",
+    "custom.typeOptin": "optin donnees transactionnelles"
+  },
+  "majcc_application_Clickevent_majcc_consentementrgpd_interstitielpartagedonneestransactionnelles": {
+    "proprietes.regle": "Click event",
+    "ID TAG": "majcc_application_Clickevent_majcc_consentementrgpd_interstitielpartagedonneestransactionnelles",
+    "proprietes.name": "Clic majcc : consentement rgpd : interstitiel partage donnees transactionnelles",
+    "pages.pageName": "majcc : consentement rgpd : interstitiel partage donnees transactionnelles",
+    "pages.applicationType": "application",
+    "pages.applicationName": "deep purple app",
+    "pages.espace": "espace client",
+    "pages.univers": "profil",
+    "pages.fonctionnalite": "majcc",
+    "pages.pageType": "majcc : consentement rgpd"
+  },
+  "majcc_application_Pageload_majcc_consentementrgpd_interstitielpartagejustificatifs": {
+    "proprietes.regle": "Page load",
+    "ID TAG": "majcc_application_Pageload_majcc_consentementrgpd_interstitielpartagejustificatifs",
+    "proprietes.name": "Affichage majcc : consentement rgpd : interstitiel partage justificatifs",
+    "pages.pageName": "majcc : consentement rgpd : interstitiel partage justificatifs",
+    "pages.applicationType": "application",
+    "pages.applicationName": "deep purple app",
+    "pages.espace": "espace client",
+    "pages.univers": "profil",
+    "pages.fonctionnalite": "majcc",
+    "pages.pageType": "majcc : consentement rgpd",
+    "custom.typeOptin": "optin avis impot"
+  },
+  "majcc_application_Clickevent_majcc_consentementrgpd_interstitielpartagejustificatifs": {
+    "proprietes.regle": "Click event",
+    "ID TAG": "majcc_application_Clickevent_majcc_consentementrgpd_interstitielpartagejustificatifs",
+    "proprietes.name": "Clic majcc : consentement rgpd : interstitiel partage justificatifs",
+    "pages.pageName": "majcc : consentement rgpd : interstitiel partage justificatifs",
+    "pages.applicationType": "application",
+    "pages.applicationName": "deep purple app",
+    "pages.espace": "espace client",
+    "pages.univers": "profil",
+    "pages.fonctionnalite": "majcc",
+    "pages.pageType": "majcc : consentement rgpd"
+  },
+  "majcc_application_Pageload_[pageName]_erreur": {
+    "proprietes.regle": "Page load",
+    "ID TAG": "majcc_application_Pageload_[pageName]_erreur",
+    "proprietes.name": "Affichage [pageName] : erreur",
+    "pages.applicationType": "application",
+    "pages.applicationName": "deep purple app",
+    "pages.espace": "espace client",
+    "pages.univers": "profil",
+    "pages.fonctionnalite": "majcc",
+    "pages.pageType": "majcc : consentement rgpd",
+    "event.event_name": "event32"
+  }
+}

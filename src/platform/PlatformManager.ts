@@ -5,10 +5,6 @@ import {promisify} from "util";
 
 
 import * as Got from "got";
-const got = Got.default;
-
-
-import Utils from "../Utils.js";
 import Platform from "./Platform.js";
 import DexcaliburRegistry from "../DexcaliburRegistry.js";
 import {ValidationCapable, ValidationRule} from "../Validator.js";
@@ -20,6 +16,11 @@ import * as Log from '../Logger.js';
 import {PlatformManagerException} from "../errors/PlatformManagerException.js";
 import {Device} from "../Device.js";
 import AndroidApplication from "../android/AndroidApplication.js";
+import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {Architecture} from "../Architecture.js";
+
+const got = Got.default;
+
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -238,6 +239,12 @@ export default class PlatformManager extends ValidationCapable
         res[PLATFORM_STUBS.APP_MIN] = new Platform({ uid:PLATFORM_STUBS.APP_MIN, stub:true });
         res[PLATFORM_STUBS.APP_TARGET] = new Platform({ uid:PLATFORM_STUBS.APP_TARGET, stub:true });
 
+        // push preset platforms
+        (this._enumerateIosPresets()).map( vP => {
+            res[vP.getUID()] = vP;
+        });
+
+
         // retrieve path of folder where target platform files are saved
         const ws:string = this.engine.workspace.getPlatformFolderLocation();
         const files:string[] = _fs_.readdirSync(ws);
@@ -278,7 +285,11 @@ export default class PlatformManager extends ValidationCapable
         }
 
         // retrieve remote platform
-        platforms = await pRegistry.enumeratePlatforms();
+        platforms = await pRegistry.enumeratePlatforms().catch(e => {
+            Logger.error("Platforms from remote registry cannot be pulled");
+            console.log(e);
+            platforms = [];
+        });
 
         // if not connected
         if(platforms!=null && platforms.length>0){
@@ -368,6 +379,32 @@ export default class PlatformManager extends ValidationCapable
         return this.getPlatform('sdk_androidapi_'+pApiVersion+'_google');
     }
 
+
+
+    /**
+     * To get platform instance by API version number
+     *
+     * @param {string} pApiVersion Android API number as string
+     * @return {Platform}  Platform instance
+     * @method
+     */
+    getFromIosVersion( pApiVersion:string):Platform{
+        return null; //this.getPlatform('ios_'+pApiVersion);
+    }
+
+    findByOsVersion( pOs:OperatingSystem, pVersion:string):Nullable<Platform>{
+
+        switch(pOs){
+            case OperatingSystem.ANDROID:
+                return this.getPlatform('sdk_androidapi_'+pVersion+'_google');
+            case OperatingSystem.IOS:
+                return Object.values(this.local).find(x => (x.os===pOs) && (x.version===pVersion+"") );
+            default:
+                return null;
+        }
+    }
+
+
     /**
      * To get remotely available (not installed) platform  from its name
      *
@@ -397,5 +434,32 @@ export default class PlatformManager extends ValidationCapable
 
         // throw exception
         return null;
+    }
+
+    private _enumerateIosPresets():Platform[] {
+        return [
+            new Platform({
+                source: "man",
+                name: "iosapi",
+                version: "14",
+                vendor: "apple",
+                format: null,
+                os: OperatingSystem.IOS,
+                arch: Architecture.AARCH64,
+                installed: true,
+                stub:false
+            }),new Platform({
+                source: "man",
+                name: "iosapi",
+                version: "15",
+                vendor: "apple",
+                format: null,
+                os: OperatingSystem.IOS,
+                arch: Architecture.AARCH64,
+                installed: true,
+                stub: false
+            }),
+        ];
+
     }
 }

@@ -43,7 +43,12 @@ export class DeviceManagerClient extends HttpClient {
 
     async testHttpConnection():Promise<boolean> {
 
-        const response = await this.perform(this.baseURL+"api/health/status");
+        const response = await this.perform(this.baseURL+"api/health/status",{
+
+            timeout: {
+                request: 10000
+            }
+        });
 
         const raw = JSON.parse(response.body);
         const ctrls:Control[] = [];

@@ -28,7 +28,7 @@ import ModelResource from "../ModelResource.js";
 
 export interface AndroidSharedUser {
     id: Nullable<string>;
-    label: Nullable<string|ResourceReference|ModelResource>;
+    label: Nullable<string|ResourceReference|ModelResource<any>>;
     maxSdkVersion: Nullable<number>;
 }
 
@@ -447,6 +447,10 @@ export class AndroidManifest implements INode
         }
 
         return o;
+    }
+
+    getAttr(pKey:string):Nullable<string>{
+        return this.attributes[pKey];
     }
 }
 AndroidManifest.TYPE.builder(AndroidManifest);

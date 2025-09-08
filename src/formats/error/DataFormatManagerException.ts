@@ -9,9 +9,9 @@ export class DataFormatManagerException extends MonitoredError {
         INVALID_MAPPING: ErrorCode.GENERIC + 52
     }
 
-    static NOT_PARSABLE = (pFormat:string)=>{
+    static NOT_PARSABLE = (pFormat:string, pSrc:string="-", pFile?:string)=>{
         return new DataFormatManagerException(
-            "Data format cannot be parsed : "+pFormat,
+            `Data format "${pFormat}" cannot be parsed in ${pSrc} ${pFile!=null?pFile:''}`,
             DataFormatManagerException.CODE.NOT_PARSABLE)
     };
 

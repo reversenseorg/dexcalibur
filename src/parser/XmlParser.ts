@@ -1,3 +1,5 @@
+import {IParser, IParserFeature, IResults} from "./IParser.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 
 export namespace Xml {
@@ -26,9 +28,9 @@ export namespace Xml {
         TABLE
     }
 
-    export interface Results {
+    export interface Results extends IResults<Record<string, Entry>> {
         ok: Record<string, Entry>;
-        invalid: Entry[];
+        invalid: Error[];
     }
 
 
@@ -36,27 +38,37 @@ export namespace Xml {
     export const SUPPORTED_FORMATS:string[] = ["xml"];
 
 
-    export class Parser {
+    export class Parser implements IParser<Record<string, Entry>> {
 
-        static readonly UID = "xml_1.0.0";
+        FEATURES = [
+        ];
 
-        static FORMAT_NAMES:string[] = ["xml"];
+        UID = "xml_1.0.0";
 
-        static FILE_EXTENSIONS:string[] = [".xml"];
+        FORMAT_NAMES:string[] = ["xml"];
 
-        dataFormat:DataFormat = DataFormat.KEY_VALUE;
+        FILE_EXTENSIONS:string[] = [".xml"];
 
         static SUPPORTED_SEPARATORS = [':','='];
 
 
-        static fromBuffer(pBuffer:Buffer, pOffset:number, pEOL:string = null):Results {
+        constructor() {
+
+        }
+
+        async fromBuffer(pBuffer:Buffer, pOffset:number):Promise<Results> {
             const res:Results = {
-                ok: {},
-                invalid: []
+                ok: null,
+                invalid: [ new Error("Builtin XML parser not supported here.")]
             };
 
             // todo
             return res;
+        }
+
+
+        setContext(pProject:DexcaliburProject):void {
+
         }
 
     }

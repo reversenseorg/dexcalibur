@@ -23,10 +23,10 @@ import {randomUUID} from "crypto";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {FileFormatDetector} from "./formats/identifier/FileFormatDetector.js";
 import {from, map, mergeMap, Observable, ReplaySubject, Subject} from "rxjs";
-import {DataFormatManager} from "./formats/DataFormatManager.js";
 import {DataFormatManagerException} from "./formats/error/DataFormatManagerException.js";
 import {IDelegatedDataAnalyzer} from "./analyzer/IDelegatedDataAnalyzer.js";
 import {AndroidDataAnalyzer} from "./android/analyzer/AndroidDataAnalyzer.js";
+import {IosDataAnalyzer} from "./ios/analyzer/IosDataAnalyzer.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -150,7 +150,7 @@ export class DataAnalyzer implements IAnalyzerUnit
         const coll = this._pdb.getCollectionOf(DataScope.TYPE.getType());
 
         await coll.asyncUpdateEntry( (DataScope.create("bin", 'PKG'))
-            .setPpts(DataScopePpts.PATH, ws.getApkDir())
+            .setPpts(DataScopePpts.PATH, (this.context.os==OperatingSystem.IOS ? ws.getAppDir() :ws.getApkDir()))
             .setPpts(DataScopePpts.PATH_SEP, UTIL_CONST.PATH_SEPARATOR.POSIX)
             .setZone(SecurityZone.PUBLIC)
             , {upsert:true});
@@ -243,18 +243,25 @@ export class DataAnalyzer implements IAnalyzerUnit
         let vPath:string,a:any;
 
         // TODO : call delegate data analyzer ?
-        if(this.context.platform.isAndroid() && this.delegate[OperatingSystem.ANDROID]!=null){
-            Logger.info("[DATA ANALYZER][DELEGATED > ANDROID] Invoked ");
-            obs = (await this.delegate[OperatingSystem.ANDROID].indexFilesIn(pScope));
-        }else{
-            for(let i=0; i<dir.length; i++){
-                vPath = _path_.join(pScope.getBasePath(),dir[i]);
-                if(_fs_.lstatSync(vPath).isDirectory()){
-                    //await this.scan(vPath, pScope, dir[i]);
-                    (await this.scan(vPath, pScope, dir[i])).subscribe((vFiles:ModelFile[])=>{
-                        (obs as Subject<any>).next(vFiles);
-                    });
+        if(this.context.platform.isAndroid()){
+            if(this.delegate[OperatingSystem.ANDROID]!=null){
+                Logger.info("[DATA ANALYZER][DELEGATED > ANDROID] Invoked ");
+                obs = (await this.delegate[OperatingSystem.ANDROID].indexFilesIn(pScope));
+            }else{
+                for(let i=0; i<dir.length; i++){
+                    vPath = _path_.join(pScope.getBasePath(),dir[i]);
+                    if(_fs_.lstatSync(vPath).isDirectory()){
+                        //await this.scan(vPath, pScope, dir[i]);
+                        (await this.scan(vPath, pScope, dir[i])).subscribe((vFiles:ModelFile[])=>{
+                            (obs as Subject<any>).next(vFiles);
+                        });
+                    }
                 }
+            }
+        }else if(this.context.os===OperatingSystem.IOS){
+            // file already analyzed
+            if(this.delegate[OperatingSystem.ANDROID]!=null){
+                obs = (await this.delegate[OperatingSystem.IOS].indexFilesIn(pScope));
             }
         }
 
@@ -483,14 +490,16 @@ export class DataAnalyzer implements IAnalyzerUnit
 
 
     /**
-     * To scan the 'path' as APK content
+     * To detect potentials file formats on the specified file
      *
-     * @param path
-     * @param pType
+     * @param {ModelFile} pFile
+     * @param {DataScope} pScope
+     * @return {DataAnalyzer} Analyzer instance
+     * @method
      */
     scanFile(pFile:ModelFile, pScope:DataScope):DataAnalyzer{
 
-
+        // TODO : change
         let idx:IDbCollection = this._pdb.getFileScope(pScope.getIndexName());
 
         pFile._d  ='f';
@@ -682,7 +691,7 @@ export class DataAnalyzer implements IAnalyzerUnit
                 try{
                     // todo : replace file extension by
                     fmt = _path_.extname(vFile.getPath());
-                    parserConstructors = DataFormatManager.getInstance().getParserByFormat(fmt);
+                    parserConstructors = this.context.getDataFormatMgr().getParserByFileExtension<any>(fmt);
 
                     if(parserConstructors.length > 0){
                         results = (parserConstructors[0]).fromBuffer(
@@ -713,9 +722,6 @@ export class DataAnalyzer implements IAnalyzerUnit
         })
     }
 
-    async analyzeFile(vFile:ModelFile):Promise<void>{
-
-    }
 
     /**
      * To init delegated data analyzer
@@ -726,6 +732,9 @@ export class DataAnalyzer implements IAnalyzerUnit
         switch (this.context.os){
             case OperatingSystem.ANDROID:
                 this.delegate[OperatingSystem.ANDROID] = new AndroidDataAnalyzer(this.context);
+                break;
+            case OperatingSystem.IOS:
+                this.delegate[OperatingSystem.IOS] = new IosDataAnalyzer(this.context);
                 break;
         }
     }

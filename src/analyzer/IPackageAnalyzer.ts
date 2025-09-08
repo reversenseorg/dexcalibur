@@ -2,6 +2,7 @@ import {AnalyzerState} from "../AnalyzerState.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import TargetApp from "../common/TargetApp.js";
 import {ProjectInput} from "./ProjectInput.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
 
 export interface PrepareOptions {
     path?:string;
@@ -32,4 +33,16 @@ export interface IPackageAnalyzer {
     attachInput(pInput:ProjectInput):any;
 
     getInputsFor(pPurpose:InputSetPurpose): ProjectInput[];
+
+    getMinPlatform():any;
+
+    getTargetPlatform():any;
+
+    getAppIcon():Promise<Nullable<string>>;
+
+    getVersion():Promise<Nullable<string>>;
+
+    getPkgID():Promise<Nullable<string>>;
+
+    getAppName():Promise<Nullable<string>>;
 }

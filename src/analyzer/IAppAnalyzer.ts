@@ -1,11 +1,13 @@
 
 import {AnalyzerState} from "../AnalyzerState.js";
 import {AppIcon} from "../AppIcon.js";
+import DataScope from "../DataScope.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
 
 
 
 export interface IAppAnalyzer {
-    prepareFullScan(pNewProject:boolean):Promise<boolean>;
+    prepareFullScan(pNewProject:boolean, pDataScope:Nullable<DataScope>):Promise<boolean>;
 
     /**
      * To get the path of the file or folder to scan by default
@@ -34,4 +36,16 @@ export interface IAppAnalyzer {
     isReady():boolean;
 
     importToSlave():Promise<any>;
+
+    /**
+     * This method MUST update the context but never return null or undefined
+     *
+     * @param vPath
+     * @param vFile
+     * @param vIsDir
+     * @param vCtx
+     *
+     * @method
+     */
+    getPathContext(vPath:string, vFile:string, vIsDir:boolean, vCtx:any):any;
 }

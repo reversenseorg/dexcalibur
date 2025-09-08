@@ -104,6 +104,9 @@ export function SEND_ERROR_RESPONSE( pRes:ExpressResponse, pMessage:string, pOpt
 /**
  * To formalize HTTP responses on successes
  *
+ * Send a response with format:
+ * `{ success:true, data:<pData> }`
+ *
  * @param {ExpressResponse} pRes
  * @param {any} pData
  * @param {any} pOptions

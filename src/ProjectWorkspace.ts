@@ -32,7 +32,8 @@ const DIR_NAME = {
     DEXES: "dexes",
     DEX: "apk", //"dex"
     APP_OUT: "app_ctn",
-    HKWS: "hooks"
+    HKWS: "hooks",
+    APP: "app"
 };
 
 /**
@@ -240,6 +241,9 @@ export default class ProjectWorkspace
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.AUDIT))){
             this.mkWDir(DIR_NAME.AUDIT);
         }
+        if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.APP))){
+            this.mkWDir(DIR_NAME.APP);
+        }
 
         this.hookWS = new HookWorkspace({
             _base:_path_.join(this.path, DIR_NAME.HKWS),
@@ -257,8 +261,15 @@ export default class ProjectWorkspace
         return (_fs_.readdirSync(_path_.join(this.path, DIR_NAME.IN)).length==0);
     }
 
+    /**
+     * @deprecated
+     */
     isPkgFolderEmpty(){
         return (_fs_.readdirSync(_path_.join(this.path, DIR_NAME.DEX)).length==0);
+    }
+
+    isAppFolderEmpty(){
+        return (_fs_.readdirSync(_path_.join(this.path, DIR_NAME.APP)).length==0);
     }
 
     /**
@@ -342,9 +353,17 @@ export default class ProjectWorkspace
     getProjectCfgPath():string{
         return _path_.join(this.path, 'project.json');
     }
-    
+
+    /**
+     * Replaced by getAppDir()
+     * @deprecated
+     */
     getApkDir():string{
         return _path_.join(this.path, DIR_NAME.DEX);
+    }
+
+    getAppDir():string{
+        return _path_.join(this.path, DIR_NAME.APP);
     }
 
     /**

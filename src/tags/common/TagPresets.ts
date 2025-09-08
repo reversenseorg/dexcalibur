@@ -32,10 +32,27 @@ export function newTagPresets(){
     const INPUT_DEV = new TagCategory({ name: "input.device" });
     const INPUT_TYPE = new TagCategory({ name: "input.event" });
     const OUTPUT_SCREEN = new TagCategory({ name: "output.screen" });
+    const OBJC = new TagCategory({ name: "objc" });
+    const SWIFT = new TagCategory({ name: "swift" });
+    const IA = new TagCategory({ name: "ia" });
 
-    const INPUT_DEV_TAGS = [
-        new Tag({ name:"kbd", label:"Keyboard" }),
-        new Tag({ name:"mouse", label:"Mouse" })
+
+    const OBJC_TAGS = [
+        new Tag({ name:"bundle", label:"NSBundle" }),
+        new Tag({ name:"main", label:"main" }),
+        new Tag({ name:"framework", label:"Framework" }),
+        new Tag({ name:"res", label:"Resource" }),
+    ];
+
+    const IA_TAGS = [
+        new Tag({ name:"coreml", label:"CoreML" }),
+    ];
+
+    const SWIFT_TAGS = [
+        new Tag({ name:"bundle", label:"Bundle" }),
+        new Tag({ name:"main", label:"main" }),
+        new Tag({ name:"framework", label:"Framework" }),
+        new Tag({ name:"res", label:"Resource" }),
     ];
 
 
@@ -98,7 +115,14 @@ export function newTagPresets(){
     const DATA_TYPE_TAGS = [
         new Tag({ name:"string" }),
         new Tag({ name:"ELF" }),
-        new Tag({ name:"Mach-O" }),
+        new Tag({ name:"MachO" }),
+        new Tag({ name:"executable" }),
+        new Tag({ name:"codesign" }),
+        new Tag({ name:"img" }),
+        new Tag({ name:"xml" }),
+        new Tag({ name:"raw" }),
+        new Tag({ name:"plist" }),
+        new Tag({ name:"nib" })
     ];
 
     const CODE_GLOBAL_TAGS = [
@@ -264,6 +288,10 @@ export function newTagPresets(){
     FS_FILE_TAGS.map( x => { FS_FILE.addTag(x); });
     TECH_TAGS.map( x => { TECH.addTag(x); });
 
+    OBJC_TAGS.map( x => { OBJC.addTag(x); });
+    SWIFT_TAGS.map( x => { SWIFT.addTag(x); });
+    IA_TAGS.map( x => { IA.addTag(x); });
+
 
 
 
@@ -299,7 +327,11 @@ export function newTagPresets(){
         ANAL_NATIVE,
         PURPOSE,
         FS_FILE,
-        TECH
+        TECH,
+
+        OBJC,
+        SWIFT,
+        IA
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();

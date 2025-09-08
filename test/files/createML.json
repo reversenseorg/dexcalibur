@@ -1,0 +1,86 @@
+[
+  {
+    "shortDescription" : "A model trained using CreateML",
+    "metadataOutputVersion" : "3.0",
+    "outputSchema" : [
+      {
+        "isOptional" : "0",
+        "keyType" : "String",
+        "formattedType" : "Dictionary (String → Double)",
+        "type" : "Dictionary",
+        "name" : "classLabelProbs",
+        "shortDescription" : "Probability of each category"
+      },
+      {
+        "isOptional" : "0",
+        "formattedType" : "String",
+        "type" : "String",
+        "name" : "classLabel",
+        "shortDescription" : "Most likely image category"
+      }
+    ],
+    "version" : "1.0",
+    "modelParameters" : [
+
+    ],
+    "author" : "TOUZY Jérémy (i-BP)",
+    "specificationVersion" : 1,
+    "license" : "Unspecified",
+    "stateSchema" : [
+
+    ],
+    "isUpdatable" : "0",
+    "availability" : {
+      "macOS" : "10.13",
+      "tvOS" : "11.0",
+      "visionOS" : "1.0",
+      "watchOS" : "unavailable",
+      "iOS" : "11.0",
+      "macCatalyst" : "11.0"
+    },
+    "modelType" : {
+      "name" : "MLModelType_imageClassifier",
+      "structure" : [
+        {
+          "name" : "MLModelType_visionFeaturePrint"
+        },
+        {
+          "name" : "MLModelType_glmClassifier"
+        }
+      ]
+    },
+    "inputSchema" : [
+      {
+        "formattedType" : "Image (Color 299 × 299)",
+        "hasSizeFlexibility" : "1",
+        "shortDescription" : "Input image to be classified",
+        "sizeRange" : "[[299, -1], [299, -1]]",
+        "width" : "299",
+        "type" : "Image",
+        "isColor" : "1",
+        "height" : "299",
+        "sizeFlexibility" : "299... × 299...",
+        "colorspace" : "BGR",
+        "name" : "image",
+        "isOptional" : "0"
+      }
+    ],
+    "classLabels" : [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "generatedClassName" : "VK",
+    "userDefinedMetadata" : {
+
+    },
+    "method" : "predict"
+  }
+]

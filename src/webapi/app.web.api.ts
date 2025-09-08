@@ -160,7 +160,7 @@ APP_WEB_API.addAsyncAuthenticatedRoute(
                 );
 
                 // download from store and upload to DB
-                const upl = await $.context.getOrgManager().download(
+                const upl = await $.context.getOrgManager().downloadApp(
                     pReq.user, org, app, pReq.body.cid
                 );
 
@@ -201,18 +201,61 @@ APP_WEB_API.addAsyncAuthenticatedRoute(
                     app.orgUnit
                 );
 
-                console.log(pReq.params);
 
-                const res = await $.context.getWebserver().uploader.getResource(pReq.params.upload_id);
+                const res = await $.context.getWebserver()
+                                                        .uploader.getResource(
+                                                            pReq.params.upload_id);
 
                 if(res==null){
-                    throw new Error("Uploaded resoruce not found");
+                    throw new Error("Uploaded resource not found");
                 }
 
                 // gather extra data from store
 
                 $.sendSuccess(
-                    pRes, { info: await $.context.getOrgManager().extractInfo(app, res) }
+                    pRes, { info: await $.context.getOrgManager().extractInfo(res, app.os) }
+                );
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, APP_WEB_API.name,
+                    "Details about Application Unit cannot be retrieved from organization.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+APP_WEB_API.addAsyncAuthenticatedRoute(
+    '/au/:aid/store/info/:upload_id',
+    {
+        'post': async function(pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    app.orgUnit
+                );
+
+
+                const res = await $.context.getWebserver()
+                    .uploader.getResource(
+                        pReq.params.upload_id);
+
+                if(res==null){
+                    throw new Error("Uploaded resource not found");
+                }
+
+                // gather extra data from store
+
+                $.sendSuccess(
+                    pRes, { info: await $.context.getOrgManager().extractInfo(res, app.os) }
                 );
             }catch(err){
 

@@ -15,21 +15,45 @@ import {AnalyzerException} from "../errors/AnalyzerException.js";
 import {Nullable} from "../core/IStringIndex.js";
 import KeyPointManager from "../hook/KeyPointManager.js";
 import TargetApp from "../common/TargetApp.js";
-import ApkHelper from "../ApkHelper.js";
 import {IPackageAnalyzer} from "../analyzer/IPackageAnalyzer.js";
 import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
 import {PackageAnalyzerOptions} from "../AnalyzerConfiguration.js";
-import {AndroidPackageAnalyzerConfig} from "../android/analyzer/AndroidPackageAnalyzerConfig.js";
 import {KernelInfo} from "./kernels/common/Kernel.js";
 import {KernelInfoFactory} from "./kernels/common/KernelFactory.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "@dexcalibur/dexcalibur-orm";
 import {Resource} from "../common/Resource.js";
+import {IosPackageAnalyzer} from "../ios/analyzer/IosPackageAnalyzer.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
 const LOCAL_PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)');
 
+export interface PlatformOptions {
+    uid?:string;
+    name?:string;
+    version?:string;
+    source?:string;
+    vendor?:string;
+    model?:string;
+    format?:string;
+    path?:string;
+    hash?:string;
+    size?:number;
+    remoteURL?:string;
+    localPath?:string;
+    official?:boolean;
+    resource?:Resource;
+    installed?:boolean;
+    stub?:boolean;
+    os?:OperatingSystem;
+    arch?:Architecture;
+    apiVersion?:string;
+    binaryPath?:string;
+    download_url?:string;
+    sha?:string;
+    kInfo?:Nullable<KernelInfo>;
+}
 /**
  * Represent a target platform
  *
@@ -111,7 +135,7 @@ export default class Platform
 
     kInfo:Nullable<KernelInfo> = null;
 
-    constructor(pPlatformConfig:any ){
+    constructor(pPlatformConfig:PlatformOptions = {}){
 
         for(const i in pPlatformConfig)
             this[i] = pPlatformConfig[i];
@@ -124,6 +148,9 @@ export default class Platform
             case "androidapi":
                 this.os = OperatingSystem.ANDROID;
                 // attach Linux kernel
+                break;
+            case "ios":
+                this.os = OperatingSystem.IOS;
                 break;
         }
     }
@@ -287,7 +314,11 @@ export default class Platform
     }
 
     checkInstall():boolean{
-       return this.installed = _fs_.existsSync(this.localPath);
+        if(this.installed===true){
+            return this.installed;
+        }
+
+        return this.installed = _fs_.existsSync(this.localPath);
     }
 
 
@@ -360,10 +391,13 @@ export default class Platform
         Logger.info("PLATFORM > newPackageAnalyzer > ",this.os);
         switch(this.os){
             case OperatingSystem.ANDROID:
-                pkgAnalyzer = new AndroidPackageAnalyzer(new AndroidPackageAnalyzerConfig(opts));
+                pkgAnalyzer = new AndroidPackageAnalyzer(opts);
                 stateName = 'android-pkg';
                 break;
             case OperatingSystem.IOS:
+                pkgAnalyzer = new IosPackageAnalyzer(opts);
+                stateName = 'ios-pkg';
+                break;
             default:
                 throw AnalyzerException.PLATFORM_NOT_SUPPORTED(this.os);
         }

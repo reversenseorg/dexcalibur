@@ -6,7 +6,7 @@ import {SecurityZone} from "../security/SecurityZone.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {ValidationRule} from "../Validator.js";
 import {UserGroup} from "../user/acl/common/UserGroup.js";
-import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import {ApplicationUnit, ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {Connection, ConnectionProtocol} from "../organization/conn/Connection.js";
 import {Secret} from "../core/secrets/Secret.js";
@@ -15,9 +15,12 @@ import {ProjectState} from "../ProjectState.js";
 import {UserServiceException} from "../errors/UserServiceException.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import AccessControl from "../user/acl/AccessControl.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import AssuranceReport, {AssuranceReportUUID} from "../audit/common/AssuranceReport.js";
 import {DataSegment} from "../audit/common/Indicator.js";
+import {UploadedResource, UploadedResourceUUID} from "../common/UploadedResource.js";
+import {ProjectInput} from "../analyzer/ProjectInput.js";
+import {Buffer} from "buffer";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi("ORG");
@@ -1385,6 +1388,175 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     default:
                         throw new Error("Action not supported");
                 }
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot attach the device to the organization.", err);
+            }
+        }
+    }
+);
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/upload/:uid/preview',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+                const res = await $.context.getWebserver().uploader.getResource(pReq.params.uid);
+
+                if(res==null){
+                    throw new Error("Uploaded resoruce not found");
+                }
+
+                let os = res.getExtra('os');
+                if(os==null){
+                    os  = pReq.body.os;
+                }
+
+                // gather extra data from store
+
+                $.sendSuccess(
+                    pRes, { info: await $.context.getOrgManager().extractInfo(res, os) }
+                );
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot attach the device to the organization.", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/upload/:uid/preview/icon',
+    {
+        'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+                const res = await $.context.getWebserver().uploader.getResource(pReq.params.uid, pReq.user);
+
+                if(res==null){
+                    throw new Error("Uploaded resource not found");
+                }
+
+                let os = res.getExtra('os');
+                if(os==null){
+                    os  = pReq.body.os;
+                }
+
+                // gather extra data from store
+
+                let icons = res.getExtra('icons');
+
+                if(icons.icon!=null){
+
+                    const img = Buffer.from( icons.icon.data+"",'base64');
+                    pRes.setHeader('Content-Type', 'image/png;');
+                    pRes.setHeader('Content-Length', img.length);
+                    pRes.status(200);
+
+                    console.log(img.toString('hex'));
+                    pRes.write( img, ()=>{
+                        pRes.send();
+                        return;
+                    });
+                }else{
+                    throw new Error("Icon not found.");
+                }
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot attach the device to the organization.", err);
+            }
+        }
+    }
+);
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:uid/store/:cid/dl',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.uid);
+
+                // download from store and upload to DB
+                const upl = await $.context.getOrgManager().download(
+                    pReq.user, org, pReq.body.pkg, pReq.body.cid
+                );
+
+                // gather extra data from store
+
+                $.sendSuccess(
+                    pRes, { download:upl.getUID() }
+                );
+
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot attach the device to the organization.", err);
+            }
+        }
+    }
+);
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/wizard/appcheck',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.oid);
+                const __io_check__ = ValidationRule.structure({
+                    os: ValidationRule.os(),
+                    inputs: ValidationRule.asArrayOf([
+                        ValidationRule.structure({
+                            uid: UploadedResource.VALIDATE.uuid,
+                            purpose: ProjectInput.VALIDATE.purpose
+                        })
+                    ])
+                });
+
+                let options:any = {};
+
+                if(__io_check__.test(pReq.body)){
+                    options ={
+                        os: pReq.body.os,
+                        inputs: pReq.body.inputs,
+                    };
+                }
+
+                if(ApplicationUnit.VALIDATE.uuid.test(pReq.body.aid)){
+                    options.aid = pReq.body.aid;
+                }
+
+                /*let safeUIDs:UploadedResourceUUID[] = [];
+                if(ValidationRule.asArrayOf([UploadedResource.VALIDATE.uuid]).test(pReq.body.inputs)){
+                    safeUIDs = pReq.body.inputs as UploadedResourceUUID[];
+                }
+
+                let safeOS = OperatingSystem.NONE;
+                if(ValidationRule.os().test(pReq.body.os)){
+                    safeOS = pReq.body.os;
+                }
+
+                let safeAid:Nullable<ApplicationUnitUUID> = null;
+                if(ApplicationUnit.VALIDATE.uuid.test(pReq.body.aid)){
+                    safeAid = pReq.body.aid;
+                }*/
+
+                $.sendSuccess(
+                    pRes, await $.context.getOrgManager().wizardAppCheck(
+                        pReq.user, org, options
+                    )
+                );
+
             } catch (err) {
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot attach the device to the organization.", err);
             }

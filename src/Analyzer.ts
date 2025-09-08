@@ -1,7 +1,7 @@
 // global
 
 import * as _fs_ from 'fs';
-
+import * as _path_ from 'path';
 
 import {SearchAPI} from "./SearchAPI.js";
 import BusEvent from "./BusEvent.js";
@@ -15,6 +15,7 @@ import {Modifier} from "./AccessFlags.js";
 import ModelMethod from "./ModelMethod.js";
 import ModelPackage from "./ModelPackage.js";
 import SmaliParser from "./SmaliParser.js";
+
 import * as Log from './Logger.js';
 import ModelCall from "./ModelCall.js";
 import ModelStringValue from "./ModelStringValue.js";
@@ -32,11 +33,27 @@ import {Workflow} from "./Workflow.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {AnalyzerState} from "./AnalyzerState.js";
 
-import {INode, IDatabase, IDbIndex, IDbSet, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
-import {BusSubscriber} from "./Bus.js";
+import {
+    IDatabase,
+    IDbIndex,
+    IDbSet,
+    INode,
+    NodeType,
+    NodeUtils,
+    Tag,
+    TagCategory
+} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
-import {newTagPresets} from "./tags/common/TagPresets.js";
-import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyzerProfile.js";
+import {Smali} from "./parser/SmaliParser.js";
+import {OperatingSystem} from "./platform/OperatingSystem.js";
+import {IParser, IResults} from "./parser/IParser.js";
+import {DataFormatManagerException} from "./formats/error/DataFormatManagerException.js";
+import ModelResource from "./ModelResource.js";
+import {ValidationRule} from "./Validator.js";
+import RadareHelper from "./R2Helper.js";
+import {mergeMap} from "rxjs";
+import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
+import {DataLocation, DataLocationType} from "./DataLocation.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -357,7 +374,7 @@ export default class Analyzer
      * @type {SmaliParser}
      * @field
      */
-    parser:SmaliParser = null;
+    parser:Smali.Parser = null;
     db:AnalyzerDatabase = null;
     tempDB:AnalyzerDatabase = null;
     context:DexcaliburProject = null;
@@ -370,6 +387,9 @@ export default class Analyzer
     state:AnalyzerState = null;
 
     resolver: ResolverV2;
+
+    private _errors:Record<string, Error[]> = {};
+
 
     /**
      * Instance of native analyzer
@@ -387,6 +407,20 @@ export default class Analyzer
     private _diffTagDef: Tag = null;
 
 
+    static isNodeRef(pO:any):boolean {
+        /*ValidationRule.structure({
+          __: ValidationRule.bool(),
+          _uid: ValidationRule.asciiString(ValidationRule.NULLABLE),
+          tags:  ; //ValidationRule. (ValidationRule.NULLABLE),
+        })*/
+        const l = Object.entries(pO).length;
+        if(l<1 && l>3) return false;
+        if(l>=1 && !ValidationRule.nodeTypeID(false).test(pO.__)) return false;
+        if(l>=2 && (pO._uid==null || typeof pO._uid!=="string")) return false;
+        if(l==3 && (pO.tags==null || !ValidationRule.asArrayOf([ValidationRule.uint64()]).test(pO.tags))) return false;
+
+        return true;
+    }
 
     /**
      *
@@ -398,7 +432,14 @@ export default class Analyzer
     constructor( pEncoding:BufferEncoding, pProject:DexcaliburProject ) {
 
         // TODO : only for Android
-        this.parser = new SmaliParser(pProject); //.setContext(ctx);
+        /*
+        if(pProject.os===OperatingSystem.ANDROID){
+            this.parser = DataFormatManager.getInstance().getParserByFormat("smali")[0];
+        }else{
+            this.parser = null; //DataFormatManager.getInstance().getParserByFormat("smali")[0];
+            //this.parser = DataFormatManager.getInstance().getParserByFormat("macho")[0];
+        }*/
+        //this.parser = new SmaliParser(pProject); //.setContext(ctx);
 
         // Internal DB
         this.db = new AnalyzerDatabase(pProject);
@@ -1325,11 +1366,26 @@ export default class Analyzer
      * @param {string} filePath
      * @param {string} filename
      * @param {boolean} force
+     * @deprecated
      */
-    file( pFilePath:string, pFilename:string, pForce:boolean=false):void{
+    file( pFilePath:string, pFilename:string, pCtx:any = null):void{
 
-        if(!pFilename.endsWith(".smali") && !pForce)
-            return;
+        let fparser:IParser<any> = this.parser;
+
+        const ext = _path_.extname(pFilename);
+        let candidateParsers:IParser<any>[] = [];
+
+        if(fparser == null){
+            candidateParsers = this.context.getDataFormatMgr().getParserByFileExtension<any>(ext);
+            if(candidateParsers.length>0){
+                fparser = candidateParsers[0];
+            }else{
+                throw DataFormatManagerException.NOT_PARSABLE(ext,'app code analyzer',pFilePath);
+            }
+        }
+
+        //if(!pFilename.endsWith(".smali") && !pForce)
+        //    return;
 
         // TODO : replace readFile + string.split by stream
         // config
@@ -1337,24 +1393,307 @@ export default class Analyzer
 
         // TODO : test UTF8 support
         let src:string =null, rs:number =0, cls:ModelClass=null, o:any=null;
+        let res:IResults<any>;
         let self:Analyzer = this;
 
-        // parse file using blocking IO and string split
-        if(streamParser){
-            o = this.parser.parseStream(pFilePath, this.encoding, function( pClass:ModelClass){
-                self.tempDB.classes.addEntry( pClass.name, pClass); // fqcn
-                rs++;
-            });
-        }else{
-            src=_fs_.readFileSync(pFilePath).toString(this.encoding);
-            cls= this.parser.parse(src);
-            self.tempDB.classes.addEntry( cls.name, cls); // cls.fqcn
+        if(this.context.os===OperatingSystem.ANDROID){
+            // parse file using blocking IO and string split
+            if(streamParser){
+                (fparser as Smali.Parser).parseStream(pFilePath, this.encoding, function( pClass:ModelClass){
+                    self.tempDB.classes.addEntry( pClass.name, pClass); // fqcn
+                    rs++;
+                });
+            }else{
+                fparser.fromBuffer(_fs_.readFileSync(pFilePath), 0, { encoding: this.encoding }).then((vRes)=>{
+                    if(vRes.ok==null){
+                        Logger.error(`[ANALYZER] File ${pFilename} cannot analyzed. Cause : ${vRes.invalid.length>0 ? vRes.invalid[0].msg : '?' }`)
+                        return;
+                    }
 
-            this.context.trigger({
-                type: "model.class.new",
+
+                    this.saveParsedObject(vRes.ok, pCtx);
+                });
+
+                /*
+                src=_fs_.readFileSync(pFilePath).toString(this.encoding);
+                cls= (fparser as Smali.Parser).parse(src); // this.parser.parse(src);
+                //cls = this.parser.fromBuffer( src)
+                self.tempDB.classes.addEntry( cls.name, cls); // cls.fqcn
+                this.context.trigger({
+                    type: "model.class.new",
+                    data: {
+                        node: cls,
+                        tmp: true
+                    }
+                });*/
+            }
+        }else{
+            fparser.fromBuffer(_fs_.readFileSync(pFilePath), 0, { encoding: this.encoding }).then((vRes)=>{
+                if(vRes.ok==null){
+                    Logger.error(`[ANALYZER] File ${pFilename} cannot analyzed. Cause : ${vRes.invalid.length>0 ? vRes.invalid[0].msg : '?' }`)
+                    return;
+                }
+                this.saveParsedObject(vRes.ok, pCtx).then(()=>{});
+            });
+
+        }
+    }
+
+
+    /**
+     *
+     * @param {string} filePath
+     * @param {string} filename
+     * @param {boolean} force
+     */
+    async fileAsync( pFilePath:string, pFilename:string, vCtx:any = null):Promise<void>{
+
+
+        if(vCtx!=null && vCtx.exclude!=null){
+            if(vCtx.exclude.indexOf(pFilePath)>0) /* skip */ return ;
+        }
+        let fparser:IParser<any> = this.parser;
+        let res:IResults<any>;
+        let candidateParsers:IParser<any>[] = [];
+        let err:Error[] = [];
+        let stat = _fs_.lstatSync(pFilePath);
+
+        const ffmt = _path_.extname(pFilename);
+
+        let file = new ModelFile({
+            path:pFilePath,
+            name:pFilename,
+            size: stat.size,
+            location: vCtx.location,
+        });
+
+        file.setScope(vCtx.scope);
+
+        let input = _fs_.readFileSync(pFilePath);
+
+        if(fparser == null){
+            try{
+                if(ffmt!=null){
+                    if(ffmt===""){
+                        candidateParsers = await this.context.getDataFormatMgr().getParserBySignature<any>(input, 0, {encoding:'binary'});
+                    }else{
+                        candidateParsers = this.context.getDataFormatMgr().getParserByFileExtension<any>(ffmt);
+                    }
+
+                    if(candidateParsers.length>0){
+                        fparser = candidateParsers[0];
+                    }else{
+                        err.push(DataFormatManagerException.NOT_PARSABLE(ffmt,'app code analyzer',pFilePath));
+                        return;
+                    }
+                }else{
+                    console.log(`File format is null : ${pFilePath}`);
+                }
+
+            }catch(e){
+                err.push(e);
+                return;
+            }
+
+        }
+
+        const streamParser = false;
+
+        let rs:number =0;
+        let self: Analyzer = this;
+
+        if(streamParser){
+            if(pFilePath.endsWith(".smali")){
+                (fparser as Smali.Parser).parseStream(pFilePath, this.encoding, function( pClass:ModelClass){
+                    self.tempDB.classes.addEntry( pClass.name, pClass); // fqcn
+                    rs++;
+                });
+            }else{
+                // not supported
+                err.push(new Error("Stream not parsable : format not supported."));
+            }
+
+
+            file = await this.context.getProjectDB().save(file) as ModelFile;
+        }else{
+            try{
+                res = await fparser.fromBuffer(input, 0, { encoding: this.encoding, print:false });
+                if(res.ok==null){
+                    Logger.error(`[ANALYZER] File ${pFilename} cannot analyzed. Cause : ${res.invalid.length>0 ? res.invalid[0].msg : '?' }`);
+                    err = err.concat(res.invalid);
+                    this._errors[pFilePath] = err;
+                    return;
+                }else{
+                    file.type = ffmt;
+                }
+
+                const r:ModelResource<any> = (Array.isArray(res.ok) && res.ok[0]!=null ? res.ok[0] : res.ok);
+                let f:Nullable<ModelFile> = null;
+
+                if(r!=null
+                    && r.__===NodeInternalType.RESOURCE
+                    && r.value!=null
+                    && r.value.__==NodeInternalType.FILE){
+                    f = r.value as ModelFile;
+                }else if(res.ok!=null && res.ok.__==NodeInternalType.FILE){
+                    f = res.ok;
+                }
+
+                if(f!=null){
+                    if(file.sections.length==0) file.sections = f.sections;
+                    if(file.chunks.length==0) file.chunks = f.chunks;
+                    file.type = f.type;
+                    f.tags.map(x => {
+                        if(file.tags.indexOf(x)==-1) file.tags.push(x);
+                    });
+                }
+
+                if(r!=null && r.__===NodeInternalType.RESOURCE){
+                    r.value = NodeUtils.asNodeRef(file);
+                    r._uid = file.getRelativePath();
+                }
+            }catch (e){
+                err.push(e);
+                Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
+            }finally {
+                try{
+                    file = await this.context.getProjectDB().save(file) as ModelFile;
+                    if(res!=null && res.ok!=null){
+                        await this.saveParsedObject(res.ok, vCtx, ffmt, fparser, file);
+                    }else{
+                        Logger.error(`Result from parsing of "${file.getRelativePath()}" cannot be saved.`);
+                    }
+                }catch (e){
+                    Logger.error(e.stack);
+                    err.push(e);
+                }
+            }
+
+
+
+
+
+
+        }
+
+        this._errors[pFilePath] = err;
+    }
+    /**
+     * To save freshly parsed object and publish event to the main bus
+     *
+     * @param {INode|INode[]} vObj
+     * @method
+     */
+    async saveParsedObject(vObj:INode|INode[],
+                           vCtx:any = null, vFormat:any = null,
+                           vParser:Nullable<IParser<any>> = null,
+                           vFile:Nullable<ModelFile> = null):Promise<void> {
+
+        if(vObj==null) return;
+        if(Array.isArray(vObj)){
+            for(let i=0;i<vObj.length; this.saveParsedObject(vObj[i], vCtx, vFormat, vParser, vFile), i++);
+            return;
+        }
+
+        let updates:string[] = ['tags','location'];
+        let prevent = false;
+        let evtType:string, node:INode;
+
+        let isNode = true;
+        switch (vObj.__) {
+            case NodeInternalType.CLASS:
+                this.tempDB.classes.addEntry( (vObj as ModelClass).getUID(), vObj); // cls.fqcn
+                node = vObj;
+                evtType = "model.class.new";
+                break;
+            case NodeInternalType.PACKAGE:
+                this.tempDB.packages.addEntry((vObj as ModelPackage).getUID(), vObj); // cls.fqcn
+                node = vObj;
+                evtType = "model.package.new";
+                updates = ['name','sname','meta','alias','scope','children','tags'];
+                break;
+            case NodeInternalType.RESOURCE:
+                // if the resource
+                if((vObj as ModelResource<any>).hasNodeValue()){
+                    // skip if the value is a node ref
+                    if(!Analyzer.isNodeRef(vObj.value as any)){
+                        await this.saveParsedObject(vObj.value, vCtx, vFormat, vParser, vFile);
+                    }
+                }
+                if((vObj as ModelResource<any>).location==null){
+                    (vObj as ModelResource<any>).location = new DataLocation({
+                        type: DataLocationType.FILE,
+                        source: {
+                            fileUID: vFile.getUID(),
+                            offset: -1
+                        }
+                    });
+                }
+                // TODO : save location is needed
+                this.tempDB.resources.addEntry( (vObj as ModelResource<any>).getUID(), vObj); // cls.fqcn
+                node = vObj;
+                evtType = "model.resource.new";
+                updates = ["value","ppts","name","location","tags"];
+                break;
+            case NodeInternalType.FILE:
+                if((vObj as ModelFile).getUID()==null){
+                    if(vCtx.scope!=null){
+                        (vObj as ModelFile).setScope(vCtx.scope);
+                    }else{
+                        (vObj as ModelFile).setScope(this.context.getDataAnalyzer().getScope("PKG"));
+                    }
+                }
+
+                this.tempDB.files.addEntry((vObj as ModelFile).getUID(), vObj); // cls.fqcn
+
+                node = vObj;
+                evtType = "model.file.new";
+                updates = ["scope","meta","__t","size","chunks","sections","__p","name","location","tags"];
+                break
+            default:
+                //Logger.error(`[ANALYZER] Parsed object ${vObj.__}:${NodeUtils.asNodeRef(vObj)._uid} cannot be post-processed : missing action`);
+                if(vObj.__!=null){
+                    Logger.error(`[ANALYZER] Parsed object cannot be post-processed : missing action`);
+                    console.log(vObj);
+                }
+                isNode = false;
+                return;
+        }
+
+        if(vCtx!=null && vCtx.self!=null){
+            switch(vCtx.self.__){
+                case NodeInternalType.PACKAGE:
+                    (vCtx.self as ModelPackage).childAppend(vObj);
+                    // update
+                    await this.context.getProjectDB().save(vCtx.self,null, ['name','sname','meta','alias','scope','children','tags']);
+                    break;
+            }
+
+        }
+
+        if(isNode){
+            if(vObj.getUID()==null|| vObj.getUID()==""){
+                vObj = this.context.getProjectDB().generateIncrementalNodeUUID(vObj)
+            }
+            await this.context.getProjectDB().save(vObj,null,updates);
+        }
+
+        if(!prevent){
+            this.context.trigger({ type: evtType,
                 data: {
-                    node: cls,
+                    node: node,
                     tmp: true
+                }
+            });
+        }
+
+        if(node.__===NodeInternalType.FILE){
+            this.context.trigger({
+                type: "data.file.parsed",
+                data: {
+                    file: node,
+                    parser: vParser,// (parserConstructors[0]).UID,
+                    format: vFormat
                 }
             });
         }
@@ -1378,9 +1717,14 @@ export default class Analyzer
      * @returns {void}
      * @method
      */
-    async path(pPath:string, pLocation:ModelLocation=null):Promise<void>{
+    async path(pPath:string, pLocation:ModelLocation=null, pDataScope:Nullable<DataScope>=null):Promise<void>{
 
         let self:Analyzer = this;
+        let baseCtx:any = {
+            self: null,
+            scope: null
+        };
+        if(pDataScope!=null) baseCtx.scope = pDataScope;
 
         // create a new temporary DB where all data discovered
         // will be stored, in order to offer a separate control of
@@ -1405,15 +1749,31 @@ export default class Analyzer
         // ut.forEachFileOf(path,this.file,".smali");
         //ut.forEachFileOf(path,this.file);
         let c:number = 0;
-        Util.forEachFileOf(pPath,(vPath:string, vFile:string)=>{
-            // parse a file and update AST
-            self.file( vPath, vFile,false);
-            // increment counter of files or classes analyzed
-            c++;
-            if(c%100==0){
-                self._wf.pushDirectStatus( c+' files or classes parsed');
+        await Util.forEachFile(pPath,async (vPath:string, vFile:string, vIsDir:boolean, vCtx:any):Promise<boolean> =>{
+
+            if(vIsDir){
+                vCtx = await this.context.getAppAnalyzer().getPathContext(vPath, vFile, vIsDir, vCtx);
+                vCtx.location = pLocation;
+
+                return true;
             }
-        });
+            // parse a file and update AST
+
+            await self.fileAsync( vPath, vFile, vCtx);
+
+            if(this._errors[vPath]!=null){
+                let e = `Errors occured while analysis of file '${vPath}'`;
+                this._errors[vPath].map(x => e+="\n"+x.message);
+            }else{
+                // increment counter of files or classes analyzed
+                c++;
+                if(c%100==0){
+                    self._wf.pushDirectStatus( c+' files or classes parsed');
+                }
+            }
+
+            return true;
+        },true,baseCtx);
 
         // compute step for progress
         self._wf.computeStepUp(Math.round(c/100));
@@ -1421,7 +1781,23 @@ export default class Analyzer
         STATS.idxClass = this.db.classes.size();
 
         Logger.raw("[*] Static code analysis done.\n---------------------------------------")
-        Logger.raw("[*] "+tempDb.classes.size()+" files or classes analyzed. ");
+        Logger.raw("[*] "+tempDb.classes.size()+" classes analyzed. ");
+        Logger.raw("[*] "+tempDb.files.size()+" files analyzed. ");
+        Logger.raw("[*] "+tempDb.packages.size()+" packages/bundle analyzed. ");
+        Logger.raw("[*] "+tempDb.resources.size()+" resources analyzed. ");
+
+        // analyze executable
+        const execFiles = await this.context.getProjectDB().merlinSearch(
+            MerlinSearchRequest
+                .fromCondition(
+                    this.context.merlin,
+                    ModelFile.TYPE,
+                    "@data.type.executable", { not:false })
+        );
+
+
+        console.log(execFiles.getAsList());
+
 
 
         // start object mapping (replace reference by relationship),

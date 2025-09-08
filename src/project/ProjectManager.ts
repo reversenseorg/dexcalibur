@@ -1,8 +1,8 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {UserAccount} from "../user/UserAccount.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
-import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
-import {ApplicationUnit, ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
+import {OrganizationUnit} from "../organization/OrganizationUnit.js";
+import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import DeviceManager from "../DeviceManager.js";
@@ -15,7 +15,7 @@ import StatusMessage from "../StatusMessage.js";
 import PlatformManager from "../platform/PlatformManager.js";
 import Downloader from "../Downloader.js";
 import {AnalyzerConfiguration} from "../AnalyzerConfiguration.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import * as Log from "../Logger.js";
 import {EngineNode, NodePurpose, OperationType} from "../core/EngineNode.js";
 import {ProjectOrder, ProjectOrderUUID} from "./ProjectOrder.js";
@@ -28,12 +28,11 @@ import {DXC_LIFECYCLE_EVENT} from "../CoreConst.js";
 import {EngineNodeManager, NodeState} from "../core/EngineNodeManager.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
-import {AndroidPackageAnalyzerConfig} from "../android/analyzer/AndroidPackageAnalyzerConfig.js";
 import {IPackageAnalyzer} from "../analyzer/IPackageAnalyzer.js";
-import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 import * as _fs_ from "node:fs";
+import {IosPackageAnalyzer} from "../ios/analyzer/IosPackageAnalyzer.js";
 
 const API_NAME = "PROJ_MGT";
 
@@ -63,7 +62,7 @@ export interface NewProjectSelectWfOptions extends NewProjectCommonWfOpts{
 }
 
 export interface InputTemplate {
-    uploadID: string,
+    uid: string,
     purpose: ProjectInputPurpose
 }
 
@@ -261,7 +260,8 @@ export class ProjectManager {
      * @param pOptions
      */
     async newProjectOrder(pAccount:UserAccount, pOrg:OrganizationUnit,
-                          pAppUnit:ApplicationUnit, pOptions:NewProjectWorkflowOptions, pExtraOwnerOpts:any = null):Promise<Workflow> {
+                          pAppUnit:ApplicationUnit, pOptions:NewProjectWorkflowOptions,
+                          pExtraOwnerOpts:any = null):Promise<{ puid:DexcaliburProjectUUID, wf:Workflow}> {
 
         AccessControl.isAuthorized(
             AccessControl.access.ORG_AU_NEW_PROJ,
@@ -281,7 +281,8 @@ export class ProjectManager {
                 DexcaliburProject.TYPE.getType(),
                 'uid'
             ),
-            engine: this._ctx
+            engine: this._ctx,
+            os: pOptions.targetOS
         });
         proj.state = ProjectState.ORDERED;
 
@@ -378,7 +379,10 @@ export class ProjectManager {
             node.appendToQueue(newPrjOrder, OperationType.NEW_PROJ, pAccount,pExtraOwnerOpts);
         }
 
-        return newPrjOrder.getWorflow();
+        return {
+            puid: newPrjOrder.settings.projectUID,
+            wf: newPrjOrder.getWorflow()
+        };
     }
 
 
@@ -548,12 +552,11 @@ export class ProjectManager {
                     workflow.pushStatus(new StatusMessage(10, "Select previously uploaded application"));
 
                     if(orderOpts.inputTpls!=null){
-                        // ignore uploadUID
                         let i=0;
                         do{
                             try{
                                 projInputs.push(new ProjectInput({
-                                    data:  orderOpts.inputTpls[i].uploadID, // await this._ctx.getWebserver().uploader.getPathOf(orderOpts.inputTpls[i].uploadID),
+                                    data:  orderOpts.inputTpls[i].uid, //uploadID, // await this._ctx.getWebserver().uploader.getPathOf(orderOpts.inputTpls[i].uploadID),
                                     location: ProjectInputLocation.DB_UPL,// ProjectInputLocation.LOCAL,
                                     type: ProjectInputType.REGULAR_FILE,
                                     extractOpts: {type:'bin'},
@@ -1236,7 +1239,7 @@ export class ProjectManager {
 
          let platform:Platform;
          let anal:IPackageAnalyzer;
-
+         let minplt:Nullable<Platform> = null;
          let tmpInput = pInput;
          if(pInput.location==ProjectInputLocation.DB_UPL){
              // create temp input
@@ -1248,21 +1251,24 @@ export class ProjectManager {
          }
 
 
+        let plts = DexcaliburEngine.getInstance()
+            .getPlatformManager()
+            .enumerateLocal();
 
-         switch (pTargetOS){
+
+
+        switch (pTargetOS){
              case OperatingSystem.ANDROID:
-                 let anal = new AndroidPackageAnalyzer(
-                     new AndroidPackageAnalyzerConfig(
-                         { msa_auto: false, ssa_auto:false }));
+                 anal = new AndroidPackageAnalyzer({ msa_auto: false, ssa_auto:false });
 
 
                  // add input to analyzer
-                 anal.attachInput(tmpInput);
+                 await anal.attachInput(tmpInput);
 
                  let min:any = await anal.getMinPlatform();
-                 let minplt = DexcaliburEngine.getInstance()
-                     .getPlatformManager()
-                     .getFromAndroidApiVersion(min);
+                 minplt = DexcaliburEngine.getInstance()
+                     .getPlatformManager().findByOsVersion(OperatingSystem.ANDROID, min);
+//                     .getFromAndroidApiVersion(min);
 
                  if(minplt!=null){
                     return minplt;
@@ -1270,16 +1276,12 @@ export class ProjectManager {
 
                  let target:any = await anal.getTargetPlatform();
                  let targetplt = DexcaliburEngine.getInstance()
-                     .getPlatformManager()
-                     .getFromAndroidApiVersion(target);
+                     .getPlatformManager().findByOsVersion(OperatingSystem.ANDROID, target);
+                     //.getFromAndroidApiVersion(target);
 
                  if(targetplt!=null){
                      return targetplt;
                  }
-
-                 let plts = DexcaliburEngine.getInstance()
-                     .getPlatformManager()
-                     .enumerateLocal();
 
                  min = parseInt(min);
                  target = parseInt(target);
@@ -1302,6 +1304,21 @@ export class ProjectManager {
 
                  if(platform==null){
                      throw new Error("There is not eligible platform provisionned");
+                 }
+
+                 break
+             case OperatingSystem.IOS:
+                 anal = new IosPackageAnalyzer();
+
+                 // add input to analyzer
+                 await anal.attachInput(tmpInput);
+
+                 minplt = DexcaliburEngine.getInstance()
+                     .getPlatformManager()
+                     .findByOsVersion( OperatingSystem.IOS, await anal.getMinPlatform());
+
+                 if(minplt!=null){
+                     return minplt
                  }
 
                  break;

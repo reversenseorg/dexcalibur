@@ -48,11 +48,13 @@ import {Auditable} from "../Auditable.js";
 import {EngineNode, EngineNodeUUID} from "../core/EngineNode.js";
 import {Policy, PolicyUUID} from "../audit/Policy.js";
 import {ApkeepHelper} from "../android/ApkeepHelper.js";
-import {UploadedResource} from "../common/UploadedResource.js";
+import {UploadedResource, UploadedResourceUUID} from "../common/UploadedResource.js";
 import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
 import {ReversenseProduct, ReversenseProductUUID} from "../billing/ReversenseProduct.js";
 import {INodeRef} from "../INode.js";
 import {AssuranceModelPreview, AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
+import {IosPackageAnalyzer} from "../ios/analyzer/IosPackageAnalyzer.js";
+import {ProjectInputPurpose} from "../analyzer/ProjectInput.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -771,7 +773,7 @@ export class OrganizationManager {
      * @param pApp
      * @param pProjectUUID
      */
-    async dropAppRelease(pAccount:UserAccount, pApp:ApplicationUnit, pProjectUUID:DexcaliburProjectUUID):Promise<void> {
+    async dropAppRelease(pAccount:UserAccount, pApp:ApplicationUnit, pProjectUUID:DexcaliburProjectUUID):Promise<boolean> {
 
         if(pProjectUUID==null || !DexcaliburProject.VALIDATE.uid.test(pProjectUUID)){
             throw OrganizationManagerException.INVALID_APP_RELEASE(pApp.getUID(),pProjectUUID);
@@ -818,6 +820,8 @@ export class OrganizationManager {
             await this._ctx.getScanScheduler().dropOrdersByProjects(pAccount, [pProjectUUID]);
             // drop project DB and files
             await this._ctx.getProjectManager().deleteProject(pAccount, pProjectUUID);
+
+            // drop pro
         }
 
         // finally remove project from application release
@@ -827,7 +831,9 @@ export class OrganizationManager {
         await this._ctx.getEngineDB().getCollectionOf(ApplicationUnit.TYPE.getType())
             .asyncUpdateEntry( pApp, { replace:false, $set:['projects']})
 
-        return ;
+        Logger.success("[ENGINE] ",`Project "${pProjectUUID}" has been deleted successfully [requester=${pAccount!=null?pAccount.getUID():'ENGINE (cleanup)'}]`);
+
+        return true;
     }
 
     async testSsoConnection(pAccount:UserAccount, pConnSettings:SsoOptions):Promise<boolean> {
@@ -2679,6 +2685,21 @@ export class OrganizationManager {
     }
 
 
+    /**
+     *
+     * @param pUser
+     * @param pOrg
+     * @param pApp
+     * @param pConn
+     * @param pCheckExists
+     */
+    async downloadApp( pUser:UserAccount, pOrg:OrganizationUnit,
+                       pApp:ApplicationUnit, pConn:ConnectionUUID,
+                       pCheckExists = false):Promise<UploadedResource> {
+
+        return await  this.download(pUser, pOrg, pApp.packageID, pConn, pCheckExists)
+    }
+
 
     /**
      * To download an application from a remote location
@@ -2689,7 +2710,7 @@ export class OrganizationManager {
      * @param pConn
      */
     async download( pUser:UserAccount, pOrg:OrganizationUnit,
-                    pApp:ApplicationUnit, pConn:ConnectionUUID,
+                    pPackage:string, pConn:ConnectionUUID,
                     pCheckExists = false):Promise<UploadedResource> {
 
         const conn = pOrg.getConnection(pConn);
@@ -2715,7 +2736,7 @@ export class OrganizationManager {
             case ConnectionProtocol.HUAWAIAPPG:
             case ConnectionProtocol.PLAYSTORE:
                 helper = new ApkeepHelper();
-                path = (helper as ApkeepHelper).downloadWith( pUser, pApp.packageID, pOrg, conn, sessDestFolder);
+                path = (helper as ApkeepHelper).downloadWith( pUser, pPackage, pOrg, conn, sessDestFolder);
                 break;
         }
 
@@ -2737,35 +2758,70 @@ export class OrganizationManager {
         return uplres;
     }
 
-    async extractInfo(pApp: ApplicationUnit, pRes: UploadedResource):Promise<any> {
+
+
+    /**
+     * To extract common
+     * @param pApp
+     * @param pRes
+     */
+    async extractInfo(pRes: UploadedResource, pOs: OperatingSystem, pUser:Nullable<UserAccount> = null, pForce = false):Promise<any> {
+
+        let os = (pOs!=null ? pOs : pRes.extra.os);
+
+        if(pRes.getExtra('pkgId')!=null && pRes.getExtra('pkgId').length>0 && pForce!==true){
+            console.log('pkgId',pRes.getExtra('pkgId'))
+            return pRes.extra;
+        }
 
         let info:any = {};
-        switch (pApp.os){
+        let tmpDl:string;
+
+        // download resource
+        tmpDl = pRes.path;
+        if(!_fs_.existsSync(tmpDl)){
+            tmpDl = this._ctx.getWorkspace().createTempFile("appdl_",false);
+            const res = await this._ctx.getWebserver().uploader.downloadFile(pRes.getUID(),tmpDl);
+            if(!_fs_.existsSync(tmpDl)){
+                throw new Error("Information cannot be extracted from package");
+            }
+        }
+
+        // create temp output folder
+        let tmpOut = this._ctx.getWorkspace().createTempFolder("appdl_ext_");
+
+
+        switch (pOs){
             case OperatingSystem.ANDROID:
                 // download resource
-                let tmpDl = pRes.path;
+                /*tmpDl = pRes.path;
                 if(!_fs_.existsSync(tmpDl)){
                     tmpDl = this._ctx.getWorkspace().createTempFile("apkdl_",false);
                     const res = await this._ctx.getWebserver().uploader.downloadFile(pRes.getUID(),tmpDl);
                     if(!_fs_.existsSync(tmpDl)){
                         throw new Error("Information cannot be extracted from package");
                     }
-                }
+                }*/
 
                 // create temp output folder
-                const tmpOut = this._ctx.getWorkspace().createTempFolder("apkdl_ext_");
-
+                //const tmpOut = this._ctx.getWorkspace().createTempFolder("apkdl_ext_");
+                tmpOut = this._ctx.getWorkspace().createTempFolder("appdl_ext_");
                 info = await AndroidPackageAnalyzer.extractInfoTemporary(tmpDl, tmpOut);
-
-                pRes.appendExtra(info);
-
-                await this._ctx.getWebserver().uploader.save(pRes, ['extra']);
-
-                _fs_.rm(tmpDl,()=>{});
-                _fs_.rm(tmpOut,()=>{});
-
+                break;
+            case OperatingSystem.IOS:
+                // folder must be n
+                tmpOut = this._ctx.getWorkspace().createTempFolder("appdl_ext_")+"_";
+                info = await IosPackageAnalyzer.extractInfoTemporary(tmpDl, tmpOut);
                 break;
         }
+
+
+        pRes.appendExtra(info);
+
+        await this._ctx.getWebserver().uploader.save(pRes, ['extra']);
+
+        _fs_.rm(tmpDl,()=>{});
+        _fs_.rm(tmpOut,()=>{});
 
         return info;
     }
@@ -2814,5 +2870,103 @@ export class OrganizationManager {
         }
 
         return models;
+    }
+
+    /**
+     *
+     * @param pUser
+     * @param pOrg
+     * @param pOptions
+     */
+    async wizardAppCheck(pUser: UserAccount, pOrg: OrganizationUnit, pOptions: any):Promise<{ aid:Nullable<ApplicationUnitUUID>, new:boolean, lic:any }> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_MODIFY,
+            pUser,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.MEMBER_GRP
+            ]);
+
+        const res:any = {};
+
+        if(pOptions.inputs.length==0){
+            throw new Error("Binaries are missing");
+        }
+
+        // read package ID from MAIN input from the list of project inputs
+        const packageID = await this._retrievePackageID(pUser, pOptions.inputs);
+
+        // get meta from main input
+        const main_input_uid = pOptions.inputs.find(x => x.purpose===ProjectInputPurpose.MAIN);
+        if(main_input_uid==null){
+            throw new Error("The main input cannot be found.");
+        }
+        const main_input_res = await this._ctx.getWebserver().uploader.getResource(main_input_uid.uid, pUser);
+        if(main_input_res==null){
+            throw new Error("The main input cannot be found.");
+        }
+
+
+        // check if an application unit exists for this package ID
+        let result = {
+            aid: null,
+            new: false,
+            lic: null
+        };
+        let app:Nullable<ApplicationUnit>;
+
+        app = (await this.listApplications(pUser, pOrg))
+                                    .find(x => {
+                                        return (x.os===main_input_res.getExtra('os')) && (x.packageID===packageID);
+                                    });
+
+
+
+        // the corresponding app unit has not been created previously
+
+        if(app==null){
+            const ic =main_input_res.getExtra('icons');
+            app = await this.createApplication(
+                pUser,
+                pOrg,
+                (new ApplicationUnit({
+                    name: main_input_res.getExtra('name'),
+                    description: "Application ",
+                    packageID: packageID,
+                    os: main_input_res.getExtra('os'),
+                    orgUnit: pOrg.getUID(),
+                    icon: (ic!=null ? ic.icon : null),
+                })).addMembers([
+                    pUser.getUID()
+                ])
+            );
+            result.new = true;
+            Logger.info(`Application Unit [${app.getUID()}] has been created automatically by wizard.`);
+        }
+
+        result.aid = app.getUID();
+
+        result.lic = await this.listActivatedProductFor(pOrg, app.getUID());
+
+
+        // check licences enabled
+
+
+        return result;
+    }
+
+    private async _retrievePackageID(pUser:UserAccount, pInputs: {uid:UploadedResourceUUID, purpose:ProjectInputPurpose}[]):Promise<Nullable<string>> {
+        let input = pInputs.find(x => x.purpose===ProjectInputPurpose.MAIN);
+
+        if(input==null){ throw new Error("There is not candidate binary for project.")}
+
+        const res = await this._ctx.getWebserver().uploader.getResource(input.uid, pUser);
+
+        if(res==null) throw new Error("The main binary cannot be retrieved")
+
+        if(res.getExtra('pkgId')==null)  throw new Error("The package ID cannot be retrieved from main binary.")
+
+        return res.getExtra('pkgId');
     }
 }

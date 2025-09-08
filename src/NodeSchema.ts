@@ -54,6 +54,7 @@ import Control from "./audit/common/Control.js";
 import ControlAssessment from "./audit/common/ControlAssessment.js";
 import ModelCatchStatement, {EBoundary} from "./ModelCatchStatement.js";
 import {Indicator} from "./audit/common/Indicator.js";
+import DataScope from "./DataScope.js";
 
 
 
@@ -506,6 +507,7 @@ ModelPackage.TYPE.updateProperties([
             (new NodeProperty("children")).volatile(),
             (new NodeProperty("tags")).type(DbDataType.STRING),
             (new NodeProperty("alias")).type(DbDataType.STRING),
+            (new NodeProperty("scope")).single(DataScope.TYPE).def("PKG"),
     ]).dataSource("PROJECT_DB").builder(ModelPackage);
 
 

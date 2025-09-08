@@ -83,7 +83,6 @@ import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";
 import {IPackageAnalyzer} from "./analyzer/IPackageAnalyzer.js";
 import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
-import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
 import {GenericPackageAnalyzer} from "./analyzer/GenericPackageAnalyzer.js";
 import {ProjectInput, ProjectInputLocation, ProjectInputPurpose} from "./analyzer/ProjectInput.js";
 import {Subject} from "rxjs";
@@ -99,14 +98,27 @@ import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
 import {TaintAnalyzer} from "./analyzer/taint/TaintAnalyzer.js";
 import {AbiManager, AbiType} from "./binary/ABI.js";
 import {ProgramManager} from "./core/ProgramManager.js";
-import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
-import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
-import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection.js";
 import ModelStringValue from "./ModelStringValue.js";
+import {DataFormatManager} from "./formats/DataFormatManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export type DexcaliburProjectUUID = string;
+
+
+export interface AppPreview {
+    version:string;
+    name:string;
+    pkgId:string;
+    os: OperatingSystem;
+    arch?:Architecture;
+    minOs:number;
+    targetOs:number;
+    fmt:string;
+    icons?:any;
+    dev?:any;
+    iconUrl?:string;
+}
 
 export enum ProjectEventType {
     DATA_ANALYSIS_DONE="data_analysis_done",
@@ -562,6 +574,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     private analCfg:AnalyzerConfiguration = new AnalyzerConfiguration();
 
     private _archReady:Architecture[] = [];
+
+    private _dfm:DataFormatManager;
 
     meta:any = {
         creationDate: null,
@@ -1139,6 +1153,10 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // once Project DB is ready, init tag manager and load presets
         await this.tagManager.init(this.pdb, this._createMode);
 
+        // when tag mgr is loaded, init data format manager and update parsers context
+        // important: DFM requires TagManager is ready
+        this._dfm = new DataFormatManager(this);
+
 
         // init connector
         if(this.connector === null){
@@ -1257,8 +1275,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
             Logger.info("[PROJECT] [INIT] PLATFORM RETRIEVED");
             this.kpmgr = await this.platform.newKeyPointManager(this);
-            this.appAnalyzer = await this.platform.newAppAnalyzer(this);
             this.packageAnalyzer = await this.platform.newPackageAnalyzer(this);
+            this.appAnalyzer = await this.platform.newAppAnalyzer(this);
 
             /*
 
@@ -1284,9 +1302,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             // default analyzer is Android analyzer
             this.kpmgr = await KeyPointManager.newForAndroid(this);
 
-            this.packageAnalyzer = new AndroidPackageAnalyzer(
-                new AndroidPackageAnalyzerConfig({ ssa_auto:false, msa_auto:false })
-            );
+            this.packageAnalyzer = new AndroidPackageAnalyzer({ ssa_auto:false, msa_auto:false });
             this.packageAnalyzer.setProject(this);
 
             this.appAnalyzer = new AndroidAppAnalyzer(this);
@@ -1681,7 +1697,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // prepare whole app
         const targetApp =  await this.packageAnalyzer.prepareTargetPackage();
 
-        this.packageAnalyzer.free();
+        await this.packageAnalyzer.free();
 
         return targetApp;
     }
@@ -1702,7 +1718,11 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             }
         }
 
-        if (this.getWorkspace().isPkgFolderEmpty() || this.getWorkspace().isTargetAppMissing() || needUnpack) {
+
+        if ((this.os==OperatingSystem.ANDROID && this.getWorkspace().isPkgFolderEmpty())
+            || (this.os==OperatingSystem.IOS && this.getWorkspace().isAppFolderEmpty())
+            || this.getWorkspace().isTargetAppMissing() || needUnpack) {
+
             Logger.info("[PROJECT] reattachWorkspace : prepare package again locally")
             await this.packageAnalyzer.prepareTargetPackage();
             this.packageAnalyzer.free();
@@ -2599,39 +2619,41 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         const codeRtBuffTag = this.tagManager.getTag("code.location.runtime.buffer");
         const codeRtLiveTag = this.tagManager.getTag("code.location.runtime.file");
 
+
+        // file analysis : icon detection, strings, etc ...
+        const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');
+
         /*
-         ====== [SCAN CODE OF TARGET PLATFORM / USERLAND] ======
+         ====== [SCAN CODE OF TARGET PACKAGE] ======
          */
 
         // application topology analysis and ressources analysis
-        let success = await this.appAnalyzer.prepareFullScan(this._createMode);
+        let success = await this.appAnalyzer.prepareFullScan(this._createMode, pkgScope);
 
+        /*
+         ====== [SCAN CODE OF TARGET PLATFORM / USERLAND] ======
+         */
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());
 
         this.analyze.setWorkflow(this.getWorkflow());
         this.dataAnalyzer.setWorkflow(this.getWorkflow());
 
-        /*
-         ====== [SCAN CODE OF TARGET PLATFORM / USERLAND] ======
-         */
         this.getWorkflow().setStep('Platform analysis', 10);
         this.getWorkflow().pushStatus(new StatusMessage(5, "Analyzing bytecode of target platform"));
 
         // TODO : if dirty, restore data
 
-        await this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM);
+        if(this.platform.getLocalPath()!=null){
+            await this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM);
+            this.getWorkflow().pushStatus(new StatusMessage(11, "Analyzing byte arrays from target platform"))
+            this.analyze.updateDataBlock();
+            this.getWorkflow().pushStatus(new StatusMessage(12, "Tagging discovered elements"));
+            this.analyze.tagAllIf((k,x) => {  return true; }, [internTag]);
+        }else{
+            Logger.info(`[PROJECT] Cannot retrieve platform binary code for ${this.platform.getUID()}, image is empty = ${this.platform.getLocalPath()}`);
+        }
 
-        this.getWorkflow().pushStatus(new StatusMessage(11, "Analyzing byte arrays from target platform"))
-
-        this.analyze.updateDataBlock();
-
-
-        this.getWorkflow().pushStatus(new StatusMessage(12, "Tagging discovered elements"));
-        //this.getWorkflow().setStep('Triage', 20);
-
-        //this.analyze.tagAllAsInternal();
-        this.analyze.tagAllIf((k,x) => {  return true; }, [internTag]);
 
         // save model
         //await this.pdb.saveAnalyzerDB(this.analyze.getData());
@@ -2682,13 +2704,16 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             //  par exemple : getAppDir() => path of folder containing extracted files
             const targetPath:string = await this.appAnalyzer.getDefaultTargetPath();
 
-
+            // prepare, configure and restore state of the native analyzer
+            this._prepareNativeAnalyzer();
 
             Logger.info("Scanning default path : "+targetPath);
 
+
+
             // If android or iOS bytecode code analysis
             // TODO : multi threading
-            await this.analyze.path( targetPath, CodeLocation.APP);
+            await this.analyze.path( targetPath, CodeLocation.APP, pkgScope);
 
             this.analyze.tagAllIf(
                 (k,x) => {  return !internTag.match(x); },
@@ -2716,11 +2741,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
 
 
-            // file analysis : icon detection, strings, etc ...
-            const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');
 
-            // prepare, configure and restore state of the native analyzer
-            this._prepareNativeAnalyzer();
+
             this._analysis$.subscribe(async (vProjEvt)=>{
                 if([ProjectEventType.DATA_ANALYSIS_DONE,
                     ProjectEventType.DATA_ANALYZER_LOADED].indexOf(vProjEvt.type)>-1){
@@ -2781,7 +2803,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     );
 
                     // parsing and indexing
-                    this.dataAnalyzer.analyze(vFiles);
+                    // this.dataAnalyzer.analyze(vFiles);
 
 
                     // trigger next steps
@@ -2886,7 +2908,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
                     if( _fs_.lstatSync(bc).isDirectory()) {
                         Logger.info("Scanning previously discovered dex chunk : " + bc);
-                        await this.analyze.path(bc, loc);
+                        await this.analyze.path(bc, loc, dynBcScope);
                     }/*else{
                     // dex files
                     this.dataAnalyzer.indexFilesIn(
@@ -3462,6 +3484,14 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         if(this.meta==null || this.meta.icon==null) return null;
 
         return this.meta.icon;
+    }
+
+    setAppPreview(pPrev:AppPreview):void {
+        this.meta.appPreview = pPrev;
+    }
+
+    getDataFormatMgr():DataFormatManager {
+        return this._dfm;
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

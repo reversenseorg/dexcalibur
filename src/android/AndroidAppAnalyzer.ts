@@ -56,7 +56,7 @@ export type ResourcesMap = Record<string, AndroidResource>;
 
 export interface AndroidResParsedEvent {
 	restype:string;
-	res: ModelResource[]; //AndroidResource[];
+	res: ModelResource<any>[]; //AndroidResource[];
 	name?:string;
 	total?:number;
 }
@@ -180,7 +180,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			// - a single resource has been read from a file (as layout/* files)
 			// - a list of resources have been read from a single file (as values/* files)
 			// so, it has been typed to an array of resources (AndroidResource[])
-			const res:ModelResource[] = vEvent.getData().res;
+			const res:ModelResource<any>[] = vEvent.getData().res;
 			const pkgScope = vEvent.getContext().getDataAnalyzer().getScope("PKG");
 
 			let pdb = vEvent.getContext().getProjectDB();
@@ -204,7 +204,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				let strings:ModelStringValue[] = [];
 
 				// extract files & strings
-				res.map((v:ModelResource) => {
+				res.map((v:ModelResource<any>) => {
 
 					try{
 						const f = (v.location.source as DataLocationFileSource).file;
@@ -304,7 +304,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		this.context.getBus().subscribe("app.res.new", BusSubscriber.from( (vEvent)=>{
 
 			(async ()=>{
-				const res:ModelResource = vEvent.getData();
+				const res:ModelResource<any> = vEvent.getData();
 				console.log("app.res.new > ", res);
 				try{
 					console.log("app.res.new before save> ", res);
@@ -561,7 +561,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 * To perform some action at very first step of a full scan
 	 *
 	 */
-	async prepareFullScan(pNewProject = false):Promise<boolean>{
+	async prepareFullScan(pNewProject = false,  pScope:Nullable<DataScope> = null):Promise<boolean>{
 
 		const pkgScope = await this.context.getDataAnalyzer().getDataScope('PKG');
 
@@ -612,8 +612,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		const foldersNode:ModelFile[] = [];
 		const files:Record<string, ModelFile> = {};
 		// resource tree
-		let resMap:Record<string, Record<string, ModelResource|(Record<string, ModelResource>) >> = {};
-		let variant:string, res:ModelResource;
+		let resMap:Record<string, Record<string, ModelResource<any>|(Record<string, ModelResource<any>>) >> = {};
+		let variant:string, res:ModelResource<any>;
 
 		const cat = {
 			values:null,
@@ -669,7 +669,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 						if(resMap["values"][valType][valID]==null){
 							resMap["values"][valType][valID] = valsExtra[valType][valID];
 						}else{
-							(resMap["values"][valType][valID] as ModelResource)
+							(resMap["values"][valType][valID] as ModelResource<any>)
 								.appendProperty('variant',variant,valsExtra[valType][valID]);
 						}
 					}
@@ -698,7 +698,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 					if(resMap[cat.cmpExtra[i]][x.getUID()]==null){
 						resMap[cat.cmpExtra[i]][x.getUID()] = x;
 					}else{
-						(resMap[cat.cmpExtra[i]][x.getUID()] as ModelResource).appendProperty('variant',variant,x);
+						(resMap[cat.cmpExtra[i]][x.getUID()] as ModelResource<any>).appendProperty('variant',variant,x);
 					}
 				})
 			}
@@ -716,13 +716,13 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			if(k=='values'){
 				for(let l in resMap[k]){
 					for(let m in resMap[k][l]){
-						res = (resMap[k][l][m] as ModelResource);
+						res = (resMap[k][l][m] as ModelResource<any>);
 						file = res.getFile();
 						if(file!=null && files[file.getUID()]==null) files[file.getUID()] = file;
 
 
 
-						filemap = res.getProperty('variant') as Record<string, ModelResource>;
+						filemap = res.getProperty('variant') as Record<string, ModelResource<any>>;
 						if(filemap!=null){
 							for(let n in filemap){
 								if(filemap[n]!=null){
@@ -737,12 +737,12 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				}
 			}else{
 				for(let l in resMap[k]){
-					res = (resMap[k][l] as ModelResource);
+					res = (resMap[k][l] as ModelResource<any>);
 					file = res.getFile();
 					if(file!=null && files[file.getUID()]==null) files[file.getUID()] = file;
 
 
-					filemap = res.getProperty('variant') as Record<string, ModelResource>;
+					filemap = res.getProperty('variant') as Record<string, ModelResource<any>>;
 					if(filemap!=null){
 						for(let n in filemap){
 							if(filemap[n]!=null){
@@ -803,12 +803,12 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 *
 	 * @method
 	 */
-	async parseValuesFromRes(pFolderPath:string, pDataScope:Nullable<DataScope>, pEmit = true):Promise<Record<string, Record<string, ModelResource>>> {
+	async parseValuesFromRes(pFolderPath:string, pDataScope:Nullable<DataScope>, pEmit = true):Promise<Record<string, Record<string, ModelResource<any>>>> {
 
 		const entries = _fs_.readdirSync(_path_.join(this._getResourcesFolder(),pFolderPath));
 		let data:AndroidResource[];
-		let res:ModelResource[] = [];
-		let resMap:Record<string, Record<string, ModelResource>> = {};
+		let res:ModelResource<any>[] = [];
+		let resMap:Record<string, Record<string, ModelResource<any>>> = {};
 		let resPath:string;
 		let stat:any;
 
@@ -859,12 +859,12 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return resMap;
 	}
 
-	createFileResource(pPath:string, pFolder:string, pRawName:string, pDataScope:Nullable<DataScope>):ModelResource {
+	createFileResource(pPath:string, pFolder:string, pRawName:string, pDataScope:Nullable<DataScope>):ModelResource<any> {
 
 		const path = _path_.join(pFolder,pRawName);
 		let type:string = pFolder;
 		let variant:string = null;
-		let res:AndroidResource, mr:ModelResource;
+		let res:AndroidResource, mr:ModelResource<any>;
 		let o:number;
 
 		if((o = pFolder.indexOf('-'))>-1){
@@ -897,14 +897,14 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	async parseComponentFromRes(pFolderPath:string,
 								pDataScope:Nullable<DataScope>,
 								pEmit = true,
-								pRootNode:Nullable<string> = null):Promise<ModelResource[]> {
+								pRootNode:Nullable<string> = null):Promise<ModelResource<any>[]> {
 
 		const entries = _fs_.readdirSync(_path_.join(this._getResourcesFolder(),pFolderPath));
 		let data:AndroidResource[];
-		let res:ModelResource[] = [];
+		let res:ModelResource<any>[] = [];
 		let resPath:string;
 		let stat:any;
-		let mr:ModelResource;
+		let mr:ModelResource<any>;
 
 		for(let i=0; i<entries.length; i++){
 
@@ -1288,7 +1288,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 *
 	 */
 	async extractAppIcons():Promise<AppIcon[]> {
-		let res:ModelResource, roundIcon:string, icon:string, appIcons:AppIcon[] = [], appIcon:AppIcon;
+		let res:ModelResource<any>, roundIcon:string, icon:string, appIcons:AppIcon[] = [], appIcon:AppIcon;
 		try{
 			roundIcon = this.manifest.application.getAttribute("roundIcon",true);
 			if(roundIcon!=null){
@@ -1322,7 +1322,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			return null;
 		}
 
-		let res:ModelResource;
+		let res:ModelResource<any>;
 		try{
 
 			res = await this.context.getProjectDB().getAppResource(pResUID);
@@ -1363,6 +1363,10 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	async importToSlave():Promise<any> {
 		// todo
 		return true;
+	}
+
+	getPathContext(vPath:string, vFile:string, vIsDir:boolean, vCtx:any):any {
+		return {}
 	}
 }
 

@@ -886,12 +886,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         remove: await $.context.deleteProject( req.dxc.sess.getUserAccount(),  unsafeProjectUID)
                     });
                 }
-
-
-
-
-
-
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Unable to delete project : "+err.message+"\n"+err.stack);
                 $.sendError( res, err.message);
@@ -985,7 +979,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     app.orgUnit
                 );
 
-                $.sendSuccess(pRes, (await $.context.getProjectManager().newProjectOrder(
+                const res = (await $.context.getProjectManager().newProjectOrder(
                     (pReq as any).user,
                     org,
                     app,
@@ -998,8 +992,12 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                         flowType: NewProjectFlowType.SELECT,
                         remotePath: pReq.body['path'] as string,
-                    }
-                )).toJsonObject(SecurityZone.PUBLIC));
+                    }));
+
+                $.sendSuccess(pRes, {
+                    ... res.wf.toJsonObject(SecurityZone.PUBLIC),
+                    __puid:  res.puid
+                });
 
             } catch (err) {
 
@@ -1033,7 +1031,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 );
 
                 const inputTplRule = ValidationRule.structure({
-                    uploadID: UploadedResource.VALIDATE.uuid,
+                    uid: UploadedResource.VALIDATE.uuid,
                     purpose: ProjectInput.VALIDATE.purpose
                 });
 
@@ -1047,7 +1045,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     }
                 }
 
-                $.sendSuccess(pRes, (await $.context.getProjectManager().newProjectOrder(
+                const res = (await $.context.getProjectManager().newProjectOrder(
                     (pReq as any).user,
                     org,
                     app,
@@ -1063,7 +1061,13 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         inputTpls: checkedTpl
                     },{
                         cookie: pReq.cookies
-                    })).toJsonObject(SecurityZone.PUBLIC));
+                    }));
+
+
+                $.sendSuccess(pRes, {
+                    ... res.wf.toJsonObject(SecurityZone.PUBLIC),
+                    __puid:  res.puid
+                });
 
 
             } catch (err) {
@@ -1098,7 +1102,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     app.orgUnit
                 );
 
-                $.sendSuccess(pRes, (await $.context.getProjectManager().newProjectOrder(
+                const res = (await $.context.getProjectManager().newProjectOrder(
                     (pReq as any).user,
                     org,
                     app,
@@ -1114,7 +1118,12 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     },{
                         cookie: pReq.cookies
                     }
-                )).toJsonObject(SecurityZone.PUBLIC));
+                ));
+
+                $.sendSuccess(pRes, {
+                    ... res.wf.toJsonObject(SecurityZone.PUBLIC),
+                    __puid:  res.puid
+                });
 
             } catch (err) {
 

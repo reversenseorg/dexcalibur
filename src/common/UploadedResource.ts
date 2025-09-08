@@ -26,6 +26,7 @@ export interface UploadedResourceOpts {
     sum?:string;
     algo?:HashAlgo;
     tags?:TagUUID[];
+    extra?:any;
     terminated?:boolean;
 }
 
@@ -49,6 +50,7 @@ export class UploadedResource extends Auditable implements INode {
             (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("path")).type(DbDataType.STRING),
             (new NodeProperty("sum")).type(DbDataType.STRING).def(""),
+            (new NodeProperty("extra")).type(DbDataType.BLOB).def({}),
             (new NodeProperty("algo")).type(DbDataType.STRING).def(CryptoUtils.ALG_SHA256),
             (new NodeProperty("date")).type(DbDataType.NUMERIC).def(0),
             (new NodeProperty("terminated")).type(DbDataType.BOOLEAN),
@@ -102,6 +104,7 @@ export class UploadedResource extends Auditable implements INode {
         if(pOptions.sum!=null) this.sum = pOptions.sum;
         if(pOptions.algo!=null) this.algo = pOptions.algo;
         if(pOptions.tags!=null) this.tags = pOptions.tags;
+        if(pOptions.extra!=null) this.extra = pOptions.extra;
         if(pOptions.terminated!=null) this.terminated = pOptions.terminated;
     }
 
@@ -129,6 +132,7 @@ export class UploadedResource extends Auditable implements INode {
             sum: this.sum,
             algo: this.algo,
             tags: this.tags,
+            extra: this.extra,
             terminated: this.terminated,
         }
     }
@@ -139,6 +143,12 @@ export class UploadedResource extends Auditable implements INode {
 
     appendExtra(pInfo: any) {
         this.extra = pInfo;
+    }
+
+    getExtra(pKey: string):any {
+        if (this.extra == null ) return null;
+
+        return this.extra[pKey];
     }
 }
 UploadedResource.TYPE.builder(UploadedResource);

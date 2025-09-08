@@ -230,6 +230,42 @@ export default class Util {
 
     }
 
+
+    /**
+     *
+     * @param path
+     * @param callback
+     * @param isDir
+     */
+    static async forEachFile(pPath:string ,pCallback:(vAbsPath:string, vFilename:string, vIsDir:boolean, vCtx:any)=>Promise<boolean> ,isDir:boolean=false, pCtx:any = {}):Promise<any>{
+        let dir:string[]=null, elemnt:string=null, stat:fs.Stats;
+
+        try{
+            stat=fs.lstatSync(pPath);
+
+            if(isDir || stat.isDirectory()){
+                dir=fs.readdirSync(pPath);
+                for(let i in dir){
+                    elemnt = _path_.join(pPath,dir[i]);
+                    if(fs.lstatSync(elemnt).isDirectory()){
+                        if(await (pCallback)(elemnt, dir[i], true, pCtx)){
+                            await this.forEachFile( elemnt, pCallback, true, pCtx);
+                        }
+                    }else{
+                        // TODO : add additional test on file extension
+                        await (pCallback)(elemnt, dir[i], false, pCtx);
+                    }
+                }
+            }else{
+                await pCallback(pPath, _path_.basename(pPath), false, pCtx);
+            }
+        }catch(err){
+            Logger.error(err)
+        }
+
+    }
+
+
     static count(list:any):number{
         let k=0;
         for(let j in list) k++;
@@ -488,7 +524,7 @@ export default class Util {
                 const roots = process.env.PATH.split(':');
                 for(let i=0; i<roots.length ; i++){
                     p = _path_.join(roots[i], pExecName)
-                    Logger.info("[UTILS] whereIs: "+p);
+                    Logger.debug("[UTILS] whereIs: "+p);
                     if(fs.existsSync(p)){
                         ret = p;
                         break;

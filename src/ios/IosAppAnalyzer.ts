@@ -3,23 +3,174 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {AnalyzerState} from "../AnalyzerState.js";
 import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";
 import {AppIcon} from "../AppIcon.js";
+import * as  _fs_ from "fs";
+import * as _path_ from "path";
+import ModelResource from "../ModelResource.js";
+import {IosPackageAnalyzer} from "./analyzer/IosPackageAnalyzer.js";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {PlistHelper} from "../formats/helpers/PlistHelper.js";
+import ModelPackage from "../ModelPackage.js";
+import {INode, Tag} from "@dexcalibur/dexcalibur-orm";
 
+import * as _glob_ from "glob";
+import {Nib} from "../parser/NibParser.js";
+import {NibArchive} from "./NibArchive.js";
+import DataScope from "../DataScope.js";
+
+export interface Bundle {
+    name: string;
+    path: string;
+    scope: Nullable<DataScope>;
+    info: Nullable<ModelResource<any>>;
+    xcprivacy: Nullable<ModelResource<any>>;
+    files: ModelResource<any>[];
+}
 
 export default class IosAppAnalyzer implements IAppAnalyzer
 {
     ctx:DexcaliburProject;
     state:AnalyzerState = null;
     package:string;
+    tags: Record<string, Tag> = {};
+    bundle:Bundle[] = [];
+    framew:Bundle[] = [];
+    processed:string[] = [];
+
+    ml:ModelPackage[] = [];
+    bundles:ModelPackage[] = [];
+
+
+    private _pa:IosPackageAnalyzer;
+
+
 
     constructor(pContext:DexcaliburProject, pOptions:any = {}) {
         this.ctx = pContext;
+        this._pa = this.ctx.packageAnalyzer as IosPackageAnalyzer;
     }
 
-    async prepareFullScan(pNewProject:boolean):Promise<boolean>{
+    /**
+     * To perform extract some data/ prepare data before platform and app analysis
+     *
+     * It can be used to extract/parse resources from package
+     *
+     * @param pNewProject
+     */
+    async prepareFullScan(pNewProject:boolean, pScope:Nullable<DataScope> = null):Promise<boolean>{
+
+        const basePath= this.ctx.getWorkspace().getAppDir();
+
+        this.tags = {
+            nsbundle: this.ctx.getTagManager().getTag("objc.bundle"),
+            bundle: this.ctx.getTagManager().getTag("swift.bundle"),
+            iabundle: this.ctx.getTagManager().getTag("ia.coreml"),
+            codesign: this.ctx.getTagManager().getTag("data.type.codesign"),
+        };
+
+        if(pNewProject){
+            await this._importBundle(basePath, pScope);
+            await this._importFrameworks(basePath, pScope);
+
+        }
         return true;
     }
 
+    /**
+     * To modelise a Swift package from this folder
+     *
+     * @param pPath
+     * @param pCtx
+     */
+    async _importSwiftBundle(pPath:string, pFile:string, pCtx:any):Promise<ModelPackage>{
+        const pkg = new ModelPackage({
+            name: "swift:"+pPath,
+            sname: pFile,
+            children: [],
+            tags: [
+                this.tags.bundle.getUUID()
+            ]
+        });
+
+        return pkg;
+    }
+    /**
+     *
+     * @param pBase
+     */
+    async _importBundle(pBase:string, pScope:Nullable<DataScope> = null):Promise<void>{
+
+        let dir:string;
+        let bundle:Bundle; let info:string, pkg:ModelPackage;
+
+        const meta = [['info','Info.plist'],['xcprivacy','PrivacyInfo.xcprivacy']];
+        const appBase = this._pa._getAppPath(pBase);
+        const dirs = _fs_.readdirSync(appBase);
+        const appDir = this._pa._getAppBinName(pBase);
+        const appPath = _path_.join(appBase,'..','..');
+
+
+
+        for(let i=0; i<dirs.length; i++) {
+            if(dirs[i].endsWith(".bundle")){
+                dir = _path_.join(appBase, dirs[i]);
+
+
+                bundle = {
+                    name: dirs[i].substring(0, dirs[i].lastIndexOf(".bundle")),
+                    path: `/Payload/${appDir}/${dirs[i]}`,
+                    scope: pScope,
+                    files: [],
+                    info: null,
+                    xcprivacy: null
+                };
+
+                for(let i=0;i<meta.length;i++){
+                    info = _path_.join(dir, meta[i][1])
+                    if(_fs_.existsSync( info)){
+                        bundle[meta[i][0]] = await PlistHelper.parseFile(info, 0, this.ctx);
+                        if(bundle[meta[i][0]]!=null){
+                            (bundle[meta[i][0]] as ModelResource<any>).name = meta[i][1];
+                            (bundle[meta[i][0]] as ModelResource<any>)._uid = info.substring(appPath.length);
+                        }
+                        this.processed.push(info)
+                    }
+                }
+
+
+
+                pkg = new ModelPackage({
+                    sname: bundle.name,
+                    name: dirs[i],
+                    children: [],
+                    tags: [
+                        this.tags.nsbundle.getUUID(),
+                        this.tags.bundle.getUUID()
+                    ]
+                });
+
+                if(bundle.xcprivacy!=null) pkg.childAppend(bundle.xcprivacy);
+                if(bundle.info!=null) pkg.childAppend(bundle.info);
+
+                if(pScope!=null) pkg.scope = pScope;
+
+
+                await this._importResourceBundle(dir, bundle, pkg);
+
+                this.bundles.push(pkg);
+
+                this.ctx.getProjectDB().save(pkg);
+
+            }
+
+            /*else if(dirs[i] == "Frameworks"){
+                await this._importFrameworks( _path_.join(appBase, dirs[i]));
+            }*/
+        }
+
+    }
+
     async importMeta():Promise<boolean>{
+
         return true;
     }
 
@@ -46,7 +197,7 @@ export default class IosAppAnalyzer implements IAppAnalyzer
     }
 
     getDefaultTargetPath(): string {
-        return "";
+        return this.ctx.getWorkspace().getAppDir();
     }
 
     getAppUid(): string {
@@ -71,14 +222,160 @@ export default class IosAppAnalyzer implements IAppAnalyzer
         // todo
     }
 
-
-
+    /**
+     *
+     */
     isReady():boolean {
-        return true;
+        // check if IPA content is available in filesystem
+        const base = this.ctx.getWorkspace().getAppDir();
+        return _fs_.existsSync(_path_.join(base,'META-INF','com.apple.ZipMetadata.plist'));
     }
 
     async importToSlave():Promise<any> {
         // todo
         return true;
+    }
+
+    private async _importResourceBundle(pFolder: string, pInfo: Bundle, pBundleModel: ModelPackage) {
+
+        let arch:NibArchive, res:any;
+
+        const nibParser = new Nib.Parser();
+        const vFiles:any[] = _glob_.default.sync(pFolder+"/**/*", {
+            dot:true,
+            nodir: false,
+            //ignore: pSkipIf,
+            absolute: true
+        });
+
+        let boards:Record<string, any> = {}, b:string, rsc:INode;
+
+        for(let i=0; i<vFiles.length; i++) {
+            /*if(vFiles[i].endsWith(".nib")){
+
+                res = await nibParser.fromBuffer( _fs_.readFileSync(vFiles[i]));
+
+                if(_path_.dirname(vFiles[i])===pInfo.path){
+                    //  NIB in Bundle
+                    if(res.ok!=null && res.invalid.length==0){
+
+                        rsc = (res.ok as NibArchive).toModelResource();
+                        rsc = await this.ctx.getProjectDB().save(rsc);
+
+                        pBundleModel.childAppend( rsc);
+                    }
+                }else{
+                    // NIB in Storyboardc
+
+                   // pBundleModel.childAppend( (res.ok as NibArchive).toModelResource())
+                }
+            }else */if(vFiles[i].endsWith(".storyboardc")){
+                b =_path_.basename(vFiles[i]);
+                boards[b] = new ModelResource<any>({
+                    name: b,
+                    location: null//DataLocation
+                });
+            }
+        }
+
+        //console.log("_importResourceBundle : ",vFiles);
+    }
+
+    private async _importFrameworks(pFolder: string, pScope:Nullable<DataScope> = null) {
+        // todo
+    }
+
+    async getPathContext(vPath:string, vFile:string, vIsDir:boolean, vCtx:any):Promise<any> {
+
+        let pkg:ModelPackage;
+
+        if(vCtx.payload==null) {
+            vCtx.payload = this._pa._getAppPath(this.ctx.getWorkspace().getAppDir());
+        }
+
+
+        if(vCtx.tags==null) vCtx.tags = {};
+
+        // if parent folder is Payload/ folder clean tags
+        if(_path_.dirname(vPath)===vCtx.payload){
+            vCtx.tags = {};
+        }
+
+        if(vFile.endsWith(".bundle") && vIsDir){
+            pkg = this.bundles.find(x => x.name == vFile);
+            if(pkg!=null){
+                vCtx.exclude = this.processed;
+            }
+        }else if(vFile.endsWith(".framework") && vIsDir){
+            pkg= new ModelPackage({
+                sname: vFile.substring(0, vFile.lastIndexOf(".framework")),
+                name: vFile,
+                tags: Object.values(vCtx.tags).map((x:Tag) => x.getUUID())
+            });
+
+            vCtx.exclude = this.processed;
+        }else if(vFile.endsWith(".mlmodelc") && vIsDir){
+            // CoreML
+            pkg= new ModelPackage({
+                sname: vFile.substring(0, vFile.lastIndexOf(".mlmodelc")),
+                name: vFile,
+                tags: [this.tags.iabundle.getUUID()]
+            });
+
+        }else if(vFile==="Frameworks" && vIsDir){
+            if(vCtx.tags["objc.bundle"]==undefined) vCtx.tags["objc.bundle"]=this.tags.nsbundle;
+        }else if(vFile==="_CodeSignature" && vIsDir){
+            pkg= new ModelPackage({
+                sname: vFile,
+                name: vFile,
+                tags: [this.tags.codesign.getUUID()]
+            });
+            /*if(vCtx!=null && vCtx.self!=null){
+                // check if bundle is a child of vCtx.self
+                if(vCtx.self.__===ModelPackage.TYPE.getType() && ){
+
+                }
+            }*/
+        }else if(vFile==="Watch" && vIsDir){
+            // skip
+            vCtx.excludeAll = true;
+        }else if(vIsDir){
+            const s = _path_.join(vPath,'Package.swift');
+            if(_fs_.existsSync(s)){
+                pkg = await this._importSwiftBundle(vPath, vFile, vCtx);
+            }
+        }
+
+        if(pkg!=null){
+
+            Object.values(vCtx.tags).map((t:Tag)=>{
+                if(pkg.tags.indexOf(t.getUUID())==-1){
+                    pkg.tags.push(t.getUUID());
+                }
+            });
+
+            if(vCtx.self!=null){
+                switch (vCtx.self.__){
+                    case NodeInternalType.PACKAGE:
+                        // update parent
+                        (vCtx.self as ModelPackage).childAppend(pkg);
+                        vCtx.self = await this.ctx.getProjectDB().save(
+                            vCtx.self,null, ['name','sname','alias','children','tags']);
+
+                        break;
+                }
+            }
+
+            pkg = await this.ctx.getProjectDB().save(
+                pkg,null,['name','sname','alias','children','tags']) as ModelPackage;
+
+            // propagate tags
+            vCtx.self = pkg;
+
+
+        }
+
+
+        return vCtx;
     }
 }

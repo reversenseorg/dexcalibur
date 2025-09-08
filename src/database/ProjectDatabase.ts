@@ -107,6 +107,11 @@ export class ProjectDatabase implements IFileDatabase {
     private _pfdb:ProjectFileDatabase;
 
     private _merlinBE:MongoDbMerlinBackend;
+
+    private _ctr:Record<number, number> = {
+        [NodeInternalType.PACKAGE]: 0
+    };
+
     /**
      * Worker to schedule child worker to save data
      *
@@ -490,7 +495,7 @@ export class ProjectDatabase implements IFileDatabase {
                 const filterId:any = {};
                 NodeType.INTERN[pObject.__].setPrimaryKeyValueOf( filterId as any, pObject.getUID());
 
-                console.log(e,{ upsert:true, replace:false, filter: filterId });
+                //console.log(e,{ upsert:true, replace:false, filter: filterId });
                 opt = { upsert:true, replace:false, filter: filterId };
                 if(pSet.length>0){
                     opt['$set'] = pSet;
@@ -767,7 +772,7 @@ export class ProjectDatabase implements IFileDatabase {
         await this._db.db.dropDatabase();
     }
 
-    async getAppResource(pResUID:string):Promise<ModelResource> {
+    async getAppResource(pResUID:string):Promise<ModelResource<any>> {
         return await (this.getCollectionOf(ModelResource.TYPE.getType()) as MongodbDbCollection)
             .asyncGetEntry({ _uid:pResUID });
     }
@@ -861,16 +866,16 @@ export class ProjectDatabase implements IFileDatabase {
      *
      * @param pString
      */
-    async updateResources(pObj:ModelResource[]):Promise<{ updated:number, inserted:number, untouched:number }> {
+    async updateResources(pObj:ModelResource<any>[]):Promise<{ updated:number, inserted:number, untouched:number }> {
 
         const all = await this.getCollectionOf(ModelResource.TYPE.getType()).getAsList(-1);
-        const existings:Record<string, ModelResource> = {};
-        all.map((s:ModelResource) => {
+        const existings:Record<string, ModelResource<any>> = {};
+        all.map((s:ModelResource<any>) => {
             existings[s.getUID()] = s;
         });
 
-        let insert:Record<string, ModelResource> = {};
-        let update:Record<string, ModelResource> = {};
+        let insert:Record<string, ModelResource<any>> = {};
+        let update:Record<string, ModelResource<any>> = {};
         let ctrUp = 0, ctrIn = 0;
 
 
@@ -929,5 +934,45 @@ export class ProjectDatabase implements IFileDatabase {
         }
 
         return { updated:ctrUp, inserted:ctrIn, untouched: (all.length-ctrUp)  };
+    }
+
+    /**
+     *
+     * @param pNode
+     */
+    static generateIncrementalUUID(pNode:INode, pCtr:number = -1):string {
+        // 6dd85cef-1ab5-44b6-99d1-b8564bb9fd65
+        // Maybe : [INSTANCE]-[ORG]-[PROJ]-[NodeType]-[UID]
+
+        return `6dd85cef-1ab5-44b6-${((pNode.__ & 0xFF)).toString(16).padStart(4,'0')}-${(pCtr.toString(16).padStart(12,'0'))}`;
+    }
+
+    generateIncrementalNodeUUID(pNode:INode):INode {
+        // 6dd85cef-1ab5-44b6-99d1-b8564bb9fd65
+        // Maybe : [INSTANCE & ORG & APP & PROJ]-[TimeSeries]-[Tags]-[NodeType]-[UID]
+
+        let c:number;
+        if(this._ctr[pNode.__]!=null && this._ctr[pNode.__]>=0){
+            c = this._ctr[pNode.__]++;
+        }else{
+            c = this._ctr[pNode.__] = 0;
+        }
+
+        const pk = NodeType.getByID(pNode.__).getPrimaryKey().getName();
+        let uid:string = "";
+        uid+="00000000";
+        uid+='-';
+        uid+="0001"
+        uid+='-';
+        uid+="0000"
+        uid+='-';
+        uid+=((pNode.__ & 0xFF)).toString(16).padStart(4,'0');
+        uid+='-';
+        uid+=(c.toString(16).padStart(12,'0'));
+
+        pNode[pk] = uid;
+
+        return pNode;
+
     }
 }

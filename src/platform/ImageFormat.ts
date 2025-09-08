@@ -24,7 +24,7 @@ export class ImageFormatHelper {
         }else if(/^webp$/i.test(ext)){
             return ImageFormat.WEBP;
         }else {
-
+            return ImageFormat.NONE;
         }
     }
 }

@@ -68,7 +68,8 @@ export default class Uploader {
      * @param {*} pUploadId
      * @method
      */
-    async getResource(pUploadId: UploadedResourceUUID): Promise<UploadedResource> {
+    async getResource(pUploadId: UploadedResourceUUID, pUser:Nullable<UserAccount> = null): Promise<UploadedResource> {
+        // todo : verify resource owner if pUser!=null
         return await (this._ctx.getEngineDB()
             .getCollectionOf(UploadedResource.TYPE.getType()) as MongodbDbCollection)
             .asyncGetEntry({uuid: pUploadId});

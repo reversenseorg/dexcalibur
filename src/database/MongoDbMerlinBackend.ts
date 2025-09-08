@@ -96,7 +96,7 @@ export class MongoDbMerlinBackend {
 
                     cs = searchArgs.pattern[0];
 
-                    if(cs.field!=null){
+                    if(cs.field!=null && cs.field!=""){
                         parts = cs.getFieldParts();
 
                         // search and execute required requests (join)

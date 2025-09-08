@@ -1,5 +1,6 @@
 import * as NodeBuffer from "node:buffer"
 import {OperatingSystem} from "./platform/OperatingSystem.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 
 type StructureValidator = Record<string, ValidationRule> | ValidationRule;
 
@@ -109,6 +110,17 @@ export class ValidationRule {
         });
     }
 
+    static uint64():ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return (typeof vValue==='number') && (vValue < Number.MAX_SAFE_INTEGER) && (vValue > Number.MIN_SAFE_INTEGER);
+        });
+    }
+
+    static nodeTypeID(pNullable = false):ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return (pNullable? (vValue==null) : (vValue!=null) && (typeof vValue==='number') && (NodeType.getByID(vValue)!=null));
+        });
+    }
 
     static utf8String():ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
@@ -170,6 +182,12 @@ export class ValidationRule {
         });
     }
 
+    /*
+    static asciiString(pOnlyPrintable = true):ValidationRule {
+        return new ValidationRule(ValidationType.CUSTOM, (vValue: any) => {
+            return (pOnlyPrintable? ;
+        });
+    }*/
 
     static hexColor():ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{

@@ -363,12 +363,12 @@ export class AndroidResource implements TreeNode<AndroidResource> {
      * To convert to ModelResource
      * @param pUID
      */
-    toModelResource(pNamespace: string, pType:Nullable<string> = null, pUID:Nullable<string> = null):ModelResource {
+    toModelResource(pNamespace: string, pType:Nullable<string> = null, pUID:Nullable<string> = null):ModelResource<any> {
 
         let value:any = null;
         const ResUID = this.getCanonicalReference(pNamespace, pType, pUID);
 
-        const res = new ModelResource({
+        const res = new ModelResource<any>({
             location: new DataLocation({
                 type: DataLocationType.FILE,
                 source: {
@@ -436,7 +436,7 @@ export class AndroidResource implements TreeNode<AndroidResource> {
      * @param pCtx
      * @param pUID
      */
-    static async resolvedResourceUID( pCtx:DexcaliburProject, pUID:string):Promise<ModelResource> {
+    static async resolvedResourceUID( pCtx:DexcaliburProject, pUID:string):Promise<ModelResource<any>> {
 
         let res = await pCtx.getProjectDB().getAppResource(pUID);
 

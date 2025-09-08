@@ -235,7 +235,7 @@ export default class NativeAnalyzer {
         else if(pPlatform.isIOS()){
             this.fmt = ['Mach-O'];
             this.fmt_tags = {
-                'Mach-O': this.context.getTagManager().getTag("data.type.Mach-O")
+                'Mach-O': this.context.getTagManager().getTag("data.type.MachO")
             };
             this.profile = PROFILES.IOS_LIB;
             this.abi = pABI;

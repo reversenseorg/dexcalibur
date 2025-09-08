@@ -19,7 +19,7 @@ import ModelStringValue from "./ModelStringValue.js";
 export interface ResourceOpts {
     _uid?:string;
     location?:DataLocation;
-    value?:string;
+    value?:any;
     name?:string;
     ppts?:Record<string,any>;
     tags?:number[];
@@ -33,7 +33,7 @@ export interface ResourceOpts {
  *
  * @class
  */
-export default class ModelResource extends Savable
+export default class ModelResource<T> extends Savable
 {
     static TYPE:NodeType = (new NodeType( "resources", NodeInternalType.RESOURCE, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -102,7 +102,7 @@ export default class ModelResource extends Savable
 
     _uid:string = "";
     location:DataLocation = null;
-    value:any = null;
+    value:Nullable<T> = null;
     name:string;
     ppts:Record<string,any> = {}
     tags:number[] = [];
@@ -124,7 +124,7 @@ export default class ModelResource extends Savable
      * @method
      */
     hasStringValue():boolean {
-        return NodeUtils.isNode(this.value) && (this.value.__===NodeInternalType.STRING);
+        return NodeUtils.isNode(this.value) && ((this.value as unknown as INode).__===NodeInternalType.STRING);
     }
 
 
@@ -135,7 +135,7 @@ export default class ModelResource extends Savable
      * @param pOffset
      * @param pLength
      */
-    static fromFile(  pFile:ModelFile, pOptions:ResourceOpts, pOffset = -1, pLength=-1):ModelResource {
+    static fromFile(  pFile:ModelFile, pOptions:ResourceOpts, pOffset = -1, pLength=-1):ModelResource<any> {
         return new ModelResource({
             location: new DataLocation({
                 type: DataLocationType.FILE,
@@ -199,7 +199,7 @@ export default class ModelResource extends Savable
         let str:ModelStringValue[] = [];
 
         if(ModelStringValue.is(this.value)){
-            str.push(this.value);
+            str.push(this.value as unknown as ModelStringValue);
         }
 
         // browse properties
@@ -243,7 +243,12 @@ export default class ModelResource extends Savable
             o.location = null;
         }
 
-        o.value = NodeUtils.serialize(this.value);
+        if(Array.isArray(this.value) || NodeUtils.isNode(this.value)){
+            o.value = NodeUtils.serialize(this.value as unknown as (INode | INode[]));
+        }else{
+            o.value = (this.value as any).toJsonObject!=null ? (this.value as any).toJsonObject() : this.value;
+        }
+
 
         o.name = this.name;
         o.ppts = this.ppts;
@@ -280,6 +285,13 @@ export default class ModelResource extends Savable
     }
 
     /**
+     * To check if the resource value point to a node (plain node or INodeRef)
+     */
+    hasNodeValue():boolean {
+        return (this.value!=null && NodeUtils.isNode(this.value));
+    }
+
+    /**
      * To automatically create a hashmap and add the key / value pair
      *
      * @param pPptName
@@ -294,4 +306,4 @@ export default class ModelResource extends Savable
         this.ppts[pPptName][pKey] = pValue;
     }
 }
-ModelResource.TYPE.builder(ModelResource);
+ModelResource.TYPE.builder(ModelResource<any>);

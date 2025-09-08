@@ -2,10 +2,12 @@ import ModelMetadata from "./ModelMetadata.js";
 import ModelClass from './ModelClass.js';
 import {NodeType, DataSourceHelper, SerializeOptions, INode, TagUUID} from "@dexcalibur/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import ModelResource from "./ModelResource.js";
+import DataScope from "./DataScope.js";
 
 
 export interface ModelPackageOptions {
@@ -13,7 +15,8 @@ export interface ModelPackageOptions {
     sname?: string;
     meta?: ModelMetadata;
     tags?: TagUUID[];
-    children?:(ModelPackage|ModelClass)[];
+    children?:(ModelPackage|ModelClass|ModelResource<any>)[];
+    scope?:Nullable<DataScope>,
     alias?: string;
 }
 
@@ -57,7 +60,7 @@ export default class ModelPackage extends Savable implements INode, IPersistent
      * @type {Class[]|ModelPackage[]}
      * @field
      */
-    children:(ModelPackage|ModelClass)[] = [];
+    children:(ModelPackage|ModelClass|ModelResource<any>)[] = [];
 
     /**
      * Tags
@@ -72,6 +75,8 @@ export default class ModelPackage extends Savable implements INode, IPersistent
      * @field
      */
     alias:string = null;
+
+    scope:Nullable<DataScope> = null;
 
 
     static fromJavaFQCN( pName:string):ModelPackage {

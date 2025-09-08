@@ -104,7 +104,9 @@ export enum MetadataTopic {
     REVISION='rev',
     EXTRACT='ext',
     CTRL='ctrl',
-    PREFERED_ABI='pabi'
+    PREFERED_ABI='pabi',
+    FILE_HEADER='file.header',
+    FILE_DATA='file.data'
 }
 
 
