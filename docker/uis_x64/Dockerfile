@@ -4,7 +4,11 @@ LABEL maintainer="georges.michel@reversense.com"
 
 ARG black_ui="pro"
 ARG white_ui="home"
+ARG artifacts_folder="/home/dexcalibur-bin"
 
+RUN env
+
+ENV ARTIFACTS_FOLDER=$artifacts_folder
 ENV ARTIFACTS_FOLDER_UIS=$ARTIFACTS_FOLDER"_uis"
 
 RUN mkdir $ARTIFACTS_FOLDER_UIS
