@@ -692,7 +692,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
      * @returns {Promise<void>}
      * @async
      */
-    async extractInputsTemporary():Promise<void> {
+    async extractInputsTemporary(pOut:Nullable<string>=null):Promise<void> {
 
         this._data.extracted = false;
 
@@ -700,7 +700,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             throw new Error("Cannot extract package temporary : no inputs");
         }
 
-        this._data.dir = DexcaliburEngine.getInstance().getWorkspace().createTempFolder('prj-new-');
+        this._data.dir = (pOut!=null ? pOut : DexcaliburEngine.getInstance().getWorkspace().createTempFolder('prj-new-'));
 
         console.log(this._base_apk);
 
@@ -739,15 +739,18 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         tanal.attachTempInput(pPath, ProjectInputPurpose.MAIN);
 
-        const success = await AndroidPackageAnalyzer.extractApk( pPath, pOutput, {
+        await tanal.extractInputsTemporary(pOutput);
+
+        /*const success = await AndroidPackageAnalyzer.extractApk( pPath, pOutput, {
             force: true,
             match: true,
             type: 'bin'
         });
 
+
         if(success==false){
             throw new Error("Cannot extract package temporary.")
-        }
+        }*/
 
         await tanal._readManifest(pOutput);
         await tanal._readStringsRsc(pOutput);

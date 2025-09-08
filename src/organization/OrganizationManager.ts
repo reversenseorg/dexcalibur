@@ -2783,26 +2783,16 @@ export class OrganizationManager {
             tmpDl = this._ctx.getWorkspace().createTempFile("appdl_",false);
             const res = await this._ctx.getWebserver().uploader.downloadFile(pRes.getUID(),tmpDl);
             if(!_fs_.existsSync(tmpDl)){
-                throw new Error("Information cannot be extracted from package");
+                throw new Error(`Resource '${pRes.getUID()}' cannot be retrieved temporary to be analyzed.`);
             }
         }
 
         // create temp output folder
-        let tmpOut = this._ctx.getWorkspace().createTempFolder("appdl_ext_");
+        let tmpOut ;
 
 
         switch (pOs){
             case OperatingSystem.ANDROID:
-                // download resource
-                /*tmpDl = pRes.path;
-                if(!_fs_.existsSync(tmpDl)){
-                    tmpDl = this._ctx.getWorkspace().createTempFile("apkdl_",false);
-                    const res = await this._ctx.getWebserver().uploader.downloadFile(pRes.getUID(),tmpDl);
-                    if(!_fs_.existsSync(tmpDl)){
-                        throw new Error("Information cannot be extracted from package");
-                    }
-                }*/
-
                 // create temp output folder
                 //const tmpOut = this._ctx.getWorkspace().createTempFolder("apkdl_ext_");
                 tmpOut = this._ctx.getWorkspace().createTempFolder("appdl_ext_");

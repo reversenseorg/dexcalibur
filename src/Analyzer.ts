@@ -1514,7 +1514,9 @@ export default class Analyzer
             }
 
 
-            file = await this.context.getProjectDB().save(file) as ModelFile;
+            if(this.context._createMode){
+                file = await this.context.getProjectDB().save(file) as ModelFile;
+            }
         }else{
             try{
                 res = await fparser.fromBuffer(input, 0, { encoding: this.encoding, print:false });
@@ -1557,11 +1559,13 @@ export default class Analyzer
                 Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
             }finally {
                 try{
-                    file = await this.context.getProjectDB().save(file) as ModelFile;
-                    if(res!=null && res.ok!=null){
-                        await this.saveParsedObject(res.ok, vCtx, ffmt, fparser, file);
-                    }else{
-                        Logger.error(`Result from parsing of "${file.getRelativePath()}" cannot be saved.`);
+                    if(this.context._createMode){
+                        file = await this.context.getProjectDB().save(file) as ModelFile;
+                        if(res!=null && res.ok!=null){
+                            await this.saveParsedObject(res.ok, vCtx, ffmt, fparser, file);
+                        }else{
+                            Logger.error(`Result from parsing of "${file.getRelativePath()}" cannot be saved.`);
+                        }
                     }
                 }catch (e){
                     Logger.error(e.stack);

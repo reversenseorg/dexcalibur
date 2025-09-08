@@ -1497,7 +1497,10 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 );
 
             } catch (err) {
-                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot attach the device to the organization.", err);
+                $.sendErrorAfterException(pRes,
+                    ORG_WEB_API.name,
+                    "Cannot download application from store. Please verify the package ID or contact the support.",
+                    err);
             }
         }
     }

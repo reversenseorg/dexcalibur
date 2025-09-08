@@ -574,6 +574,23 @@ export class ProjectDatabase implements IFileDatabase {
         return obj;
     }
 
+
+    async saveManyBatch(pObjects:INode[], pNodeType:NodeInternalType, pSize = 1000):Promise<void> {
+        const coll = this.getCollectionOf(pNodeType);
+        let batch:any[];
+
+        for(let i=0, len=pObjects.length; i<Math.floor(len/pSize)+1; i++){
+            batch = pObjects.slice(i*pSize, (i+1)*pSize);
+
+            if(batch.length>0){
+                //Logger.info(`Save insert batch ${i*pSize} => ${(i+1)*pSize} (total=${len}, batch size: ${batch.length})`);
+                await (this.getCollectionOf(pNodeType) as MongodbDbCollection).updateMany(
+                    batch, { replace:false, upsert:true }
+                );
+            }
+        }
+
+    }
     /*
      * To save an object to corresponding collection
      *
@@ -720,25 +737,33 @@ export class ProjectDatabase implements IFileDatabase {
         ];
 
 
-        let result:IDbIndex = new InMemoryDbIndex();
+        let result:INode[];
         let req:MerlinSearchRequest;
+        let coll:MongodbDbCollection;
+        let n:INode[];
+        let t1:number, t2:number;
         for(let i=0; i<types.length; i++){
 
             req = MerlinSearchRequest.fromCondition(this._project.merlin, types[i], "@"+pTag.getUID(), { not:false });
-
-            result = new InMemoryDbIndex();
-            result = await (pDB.getDataSetFromNodeType(types[i].getType()) as InMemoryDbCollection).search(
+            coll = (this.getCollectionOf(types[i].getType()) as MongodbDbCollection);
+            //result = new InMemoryDbIndex();
+            result = (await (pDB.getDataSetFromNodeType(types[i].getType()) as InMemoryDbCollection).search(
                 req,
-                result
-            );
+                new InMemoryDbIndex()
+            )).getAsList() as INode[];
+
 
             if(types[i].getType()!=ModelStringValue.TYPE.getType()){
                 try{
-                    Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
-                    if(result.size()>0){
-                        await ((this.getCollectionOf(types[i].getType()) as MongodbDbCollection).updateMany(result.getAsList(), {
-                            upsert:true
-                        }));
+                    Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.length}][tag=${pTag.getUID()}]`);
+                    if(result.length>0){
+                        t1 = Util.now();
+                        for(let k=0, len=result.length;k<Math.floor(len/100)+1;k++){
+                            await coll.updateMany(result.slice(k*100,(k+1)*100), {
+                                upsert:true
+                            });
+                        }
+                        Logger.info(`[PROJECT DB] Finished to save in ${Util.now()-t1} s`);
                     }
                 }catch (e){
                     Logger.error("[PROJECT DB] Nodes cannot be saved : "+e.message);
@@ -746,9 +771,11 @@ export class ProjectDatabase implements IFileDatabase {
             }else{
 
                 try{
-                    Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
-                    if(result.size()>0){
-                        await this.updateStringValue(result.getAsList());
+                    Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.length}][tag=${pTag.getUID()}]`);
+                    if(result.length>0){
+                        t1 = Util.now();
+                        await this.updateStringValue(result as ModelStringValue[]);
+                        Logger.info(`[PROJECT DB] Finished to save in ${Util.now()-t1} s`);
                     }
                 }catch (e){
                     Logger.error("[PROJECT DB] Strings cannot be saved : "+e.message);
@@ -921,7 +948,7 @@ export class ProjectDatabase implements IFileDatabase {
                 batch = Object.values(insert).slice(i*100, (i+1)*100);
 
                 if(batch.length>0){
-                    Logger.info(`Save insert batch ${i*100} => ${(i+1)*100} (total=${ctrIn}, batch size: ${batch.length})`);
+                    // Logger.info(`Save insert batch ${i*100} => ${(i+1)*100} (total=${ctrIn}, batch size: ${batch.length})`);
                     await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
                         batch, { replace:false, upsert:true }
                     );
