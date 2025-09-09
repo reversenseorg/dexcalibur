@@ -322,6 +322,7 @@ export class MerlinUnserializer {
                 case "ios":
                     req = new MerlinIosRule(options)
                     break;
+                case "*":
                 default:
                     req = new MerlinRule(
                         pObject.os==null ? OperatingSystem.NONE : pObject.os as OperatingSystem,

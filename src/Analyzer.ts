@@ -1467,7 +1467,10 @@ export default class Analyzer
             location: vCtx.location,
         });
 
-        file.setScope(vCtx.scope);
+        if(vCtx.scope!=null){
+            file.setScope(vCtx.scope);
+        }
+
 
         let input = _fs_.readFileSync(pFilePath);
 
@@ -1513,8 +1516,7 @@ export default class Analyzer
                 err.push(new Error("Stream not parsable : format not supported."));
             }
 
-
-            if(this.context._createMode){
+            if(this.context._createMode && (file.getScope()!=null)){
                 file = await this.context.getProjectDB().save(file) as ModelFile;
             }
         }else{
@@ -1550,23 +1552,32 @@ export default class Analyzer
                     });
                 }
 
-                if(r!=null && r.__===NodeInternalType.RESOURCE){
+                if(r!=null && r.__===NodeInternalType.RESOURCE && (file.getScope()!=null)){
                     r.value = NodeUtils.asNodeRef(file);
                     r._uid = file.getRelativePath();
                 }
             }catch (e){
                 err.push(e);
-                Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
+                if(file.getScope()!=null){
+                    Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
+                }else{
+                    Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
+                }
+
             }finally {
                 try{
-                    if(this.context._createMode){
-                        file = await this.context.getProjectDB().save(file) as ModelFile;
-                        if(res!=null && res.ok!=null){
-                            await this.saveParsedObject(res.ok, vCtx, ffmt, fparser, file);
-                        }else{
-                            Logger.error(`Result from parsing of "${file.getRelativePath()}" cannot be saved.`);
+                    if(this.context._createMode) {
+                        if (file.getScope() != null) {
+                            file = await this.context.getProjectDB().save(file) as ModelFile;
                         }
                     }
+
+                    if(res!=null && res.ok!=null){
+                        await this.saveParsedObject(res.ok, vCtx, ffmt, fparser, file);
+                    }else{
+                        Logger.error(`Result from parsing of "${file.getRelativePath()}" cannot be saved.`);
+                    }
+
                 }catch (e){
                     Logger.error(e.stack);
                     err.push(e);
@@ -1643,9 +1654,9 @@ export default class Analyzer
                 if((vObj as ModelFile).getUID()==null){
                     if(vCtx.scope!=null){
                         (vObj as ModelFile).setScope(vCtx.scope);
-                    }else{
+                    }/*else{
                         (vObj as ModelFile).setScope(this.context.getDataAnalyzer().getScope("PKG"));
-                    }
+                    }*/
                 }
 
                 this.tempDB.files.addEntry((vObj as ModelFile).getUID(), vObj); // cls.fqcn
@@ -1669,17 +1680,25 @@ export default class Analyzer
                 case NodeInternalType.PACKAGE:
                     (vCtx.self as ModelPackage).childAppend(vObj);
                     // update
-                    await this.context.getProjectDB().save(vCtx.self,null, ['name','sname','meta','alias','scope','children','tags']);
+                    if(this.context._createMode){
+                        await this.context.getProjectDB().save(vCtx.self,null, ['name','sname','meta','alias','scope','children','tags']);
+                    }
                     break;
             }
 
         }
 
-        if(isNode){
-            if(vObj.getUID()==null|| vObj.getUID()==""){
-                vObj = this.context.getProjectDB().generateIncrementalNodeUUID(vObj)
+        if(isNode && this.context._createMode){
+            if(vObj.__===NodeInternalType.FILE){
+                if( vObj.getUID()!=null && vObj.getScope()!=null){
+                    await this.context.getProjectDB().save(vObj,null,updates);
+                }
+            }else{
+                if(vObj.getUID()==null|| vObj.getUID()==""){
+                    vObj = this.context.getProjectDB().generateIncrementalNodeUUID(vObj)
+                }
+                await this.context.getProjectDB().save(vObj,null,updates);
             }
-            await this.context.getProjectDB().save(vObj,null,updates);
         }
 
         if(!prevent){

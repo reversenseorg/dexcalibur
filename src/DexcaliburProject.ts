@@ -2621,7 +2621,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
 
         // file analysis : icon detection, strings, etc ...
-        const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');
+        const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');;
 
         /*
          ====== [SCAN CODE OF TARGET PACKAGE] ======
@@ -2645,7 +2645,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // TODO : if dirty, restore data
 
         if(this.platform.getLocalPath()!=null){
-            await this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM);
+            await this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM, );
             this.getWorkflow().pushStatus(new StatusMessage(11, "Analyzing byte arrays from target platform"))
             this.analyze.updateDataBlock();
             this.getWorkflow().pushStatus(new StatusMessage(12, "Tagging discovered elements"));

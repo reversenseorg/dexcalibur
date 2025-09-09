@@ -357,19 +357,11 @@ export default class ModelFile implements INode,IPersistent {
      * @private
      */
     private _computePathRelativeToScope(): string {
-        /*const sp = _path_.normalize(this.scope.getBasePath());
-        if(OS.platform()==='win32'){
-            const rp = this.path.substr(sp.length);
-            rp.split(_path_.sep);
-            if(this.scope.)
-            return rp.split(_path_.sep).join('')
-
-        }else{*/
-            return this.path.substr(this.scope.getBasePath().length);
-       // }
+        return this.path.substr(this.scope.getBasePath().length);
     }
 
     setScope(pScope: DataScope): void {
+        if(pScope == null) return;
         this.scope = pScope;
         this._r = this._computePathRelativeToScope(); // path.substr( pScope.getBasePath().length);
         this.generateUID();

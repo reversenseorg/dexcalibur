@@ -240,28 +240,34 @@ export default class Util {
     static async forEachFile(pPath:string ,pCallback:(vAbsPath:string, vFilename:string, vIsDir:boolean, vCtx:any)=>Promise<boolean> ,isDir:boolean=false, pCtx:any = {}):Promise<any>{
         let dir:string[]=null, elemnt:string=null, stat:fs.Stats;
 
-        try{
             stat=fs.lstatSync(pPath);
 
             if(isDir || stat.isDirectory()){
                 dir=fs.readdirSync(pPath);
                 for(let i in dir){
-                    elemnt = _path_.join(pPath,dir[i]);
-                    if(fs.lstatSync(elemnt).isDirectory()){
-                        if(await (pCallback)(elemnt, dir[i], true, pCtx)){
-                            await this.forEachFile( elemnt, pCallback, true, pCtx);
+                    try{
+                        elemnt = _path_.join(pPath,dir[i]);
+                        if(fs.lstatSync(elemnt).isDirectory()){
+                            if(await (pCallback)(elemnt, dir[i], true, pCtx)){
+                                await this.forEachFile( elemnt, pCallback, true, pCtx);
+                            }
+                        }else{
+                            // TODO : add additional test on file extension
+                            await (pCallback)(elemnt, dir[i], false, pCtx);
                         }
-                    }else{
-                        // TODO : add additional test on file extension
-                        await (pCallback)(elemnt, dir[i], false, pCtx);
+                    }catch(err){
+                        Logger.error(err)
                     }
+
                 }
             }else{
-                await pCallback(pPath, _path_.basename(pPath), false, pCtx);
+                try {
+                    await pCallback(pPath, _path_.basename(pPath), false, pCtx);
+                }catch (e){
+                    Logger.error(e.stack)
+                }
+
             }
-        }catch(err){
-            Logger.error(err)
-        }
 
     }
 
