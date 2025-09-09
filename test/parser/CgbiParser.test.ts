@@ -60,38 +60,18 @@ describe('CgbiParser', function() {
     });
 
     describe('CgbiParser::parse PNG', function() {
-
-        /*
         let b:Buffer;
 
         // @ts-ignore
-        b = _fs_.readFileSync(_path_.join(Util.__dirname(import.meta.url),"../files/AppIcon.cgbi.encoded.png"));// _fs_.readFileSync("./files/XmlPlist.plist");
-
-        let b2 = _fs_.readFileSync(
-            // @ts-ignore
-            _path_.join(Util.__dirname(import.meta.url),"../files/AppIcon.repaired.png"));// _fs_.readFileSync("./files/XmlPlist.plist");
+        b = _fs_.readFileSync(_path_.join(Util.__dirname(import.meta.url),"../files/vk_0.png"));// _fs_.readFileSync("./files/XmlPlist.plist");
 
         it('Buffer is parsed', async function () {
 
             const parser = new Cgbi.Parser();
-            const vres = await parser.fromBuffer(b, 0);
-            const vres2 = await parser.fromBuffer(b2, 0);
+            const vres = await parser.fromBuffer(b, 0, {encoding:'binary',print:true, preserveExtra:true});
 
-            //const pngBuffer = await (parser.encodeAsPng(b, 0))
-
-
-            //console.log(vres.ok);
-            console.log("---- OUTPUT ----");
-            vres.ok.chunks.map(c => {
-                console.log(`${c.type} ${"0x"+c.crc.toString(16)} ${c.length}`);
-            });
-
-            console.log("---- REPAIRED ----");
-            vres2.ok.chunks.map(c => {
-                console.log(`${c.type} ${"0x"+c.crc.toString(16)} ${c.length}`);
-            })
-            //expect(vres.ok.getData('CFBundleIcons').CFBundlePrimaryIcon.CFBundleIconName).to.be.equal("AppIcon");
-        });*/
+            console.log(vres);
+        });
     });
 
       

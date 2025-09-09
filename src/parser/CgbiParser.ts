@@ -57,7 +57,7 @@ export namespace Cgbi {
         };
 
         static CHUNK_LEN_TOO_HIGH = ()=>{
-            return new ParserException(`The PNG header is mandatory.`,
+            return new ParserException(`The length of chunk is too high.`,
                 ParserException.ERR.CHUNK_LEN_TOO_HIGH );
         };
 
@@ -76,6 +76,7 @@ export namespace Cgbi {
 
     export interface ParserOptions extends IParserOptions {
         print:boolean;
+        preserveExtra?:boolean;
     }
 
     export class Parser implements IMagicParser<ModelResource<ModelFile>> {
@@ -126,7 +127,7 @@ export namespace Cgbi {
          * @param {number} pOffset
          * @param pEOL
          */
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false}):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, preserveExtra:false}):Promise<Results> {
 
 
             return await this.parse(pBuffer, pOffset, pOptions);
@@ -145,7 +146,7 @@ export namespace Cgbi {
          * @param pBuffer
          * @param pOffset
          */
-        parse(pBuffer:Uint8Array, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false}):Results {
+        parse(pBuffer:Uint8Array, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, preserveExtra:false }):Results {
             const res = {ok:null, invalid:[]};
             let offset = pOffset;
             let chunk:Chunk, data:Uint8Array;
@@ -173,6 +174,24 @@ export namespace Cgbi {
             let startAt = 0;
 
             while (offset < pBuffer.length) {
+
+                if(chunk!=null && chunk.type=="IEND"){
+                    if(pOptions.preserveExtra===true){
+
+                        mfc = new ModelFileSection(offset, '_extra');
+                        mfc.setData(pBuffer.slice(offset, pBuffer.length));
+                        mfc.setLen(pBuffer.length-offset);
+                        //mfc.addMeta({ type:MetadataType.PARAM, key:'checksum.crc', value:  chunk.crc });
+
+                        mf.appendChunk(mfc);
+
+                        file.chunks.push(chunk);
+                        break;
+                    }else{
+                        break;
+                    }
+                }
+
                 chunk = {
                     offset: -1,
                     length: -1,
@@ -207,6 +226,7 @@ export namespace Cgbi {
                 chunk.type = Struct.unpack("ssss", pBuffer as Buffer, offset).join('');
                 offset += 4;
 
+
                 if((offset + chunk.length > pBuffer.length)){
                     res.invalid.push( ParserException.CHUNK_LEN_TOO_HIGH() );
                     return res;
@@ -240,6 +260,7 @@ export namespace Cgbi {
                             // don't add chunk,  concatenate each chunk of compressed IDAT
                             continue;
                         }else{
+                            // continue to push chunk
                             // console.log(`Not modified chunk: type=${chunk.type} len=${chunk.length} crc=${chunk.crc} data=Buffer[${chunk.data.length}]`);
                         }
                         break;
@@ -255,7 +276,7 @@ export namespace Cgbi {
                             mfc = new ModelFileSection(echunk.offset, echunk.type);
                             mfc.setData(echunk.data);
                             mfc.setLen(echunk.length);
-                            mfc.addMeta({ type:MetadataType.PARAM, key:'checksum.crc', value: echunk.crc });
+                            mfc.addMeta({type: MetadataType.PARAM, key: 'checksum.crc', value: echunk.crc});
 
                             mf.appendChunk(mfc);
 
@@ -263,8 +284,8 @@ export namespace Cgbi {
 
                             mfc = new ModelFileSection(chunk.offset, chunk.type);
                             mfc.setData(chunk.data);
-                            mfc.setLen(chunk.length);
-                            mfc.addMeta({ type:MetadataType.PARAM, key:'checksum.crc', value:  chunk.crc });
+                            mfc.setLen(12);
+                            mfc.addMeta({type: MetadataType.PARAM, key: 'checksum.crc', value: chunk.crc});
 
                             mf.appendChunk(mfc);
 
