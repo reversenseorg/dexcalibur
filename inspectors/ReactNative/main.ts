@@ -74,7 +74,7 @@ var ReactNativeGenericInspector:InspectorFactory = new InspectorFactory({
                 let ctx = pEvent.getContext();
                 
 
-                let app = ctx.find.file("@file.type.ELF").filter("@");
+                let app = ctx.find.file("@data.type.ELF").filter("@");
                 
             `,
             lang: "ts"
