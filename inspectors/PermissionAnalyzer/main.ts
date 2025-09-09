@@ -1079,8 +1079,8 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
                         if(AndroidResource.isReference(attr as string)){
                             attrVal = pEvent.getContext().getProjectDB().getAppResource(attr as string);
                             if(attrVal != null){
-                                if((attrVal as ModelResource).hasStringValue()){
-                                    attr = (attrVal as ModelResource).value.value;
+                                if((attrVal as ModelResource<any>).hasStringValue()){
+                                    attr = (attrVal as ModelResource<any>).value.value;
                                 }
                             }else{
                                 attr = null;
@@ -1104,7 +1104,9 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
         },
         "app.permission.new": function(pEvent:BusEvent<any>):any{
 
-                let i = pEvent.data.name.lastIndexOf('.');
+                if(pEvent.data.obj==null) return;
+
+                let i = (pEvent.data.obj as AndroidPermission).name.lastIndexOf('.');
                 let p=false;
 
                 // scan android built-in permissions
@@ -1115,10 +1117,8 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
                         return;
                     }
                 }
-        
-                if(p===false){
-                    pEvent.data.setCustom(true);
-                }
+
+                (pEvent.data.obj as AndroidPermission).setCustom(true);
             }
     }
 });
