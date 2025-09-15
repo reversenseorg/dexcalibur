@@ -18,11 +18,12 @@ import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputTyp
 import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import {InputTemplate, NewProjectFlowType} from "../project/ProjectManager.js";
 import {SecurityZone} from "../security/SecurityZone.js";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {UploadedResource} from "../common/UploadedResource.js";
 import {EngineNode, NodePurpose} from "../core/EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import {NodeState} from "../core/EngineNodeManager.js";
+import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -931,26 +932,62 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
 
 PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
-    '/logs',
+    '/logs/:oid/:aid/:prj',
     {
-        'get':  async (req:DelegateRequest, res:DelegateResponse)=>{
+        'get':  async (pReq:DelegateRequest, pRes:DelegateResponse)=>{
 
-            let $:WebServer = req.dxc.$;
-
+            let $:WebServer = pReq.dxc.$;
             try {
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                let aid = pReq.params.aid;
+                let pid = pReq.params.prj;
                 let size=1000;
-                if(req.query.size!=null){
-                    size = parseInt(req.query.size as string, 10);
+                if(pReq.query.size!=null){
+                    size = parseInt(pReq.query.size as string, 10);
                 }
-                /*$.sendSuccess(res, NodeUtils.toJsonObject(
-                    await $.context.getEngineDB().getGlobalLogs((!Number.isNaN(size)) ? size : 1000)
-                ));*/
-                $.sendSuccess(res, NodeUtils.serialize(
-                    await $.context.getEngineDB().getGlobalLogs((!Number.isNaN(size)) ? size : 1000)
-                ));
+
+                if(aid=='-'){
+                    $.sendSuccess(pRes, NodeUtils.serialize(
+                        await $.context.getOrgManager().getOrganizationLogs(pReq.user, org)
+                    ));
+                    return;
+                }
+
+                aid = ApplicationUnit.TYPE.getPrimaryKey().sanitize(aid).getValue();
+                const app = await $.context.getOrgManager()
+                                                        .getApplicationUnit(pReq.user,aid);
+
+                if(pid=='-'){
+                    $.sendSuccess(pRes, NodeUtils.serialize(
+                        await $.context.getOrgManager().getApplicationLogs(pReq.user, app)
+                    ));
+                    return;
+                }
+
+                pid = DexcaliburProject.TYPE.getPrimaryKey().sanitize(pReq.params.prj).getValue();
+                if(app.hasRelease(pid)){
+                    $.sendSuccess(pRes, NodeUtils.serialize(
+                        await $.context.getEngineDB().getGlobalLogs(
+                            (!Number.isNaN(size)) ? size : 1000,
+                            0, {
+                                projects: [pid],
+                                sort: 'desc'
+                            })
+                    ));
+                    return;
+                }else{
+                    throw new Error("Cannot satisfy options.");
+                }
             }catch(err){
-                Logger.error("[API][PROJECT MGT] Unable to verify availability of the value: "+err.message+"\n"+err.stack);
-                $.sendError( res, err.message);
+                Logger.error("[API][PROJECT MGT] Cannot retrieve logs :\n"+err.stack);
+                $.sendErrorAfterException(
+                    pRes, PROJECT_MGT_WEB_API.name,
+                    "Cannot retrieve logs.",
+                    err, {cause: err.message});
             }
         }
     }

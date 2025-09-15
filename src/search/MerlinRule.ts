@@ -1,7 +1,7 @@
 import {MerlinSearchAPI} from "./MerlinSearchAPI.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {MerlinError, MerlinSearchRequest, Operation, OperationType, TaintOperationArgs} from "./MerlinSearchRequest.js";
-import {OperatingSystem} from "../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {FinderResult} from "./FinderResult.js";
 import {BusSubscriber} from "../Bus.js";
 import {NodeType} from "@dexcalibur/dexcalibur-orm";

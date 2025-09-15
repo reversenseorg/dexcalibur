@@ -4,7 +4,7 @@ import * as Log from "../Logger.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {UserGroup} from "../user/acl/common/UserGroup.js";
 import {ApplicationUnit, ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
 import {UserAccount} from "../user/UserAccount.js";

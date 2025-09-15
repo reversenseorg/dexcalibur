@@ -12,7 +12,7 @@ import {MerlinAndroidRule} from "./MerlinAndroidRule.js";
 import {MerlinFlutterRule} from "./MerlinFlutterRule.js";
 import {MerlinIosRule} from "./MerlinIosRule.js";
 import {MerlinRule, MerlinRuleOptions, SearchOptions} from "./MerlinRule.js";
-import {OperatingSystem} from "../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {MerlinUnserializerException} from "./error/MerlinUnserializerException.js";
 import {MerlinSearchRequestException} from "./error/MerlinSearchRequestException.js";
 import ModelStringValue from "../ModelStringValue.js";
@@ -325,7 +325,7 @@ export class MerlinUnserializer {
                 case "*":
                 default:
                     req = new MerlinRule(
-                        pObject.os==null ? OperatingSystem.NONE : pObject.os as OperatingSystem,
+                        (pObject.os==null||pObject.os=='*') ? OperatingSystem.ANY : pObject.os as OperatingSystem,
                         options
                     )
                     break;
@@ -343,13 +343,8 @@ export class MerlinUnserializer {
                     req.request = new MerlinSearchRequest(null, nodeType, reqOpers);
 
                 }catch(errNodeType:any){
-                    switch (pObject.os){
-                        case "android":
-                        case "flutter":
-                        case "ios":
-                            req.request = req.getRequestByNode(pObject.request, reqOpts);
-                            break;
-                    }
+                    // i
+                    req.request = req.getRequestByNode(pObject.request, reqOpts);
 
 
                     if(req.request==null){

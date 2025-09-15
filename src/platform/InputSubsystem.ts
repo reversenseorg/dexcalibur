@@ -1,7 +1,7 @@
 import {Nullable} from "../core/IStringIndex.js";
 import {InputDeviceType} from "./kernels/common/InputDeviceType.js";
 import {LinuxBusType} from "./kernels/linux/LinuxInputEventCodes.js";
-import {OperatingSystem} from "./OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {KernelInfoFactory} from "./kernels/common/KernelFactory.js";
 
 

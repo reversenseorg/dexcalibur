@@ -1,4 +1,4 @@
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {SessionException} from "./SessionException.js";
 import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";

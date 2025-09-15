@@ -14,9 +14,6 @@ import DexcaliburProject from "./DexcaliburProject.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import Uploader from "./Uploader.js";
 import PlatformManager from "./platform/PlatformManager.js";
-import InspectorManager from "./InspectorManager.js";
-import Inspector from "./Inspector.js";
-import {ConnectorFactory} from "./ConnectorFactory.js";
 import DeviceManager from "./DeviceManager.js";
 import {Device} from "./Device.js";
 import * as Log from './Logger.js';
@@ -24,7 +21,6 @@ import StatusMessage from "./StatusMessage.js";
 import Util from "./Utils.js";
 import {Intent, IntentCommandFactory} from "./IntentFactory.js";
 import {Workflow} from "./Workflow.js";
-import {ValidationCapable} from "./Validator.js";
 import {Settings} from "./Settings.js";
 import {UserSession} from "./user/session/UserSession.js";
 import {UserService} from "./user/UserService.js";
@@ -63,6 +59,7 @@ import {WEBHOOK_WEB_API} from "./webapi/webhook.web.api.js";
 import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {MARKETPLACE_WEB_API} from "./webapi/mkplace.web.api.js";
+import {ValidationCapable} from "@dexcalibur/dexcalibur-orm";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -148,10 +145,6 @@ export class MimeHelper
     }
 }
 
-
-interface ValidationCapableCtrl {
-    [name:string] :ValidationCapable
-}
 /**
  * Class representing Dexcalibur's web server.
  *
@@ -198,7 +191,7 @@ export default class WebServer
 
     private _defaultHandler:((req:DelegateRequest,res:DelegateResponse)=>any) = ((vReq,vRes)=>{});
 
-    validators:ValidationCapableCtrl = {};
+    validators:Record<string, ValidationCapable> = {};
 
     guiCfgs:WebGuiConfiguration[] = [];
 

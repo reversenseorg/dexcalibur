@@ -1,6 +1,6 @@
 import {ABI, AbiManager, InstructionSet} from "../../binary/ABI.js";
 import {AbiException} from "../../errors/AbiException.js";
-import {OperatingSystem} from "../../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Architecture} from "../../Architecture.js";
 import {GenericSystemProfile} from "../../device/profile/GenericSystemProfile.js";
 import {NosyProfile} from "../../device/profile/NosyProfile.js";

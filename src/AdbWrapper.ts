@@ -20,7 +20,7 @@ import {
     StrategyTrigger
 } from "./PrivilegedExecutionStrategy.js";
 import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
-import {OperatingSystem} from "./platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import AndroidDeviceProfile from "./android/profiles/AndroidDeviceProfile.js";
 import {NosyProfile} from "./device/profile/NosyProfile.js";
 import {IProfile} from "./device/profile/IProfile.js";

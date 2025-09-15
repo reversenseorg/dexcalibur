@@ -14,7 +14,7 @@ import {Auditable} from "../../../Auditable.js";
 import {GlobalAccessControl} from "../rbac/GlobalAccessContol.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import {SecurityZone} from "../../../security/SecurityZone.js";
-import {ValidationRule} from "../../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {CryptoUtils} from "../../../CryptoUtils.js";
 
 export type UserGroupUUID = string;

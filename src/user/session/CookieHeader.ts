@@ -1,4 +1,4 @@
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {Cookie, CookieOptions} from "./Cookie.js";
 
 

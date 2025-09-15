@@ -1,5 +1,5 @@
 import {Device, DeviceOptions} from "../Device.js";
-import {OperatingSystem} from "../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 
 export interface AndroidDeviceOptions extends DeviceOptions{
 

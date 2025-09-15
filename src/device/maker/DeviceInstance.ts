@@ -10,7 +10,7 @@ import {
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {OperatingSystem} from "../../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import Platform from "../../platform/Platform.js";
 import DeviceProfile from "../DeviceProfile.js";
 import DeviceProfileFactory from "../DeviceProfileFactory.js";

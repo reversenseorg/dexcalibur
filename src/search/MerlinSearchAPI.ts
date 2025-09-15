@@ -20,7 +20,7 @@ import ModelCall from "../ModelCall.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {IAnalyzerUnit} from "../analyzer/IAnalyzerUnit.js";
-import {OperatingSystem} from "../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {NodeInternalType, Nullable}
   from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../core/CoreDebug.js";
@@ -318,6 +318,7 @@ export class MerlinSearchAPI<T>
       case NodeInternalType.ANDROID_PERM: return "permission";
       case NodeInternalType.SYSCALL: return "syscall";
       case NodeInternalType.CALL: return "call";
+      case NodeInternalType.RESOURCE: return "resource";
       default: throw new Error("MerlinSearchAPI : unknow node type");
     }
   }

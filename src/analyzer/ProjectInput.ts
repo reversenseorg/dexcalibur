@@ -1,5 +1,5 @@
 import {Nullable} from "../core/IStringIndex.js";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {SecurityZone} from "../security/SecurityZone.js";
 
 

@@ -31,7 +31,6 @@ import {AppIcon} from "./AppIcon.js";
 import {ApkPackage} from "./android/ApkPackage.js";
 import {Workflow} from "./Workflow.js";
 import StatusMessage from "./StatusMessage.js";
-import {ValidationRule} from "./Validator.js";
 import ModelFile from "./ModelFile.js";
 import {CodeLocation, ModelLocation} from "./ModelLocation.js";
 import {Settings} from "./Settings.js";
@@ -51,7 +50,7 @@ import {IAppAnalyzer} from "./analyzer/IAppAnalyzer.js";
 import {TagManager} from "./tags/TagManager.js";
 import {DexcaliburProjectException} from "./errors/DexcaliburProjectException.js";
 import {Architecture} from "./Architecture.js";
-import {OperatingSystem, OperatingSystemFlavor} from "./platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {ProjectState} from "./ProjectState.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
@@ -74,7 +73,7 @@ import {
     NodePropertyState,
     NodeType,
     Tag,
-    TagUUID
+    TagUUID, ValidationRule
 } from "@dexcalibur/dexcalibur-orm";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
@@ -136,44 +135,14 @@ export interface DexcaliburProjectOptions {
     pkgAnalyzer?: PackageAnalyzerOptions
 }
 
-/**
- * To represent an instance of a running application.
- * 
- * It can be used in order to pause/resume an application running on a remote device. 
- * 
- * @param {int} pid The Remote PID of the application 
- * @constructor
- */
-function ApplicationInstance(pid){
-    this.pid = null;
+
+export enum OperatingSystemFlavor {
+    ANDROID= 'android',
+    WEB_OS='webos',
+    FIRE_OS='fireos',
 }
 
-interface MetadataMap  {
-    [name:string] :Metadata
-}
 
-interface DigestSet {
-    [type:string] :string
-}
-
-/*
-export interface IProjectStateChange {
-    old: ProjectState,
-    new: ProjectState,
-    project: DexcaliburProject
-}
-*/
-
-
-/*
-const DexcaliburProjectValidator = new Validator({
-    'uid': [
-        ValidationRule.newRegexpAssert(/^[a-zA-Z_-\s]+$/),
-    ],
-    'nofrida': [
-        ValidationRule.newPinklistAssert(['true','false'])
-    ]
-});*/
 
 /**
  * @class
@@ -199,7 +168,10 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
     static TYPE:NodeType = new NodeType('project', NodeInternalType.PROJECT, [
         //(new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("uid"))
+            .type(DbDataType.STRING)
+            .addValidationRule(ValidationRule.uuid())
+            .key(DbKeyType.PRIMARY),
         (new NodeProperty("pkg")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
         (new NodeProperty("engineVersion")).type(DbDataType.STRING),
@@ -1763,23 +1735,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
 
         this.platform = newPlatform;
-        // select platform
-        /*
-        switch(pName){
-            case 'dev':
-                this.platform = this.device.getPlatform();
-                break;
-            case 'min':
-                this.platform = pm.getFromAndroidApiVersion(this.application.getMinApiVersion());
-                break;
-            case 'max':
-                this.platform = pm.getFromAndroidApiVersion(this.application.getTargetApiVersion());
-                break;
-            default:
-
-                this.platform = pm.getPlatform(pName);
-                break;
-        }*/
 
         // check if platform is installed
         if(this.platform == null){

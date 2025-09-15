@@ -1,5 +1,5 @@
 import {KernelInfo} from "./Kernel.js";
-import {OperatingSystem} from "../../OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Architecture} from "../../../Architecture.js";
 import {Nullable} from "../../../core/IStringIndex.js";
 import {LinuxKernelInfo_aarch64_v4} from "../linux/LinuxKernel.js";

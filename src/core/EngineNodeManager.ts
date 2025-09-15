@@ -13,7 +13,7 @@ import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {ResourceThresholds} from "../billing/BusinessPlan.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {Subject} from "rxjs";
 import {EngineNodeManagerWorker} from "./controller/EngineNodeManagerWorker.js";

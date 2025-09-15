@@ -45,15 +45,16 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {Smali} from "./parser/SmaliParser.js";
-import {OperatingSystem} from "./platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {IParser, IResults} from "./parser/IParser.js";
 import {DataFormatManagerException} from "./formats/error/DataFormatManagerException.js";
 import ModelResource from "./ModelResource.js";
-import {ValidationRule} from "./Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import RadareHelper from "./R2Helper.js";
 import {mergeMap} from "rxjs";
 import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
 import {DataLocation, DataLocationType} from "./DataLocation.js";
+import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1471,14 +1472,13 @@ export default class Analyzer
             file.setScope(vCtx.scope);
         }
 
-
         let input = _fs_.readFileSync(pFilePath);
 
         if(fparser == null){
             try{
                 if(ffmt!=null){
                     if(ffmt===""){
-                        candidateParsers = await this.context.getDataFormatMgr().getParserBySignature<any>(input, 0, {encoding:'binary'});
+                        candidateParsers = await this.context.getDataFormatMgr().getParserBySignature<any>(input, 0, {encoding:'binary', raw:true});
                     }else{
                         candidateParsers = this.context.getDataFormatMgr().getParserByFileExtension<any>(ffmt);
                     }
@@ -1521,13 +1521,17 @@ export default class Analyzer
             }
         }else{
             try{
-                res = await fparser.fromBuffer(input, 0, { encoding: this.encoding, print:false });
+                res = await fparser.fromBuffer(input, 0, { encoding: this.encoding, print:false, raw:false });
                 if(res.ok==null){
                     Logger.error(`[ANALYZER] File ${pFilename} cannot analyzed. Cause : ${res.invalid.length>0 ? res.invalid[0].msg : '?' }`);
                     err = err.concat(res.invalid);
                     this._errors[pFilePath] = err;
                     return;
                 }else{
+                    if(res.strings!=null){
+                        // import strings
+                        this.updateStringsDB(res.strings);
+                    }
                     file.type = ffmt;
                 }
 
@@ -1550,10 +1554,13 @@ export default class Analyzer
                     f.tags.map(x => {
                         if(file.tags.indexOf(x)==-1) file.tags.push(x);
                     });
+                    vCtx.file?.tags.map(x => {
+                        if(file.tags.indexOf(x)==-1) file.tags.push(x);
+                    });
                 }
 
                 if(r!=null && r.__===NodeInternalType.RESOURCE && (file.getScope()!=null)){
-                    r.value = NodeUtils.asNodeRef(file);
+                    r.setFileLocation(file); // = NodeUtils.asNodeRef(file);
                     r._uid = file.getRelativePath();
                 }
             }catch (e){
@@ -1583,12 +1590,6 @@ export default class Analyzer
                     err.push(e);
                 }
             }
-
-
-
-
-
-
         }
 
         this._errors[pFilePath] = err;
@@ -1774,10 +1775,10 @@ export default class Analyzer
         let c:number = 0;
         await Util.forEachFile(pPath,async (vPath:string, vFile:string, vIsDir:boolean, vCtx:any):Promise<boolean> =>{
 
-            if(vIsDir){
-                vCtx = await this.context.getAppAnalyzer().getPathContext(vPath, vFile, vIsDir, vCtx);
-                vCtx.location = pLocation;
+            vCtx = await this.context.getAppAnalyzer().getPathContext(vPath, vFile, vIsDir, vCtx);
 
+            if(vIsDir){
+                vCtx.location = pLocation;
                 return true;
             }
             // parse a file and update AST
@@ -2255,6 +2256,25 @@ export default class Analyzer
         }
 
         return false;
+    }
+
+    updateStringsDB(pStrings: ModelStringValue[]):void {
+        const all:ModelStringValue[] = this.tempDB.strings.getAsList();
+        pStrings.map( vStr => {
+
+            for(let i=0, len=all.length; i<len; i++){
+                if(all[i].getUID()=== vStr.getUID()){
+                    // update, break loop return
+                    all[i].updateSource(vStr);
+                    return;
+                }
+            }
+            (this.tempDB.strings as InMemoryDbIndex).insert(vStr, false);
+
+            //cn
+            //node = vObj;
+            //evtType = "model.class.new";
+        });
     }
 }
 

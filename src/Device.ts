@@ -12,7 +12,7 @@ import {BridgeInstallOptions, BridgeSuperFactory, DeviceProfilingOptions, IBridg
 import ModelSyscall from "./ModelSyscall.js";
 import AppPackage from "./AppPackage.js";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
-import {OperatingSystem} from "./platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {Architecture} from "./Architecture.js";
 import DeviceProfileFactory from './device/DeviceProfileFactory.js';
@@ -35,7 +35,7 @@ import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {DeviceTemplate, DeviceTemplateUUID} from "./device/template/DeviceTemplate.js";
 import {DeviceTemplateFactory} from "./device/template/DeviceTemplateFactory.js";
-import {ValidationRule} from "./Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import ScreenshotSession from "./platform/ScreenshotSession.js";
 import ScreenshotAgent from "./platform/ScreenshotAgent.js";
 

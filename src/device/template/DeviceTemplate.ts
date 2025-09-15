@@ -13,7 +13,7 @@ import {RuntimeEvent} from "../../hook/RuntimeEvent.js";
 import {AccessAttribute, AccessAttributeMap} from "../../user/acl/AccessAttribute.js";
 import {Auditable} from "../../Auditable.js";
 import {DeviceAccessControl} from "../../user/acl/rbac/DeviceAccessControl.js";
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {CryptoUtils} from "../../CryptoUtils.js";
 
 

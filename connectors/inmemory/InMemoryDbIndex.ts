@@ -25,7 +25,7 @@ export default class InMemoryDbIndex implements IDbIndex
     static __type:string = "Index";
     __type = InMemoryDbIndex.__type;
     name:string = null;
-    refs:any = [];
+    refs:any[] = [];
     _db:IDatabase;
 
     merlinBackend:InMemoryMerlinBackend;
@@ -124,7 +124,7 @@ export default class InMemoryDbIndex implements IDbIndex
      * @returns {Object[]}
      * @method
      */
-    getAll():any{
+    getAll():any[]{
         return this.refs;
     }
 

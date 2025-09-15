@@ -23,7 +23,7 @@ import {InternalState} from "./InternalState.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {User} from "../User.js";
 import {HttpClient} from "./HttpClient.js";
 import Control from "../audit/common/Control.js";

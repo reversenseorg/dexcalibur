@@ -1,6 +1,6 @@
 import * as _fs_ from "fs"
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue.js";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {AbstractSettings} from "./AbstractSettings.js";
 
 export enum SslCertFmt {

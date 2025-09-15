@@ -15,7 +15,7 @@ import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import {HookManager} from "./hook/HookManager.js";
 import {EngineNodeUUID, NodePurpose, WebSocketClient} from "./core/EngineNode.js";
 import {UserAccountUUID} from "./user/UserAccount.js";
-import {ValidationRule} from "./Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {DexcaliburProjectException} from "./errors/DexcaliburProjectException.js";
 
 

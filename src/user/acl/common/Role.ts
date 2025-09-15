@@ -12,7 +12,7 @@ import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {UserAccount, UserAccountType} from "../../UserAccount.js";
 import {OrganizationUnitUUID} from "../../../organization/OrganizationUnit.js";
 import {SecurityZone} from "../../../security/SecurityZone.js";
-import {ValidationRule} from "../../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 
 export type RoleUUID = string;
 

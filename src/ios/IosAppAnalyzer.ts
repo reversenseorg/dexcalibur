@@ -16,6 +16,11 @@ import * as _glob_ from "glob";
 import {Nib} from "../parser/NibParser.js";
 import {NibArchive} from "./NibArchive.js";
 import DataScope from "../DataScope.js";
+import Util from "../Utils.js";
+import {PlistDocument} from "./PlistDocument.js";
+import {MerlinRule} from "../search/MerlinRule.js";
+import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {Endpoint} from "../network/Endpoint.js";
 
 export interface Bundle {
     name: string;
@@ -46,7 +51,9 @@ export default class IosAppAnalyzer implements IAppAnalyzer
 
     constructor(pContext:DexcaliburProject, pOptions:any = {}) {
         this.ctx = pContext;
-        this._pa = this.ctx.packageAnalyzer as IosPackageAnalyzer;
+        if(this.ctx!=null){
+            this._pa = this.ctx.packageAnalyzer as IosPackageAnalyzer;
+        }
     }
 
     /**
@@ -65,6 +72,7 @@ export default class IosAppAnalyzer implements IAppAnalyzer
             bundle: this.ctx.getTagManager().getTag("swift.bundle"),
             iabundle: this.ctx.getTagManager().getTag("ia.coreml"),
             codesign: this.ctx.getTagManager().getTag("data.type.codesign"),
+            xcprivacy: this.ctx.getTagManager().getTag("data.type.xcprivacy"),
         };
 
         if(pNewProject){
@@ -285,9 +293,36 @@ export default class IosAppAnalyzer implements IAppAnalyzer
         // todo
     }
 
+    _extractTransportsInfo(pInfo:ModelResource<PlistDocument>):Endpoint[] {
+        const list = Util.readValue(
+            pInfo.value.data,
+            "NSAppTransportSecurity.NSExceptionDomains"
+        );
+        const data:Endpoint[] =[];
+
+        Object.keys(list).map(k=>{
+            data.push(new Endpoint({
+                host: k,
+                allowInsecureHttp: (list[k].NSExceptionAllowsInsecureHTTPLoads),
+                allowInsecureHttpTemp: (list[k].NSTemporaryExceptionAllowsInsecureHTTPLoads),
+                minTLSVersion: (list[k].NSTemporaryExceptionMinimumTLSVersion),
+                includeSubdomains: (list[k].NSIncludesSubdomains),
+            }));
+        });
+
+        return data;
+    }
+
     async getPathContext(vPath:string, vFile:string, vIsDir:boolean, vCtx:any):Promise<any> {
 
         let pkg:ModelPackage;
+
+        vCtx.file = null;
+
+        if(vIsDir==false){
+            return await this.getFileContext(vPath, vFile, vCtx);
+        }
+
 
         if(vCtx.payload==null) {
             vCtx.payload = this._pa._getAppPath(this.ctx.getWorkspace().getAppDir());
@@ -371,10 +406,24 @@ export default class IosAppAnalyzer implements IAppAnalyzer
 
             // propagate tags
             vCtx.self = pkg;
-
-
         }
 
+
+        return vCtx;
+    }
+
+    /**
+     *
+     * @param vPath
+     * @param vFile
+     * @param vCtx
+     * @private
+     */
+    private async getFileContext(vPath: string, vFile: string, vCtx: any) {
+
+        if(vFile.endsWith(".xcprivacy")){
+            vCtx.file = { tags:[this.tags.xcprivacy.getUUID()] };
+        }
 
         return vCtx;
     }

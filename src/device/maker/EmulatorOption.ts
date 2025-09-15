@@ -1,4 +1,4 @@
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {VirtualDeviceFactoryException} from "../error/VirtualDeviceFactoryException.js";
 

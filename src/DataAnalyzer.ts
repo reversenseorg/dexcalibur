@@ -14,7 +14,7 @@ import {Workflow} from "./Workflow.js";
 import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit.js";
 import {UTIL_CONST} from "./util/UtilConstants.js";
 import {AnalyzerState} from "./AnalyzerState.js";
-import {OperatingSystem} from "./platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {IDatabase, IDbCollection, IStringIndex} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";

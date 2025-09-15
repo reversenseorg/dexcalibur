@@ -127,7 +127,7 @@ export namespace Cgbi {
          * @param {number} pOffset
          * @param pEOL
          */
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, preserveExtra:false}):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, raw:true, preserveExtra:false}):Promise<Results> {
 
 
             return await this.parse(pBuffer, pOffset, pOptions);
@@ -146,7 +146,7 @@ export namespace Cgbi {
          * @param pBuffer
          * @param pOffset
          */
-        parse(pBuffer:Uint8Array, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, preserveExtra:false }):Results {
+        parse(pBuffer:Uint8Array, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, preserveExtra:false, raw:true }):Results {
             const res = {ok:null, invalid:[]};
             let offset = pOffset;
             let chunk:Chunk, data:Uint8Array;
@@ -384,7 +384,7 @@ export namespace Cgbi {
             return chunk;
         }
 
-        encodeAsPng(pBuffer: Uint8Array, pOffset: number, pOptions:ParserOptions = {encoding:'binary', print:false}):Buffer {
+        encodeAsPng(pBuffer: Uint8Array, pOffset: number, pOptions:ParserOptions = {encoding:'binary', print:false, raw:true}):Buffer {
 
             if(pOptions.print)  console.log("Is CGBI ? : ",Parser.isCgbiFile(pBuffer,pOffset));
 

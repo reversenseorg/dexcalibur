@@ -1,4 +1,4 @@
-import {OperatingSystem} from "../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import AndroidDeviceProfile from "../android/profiles/AndroidDeviceProfile.js";
 import DeviceProfile from "./DeviceProfile.js";
 import GenericDeviceProfile from "./GenericDeviceProfile.js";

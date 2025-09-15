@@ -1,10 +1,8 @@
-import {Readable} from "stream"
-
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {DatabaseSettingType, Settings} from "../Settings.js";
 import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
-import {AuthMechanism, Db, GridFSBucket, GridFSBucketReadStream, MongoCredentialsOptions} from "mongodb";
+import {AuthMechanism, GridFSBucket, MongoCredentialsOptions} from "mongodb";
 import * as Log from "../Logger.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
@@ -32,17 +30,15 @@ import {DeviceInstance} from "../device/maker/DeviceInstance.js";
 import {randomUUID} from "crypto";
 import {InternalState} from "../core/InternalState.js";
 import {ProjectOrder} from "../project/ProjectOrder.js";
-import DatabaseSettings = Settings.DatabaseSettings;
 import {UploadedResource} from "../common/UploadedResource.js";
 import {EngineNode} from "../core/EngineNode.js";
-import AssuranceModel, {AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
+import AssuranceModel from "../audit/common/AssuranceModel.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
-import {ProjectManagerException} from "../errors/ProjectManagerException.js";
-import {ReadableStreamLike} from "rxjs";
 import {FileManager} from "../core/FileManager.js";
 import {IFileDatabase} from "../core/commons.js";
 import {ReversenseProduct} from "../billing/ReversenseProduct.js";
+import DatabaseSettings = Settings.DatabaseSettings;
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -368,8 +364,19 @@ export class EngineDatabase implements IFileDatabase {
      * @param pSize
      * @param pStartDate
      */
-    async getGlobalLogs(pSize:number, pStartDate:number = -1):Promise<LogMessage[]> {
-        return await (this.getCollectionOf(LogMessage.TYPE.getType())).getAsList(pSize);
+    async getGlobalLogs(pSize:number, pOffset:number, pOptions = { projects:[], sort:'desc' }):Promise<LogMessage[]> {
+        let logs:LogMessage[] = [];
+        if(pOptions.projects.length>0){
+            logs = (await (this.search({
+                filter: {
+                    project: { $in: pOptions.projects }
+                }
+            }, NodeInternalType.LOG))).slice(pSize);
+        }else{
+            logs = await (this.getCollectionOf(LogMessage.TYPE.getType())).getAsList();
+        }
+
+        return logs.sort((l1,l2)=> ((pOptions.sort=='desc'?-1:1)*(l1.time<l2.time?-1:1))).slice(pOffset,pSize);
     }
 
 
@@ -596,7 +603,7 @@ export class EngineDatabase implements IFileDatabase {
      *
      * @param pObject
      */
-    async search(pFilter:any, pObject:INode, pOptions?:any):Promise<any[]> {
+    async search(pFilter:any, pObject:INode|NodeInternalType, pOptions?:any):Promise<any[]> {
 
         let res:INode[] = [];
         let coll:IDbCollection;

@@ -1,13 +1,18 @@
 import {BufferEncoding} from "typescript";
 import DexcaliburProject from "../DexcaliburProject.js";
+import ModelStringValue from "../ModelStringValue.js";
+import ModelClass from "../ModelClass.js";
 
 export interface IResults<T> {
     ok: T;
     invalid: any[];
+    strings?:ModelStringValue[];
+    cls?:Record<string, ModelClass>;
 }
 
 export interface IParserOptions {
     encoding:BufferEncoding;
+    raw:boolean;
 }
 
 export enum IParserFeature {

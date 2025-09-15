@@ -1267,7 +1267,7 @@ export namespace Smali {
          * @param pBuffer
          * @param pOffset
          */
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8'}):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8', raw:true}):Promise<Results> {
             let res = { ok:null, invalid:[] };
             try{
                 res.ok = this.parse( ((pBuffer as Uint8Array).slice(pOffset) as Buffer).toString(pOptions.encoding));

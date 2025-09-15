@@ -30,7 +30,7 @@ import {
     NodeType,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {EngineNodeClient} from "./EngineNodeClient.js";
 import {WebsocketClient} from "../WebsocketClient.js";
 import {K8ResourceType, K8sHelper} from "./k8s/K8sHelper.js";

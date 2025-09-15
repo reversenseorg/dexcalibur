@@ -1,7 +1,7 @@
 import {IChange} from "../common/Change.js";
 import {DbDataType, NodeProperty, NodePropertyState, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {ProjectInputPurpose} from "../analyzer/ProjectInput.js";
 import {PolicyRule, PolicyRuleOptions} from "./PolicyRule.js";
 import {PolicyException} from "./errors/PolicyException.js";

@@ -1,6 +1,6 @@
 import {KernelInfo} from "../common/Kernel.js";
 import {KernelInfoFactory} from "../common/KernelFactory.js";
-import {OperatingSystem} from "../../OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Architecture} from "../../../Architecture.js";
 import InputSubsystem from "../../InputSubsystem.js";
 import {InputDeviceType} from "../common/InputDeviceType.js";

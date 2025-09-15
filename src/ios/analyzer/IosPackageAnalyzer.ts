@@ -30,7 +30,7 @@ import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js
 import {ImageFormatHelper} from "../../platform/ImageFormat.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {Cgbi} from "../../parser/CgbiParser.js";
-import {OperatingSystem} from "../../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {EFileFormat} from "../../formats/common/EFileFormat.js";
 import {PlistDocument} from "../PlistDocument.js";
 

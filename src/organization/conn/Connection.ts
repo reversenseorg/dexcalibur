@@ -2,7 +2,7 @@ import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {Auditable} from "../../Auditable.js";
 import {Secret, SecretUUID} from "../../core/secrets/Secret.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 
 
 export interface ConnectionProtocolType {

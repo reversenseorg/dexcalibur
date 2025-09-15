@@ -122,7 +122,8 @@ export function newTagPresets(){
         new Tag({ name:"xml" }),
         new Tag({ name:"raw" }),
         new Tag({ name:"plist" }),
-        new Tag({ name:"nib" })
+        new Tag({ name:"nib" }),
+        new Tag({ name:"xcprivacy" }),
     ];
 
     const CODE_GLOBAL_TAGS = [

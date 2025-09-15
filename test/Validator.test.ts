@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {ValidationRule} from "../src/Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {ProjectInputPurpose} from "../src/analyzer/ProjectInput.js";
 
 

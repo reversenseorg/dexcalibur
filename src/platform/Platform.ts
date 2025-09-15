@@ -4,7 +4,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import DexcaliburDVM from "../android/DexcaliburDVM.js";
 import {DexcaliburVM} from "../DexcaliburVM.js";
 import * as Log from "../Logger.js";
-import {OperatingSystem} from "./OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Architecture} from "../Architecture.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";

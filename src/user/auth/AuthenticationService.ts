@@ -33,7 +33,7 @@ import {AuthStrategyUUID, LoadedAuthModule} from "./modules/LoadedAuthModule.js"
 import {SessionMiddleware, UnsetMode} from "../session/SessionMiddleware.js";
 import {SameSite} from "../session/Cookie.js";
 import {UserSession} from "../session/UserSession.js";
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {UserServiceException} from "../../errors/UserServiceException.js";
 import {Token, TokenPurpose} from "../../core/secrets/Token.js";
 import {PasswordlessAuthenticator} from "./PasswordlessAuthenticator.js";

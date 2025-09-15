@@ -427,7 +427,7 @@ export namespace Nib {
          * @param {number} pOffset
          * @param pEOL
          */
-         async fromBuffer(pBuffer:Buffer, pOffset = 0, pOptions:ParserOptions = {encoding:'binary', print:false }):Promise<Results> {
+         async fromBuffer(pBuffer:Buffer, pOffset = 0, pOptions:ParserOptions = {encoding:'binary', print:false, raw:true }):Promise<Results> {
              let res = { ok:null, invalid:[]};
              let o = pOffset;
              let header = this.parseHeader(pBuffer, o);

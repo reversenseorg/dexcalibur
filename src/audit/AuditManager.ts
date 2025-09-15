@@ -759,6 +759,30 @@ export class AuditManager {
         return reports[0];
     }
 
+    async dropReport(pAccount:UserAccount, pApp:ApplicationUnit, pReport:AssuranceReportUUID):Promise<void> {
+        AccessControl.isAuthorized(
+            AccessControl.access.AUDIT_REPORT_DEL,
+            pAccount,
+            pApp,
+            [
+                OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.OWNER,
+            ]
+        );
+
+        // verify the report is a part of the application
+        const rep:AssuranceReport = await (this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry(pReport);
+
+        if(rep.application!=null && rep.application!=pApp.getUID()){
+            throw AuditManagerException.REPORT_NOT_FOUND(pReport);
+        }
+
+        await (this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType()) as MongodbDbCollection)
+            .asyncRemoveEntry(pReport);
+    }
+
+
     async dropReportsByApp(pAppUnitUUID:ApplicationUnitUUID):Promise<void> {
 
         const rep = await (this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType()) as MongodbDbCollection)

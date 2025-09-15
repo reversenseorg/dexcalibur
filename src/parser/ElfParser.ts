@@ -110,7 +110,7 @@ export namespace Elf {
             }
         }
 
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'binary'}):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'binary', raw:true}):Promise<Results> {
             const res:Results = {
                 ok: null,
                 invalid: []

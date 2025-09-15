@@ -115,7 +115,7 @@ export namespace Properties {
         constructor() {
         }
         
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'utf-8', eol:null} ):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'utf-8', eol:null, raw:true} ):Promise<Results> {
             const eol = (pOptions.eol==null ? _os_.EOL : pOptions.eol);
             const res:Results = {
                 ok: new ModelResource<any>({ value:{} }),

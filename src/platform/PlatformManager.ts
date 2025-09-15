@@ -7,7 +7,6 @@ import {promisify} from "util";
 import * as Got from "got";
 import Platform from "./Platform.js";
 import DexcaliburRegistry from "../DexcaliburRegistry.js";
-import {ValidationCapable, ValidationRule} from "../Validator.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import DexHelper from "../DexHelper.js";
 
@@ -18,6 +17,7 @@ import {Device} from "../Device.js";
 import AndroidApplication from "../android/AndroidApplication.js";
 import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Architecture} from "../Architecture.js";
+import {ValidationCapable, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 
 const got = Got.default;
 
@@ -436,28 +436,34 @@ export default class PlatformManager extends ValidationCapable
         return null;
     }
 
+
+
     private _enumerateIosPresets():Platform[] {
         return [
             new Platform({
-                source: "man",
-                name: "iosapi",
-                version: "14",
-                vendor: "apple",
-                format: null,
-                os: OperatingSystem.IOS,
-                arch: Architecture.AARCH64,
-                installed: true,
-                stub:false
-            }),new Platform({
-                source: "man",
-                name: "iosapi",
-                version: "15",
-                vendor: "apple",
-                format: null,
-                os: OperatingSystem.IOS,
-                arch: Architecture.AARCH64,
-                installed: true,
-                stub: false
+                source: "man" ,name: "iosapi", version: "12",
+                vendor: "apple", format: null, os: OperatingSystem.IOS,
+                arch: Architecture.AARCH64, installed: true, stub: false
+            }),
+            new Platform({
+                source: "man" ,name: "iosapi", version: "13",
+                vendor: "apple", format: null, os: OperatingSystem.IOS,
+                arch: Architecture.AARCH64, installed: true, stub: false
+            }),
+            new Platform({
+                source: "man" ,name: "iosapi", version: "14",
+                vendor: "apple", format: null, os: OperatingSystem.IOS,
+                arch: Architecture.AARCH64, installed: true, stub: false
+            }),
+            new Platform({
+                source: "man" ,name: "iosapi", version: "15",
+                vendor: "apple", format: null, os: OperatingSystem.IOS,
+                arch: Architecture.AARCH64, installed: true, stub: false
+            }),
+            new Platform({
+                source: "man" ,name: "iosapi", version: "16",
+                vendor: "apple", format: null, os: OperatingSystem.IOS,
+                arch: Architecture.AARCH64, installed: true, stub: false
             }),
         ];
 

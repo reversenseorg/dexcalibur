@@ -1,4 +1,4 @@
-import {OperatingSystem} from "../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {GenericSystemProfile} from "./profile/GenericSystemProfile.js";
 import GenericTrustProfile from "./profile/GenericTrustProfile.js";
 import GenericBuildProfile from "./profile/GenericBuildProfile.js";

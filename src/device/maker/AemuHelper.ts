@@ -8,7 +8,7 @@ import Util from "../../Utils.js";
 import {Device, DeviceUUID} from "../../Device.js";
 import {VirtualDeviceFactoryException} from "../error/VirtualDeviceFactoryException.js";
 import {UserAccountUUID} from "../../user/UserAccount.js";
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {External} from "../../external/External.js";
 import * as Log from "../../Logger.js";
 import {EmulatorOption, EmulatorOptionID, OptsPurpose} from "./EmulatorOption.js";

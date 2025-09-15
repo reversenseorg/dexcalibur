@@ -1,7 +1,7 @@
 
 import {NodeType, DbDataType, DbKeyType, DbSerialize} from "@dexcalibur/dexcalibur-orm";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue.js";
 
 

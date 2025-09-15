@@ -12,7 +12,7 @@ import {Nullable} from "../core/IStringIndex.js";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 import {Policy, PolicyZone} from "../audit/Policy.js";
@@ -355,6 +355,23 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess(res, (await am.getReport(
                     req.user, req.params.unsafeReportUUID, app)).toJsonObject());
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        },
+        'delete': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                $.sendSuccess(res, (await am.dropReport(req.user, app, req.params.unsafeReportUUID)));
             }catch(err){
                 Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);

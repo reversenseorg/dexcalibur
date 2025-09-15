@@ -29,7 +29,7 @@ import DexcaliburEngine from "../../DexcaliburEngine.js";
 import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
 import {ApplicationIcon} from "../../organization/ApplicationUnit.js";
 import {ImageFormatHelper} from "../../platform/ImageFormat.js";
-import {OperatingSystem} from "../../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {EFileFormat} from "../../formats/common/EFileFormat.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

@@ -8,7 +8,7 @@ import Util from "../../Utils.js";
 import {DeviceUUID} from "../../Device.js";
 import {VirtualDeviceFactoryException} from "../error/VirtualDeviceFactoryException.js";
 import {UserAccountUUID} from "../../user/UserAccount.js";
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {AndroidImgType} from "../template/DeviceTemplateFactory.js";
 import {Architecture} from "../../Architecture.js";
 import {External} from "../../external/External.js";

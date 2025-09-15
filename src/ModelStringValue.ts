@@ -102,10 +102,16 @@ export default class ModelStringValue extends Savable implements INode
 
     }
 
+
+    static hashcode(pValue:string):string {
+        return Util.sha1_buffer(pValue);
+    }
+
     isDifferent(pValue:string, pUUID:string):boolean {
-        const uuid = Util.sha1_buffer(pValue)
+        const uuid = ModelStringValue.hashcode(pValue);
         return (this.value != null) && (uuid!=this.value);
     }
+
 
     /**
      * To check if the specified value is a ModelStringValue node
@@ -120,7 +126,7 @@ export default class ModelStringValue extends Savable implements INode
     }
 
     set value(pValue:string) {
-        this._uid = Util.sha1_buffer(pValue);
+        this._uid = ModelStringValue.hashcode(pValue);
         this._value = pValue;
     }
 
@@ -173,7 +179,7 @@ export default class ModelStringValue extends Savable implements INode
 
     getUID():string {
         if(this._uid==null){
-            this._uid = Util.sha1_buffer(this.value);
+            this._uid = ModelStringValue.hashcode(this.value); //  Util.sha1_buffer(this.value);
         }
         return this._uid;
     }

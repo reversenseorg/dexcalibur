@@ -5,7 +5,7 @@ import {
     NodeProperty, NodePropertyState,
     NodeType,
     SerializeOptions,
-    TagUUID
+    TagUUID, ValidationRule
 } from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Auditable} from "../Auditable.js";
@@ -15,7 +15,6 @@ import {Avatar} from "@dexcalibur/dxc-orgs";
 import {AccessAttribute, AccessAttributeMap} from "../user/acl/AccessAttribute.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import { Architecture } from "../Architecture.js";
-import {ValidationRule} from "../Validator.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {DeviceUUID} from "../Device.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
@@ -63,7 +62,10 @@ export class ApplicationUnit extends Auditable implements INode {
     }
 
     static TYPE:NodeType = (new NodeType( "application_unit", NodeInternalType.APP_UNIT, [
-        (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("uuid"))
+            .type(DbDataType.STRING)
+            .key(DbKeyType.PRIMARY)
+            .addValidationRule(ValidationRule.uuid()),
         (new NodeProperty("name")).type(DbDataType.STRING),
         (new NodeProperty("organization")).single(OrganizationUnit.TYPE),
         (new NodeProperty("packageID")).type(DbDataType.STRING).def(""),

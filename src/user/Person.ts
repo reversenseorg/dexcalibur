@@ -1,5 +1,5 @@
 import {UserAccount, UserAccountType} from "./UserAccount.js";
-import {ValidationRule} from "../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 
 export interface PersonOptions {
     _firstname?: string;

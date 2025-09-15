@@ -7,8 +7,9 @@ import {IMagicParser, IParser, IParserFeature, IParserOptions, IResults} from ".
 import DexcaliburProject from "../DexcaliburProject.js";
 import {Buffer} from "buffer";
 import ModelResource from "../ModelResource.js";
-import ModelFile from "../ModelFile.js";
-import {Tag} from "@dexcalibur/dexcalibur-orm";
+import {Tag, NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import ModelStringValue from "../ModelStringValue.js";
+import {INodeRef} from "../INode.js";
 
 /**
  *
@@ -463,18 +464,18 @@ export namespace Plist {
          * @param {number} pOffset
          * @param pEOL
          */
-         async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', eol: null }):Promise<Results> {
+         async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', eol: null, raw:true }):Promise<Results> {
 
              let res:Results;
             if(Parser.isXmlPlist(pBuffer)){
-                res = await Parser.parseXml(pBuffer, pOffset, pOptions.eol);
+                res = await Parser.parseXml(pBuffer, pOffset, pOptions.eol, pOptions.raw);
                 if(res.ok!=null){
                     if(this.plistTag!=null) res.ok.tags.push(this.plistTag.getUUID());
                     if(this.rawTag!=null) res.ok.tags.push(this.xmlTag.getUUID());
                 }
                 return res;
             }else if(Parser.isBPlist(pBuffer)){
-                res = Parser.parseBPlist(pBuffer, pOffset, pOptions.eol);
+                res = Parser.parseBPlist(pBuffer, pOffset, pOptions.eol, pOptions.raw);
                 if(res.ok!=null){
                     if(this.plistTag!=null) res.ok.tags.push(this.plistTag.getUUID());
                     if(this.rawTag!=null) res.ok.tags.push(this.rawTag.getUUID());
@@ -492,10 +493,11 @@ export namespace Plist {
          * @param pOffset
          * @param pEOL
          */
-        static async parseXml(pBuffer:Uint8Array, pOffset:number= -1, pEOL:string = null):Promise<Results> {
+        static async parseXml(pBuffer:Uint8Array, pOffset:number= -1, pEOL:string = null, pRaw = true):Promise<Results> {
             const res:Results = {
                 ok: null,
-                invalid: []
+                invalid: [],
+                strings: []
             };
 
             let xml:any;
@@ -505,7 +507,7 @@ export namespace Plist {
             });
             xml = parser.parse(pBuffer as Buffer)
 
-            const data = Parser.parseXmlDict( xml[1].plist[0].dict);
+            const data = Parser.parseXmlDict( xml[1].plist[0].dict, pRaw, res.strings);
 
             try{
                 if(data!=null){
@@ -531,7 +533,7 @@ export namespace Plist {
         }
 
 
-        static parseBPlist(pBuffer:Uint8Array, pOffset:number = 0, pEOL:string = null):Results {
+        static parseBPlist(pBuffer:Uint8Array, pOffset:number = 0, pEOL:string = null, pRaw = true):Results {
             const res:Results = {
                 ok: null,
                 invalid: []
@@ -576,13 +578,49 @@ export namespace Plist {
         }
 
 
-        static parseXmlValue(pValue: any):any {
+
+        static addStringRefTo(pStrings:ModelStringValue[], pRawStr:string):INodeRef {
+
+            let i=0;
+            let eq:number;
+            const hash = ModelStringValue.hashcode(pRawStr);
+
+            while(i<pStrings.length && (eq=pStrings[i].getUID().localeCompare(hash))<0) i++;
+
+            if(pStrings[i]!=null){
+                if(eq===0){
+                    // location / src
+                    return NodeUtils.asNodeRef(pStrings[i]);
+                }else{
+                    // missing string
+                    // insert data without break sort
+                    // const end = pStrings.slice(i);
+                    // shift values
+                    for(let len=pStrings.length-1; len>=i; len--){
+                        pStrings[len+1] = pStrings[len];
+                    }
+                    // insert strings
+                    pStrings[i] = new ModelStringValue({ value: pRawStr });
+                    return NodeUtils.asNodeRef(pStrings[i]);
+                }
+            }else{
+                pStrings[i] = new ModelStringValue({ value: pRawStr });
+                return NodeUtils.asNodeRef(pStrings[i]);
+            }
+        }
+
+
+        static parseXmlValue(pValue: any, pRaw = true, pStrings:ModelStringValue[]=null):any {
             let data:any;
             for(let k in pValue){
                 switch (k){
                     case 'string':
                         if(pValue[k].length>0){
-                            return pValue[k][0]['#text'];
+                            if(pRaw){
+                                return pValue[k][0]['#text']+"";
+                            }else{
+                                return Parser.addStringRefTo(pStrings, pValue[k][0]['#text']+"");
+                            }
                         }else{
                             return "";
                         }
@@ -593,23 +631,25 @@ export namespace Plist {
                     case 'array':
                         data = [];
                         pValue[k].map(x => {
-                            data.push(Plist.Parser.parseXmlValue(x));
+                            data.push(Plist.Parser.parseXmlValue(x, pRaw, pStrings));
                         });
                         return data;
                     case 'dict':
-                        return this.parseXmlDict( pValue[k]);
+                        return this.parseXmlDict( pValue[k], pRaw, pStrings);
+                    case 'integer':
+                        return pValue[k][0]['#text'];
                     case 'true':
                         return true;
                 }
             }
         }
 
-        static parseXmlDict(pDict:any[]):Record<string, any>  {
+        static parseXmlDict(pDict:any[], pRaw = true, pStrings:ModelStringValue[]=null):Record<string, any>  {
 
             let obj:Record<string, any> = {};
             for(let i=0;i<pDict.length;i++){
                 if(pDict[i].key!=null){
-                    obj[pDict[i]['key'][0]['#text']] = Plist.Parser.parseXmlValue(pDict[i+1]);
+                    obj[pDict[i]['key'][0]['#text']] = Plist.Parser.parseXmlValue(pDict[i+1], pRaw, pStrings);
                     i+=1;
                 }
             }

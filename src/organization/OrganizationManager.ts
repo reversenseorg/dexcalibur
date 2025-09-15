@@ -55,6 +55,7 @@ import {INodeRef} from "../INode.js";
 import {AssuranceModelPreview, AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
 import {IosPackageAnalyzer} from "../ios/analyzer/IosPackageAnalyzer.js";
 import {ProjectInputPurpose} from "../analyzer/ProjectInput.js";
+import {LogMessage} from "../log/Log.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2958,5 +2959,56 @@ export class OrganizationManager {
         if(res.getExtra('pkgId')==null)  throw new Error("The package ID cannot be retrieved from main binary.")
 
         return res.getExtra('pkgId');
+    }
+
+
+    async getApplicationLogs(pUser:UserAccount, pApps:ApplicationUnit, pSort='desc'):Promise<LogMessage[]> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_MODIFY,
+            pUser,
+            pApps,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.APP_MEMBER_GRP,
+                OrganizationAccessControl.attr.MEMBER_GRP
+            ]
+        );
+
+        return await (this._ctx.getEngineDB().getGlobalLogs(1000,0,{
+            projects: await pApps.getReleases(),
+            sort: pSort
+        }));
+    }
+
+    async getOrganizationLogs(pUser:UserAccount, pOrg:OrganizationUnit, pSort = 'desc'):Promise<any[]> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_MODIFY,
+            pUser,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,,
+                OrganizationAccessControl.attr.MEMBER_GRP
+            ]
+        );
+
+        const apps = await this.listApplications(this._ctx.getInternalAcc(), pOrg);
+        let logs:LogMessage[] = [];
+
+        for(let i=0;i<apps.length;i++){
+            try{
+                logs = logs.concat(await this.getApplicationLogs(pUser, apps[i], pSort));
+            }catch (e){
+                Logger.error(e.stack);
+            }
+        }
+
+        if(apps.length>1){
+            // re-sort
+            return logs.sort((l1,l2)=> ((pSort=='desc'?-1:1)*(l1.time<l2.time?-1:1)));
+        }else{
+            return logs;
+        }
+
     }
 }

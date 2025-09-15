@@ -41,7 +41,7 @@ export namespace Json {
 
         }
 
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8'}):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8', raw:true}):Promise<Results> {
             const res =  {
                 ok: null,
                 invalid: []

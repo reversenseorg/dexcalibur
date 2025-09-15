@@ -4,7 +4,7 @@ import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
 import {KeyPointGenerator, KeyPointOptions, KeyPointOptionsOptions} from "./KeyPointGenerator.js";
 import {IDatabase, IDbCollection, INode} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
-import {OperatingSystem} from "../platform/OperatingSystem.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Nullable} from "../core/IStringIndex.js";
 import {NodeInternalType, NodeInternalTypeName}
 from "@dexcalibur/dxc-core-api";;

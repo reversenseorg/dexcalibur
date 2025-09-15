@@ -21,7 +21,6 @@ import {TerminalServer} from "./TerminalServer.js";
 import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProcess.js";
 import {ApkPackage} from "./android/ApkPackage.js";
 import {Workflow} from "./Workflow.js";
-import {ValidationCapable, ValidationRule} from "./Validator.js";
 import ApkHelper from "./ApkHelper.js";
 import JavaHelper from "./JavaHelper.js";
 import {BinwalkHelper} from "./BinwalkHelper.js";
@@ -48,7 +47,7 @@ import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {EngineNodeManager, MasterNodeOptions, NodeState} from "./core/EngineNodeManager.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
-import {AppContextType, IAppContext} from "@dexcalibur/dexcalibur-orm"
+import {AppContextType, IAppContext, ValidationCapable, ValidationRule} from "@dexcalibur/dexcalibur-orm"
 import {EngineDatabase} from "./database/EngineDatabase.js";
 import {EngineNodeException} from "./errors/EngineNodeException.js";
 import TargetApp from "./common/TargetApp.js";

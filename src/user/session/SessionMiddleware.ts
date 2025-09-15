@@ -4,7 +4,7 @@ import * as Log from "../../Logger.js";
 import {CookieHeader} from "./CookieHeader.js";
 import {SessionStore} from "./SessionStore.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
-import {ValidationRule} from "../../Validator.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {UserSession} from "./UserSession.js";
 import {MemoryStore} from "./MemoryStore.js";
