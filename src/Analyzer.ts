@@ -30,28 +30,15 @@ import DataScope from "./DataScope.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {Workflow} from "./Workflow.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {AnalyzerState} from "./AnalyzerState.js";
 
-import {
-    IDatabase,
-    IDbIndex,
-    IDbSet,
-    INode,
-    NodeType,
-    NodeUtils,
-    Tag,
-    TagCategory
-} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDbIndex, IDbSet, INode, Tag, TagCategory, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {Smali} from "./parser/SmaliParser.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {IParser, IResults} from "./parser/IParser.js";
 import {DataFormatManagerException} from "./formats/error/DataFormatManagerException.js";
 import ModelResource from "./ModelResource.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
-import RadareHelper from "./R2Helper.js";
-import {mergeMap} from "rxjs";
 import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
 import {DataLocation, DataLocationType} from "./DataLocation.js";
 import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
@@ -1557,6 +1544,7 @@ export default class Analyzer
                     vCtx.file?.tags.map(x => {
                         if(file.tags.indexOf(x)==-1) file.tags.push(x);
                     });
+                    if(r.__===NodeInternalType.RESOURCE) r.value = file;
                 }
 
                 if(r!=null && r.__===NodeInternalType.RESOURCE && (file.getScope()!=null)){
