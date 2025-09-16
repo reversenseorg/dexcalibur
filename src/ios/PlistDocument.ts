@@ -24,8 +24,8 @@ export class PlistDocument {
         return this.data[pKey];
     }
 
-    addPair(pKey: string, pData: any) {
-        if(typeof pData==="string"){
+    addPair(pKey: string, pData: any, pRaw = false) {
+        if(typeof pData==="string" && pRaw==false){
             this.data[pKey] = new ModelStringValue({
                 value: pData
             })

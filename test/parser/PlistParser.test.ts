@@ -6,6 +6,7 @@ import Util from "../../src/Utils.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import ModelResource from "../../src/ModelResource";
 import {PlistDocument} from "../../src/ios/PlistDocument";
+import * as console from "node:console";
 
 describe('PlistParser', function() {
 
@@ -20,7 +21,7 @@ describe('PlistParser', function() {
         it('Raw parsing', async function () {
 
             const parser = new Plist.Parser();
-            const vres = await parser.fromBuffer(xmlBuf, -1);
+            const vres = await parser.fromBuffer(xmlBuf, -1, { encoding:'utf-8', raw:true });
 
             assert.isObject(vres.ok);
             assert.isOk(vres.ok);
@@ -41,10 +42,15 @@ describe('PlistParser', function() {
 
             assert.isObject(vres.ok);
             assert.isOk(vres.ok);
+            assert.isArray(vres.strings);
 
+            console.log(vres.strings);
             expect(vres.ok.__).to.be.equal(NodeInternalType.RESOURCE);
+            expect(vres.strings.length).to.be.gte(1);
             assert.isObject((vres.ok as ModelResource<PlistDocument>).value.getData('CFBundleIcons'));
-            expect((vres.ok as ModelResource<PlistDocument>).value.getData('CFBundleIcons').CFBundlePrimaryIcon.CFBundleIconName).to.be.equal("AppIcon");
+            expect((vres.ok as ModelResource<PlistDocument>).value.getData('CFBundleIcons').CFBundlePrimaryIcon.CFBundleIconName.__).to.be.equal(38);
+            expect((vres.ok as ModelResource<PlistDocument>).value.getData('CFBundleIcons').CFBundlePrimaryIcon.CFBundleIconName._uid).to.be.equal("99e38a031da5313ce8fca26c672ff323d278c813");
+
         });
     });
 
@@ -62,46 +68,32 @@ describe('PlistParser', function() {
         it('Buffer is parsed', async function () {
 
             const parser = new Plist.Parser();
-            const vres = await parser.fromBuffer(binBuf, -1);
-            const vres2 = await parser.fromBuffer(bin2Buf, -1);
+            const vres = await parser.fromBuffer(binBuf, -1, {encoding:'binary', raw:true});
 
-            const d = vres.ok.value.data;
-            for(let k in d){
-                if(d[k].__ === NodeInternalType.STRING){
-                    console.log(k+' => (string) '+d[k].value);
-                }else{
-                    console.log(k+' => '+d[k]);
-                }
-            }
-            //expect(vres.ok.getData('CFBundleIcons').CFBundlePrimaryIcon.CFBundleIconName).to.be.equal("AppIcon");
+            assert.isObject(vres.ok);
+            assert.isOk(vres.ok);
+            assert.isNull(vres.strings);
+
+            expect(vres.ok.__).to.be.equal(NodeInternalType.RESOURCE);
+            expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type')).to.be.equal("ios-app");
         });
-    });
 
-
-    describe('PlistParser::parseBuffer > NIB', function() {
-
-        let binBuf:Buffer;
-
-        // @ts-ignore
-        binBuf = _fs_.readFileSync(_path_.join(Util.__dirname(import.meta.url),"../files/UAInAppMessageButtonView.nib"));
-
-
-        it('Buffer is parsed', async function () {
+        it('Structured parsing with string indexing', async function () {
 
             const parser = new Plist.Parser();
-            const dnib = await parser.fromBuffer(binBuf, -1);
+            const vres = await parser.fromBuffer(binBuf, -1, {encoding:'binary', raw:false});
 
-            console.log(dnib.ok);
-            /*
-            const d = vres.ok.data;
-            for(let k in d){
-                if(d[k].__ === NodeInternalType.STRING){
-                    console.log(k+' => (string) '+d[k].value);
-                }else{
-                    console.log(k+' => '+d[k]);
-                }
-            }*/
-            //expect(vres.ok.getData('CFBundleIcons').CFBundlePrimaryIcon.CFBundleIconName).to.be.equal("AppIcon");
+            const d = vres.ok.value.data;
+
+            assert.isObject(vres.ok);
+            assert.isOk(vres.ok);
+            assert.isArray(vres.strings);
+
+            expect(vres.ok.__).to.be.equal(NodeInternalType.RESOURCE);
+            expect(vres.strings.length).to.be.gte(1);
+            expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type')._uid).to.be.equal("90c9cb8dce64103fe84150e5b2f437a67b73f96c");
+            expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type').__).to.be.equal(38);
+
         });
     });
 

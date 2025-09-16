@@ -164,7 +164,8 @@ export namespace Plist {
                     throw new Error("Unhandled simple type 0x" + pInfo.toString(16));
             }
         }
-        parseObjects( pTopObj:number, pOffsetTable:number[], pObjRefSz:number):any {
+
+        parseObjects( pTopObj:number, pOffsetTable:number[], pObjRefSz:number, pRaw:boolean, pStrings:ModelStringValue[] = []):any {
             const offset = pOffsetTable[pTopObj];
             const type = Struct.unpack('B',this.buf as Buffer, offset);
 
@@ -186,13 +187,13 @@ export namespace Plist {
                 case 0x4:
                     return this.parseData(data,offset);
                 case 0x5: // ASCII
-                    return this.parsePlistString(data,offset, { charset:'ascii' });
+                    return this.parsePlistString(data,offset, { charset:'ascii', raw:pRaw }, pStrings);
                 case 0x6: // UTF-16
-                    return this.parsePlistString(data, offset, { charset:'utf-16' });
+                    return this.parsePlistString(data, offset, { charset:'utf-16', raw:pRaw }, pStrings);
                 case 0xA:
-                    return this.parseArray(data, pOffsetTable, offset, pObjRefSz);
+                    return this.parseArray(data, pOffsetTable, offset, pObjRefSz, pRaw, pStrings);
                 case 0xD:
-                    return this.parseDict(data, pOffsetTable, offset, pObjRefSz);
+                    return this.parseDict(data, pOffsetTable, offset, pObjRefSz, pRaw, pStrings);
                 default:
                     throw new Error("Unhandled type 0x" + (marker).toString(16));
             }
@@ -290,7 +291,7 @@ export namespace Plist {
 
 
 
-        parsePlistString(pData: number, pOffset: number, pOptions: {charset:string}):any  {
+        parsePlistString(pData: number, pOffset: number, pOptions: {charset:string, raw:boolean}, pStrings:ModelStringValue[]):any  {
 
             let enc:BufferEncoding = "utf8";
             let length = pData;
@@ -318,14 +319,16 @@ export namespace Plist {
                     plistString = this._swapBytes(plistString);
                     enc = "ucs2";
                 }
-                return Buffer.from(plistString).toString(enc);
+
+                const str = Buffer.from(plistString).toString(enc);
+                return (!pOptions.raw) ? Parser.addStringRefTo(pStrings, str) : str;
             }
             throw new Error("Too little heap space available! Wanted to read " + length + " bytes, but only " + Parser.MAX_OBJ_SZ + " are available.");
         }
 
 
 
-        parseArray(pData: number, pOffsetTable:number[], pOffset: number,   pObjRefSz:number):any  {
+        parseArray(pData: number, pOffsetTable:number[], pOffset: number,   pObjRefSz:number, pRaw:boolean, pStrings:ModelStringValue[]):any  {
             let length = pData;
             let arrayoffset = 1;
             if (pData == 0xF) {
@@ -352,7 +355,7 @@ export namespace Plist {
                     this.buf.slice(pOffset + arrayoffset + i * pObjRefSz, pOffset + arrayoffset + (i + 1) * pObjRefSz),0
                 );
 
-                array[i] = this.parseObjects(objRef, pOffsetTable, pObjRefSz);
+                array[i] = this.parseObjects(objRef, pOffsetTable, pObjRefSz, pRaw, pStrings);
             }
             return array;
         }
@@ -366,7 +369,7 @@ export namespace Plist {
          * @param pTableOffset
          * @param pObjRefSz
          */
-        parseDict(pLen: number,  pTableOffset:number[], pOffset: number,pObjRefSz:number):any  {
+        parseDict(pLen: number,  pTableOffset:number[], pOffset: number,pObjRefSz:number, pRaw:boolean, pStrings:ModelStringValue[]):any  {
             let length = pLen;
             let dictoffset = 1;
 
@@ -405,8 +408,8 @@ export namespace Plist {
                     ),0);
 
 
-                const key = this.parseObjects(keyRef,pTableOffset,pObjRefSz);
-                const val = this.parseObjects(valRef,pTableOffset,pObjRefSz);
+                const key = this.parseObjects(keyRef,pTableOffset,pObjRefSz, true, pStrings);
+                const val = this.parseObjects(valRef,pTableOffset,pObjRefSz, pRaw, pStrings);
 
                 //console.log("  DICT #" + pOffset + ": Mapped " + key + " to " + val);
 
@@ -513,7 +516,7 @@ export namespace Plist {
                 if(data!=null){
                     const plistDoc = new PlistDocument();
                     for(let k in data){
-                        plistDoc.addPair(k,data[k]);
+                        plistDoc.addPair(k,data[k], pRaw);
                     }
 
                     res.ok = new ModelResource<PlistDocument>({
@@ -536,7 +539,8 @@ export namespace Plist {
         static parseBPlist(pBuffer:Uint8Array, pOffset:number = 0, pEOL:string = null, pRaw = true):Results {
             const res:Results = {
                 ok: null,
-                invalid: []
+                invalid: [],
+                strings: (pRaw  ? null : [])
             };
 
             const bp = new BinaryParser(pBuffer);
@@ -561,12 +565,14 @@ export namespace Plist {
             const objs = bp.parseObjects(
                 Number(trailer.topObject.valueOf()),
                 offsetTable,
-                trailer.objectRefSize
+                trailer.objectRefSize,
+                pRaw,
+                res.strings
             );
 
             const doc = new PlistDocument();
             for(let k in objs){
-                doc.addPair(k,objs[k]);
+                doc.addPair(k,objs[k], pRaw);
             }
 
             res.ok = new ModelResource<PlistDocument>({
