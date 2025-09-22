@@ -11,6 +11,8 @@ import ModelFileSection from "../ModelFileSection.js";
 import {MetadataType} from "../audit/common/Metadata.js";
 import {Buffer} from "buffer";
 import {cipher} from "node-forge";
+import * as console from "node:console";
+import {of} from "rxjs";
 
 /**
  *
@@ -128,7 +130,7 @@ export namespace Cgbi {
          * @param pEOL
          */
         async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, raw:true, preserveExtra:false}):Promise<Results> {
-
+            if(pOptions.tags==null) pOptions.tags = [];
 
             return await this.parse(pBuffer, pOffset, pOptions);
             /*
@@ -146,13 +148,16 @@ export namespace Cgbi {
          * @param pBuffer
          * @param pOffset
          */
-        parse(pBuffer:Uint8Array, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, preserveExtra:false, raw:true }):Results {
+        parse(pBuffer:Uint8Array, pOffset:number, pOptions:ParserOptions = { encoding:'binary', print:false, preserveExtra:false, raw:true, tags:[] }):Results {
             const res = {ok:null, invalid:[]};
+            if(pOptions.tags==null) pOptions.tags = [];
+
             let offset = pOffset;
             let chunk:Chunk, data:Uint8Array;
             let idat_data = Buffer.from([]);
             let mf = new ModelFile({
-                chunks:[]
+                chunks:[],
+                tags: pOptions.tags.map(t => t.getUUID())
             });
             let echunk:Chunk;
             let mfc:ModelFileSection;
@@ -227,17 +232,30 @@ export namespace Cgbi {
                 offset += 4;
 
 
-                if((offset + chunk.length > pBuffer.length)){
-                    res.invalid.push( ParserException.CHUNK_LEN_TOO_HIGH() );
-                    return res;
+                if(chunk.type=='IEND'){
+                    chunk.length = 0;
+                    offset -= 8;
+                    //let dataCrc = pBuffer.slice(offset, offset + 4);
+                    chunk.crc = 0xAE426082; //Struct.unpack("bbbb", pBuffer as Buffer, offset)[0];
+                    //offset += 4;
+                }else{
+                    if((offset + chunk.length ) > pBuffer.length){
+                        console.log(offset, chunk.length, pBuffer.length);
+                        res.invalid.push( ParserException.CHUNK_LEN_TOO_HIGH() );
+                        return res;
+                    }
+
+                    if(chunk.length>0){
+                        chunk.data = data = pBuffer.slice(offset, offset + chunk.length);
+                        offset += chunk.length;
+                    }
+
+                    //let dataCrc = pBuffer.slice(offset, offset + 4);
+                    chunk.crc = Struct.unpack(">L", pBuffer as Buffer, offset)[0];
+                    offset += 4;
                 }
 
-                chunk.data = data = pBuffer.slice(offset, offset + chunk.length);
-                offset += chunk.length;
 
-                //let dataCrc = pBuffer.slice(offset, offset + 4);
-                chunk.crc = Struct.unpack(">L", pBuffer as Buffer, offset)[0];
-                offset += 4;
 
                 if(pOptions.print){
                     console.log(`0x${startAt.toString(16).padStart(8,'0')}: ${chunk.type}\t ${(chunk.length+"").padStart(6,'0')}\tcrc=0x${Struct.pack(">L", [chunk.crc]).toString('hex')}`);
@@ -314,7 +332,7 @@ export namespace Cgbi {
 
             const r = new ModelResource<ModelFile>({
                 value: mf,
-                tags: []
+                tags: pOptions.tags.map(t => t.getUUID())
             });
 
             r.setProperty('width',file.width);
@@ -414,12 +432,18 @@ export namespace Cgbi {
                 if(pOptions.print) console.log(`0x${output.length.toString(16).padStart(8,'0')}: ${chunk.getType()}\t ${(chunk.l+"").padStart(6,'0')}\tcrc=0x${Struct.pack(">L", [crc]).toString('hex')}`);
 
 
-                output = Buffer.concat([output, Struct.pack(">L", [chunk.l])]);
-                output = Buffer.concat([output, Buffer.from(chunk.getType())]);
-                if (chunk.l > 0) {
-                    output = Buffer.concat([output, Buffer.from(chunk.data)]);
+                if(chunk.getType()!="IEND"){
+                    output = Buffer.concat([output, Struct.pack(">L", [chunk.l])]);
+                    output = Buffer.concat([output, Buffer.from(chunk.getType())]);
+                    if (chunk.l > 0 && chunk.data!=null) {
+                        output = Buffer.concat([output, Buffer.from(chunk.data)]);
+                    }
+                    output = Buffer.concat([output, Struct.pack(">L", [crc])]);
+                }else{
+                    output = Buffer.concat([output, Buffer.from([0,0,0,0,0x49,0x45,0x4E,0x44,0xAE,0x42,0x60,0x82])]);
+                    //console.log(chunk, l, len);
                 }
-                output = Buffer.concat([output, Struct.pack(">L", [crc])]);
+
             }
 
 

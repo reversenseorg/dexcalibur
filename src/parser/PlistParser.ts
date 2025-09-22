@@ -321,7 +321,7 @@ export namespace Plist {
                 }
 
                 const str = Buffer.from(plistString).toString(enc);
-                return (!pOptions.raw) ? Parser.addStringRefTo(pStrings, str) : str;
+                return (!pOptions.raw) ? ModelStringValue.addStringRefTo(pStrings, str, false) : str;
             }
             throw new Error("Too little heap space available! Wanted to read " + length + " bytes, but only " + Parser.MAX_OBJ_SZ + " are available.");
         }
@@ -467,18 +467,20 @@ export namespace Plist {
          * @param {number} pOffset
          * @param pEOL
          */
-         async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', eol: null, raw:true }):Promise<Results> {
+         async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'binary', eol: null, raw:true, tags:[] }):Promise<Results> {
 
-             let res:Results;
+            if(pOptions.tags==null) pOptions.tags = [];
+
+            let res:Results;
             if(Parser.isXmlPlist(pBuffer)){
-                res = await Parser.parseXml(pBuffer, pOffset, pOptions.eol, pOptions.raw);
+                res = await Parser.parseXml(pBuffer, pOffset, pOptions.eol, pOptions.raw, pOptions.tags);
                 if(res.ok!=null){
                     if(this.plistTag!=null) res.ok.tags.push(this.plistTag.getUUID());
                     if(this.rawTag!=null) res.ok.tags.push(this.xmlTag.getUUID());
                 }
                 return res;
             }else if(Parser.isBPlist(pBuffer)){
-                res = Parser.parseBPlist(pBuffer, pOffset, pOptions.eol, pOptions.raw);
+                res = Parser.parseBPlist(pBuffer, pOffset, pOptions.eol, pOptions.raw, pOptions.tags);
                 if(res.ok!=null){
                     if(this.plistTag!=null) res.ok.tags.push(this.plistTag.getUUID());
                     if(this.rawTag!=null) res.ok.tags.push(this.rawTag.getUUID());
@@ -496,7 +498,7 @@ export namespace Plist {
          * @param pOffset
          * @param pEOL
          */
-        static async parseXml(pBuffer:Uint8Array, pOffset:number= -1, pEOL:string = null, pRaw = true):Promise<Results> {
+        static async parseXml(pBuffer:Uint8Array, pOffset:number= -1, pEOL:string = null, pRaw = true, pTags:Tag[] = []):Promise<Results> {
             const res:Results = {
                 ok: null,
                 invalid: [],
@@ -536,7 +538,7 @@ export namespace Plist {
         }
 
 
-        static parseBPlist(pBuffer:Uint8Array, pOffset:number = 0, pEOL:string = null, pRaw = true):Results {
+        static parseBPlist(pBuffer:Uint8Array, pOffset:number = 0, pEOL:string = null, pRaw = true, pTags:Tag[] = []):Results {
             const res:Results = {
                 ok: null,
                 invalid: [],
@@ -577,42 +579,10 @@ export namespace Plist {
 
             res.ok = new ModelResource<PlistDocument>({
                     value: doc,
-                    tags: []
+                    tags: pTags.map(t => t.getUUID())
                 });
 
             return res;
-        }
-
-
-
-        static addStringRefTo(pStrings:ModelStringValue[], pRawStr:string):INodeRef {
-
-            let i=0;
-            let eq:number;
-            const hash = ModelStringValue.hashcode(pRawStr);
-
-            while(i<pStrings.length && (eq=pStrings[i].getUID().localeCompare(hash))<0) i++;
-
-            if(pStrings[i]!=null){
-                if(eq===0){
-                    // location / src
-                    return NodeUtils.asNodeRef(pStrings[i]);
-                }else{
-                    // missing string
-                    // insert data without break sort
-                    // const end = pStrings.slice(i);
-                    // shift values
-                    for(let len=pStrings.length-1; len>=i; len--){
-                        pStrings[len+1] = pStrings[len];
-                    }
-                    // insert strings
-                    pStrings[i] = new ModelStringValue({ value: pRawStr });
-                    return NodeUtils.asNodeRef(pStrings[i]);
-                }
-            }else{
-                pStrings[i] = new ModelStringValue({ value: pRawStr });
-                return NodeUtils.asNodeRef(pStrings[i]);
-            }
         }
 
 
@@ -625,7 +595,7 @@ export namespace Plist {
                             if(pRaw){
                                 return pValue[k][0]['#text']+"";
                             }else{
-                                return Parser.addStringRefTo(pStrings, pValue[k][0]['#text']+"");
+                                return ModelStringValue.addStringRefTo(pStrings, pValue[k][0]['#text']+"", false);
                             }
                         }else{
                             return "";

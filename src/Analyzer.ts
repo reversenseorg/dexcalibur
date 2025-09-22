@@ -33,7 +33,16 @@ import {Workflow} from "./Workflow.js";
 import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {AnalyzerState} from "./AnalyzerState.js";
 
-import {IDatabase, IDbIndex, IDbSet, INode, Tag, TagCategory, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {
+    IDatabase,
+    IDbIndex,
+    IDbSet,
+    INode,
+    NodeUtils,
+    Tag,
+    TagCategory, TagUUID,
+    ValidationRule
+} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {Smali} from "./parser/SmaliParser.js";
 import {IParser, IResults} from "./parser/IParser.js";
@@ -128,7 +137,7 @@ class ResolverV2
      * @param {String} fqcn FQCN of the missing class
      * @param {AnalyzerDatabase} internalDB an instance of the internal DB
      */
-    createMissingClass(pFqcn:string, pAnalyzerDB:AnalyzerDatabase):ModelClass{
+    createMissingClass(pFqcn:string, pAnalyzerDB:AnalyzerDatabase, pAlwaysTag:Tag[] = []):ModelClass{
 
         // create a class instance from the FQCN value
         const missingCls:ModelClass = SmaliParser.class("L"+pFqcn+" ");
@@ -137,6 +146,7 @@ class ResolverV2
         // tag the class instance "missing"
         // a missing definition can help to identify obfuscated application
         missingCls.addTag(this._missingTag);
+        pAlwaysTag.map(x => missingCls.addTag(x));
 
         // update the internal DB[
         pAnalyzerDB.classes.setEntry(pFqcn, missingCls);
@@ -155,7 +165,10 @@ class ResolverV2
             pkg = pAnalyzerDB.packages.getEntry(pkg); // TODO ???
             //if(!(pkg instanceof ModelPackage)){
             if(pkg == null){
-                pkg = new ModelPackage({ name: missingCls.getPackage() as string });
+                pkg = new ModelPackage({
+                    name: missingCls.getPackage() as string ,
+                    tags: [this._missingTag.getUUID()].concat(pAlwaysTag.map(x =>x.getUUID()))
+                });
                 pAnalyzerDB.packages.setEntry((pkg as ModelPackage).name, pkg);
             }
 
@@ -167,11 +180,14 @@ class ResolverV2
     }
 
     createMissingField(fieldReference:ModelFieldReference, enclosingClass:ModelClass,
-                              internalDB:AnalyzerDatabase, modifiers:Modifier=Modifier.PUBLIC):ModelField{
+                              internalDB:AnalyzerDatabase,
+                       modifiers:Modifier=Modifier.PUBLIC,
+                       pAlwaysTag:Tag[] = []):ModelField{
 
         let missingField:ModelField = fieldReference.toField(enclosingClass);
 
         missingField.addTag(this._missingTag);
+        pAlwaysTag.map(x => missingField.addTag(x));
 
         //missingField.enclosingClass = enclosingClass;
         missingField.modifiers = modifiers;
@@ -193,10 +209,15 @@ class ResolverV2
     }
 
 
-    createMissingMethod(methodRef:ModelMethodReference, enclosingClass:ModelClass, internalDB:AnalyzerDatabase, modifiers:Modifier):ModelMethod{
+    createMissingMethod(methodRef:ModelMethodReference,
+                        enclosingClass:ModelClass,
+                        internalDB:AnalyzerDatabase,
+                        modifiers:Modifier,
+                        pAlwaysTag:Tag[] = []):ModelMethod{
         let missingMeth:ModelMethod = methodRef.toMethod(enclosingClass);
 
         missingMeth.addTag(this._missingTag);
+        pAlwaysTag.map(x => missingMeth.addTag(x));
 
         missingMeth.modifiers = modifiers; // new Accessor.AccessFlags(modifiers);
 
@@ -218,27 +239,27 @@ class ResolverV2
         return missingMeth;
     }
 
-    type(pAnalyzerDB:AnalyzerDatabase, pClass:string|ModelClass|ModelClassReference):ModelClass{
+    type(pAnalyzerDB:AnalyzerDatabase, pClass:string|ModelClass|ModelClassReference, pAlwaysTag:Tag[]=[]):ModelClass{
 
         if(pClass instanceof ModelClassReference){
             if(pAnalyzerDB.classes.hasEntry(pClass.fqcn)===true)
                 return pAnalyzerDB.classes.getEntry(pClass.fqcn);
             else
-                return this.createMissingClass(pClass.getName(), pAnalyzerDB);
+                return this.createMissingClass(pClass.getName(), pAnalyzerDB, pAlwaysTag);
             // unresolvable class are created as classic Class node but are tagged "MISSING"
         }
         if(pClass instanceof ModelClass){
             if(pAnalyzerDB.classes.hasEntry(pClass.name)===true)
                 return pAnalyzerDB.classes.getEntry(pClass.name);
             else
-                return this.createMissingClass(pClass.getName(), pAnalyzerDB);
+                return this.createMissingClass(pClass.getName(), pAnalyzerDB, pAlwaysTag);
             // unresolvable class are created as classic Class node but are tagged "MISSING"
         }
         else{
             if(pAnalyzerDB.classes.hasEntry(pClass)===true)
                 return pAnalyzerDB.classes.getEntry(pClass);
             else
-                return this.createMissingClass(pClass, pAnalyzerDB);
+                return this.createMissingClass(pClass, pAnalyzerDB, pAlwaysTag);
             // unresolvable class are created as classic Class node but are tagged "MISSING"
         }
 
@@ -247,7 +268,7 @@ class ResolverV2
     }
 
 
-    field(pAnalyzerDB:AnalyzerDatabase, pFieldRef:ModelFieldReference):ModelField{
+    field(pAnalyzerDB:AnalyzerDatabase, pFieldRef:ModelFieldReference, pAlwaysTag:Tag[]=[]):ModelField{
 
         let field:ModelField = pAnalyzerDB.fields.getEntry(pFieldRef.signature());
 
@@ -260,8 +281,8 @@ class ResolverV2
 
         // if enclosingClass not exists, create it
         if(cls == null){
-            cls = this.createMissingClass(pFieldRef.fqcn, pAnalyzerDB);
-            return this.createMissingField( pFieldRef, cls, pAnalyzerDB);
+            cls = this.createMissingClass(pFieldRef.fqcn, pAnalyzerDB, pAlwaysTag);
+            return this.createMissingField( pFieldRef, cls, pAnalyzerDB, Modifier.PUBLIC, pAlwaysTag);
             //field = createMissingField(field, cls, db);
         }
 
@@ -293,10 +314,10 @@ class ResolverV2
 
         // Finally if reference is unsolvable, the a mock field is created and tagged "missing"
 
-        return this.createMissingField( pFieldRef, cls, pAnalyzerDB);
+        return this.createMissingField( pFieldRef, cls, pAnalyzerDB, Modifier.PUBLIC, pAlwaysTag);
     }
 
-     method(pDB:AnalyzerDatabase, pMethRef:ModelMethodReference, isStaticCall:boolean):ModelMethod{
+     method(pDB:AnalyzerDatabase, pMethRef:ModelMethodReference, isStaticCall:boolean, pAlwaysTag:Tag[] = []):ModelMethod{
 
         let meth:ModelMethod = pDB.methods.getEntry(pMethRef.signature());
 
@@ -313,10 +334,10 @@ class ResolverV2
 
         // 2.1 If there is no parent class, then the method definition is missing
         if(cls == null){
-            cls = this.createMissingClass(pMethRef.fqcn, pDB);
+            cls = this.createMissingClass(pMethRef.fqcn, pDB, pAlwaysTag);
 
 
-            return this.createMissingMethod(pMethRef, cls, pDB,  access);
+            return this.createMissingMethod(pMethRef, cls, pDB,  access, pAlwaysTag);
         }
 
         // 2.2 else, search into inherited method
@@ -343,7 +364,7 @@ class ResolverV2
 
         // 4. else, mock missing method and class
 
-        return this.createMissingMethod(pMethRef, cls, pDB,  access);
+        return this.createMissingMethod(pMethRef, cls, pDB,  access, pAlwaysTag);
     }
 }
 
@@ -538,10 +559,10 @@ export default class Analyzer
      * @param {AnalyzerDatabase} pDb The app DB where the package must be created
      * @method
      */
-    createPackage( pName:string, pDb:AnalyzerDatabase):void {
+    createPackage( pName:string, pDb:AnalyzerDatabase, pTags:Tag[] = []):void {
         let p = pName.split('.'),  fresh:ModelPackage=null;
         let pkg:string='', ppkg:string=p[0], ppkgo:ModelPackage=null;
-
+        const tags:TagUUID[] = pTags.map(t => t.getUUID());
         const sastTag = this.context.getTagManager().getTag("discover.static");
         const internalTag = this.context.getTagManager().getTag("discover.internal");
 
@@ -553,6 +574,8 @@ export default class Analyzer
             if(pDb.packages.hasEntry(pkg)==false){
 
                 fresh = ModelPackage.fromJavaFQCN(pkg);
+                fresh.tags = tags;
+
                 pDb.packages.setEntry(pkg,  fresh);
                 this.context.trigger({
                     type: "model.package.new",
@@ -565,9 +588,12 @@ export default class Analyzer
                     (ppkgo = pDb.packages.getEntry( ppkg)).childAppend(fresh);
 
                     // propagate app tag when app package have android package as parent
-                    if(internalTag.match(ppkgo) && (this._diffTagDef.getUUID()==sastTag.getUUID())){
+                    if(internalTag.match(ppkgo) && (((this._diffTagDef!=null && this._diffTagDef.getUUID()==sastTag.getUUID()))
+                        || (pTags.length>0))){
                         //this.addForDelayedTagging(ppkg);
-                        ppkgo.addTag(sastTag);
+                        (pTags.map(x => ppkgo.addTag(x)));
+
+                        //ppkgo.addTag(sastTag);
                         this.context.trigger({
                             type: "model.package.update",
                             data: {
@@ -691,9 +717,11 @@ export default class Analyzer
      * @param {Object} stats The statistics counters
      * @function
      */
-    mapInstructionFrom(pMethod:ModelMethod, data:AnalyzerDatabase, stats:any){
+    mapInstructionFrom(pMethod:ModelMethod, data:AnalyzerDatabase, stats:any, pAlwaysTag:Tag[] = []){
         let bb:ModelBasicBlock = null, instruct:ModelInstruction = null, obj = null;
         let success:boolean=false, stmt=null, tmp:any=null, t:ModelBasicBlock=null, c:ModelCall;
+
+        const defaultTags:TagUUID[] = pAlwaysTag.map(x => x.getUUID());
 
         // add visibility tags
         if(pMethod.hasModifier(Modifier.ABSTRACT) && (this._abstractTag!=null)){
@@ -753,13 +781,15 @@ export default class Analyzer
                         continue;
                     }
 
-                    instruct.right = this.resolver.method(data, instruct.right, instruct.isStaticCall());
+                    instruct.right = this.resolver.method(data, instruct.right, instruct.isStaticCall(), pAlwaysTag);
 
 
                     //instruct.right._callers.push(method);
                     instruct.right.addCaller(pMethod);
 
-                    tmp = new ModelCall();
+                    tmp = new ModelCall({
+                        tags: defaultTags
+                    });
 
                     (tmp as ModelCall).setCaller(pMethod);
                     (tmp as ModelCall).setCalled(instruct.right); //obj,
@@ -818,7 +848,9 @@ export default class Analyzer
                     instruct.right._callers.push(pMethod);
 
 
-                    c = new ModelCall();
+                    c = new ModelCall({
+                        tags: defaultTags
+                    });
 
                     (c as ModelCall).setCaller(pMethod);
                     (c as ModelCall).setCalled(instruct.right); //obj,
@@ -848,7 +880,8 @@ export default class Analyzer
                     const s = new ModelStringValue({
                         // src: [pMethod],
                         // instr: instruct,
-                        value: instruct.right._value
+                        value: instruct.right._value,
+                        tags: defaultTags
                     });
 
                     s.setInstrSource(pMethod, instruct);
@@ -879,7 +912,9 @@ export default class Analyzer
                         instruct.right = obj;
 
 
-                        c = new ModelCall();
+                        c = new ModelCall({
+                            tags: defaultTags
+                        });
                         (c as ModelCall).setCaller(pMethod);
                         (c as ModelCall).setCalled(obj); //obj,
                         (c as ModelCall).setInstr(instruct);
@@ -919,8 +954,12 @@ export default class Analyzer
      -> create additional index in the DB
      ->  ...
      -> Optional. Linking element to a parent file or other (file declaring element)
+     *
+     * @param {AnalyzerDatabase} data The temporary analyzer DB where fresh, not-linked,  nodes are stored
+     * @param {AnalyzerDatabase} data The final DB, in memory, containing whole graph DB
+     * @param
      */
-    async buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase, pLocation:ModelLocation=null):Promise<void>{
+    async buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase, pTags:Tag[], pLocation:ModelLocation=null):Promise<void>{
 
         Logger.raw("\n[*] Start object mapping ...\n------------------------------------------");
 
@@ -942,6 +981,8 @@ export default class Analyzer
         //      if a class not exists, it ll be saved
         //      if a class is overidden, it ll be updated
         data.classes.map((k:string, v:ModelClass)=>{
+
+
 
             if(pLocation!=null) v.addLocation(pLocation);
 
@@ -1216,7 +1257,7 @@ export default class Analyzer
 
             // Build Package instance from the package name (string)
             if(absoluteDB.packages.hasEntry(pkgName) == false){
-                this.createPackage( pkgName, absoluteDB);
+                this.createPackage( pkgName, absoluteDB, pTags);
             }
             // Append the current class to its Package instance
             absoluteDB.packages.getEntry(pkgName).childAppend(v);
@@ -1284,7 +1325,7 @@ export default class Analyzer
                     if(v.methods[j] instanceof ModelMethod){
 
                         t = (new Date()).getTime();
-                        this.mapInstructionFrom(v.methods[j], absoluteDB, STATS);
+                        this.mapInstructionFrom(v.methods[j], absoluteDB, STATS, pTags);
                         t1 = (new Date()).getTime();
                         if(t1-t>150)
                             Logger.debug((t1-t)+" : "+v.methods[j].signature());
@@ -1316,6 +1357,7 @@ export default class Analyzer
         });
 
 
+        //this._wf.log()
 
 
         Logger.raw("[*] "+STATS.idxMethod+" methods indexed");
@@ -1453,7 +1495,9 @@ export default class Analyzer
             name:pFilename,
             size: stat.size,
             location: vCtx.location,
+            tags: (vCtx.tagAlways!=null ? (vCtx.tagAlways as Tag[]).map((t:Tag) => t.getUUID()) : [])
         });
+
 
         if(vCtx.scope!=null){
             file.setScope(vCtx.scope);
@@ -1474,6 +1518,11 @@ export default class Analyzer
                         fparser = candidateParsers[0];
                     }else{
                         err.push(DataFormatManagerException.NOT_PARSABLE(ffmt,'app code analyzer',pFilePath));
+
+                        // save
+                        file.addTag(this.context.getTagManager().getTag("data.type.unknown"));
+                        await this.saveParsedObject(file, vCtx, null, null, null, []);
+
                         return;
                     }
                 }else{
@@ -1492,9 +1541,14 @@ export default class Analyzer
         let rs:number =0;
         let self: Analyzer = this;
 
+
         if(streamParser){
+            // TODO : deprecated ?
             if(pFilePath.endsWith(".smali")){
                 (fparser as Smali.Parser).parseStream(pFilePath, this.encoding, function( pClass:ModelClass){
+                    if(vCtx.tagAlways!=null){
+                        vCtx.tagAlways.map(t => pClass.addTag(t))
+                    }
                     self.tempDB.classes.addEntry( pClass.name, pClass); // fqcn
                     rs++;
                 });
@@ -1508,11 +1562,22 @@ export default class Analyzer
             }
         }else{
             try{
-                res = await fparser.fromBuffer(input, 0, { encoding: this.encoding, print:false, raw:false });
+                if(input.length==0){
+                    // save
+                    await this.saveParsedObject(file, vCtx, null, null, null, []);
+                    return;
+                }
+
+                res = await fparser.fromBuffer(input, 0, { encoding: this.encoding, print:false, raw:false, tags:vCtx.tagAlways });
                 if(res.ok==null){
                     Logger.error(`[ANALYZER] File ${pFilename} cannot analyzed. Cause : ${res.invalid.length>0 ? res.invalid[0].msg : '?' }`);
                     err = err.concat(res.invalid);
                     this._errors[pFilePath] = err;
+
+                    // save
+                    file.addTag(this.context.getTagManager().getTag("data.type.unknown"));
+                    await this.saveParsedObject(file, vCtx, null, null, null, []);
+
                     return;
                 }else{
                     if(res.strings!=null){
@@ -1553,6 +1618,8 @@ export default class Analyzer
                 }
             }catch (e){
                 err.push(e);
+
+                file.addTag(this.context.getTagManager().getTag("data.type.unknown"));
                 if(file.getScope()!=null){
                     Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
                 }else{
@@ -1563,14 +1630,18 @@ export default class Analyzer
                 try{
                     if(this.context._createMode) {
                         if (file.getScope() != null) {
+
                             file = await this.context.getProjectDB().save(file) as ModelFile;
                         }
                     }
 
                     if(res!=null && res.ok!=null){
-                        await this.saveParsedObject(res.ok, vCtx, ffmt, fparser, file);
+                        await this.saveParsedObject(res.ok, vCtx, ffmt, fparser, file, []);
                     }else{
-                        Logger.error(`Result from parsing of "${file.getRelativePath()}" cannot be saved.`);
+                        Logger.error(`Parsing of "${file.getRelativePath()}" failed => tag a unknown.`);
+                        // save
+                        file.addTag(this.context.getTagManager().getTag("data.type.unknown"));
+                        await this.saveParsedObject(file, vCtx, null, null, null, []);
                     }
 
                 }catch (e){
@@ -1591,17 +1662,29 @@ export default class Analyzer
     async saveParsedObject(vObj:INode|INode[],
                            vCtx:any = null, vFormat:any = null,
                            vParser:Nullable<IParser<any>> = null,
-                           vFile:Nullable<ModelFile> = null):Promise<void> {
+                           vFile:Nullable<ModelFile> = null, vAlwaysTags:TagUUID[] = []):Promise<void> {
 
         if(vObj==null) return;
         if(Array.isArray(vObj)){
-            for(let i=0;i<vObj.length; this.saveParsedObject(vObj[i], vCtx, vFormat, vParser, vFile), i++);
+            for(let i=0;i<vObj.length; this.saveParsedObject(vObj[i], vCtx, vFormat, vParser, vFile, vAlwaysTags), i++);
             return;
         }
 
         let updates:string[] = ['tags','location'];
         let prevent = false;
         let evtType:string, node:INode;
+
+        // add tags
+        if(vObj.__!=null){
+            if(vObj.tags==null){
+                vObj.tags = vAlwaysTags;
+            }else{
+                vAlwaysTags.map(t => {
+                    if((vObj as INode).tags.indexOf(t)==-1)
+                        (vObj as INode).tags.push(t);
+                });
+            }
+        }
 
         let isNode = true;
         switch (vObj.__) {
@@ -1622,9 +1705,12 @@ export default class Analyzer
                     // skip if the value is a node ref
                     if(!Analyzer.isNodeRef(vObj.value as any)){
                         await this.saveParsedObject(vObj.value, vCtx, vFormat, vParser, vFile);
+                        (vObj as ModelResource<any>).value = NodeUtils.asNodeRef(vObj.value);
                     }
                 }
-                if((vObj as ModelResource<any>).location==null){
+                if((vObj as ModelResource<any>).location==null
+                    || ((vObj as ModelResource<any>).location.source as any).fileUID==null){
+
                     (vObj as ModelResource<any>).location = new DataLocation({
                         type: DataLocationType.FILE,
                         source: {
@@ -1676,6 +1762,7 @@ export default class Analyzer
             }
 
         }
+
 
         if(isNode && this.context._createMode){
             if(vObj.__===NodeInternalType.FILE){
@@ -1729,7 +1816,7 @@ export default class Analyzer
      * @returns {void}
      * @method
      */
-    async path(pPath:string, pLocation:ModelLocation=null, pDataScope:Nullable<DataScope>=null):Promise<void>{
+    async path(pPath:string, pLocation:ModelLocation=null, pDataScope:Nullable<DataScope>=null, pAlwaysTag:Tag[] = []):Promise<void>{
 
         let self:Analyzer = this;
         let baseCtx:any = {
@@ -1764,6 +1851,7 @@ export default class Analyzer
         await Util.forEachFile(pPath,async (vPath:string, vFile:string, vIsDir:boolean, vCtx:any):Promise<boolean> =>{
 
             vCtx = await this.context.getAppAnalyzer().getPathContext(vPath, vFile, vIsDir, vCtx);
+            vCtx.tagAlways = pAlwaysTag;
 
             if(vIsDir){
                 vCtx.location = pLocation;
@@ -1815,9 +1903,9 @@ export default class Analyzer
         // start object mapping (replace reference by relationship),
         // merge temporary DB with exesiting DB, ...
         if(pLocation!=null)
-            await this.buildModel(tempDb, this.db, pLocation);
+            await this.buildModel(tempDb, this.db, pAlwaysTag, pLocation);
         else
-            await this.buildModel(tempDb, this.db);
+            await this.buildModel(tempDb, this.db, pAlwaysTag);
 
 
         // save model
@@ -2090,8 +2178,9 @@ export default class Analyzer
     /**
      * To scan for new DataBlock and index them
      */
-    updateDataBlock(){
+    updateDataBlock(pTags:Tag[] = []){
         let dd:ModelDataBlock[]=null, dbs:string=null;
+
 
         this.db.methods.map((k:string,v:ModelMethod)=>{
 
@@ -2099,6 +2188,13 @@ export default class Analyzer
             for(let j=0; j<dd.length; j++){
                 if(dd[j] == null) continue;
                 dbs = dd[j].getUID();
+
+
+                if(pTags.length>0){
+                    pTags.map( vT => dd[j].addTag(vT));
+                }
+
+
                 if(this.db.datablock.hasEntry(dbs) === false)
                     this.db.datablock.addEntry(dbs,dd[j]);
             }

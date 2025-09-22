@@ -20,3 +20,10 @@ export interface ScaJavaLibraryEvent {
     libraryVersion: string;
     proof?: FileBasedProof
 }
+
+
+export interface ScaBundleSwiftEvent {
+    libraryName:string;
+    libraryVersion: string;
+    proof?: FileBasedProof
+}

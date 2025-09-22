@@ -13,6 +13,7 @@ import AndroidAppAnalyzer from "../../src/android/AndroidAppAnalyzer.js";
 import AndroidActivity from "../../src/android/AndroidActivity.js";
 import {Finder} from "../../src/search/Finder.js";
 import {FinderResult} from "../../src/search/FinderResult.js";
+import ModelFile from "../../src/ModelFile.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -81,6 +82,7 @@ function tagByAttr(context:DexcaliburProject, pAttr:any, event:BusEvent<any>):vo
 
 
 // === CONFIG
+// @ts-ignore
 export default new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
@@ -239,6 +241,7 @@ export default new InspectorFactory({
                 const ctx = pEvent.getContext();
                 const tm = ctx.getTagManager();
 
+
                 // skip if target platform is not android
                 if(!ctx.getPlatform().isAndroid())  return;
 
@@ -271,12 +274,76 @@ export default new InspectorFactory({
                         }
                     }
                 }
+
+                // ModelPackage detected
+
+
             })();
 
         }
     },
     eventListenerSources: {
 
+        "app.package.new": {
+            lang: 'ts',
+            source: `
+            // <ts>={
+            
+            const ctx:any = pEvent.getContext();
+            const tm = ctx.getTagManager();
+            
+            const evt = pEvent.getData();
+
+             if(evt.sbomType=="swift.bundle" || (tm.getTag("swift.bundle")).match(parserEvent.pkg as ModelPackage)){
+                  console.log(parserEvent);
+                    ctx.trigger({
+                        type:"sca.sbom.new",
+                        data: {
+                            libraryName: file.data.ok["client"].value,
+                            libraryVersion: file.data.ok["version"].value,
+                            proof: {
+                                file: file.getUID(),
+                                path: file.getRelativePath(),
+                                type: "Swift bundle folder"
+                            }
+                        }
+                    });
+                    return;
+                }
+                if(evt.sbomType=="objc.bundle" || (tm.getTag("objc.bundle")).match(parserEvent.pkg as ModelPackage)){
+                    console.log(parserEvent);
+                    ctx.trigger({
+                        type:"sca.sbom.new",
+                        data: {
+                            libraryName: pkg.name,
+                            libraryVersion: "",
+                            proof: {
+                                file: "", // file.getUID(),
+                                path: "", //file.getRelativePath(),
+                                type: "ObjC bundle folder"
+                            }
+                        }
+                    });
+                    return;
+                }
+                if(evt.sbomType=="ai.coreml" || (tm.getTag("ai.coreml")).match(parserEvent.pkg as ModelPackage)){
+                     console.log(parserEvent);
+                    ctx.trigger({
+                        type:"sca.sbom.new",
+                        data: {
+                            libraryName: file.data.ok["client"].value,
+                            libraryVersion: file.data.ok["version"].value,
+                            proof: {
+                                file: file.getUID(),
+                                path: file.getRelativePath(),
+                                type: "AI CoreML model"
+                            }
+                        }
+                    });
+                    return;
+                }
+            `
+        },
         "app.activity.new": {
             lang: 'ts',
             source:`

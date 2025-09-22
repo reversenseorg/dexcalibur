@@ -53,7 +53,26 @@ describe('CgbiParser', function() {
 
             _fs_.writeFileSync(
                 out,
-                parser.encodeAsPng(input,0, { print:true, encoding:"binary" }));
+                parser.encodeAsPng(input,0, { print:true, encoding:"binary",  tags:[], raw:true }));
+
+            //expect(vres.ok.getData('CFBundleIcons').CFBundlePrimaryIcon.CFBundleIconName).to.be.equal("AppIcon");
+        });
+
+        it('Buffer is parsed (2)', async function () {
+
+            const parser = new Cgbi.Parser();
+            // @ts-ignore
+            const out = _path_.join(Util.__dirname(import.meta.url),"../files/bp_icon2.encoded.png");
+            // @ts-ignore
+            const input = _fs_.readFileSync(_path_.join(Util.__dirname(import.meta.url),"../files/bp_icon2.cgbi.png"));
+
+            if(_fs_.existsSync(out)){
+                _fs_.rmSync(out);
+            }
+
+            _fs_.writeFileSync(
+                out,
+                parser.encodeAsPng(input,0, { print:true, encoding:"binary",  tags:[], raw:true }));
 
             //expect(vres.ok.getData('CFBundleIcons').CFBundlePrimaryIcon.CFBundleIconName).to.be.equal("AppIcon");
         });
@@ -63,12 +82,12 @@ describe('CgbiParser', function() {
         let b:Buffer;
 
         // @ts-ignore
-        b = _fs_.readFileSync(_path_.join(Util.__dirname(import.meta.url),"../files/vk_0.png"));// _fs_.readFileSync("./files/XmlPlist.plist");
+        b = _fs_.readFileSync(_path_.join(Util.__dirname(import.meta.url),"../files/bp_icon.decoded.png")); //vk_0.png"));// _fs_.readFileSync("./files/XmlPlist.plist");
 
         it('Buffer is parsed', async function () {
 
             const parser = new Cgbi.Parser();
-            const vres = await parser.fromBuffer(b, 0, {encoding:'binary',print:true, preserveExtra:true});
+            const vres = await parser.fromBuffer(b, 0, {encoding:'binary',print:true, preserveExtra:true, tags:[], raw:true});
 
             console.log(vres);
         });

@@ -80,6 +80,8 @@ export interface AssuranceReportOptions {
     controls?:ControlNode[];
     meta?:Metadata[];
     indicators?: Indicator[];
+    uid?:AssuranceReportUUID;
+    tags?:TagUUID[];
 }
 
 export type AssuranceReportUUID = string;

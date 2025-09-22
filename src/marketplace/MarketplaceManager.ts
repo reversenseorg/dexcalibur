@@ -9,8 +9,6 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 import {MarketplaceException} from "./MarketplaceException.js";
 import Util from "../Utils.js";
 import {BusinessPlanType} from "../billing/BusinessPlan.js";
-import {Product} from "../credit/Product.js";
-import {GenericScanner} from "../audit/common/GenericScanner.js";
 import {SemVerComparison, SemVerHelper} from "../util/semver/SemverHelper.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 

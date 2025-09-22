@@ -7,8 +7,7 @@ import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {IDbCollection, IDbIndex, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, NodeInternalTypeName} from "@dexcalibur/dxc-core-api";
 
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {AnalyzerState} from "../AnalyzerState.js";
@@ -43,6 +42,7 @@ import BusEvent from "../BusEvent.js";
 import ModelBom from "../ModelBom.js";
 import ModelUiEventType from "../graphics/models/ModelUiEventType.js";
 import ModelUiEvent from "../graphics/models/ModelUiEvent.js";
+import ModelUiComponent from "../graphics/models/ModelUiComponent.js";
 import ModelUiComponentType from "../graphics/models/ModelUiComponentType.js";
 import ModelUiRole from "../graphics/models/ModelUiRole.js";
 import ModelResource from "../ModelResource.js";
@@ -108,6 +108,8 @@ export class ProjectDatabase implements IFileDatabase {
     private _pfdb:ProjectFileDatabase;
 
     private _merlinBE:MongoDbMerlinBackend;
+
+    private _ctr:Record<number, number> = {};
     /**
      * Worker to schedule child worker to save data
      *
@@ -154,7 +156,7 @@ export class ProjectDatabase implements IFileDatabase {
         ModelUiEventType.TYPE,
         ModelUiEvent.TYPE,
         ModelUiComponentType.TYPE,
-        //ModelUiComponent.TYPE,
+        ModelUiComponent.TYPE,
         ModelUiRole.TYPE,
 
         ModelResource.TYPE,
@@ -165,6 +167,9 @@ export class ProjectDatabase implements IFileDatabase {
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
 
+    private _cache:Record<number, Record<string, INode>> = {};
+    private _strCache:Record<string, ModelStringValue> = {};
+    private _strCacheSz = 0;
 
     constructor(pDb:MongodbDb) {
         this._db = pDb;
@@ -296,12 +301,13 @@ export class ProjectDatabase implements IFileDatabase {
      * @private
      */
     private _initSubscriptions():void {
-        this._project.getBus().subscribe("data.file.parsed",  BusSubscriber.from( (pEvent:BusEvent<any>)=>{
+        /*this._project.getBus().subscribe("data.file.parsed",  BusSubscriber.from( (pEvent:BusEvent<any>)=>{
+
             Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.parsed> Save parsed data [fmt="
                 +pEvent.getData().format+"] : "+pEvent.getData().file.getPath());
 
             this.save(pEvent.getData().file).then((v)=>{},()=>{})
-        }) )
+        }) )*/
     }
 
     /**
@@ -488,7 +494,7 @@ export class ProjectDatabase implements IFileDatabase {
                 const filterId:any = {};
                 NodeType.INTERN[pObject.__].setPrimaryKeyValueOf( filterId as any, pObject.getUID());
 
-                console.log(e,{ upsert:true, replace:false, filter: filterId });
+                //console.log(e,{ upsert:true, replace:false, filter: filterId });
                 opt = { upsert:true, replace:false, filter: filterId };
                 if(pSet.length>0){
                     opt['$set'] = pSet;
@@ -567,6 +573,23 @@ export class ProjectDatabase implements IFileDatabase {
         return obj;
     }
 
+
+    async saveManyBatch(pObjects:INode[], pNodeType:NodeInternalType, pSize = 1000):Promise<void> {
+        const coll = this.getCollectionOf(pNodeType);
+        let batch:any[];
+
+        for(let i=0, len=pObjects.length; i<Math.floor(len/pSize)+1; i++){
+            batch = pObjects.slice(i*pSize, (i+1)*pSize);
+
+            if(batch.length>0){
+                //Logger.info(`Save insert batch ${i*pSize} => ${(i+1)*pSize} (total=${len}, batch size: ${batch.length})`);
+                await (this.getCollectionOf(pNodeType) as MongodbDbCollection).updateMany(
+                    batch, { replace:false, upsert:true }
+                );
+            }
+        }
+
+    }
     /*
      * To save an object to corresponding collection
      *
@@ -679,42 +702,6 @@ export class ProjectDatabase implements IFileDatabase {
         );
     }
 
-    /**
-     * To persist the DB
-     * @param {AnalyzerDatabase} pDB
-     */
-    async saveAnalyzerDB(pDB: AnalyzerDatabase):Promise<void>  {
-
-        if(this._ctx.dryRun){
-            Logger.success("[PROJECT DB] Analyzer DB didnt  save : dry run mode");
-            return;
-        }
-
-        Logger.info("[PROJECT DB] Start to save Analyzer DB");
-        const startTime = Util.now();
-
-        const types = [
-            NodeInternalType.CLASS,
-            NodeInternalType.METHOD,
-            NodeInternalType.FIELD,
-            NodeInternalType.PACKAGE,
-            NodeInternalType.CALL
-        ];
-
-        let vals;
-        for(let i=0; i<types.length; i++){
-            vals = pDB.getDataSetFromNodeType(types[i]).getAsList();
-            try{
-                if(vals.length>0){
-                    await this.saveMany(vals, types[i]);
-                }
-            }catch (e){
-                Logger.error(e.message);
-            }
-        }
-
-        Logger.success("[PROJECT DB] Analyzer DB saved [duration="+((Util.now()-startTime)/1000)+"s]");
-    }
 
 
     /**
@@ -744,29 +731,106 @@ export class ProjectDatabase implements IFileDatabase {
             ModelField.TYPE,
             ModelMethod.TYPE,
             ModelPackage.TYPE,
-            ModelCall.TYPE
+            ModelCall.TYPE,
+            ModelStringValue.TYPE
         ];
 
 
-        let result:IDbIndex = new InMemoryDbIndex();
+        let result:INode[];
         let req:MerlinSearchRequest;
+        let coll:MongodbDbCollection;
+        let n:INode[];
+        let t1:number, t2:number;
+        let batch:INode[] = [];
+        
         for(let i=0; i<types.length; i++){
 
             req = MerlinSearchRequest.fromCondition(this._project.merlin, types[i], "@"+pTag.getUID(), { not:false });
-
-            result = new InMemoryDbIndex();
-            result = await (pDB.getDataSetFromNodeType(types[i].getType()) as InMemoryDbCollection).search(
+            coll = (this.getCollectionOf(types[i].getType()) as MongodbDbCollection);
+            //result = new InMemoryDbIndex();
+            result = (await (pDB.getDataSetFromNodeType(types[i].getType()) as InMemoryDbCollection).search(
                 req,
-                result
-            );
+                new InMemoryDbIndex()
+            )).getAsList() as INode[];
 
-            try{
-                Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
-                if(result.size()>0){
-                    await ((this.getCollectionOf(types[i].getType()) as MongodbDbCollection).updateMany(result.getAsList(), {upsert:true}));
+
+            if(types[i].getType()!=ModelStringValue.TYPE.getType()){
+                try{
+                    Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.length}][tag=${pTag.getUID()}]`);
+                    if(result.length>0){
+                        t1 = Util.now();
+                        for(let k=0, len=result.length;k<Math.floor(len/100)+1;k++){
+                            try{
+                                batch = result.slice(k*100,(k+1)*100);
+                                await coll.updateMany(batch, {
+                                    upsert:true
+                                });
+                            }catch (e1){
+                                console.log(e1);
+                                console.log(e1.errorResponse);
+                                // retry with atomic update
+                                if(e1.errorResponse !=null && e1.errorResponse.code==11000){
+                                    Logger.warn("[PROJECT DB] Retry atomic update of "+types[i].getName()+" (size="+(batch!=null ? batch.length:-1)+")");
+                                    console.log(e1.errorResponse);
+                                    console.log(e1.errorResponse.writeErrors);
+                                    /*await coll.asyncUpdateEntry(e1.errorResponse.op, {});
+
+
+                                    await coll.updateMany(batch, {
+                                        upsert:true,
+                                        atomic:true
+                                    });*/
+                                }else{
+                                    throw e1;
+                                }
+
+                            }
+
+                        }
+                        Logger.info(`[PROJECT DB] Finished to save in ${Util.now()-t1} s`);
+                    }
+                }catch (e){
+                    Logger.error("[PROJECT DB] Nodes cannot be saved : "+e.message);
                 }
-            }catch (e){
-                Logger.error(e.message);
+            }else{
+
+                try{
+                    Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.length}][tag=${pTag.getUID()}]`);
+                    if(result.length>0){
+                        t1 = Util.now();
+                        await this.updateStringValue(result as ModelStringValue[]);
+
+                        for(let k=0, len=result.length;k<Math.floor(len/100)+1;k++){
+                            try{
+                                batch = result.slice(k*100,(k+1)*100);
+                                await coll.updateMany(batch, {
+                                    upsert:true,
+                                    $set:['src','tags']
+                                });
+                            }catch (e1){
+                                // retry with atomic update
+                                if(e1.errorResponse !=null && e1.errorResponse.code==11000){
+                                    Logger.warn("[PROJECT DB] Retry atomic update of "+types[i].getName()+" (size="+(batch!=null ? batch.length:-1)+")");
+                                    console.log(e1.errorResponse);
+                                    console.log(e1.errorResponse.writeErrors);
+                                    /*await coll.asyncUpdateEntry(e1.errorResponse.op, {});
+
+
+                                    await coll.updateMany(batch, {
+                                        upsert:true,
+                                        atomic:true
+                                    });*/
+                                }else{
+                                    throw e1;
+                                }
+                            }
+
+                        }
+                        Logger.info(`[PROJECT DB] Finished to save in ${Util.now()-t1} s`);
+                    }
+                }catch (e){
+                    Logger.error("[PROJECT DB] Strings cannot be saved : "+e.message);
+                }
             }
         }
 
@@ -785,7 +849,7 @@ export class ProjectDatabase implements IFileDatabase {
         await this._db.db.dropDatabase();
     }
 
-    async getAppResource(pResUID:string):Promise<ModelResource> {
+    async getAppResource(pResUID:string):Promise<ModelResource<any>> {
         return await (this.getCollectionOf(ModelResource.TYPE.getType()) as MongodbDbCollection)
             .asyncGetEntry({ _uid:pResUID });
     }
@@ -809,4 +873,193 @@ export class ProjectDatabase implements IFileDatabase {
     }
 
 
+    /**
+     * To update and retrieve string value
+     *
+     * String can be found over different location. Instead of create duplicated nodes,
+     * ModelStringValue with identical value are merged in a single one
+     * with multiple 'src' (location where the string has been detected)
+     *
+     * This method retrieved existing duplicated string, update this with src of the string specified,
+     * save it again, and return the unique string.
+     *
+     * @param pString
+     */
+    async updateStringValue(pStrings:ModelStringValue[]):Promise<{ updated:number, inserted:number, untouched:number }> {
+
+        let ctrUp = 0, ctrIn = 0;
+
+
+        pStrings.map(vStr => {
+            const c = this._strCache[vStr.getUID()];
+            if(c==null){
+                this._strCache[vStr.getUID()] = vStr;
+                this._strCacheSz++;
+                ctrIn++;
+            }else{
+                c.updateSource(vStr);
+                ctrUp++;
+            }
+        })
+
+        return { updated:ctrUp, inserted:ctrIn, untouched: (this._strCacheSz-ctrUp-ctrIn)  };
+    }
+
+    async saveStrings():Promise<void> {
+
+        let i:number = 0;
+        let all:ModelStringValue[] = [];
+        try{
+            /*await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).updateMany(
+                Object.values(this._strCache), { replace:true, upsert:true, $set:['_uid','src','tags','value']}
+            );*/
+
+            //await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).addMany( Object.values(this._strCache));
+
+            all = Object.values(this._strCache);
+            for( i=0; i<all.length;i++){
+                await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).addMany( [all[i]]);
+            }
+
+        }catch (e){
+            Logger.error(`[PROJECT DB] Strings "${all[i].value}"(uid=${all[i]._uid}) (${i}) cannot be saved : `+e.message+"\n"+e.stack);
+            console.log(all[i]);
+        }
+
+
+        return ;
+    }
+
+
+    /**
+     * To update and retrieve string value
+     *
+     * String can be found over different location. Instead of create duplicated nodes,
+     * ModelStringValue with identical value are merged in a single one
+     * with multiple 'src' (location where the string has been detected)
+     *
+     * This method retrieved existing duplicated string, update this with src of the string specified,
+     * save it again, and return the unique string.
+     *
+     * @param pString
+     */
+    async updateResources(pObj:ModelResource<any>[]):Promise<{ updated:number, inserted:number, untouched:number }> {
+
+        const all = await this.getCollectionOf(ModelResource.TYPE.getType()).getAsList(-1);
+        const existings:Record<string, ModelResource<any>> = {};
+
+        all.map((s:ModelResource<any>) => {
+            existings[s.getUID()] = s;
+        });
+
+        let insert:Record<string, ModelResource<any>> = {};
+        let update:Record<string, ModelResource<any>> = {};
+        let ctrUp = 0, ctrIn = 0;
+
+
+        pObj.map(vStr => {
+            const s = existings[vStr.getUID()];
+            if(s==null){
+                const c = insert[vStr.getUID()];
+                if(c==null){
+                    insert[vStr.getUID()] = vStr;
+                    ctrIn++;
+
+                }
+            }else{
+                update[s.getUID()] = s;
+                ctrUp++;
+            }
+        })
+
+        let batch:any = [];
+        if(ctrUp>0){
+
+            for(let i=0; i<Math.floor(ctrUp/100)+1; i++){
+                batch = Object.values(update).slice(i*100, (i+1)*100);
+
+                if(batch.length>0){
+                    try{
+                        Logger.info(`Save update batch ${i*100} => ${(i+1)*100} (total=${ctrUp}, batch size: ${batch.length})`);
+                        await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                            batch, { replace:false, upsert:false, $set:['ppts','tags'] }
+                        );
+                    }catch (e1){
+                        Logger.info(`Save update batch ${i*100} => ${(i+1)*100}  failed : ${e1.stack}`);
+                    }
+                }
+            }
+           /* await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                Object.values(update), { replace:false, upsert:false }
+            );*/
+        }
+
+        if(ctrIn>0){
+            /*await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).addMany(
+                Object.values(insert)
+            );*/
+
+            for(let i=0; i<Math.floor(ctrIn/100)+1; i++){
+                batch = Object.values(insert).slice(i*100, (i+1)*100);
+
+                if(batch.length>0){
+                    // Logger.info(`Save insert batch ${i*100} => ${(i+1)*100} (total=${ctrIn}, batch size: ${batch.length})`);
+                    try{
+                        Logger.info(`Save update (upsert) batch ${i*100} => ${(i+1)*100} (total=${ctrUp}, batch size: ${batch.length})`);
+                        await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                            batch, { replace:false, upsert:true }
+                        );
+                    }catch (e1){
+                        Logger.info(`Save update (upsert) batch ${i*100} => ${(i+1)*100}  failed : ${e1.stack}`);
+                    }
+                }
+            }
+            /*
+            await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
+                Object.values(insert), { replace:true, upsert:true }
+            );*/
+        }
+
+        return { updated:ctrUp, inserted:ctrIn, untouched: (all.length-ctrUp)  };
+    }
+
+    /**
+     *
+     * @param pNode
+     */
+    static generateIncrementalUUID(pNode:INode, pCtr:number = -1):string {
+        // 6dd85cef-1ab5-44b6-99d1-b8564bb9fd65
+        // Maybe : [INSTANCE]-[ORG]-[PROJ]-[NodeType]-[UID]
+
+        return `6dd85cef-1ab5-44b6-${((pNode.__ & 0xFF)).toString(16).padStart(4,'0')}-${(pCtr.toString(16).padStart(12,'0'))}`;
+    }
+
+    generateIncrementalNodeUUID(pNode:INode):INode {
+        // 6dd85cef-1ab5-44b6-99d1-b8564bb9fd65
+        // Maybe : [INSTANCE & ORG & APP & PROJ]-[TimeSeries]-[Tags]-[NodeType]-[UID]
+
+        let c:number;
+        if(this._ctr[pNode.__]!=null && this._ctr[pNode.__]>=0){
+            c = this._ctr[pNode.__]++;
+        }else{
+            c = this._ctr[pNode.__] = 0;
+        }
+
+        const pk = NodeType.getByID(pNode.__).getPrimaryKey().getName();
+        let uid:string = "";
+        uid+="00000000";
+        uid+='-';
+        uid+="0001"
+        uid+='-';
+        uid+="0000"
+        uid+='-';
+        uid+=((pNode.__ & 0xFF)).toString(16).padStart(4,'0');
+        uid+='-';
+        uid+=(c.toString(16).padStart(12,'0'));
+
+        pNode[pk] = uid;
+
+        return pNode;
+
+    }
 }

@@ -103,6 +103,36 @@ export default class ModelStringValue extends Savable implements INode
     }
 
 
+    static addStringRefTo(pStrings:ModelStringValue[], pRawStr:string, pRetRef = true):INodeRef|ModelStringValue  {
+
+        let i=0;
+        let eq:number;
+        const hash = ModelStringValue.hashcode(pRawStr);
+
+        while(i<pStrings.length && (eq=pStrings[i].getUID().localeCompare(hash))<0) i++;
+
+        if(pStrings[i]!=null){
+            if(eq===0){
+                // location / src
+                return (pRetRef ? NodeUtils.asNodeRef(pStrings[i]) : new ModelStringValue({ value:pRawStr }) )
+            }else{
+                // missing string
+                // insert data without break sort
+                // const end = pStrings.slice(i);
+                // shift values
+                for(let len=pStrings.length-1; len>=i; len--){
+                    pStrings[len+1] = pStrings[len];
+                }
+                // insert strings
+                pStrings[i] = new ModelStringValue({ value: pRawStr });
+                return (pRetRef ? NodeUtils.asNodeRef(pStrings[i]) : new ModelStringValue({ value:pRawStr }) )
+            }
+        }else{
+            pStrings[i] = new ModelStringValue({ value: pRawStr });
+            return (pRetRef ? NodeUtils.asNodeRef(pStrings[i]) :  new ModelStringValue({ value:pRawStr }) )
+        }
+    }
+
     static hashcode(pValue:string):string {
         return Util.sha1_buffer(pValue);
     }

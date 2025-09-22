@@ -124,6 +124,7 @@ export function newTagPresets(){
         new Tag({ name:"plist" }),
         new Tag({ name:"nib" }),
         new Tag({ name:"xcprivacy" }),
+        new Tag({ name:"unknown" }),
     ];
 
     const CODE_GLOBAL_TAGS = [

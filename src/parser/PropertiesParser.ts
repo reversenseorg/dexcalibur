@@ -2,11 +2,13 @@ import * as _os_ from "os";
 import {IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import ModelResource from "../ModelResource.js";
+import ModelStringValue from "../ModelStringValue.js";
+import {TagUUID} from "@dexcalibur/dexcalibur-orm";
 
 export namespace Properties {
     export interface Entry {
         key?:string;
-        value?:string;
+        value?:string|ModelStringValue;
         comment?:string;
         line:number;
         lineCount:number;
@@ -115,12 +117,20 @@ export namespace Properties {
         constructor() {
         }
         
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'utf-8', eol:null, raw:true} ):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:ParserOptions = { encoding:'utf-8', eol:null, raw:true, tags:[] } ):Promise<Results> {
+            if(pOptions.tags==null) pOptions.tags = [];
+
             const eol = (pOptions.eol==null ? _os_.EOL : pOptions.eol);
             const res:Results = {
-                ok: new ModelResource<any>({ value:{} }),
-                invalid: []
+                ok: new ModelResource<any>({
+                    value:{},
+                    tags: pOptions.tags.map(t => t.getUUID())
+                }),
+                invalid: [],
+                strings: (pOptions.raw ? null : [])
             };
+
+            const tags:TagUUID[] = pOptions.tags.map(t=> t.getUUID());
 
             let m:any, multiLine = false;
             let i =pOffset, ln=0, skip=0,  line:string = "";
@@ -156,7 +166,14 @@ export namespace Properties {
                         }
                         continue
                     }else if(entry.key!=null){
-                        res.ok.value[entry.key] = entry;
+                        if(pOptions.raw){
+                            res.ok.value[entry.key] = entry;
+                        }else{
+                            entry.value = ModelStringValue.addStringRefTo( res.strings, entry.value as string, false) as ModelStringValue;
+                            (entry.value as ModelStringValue).tags = tags;
+                            res.ok.value[entry.key] = entry;
+                        }
+
                         entry = {
                             line: ln,
                             lineCount: 1
@@ -202,7 +219,13 @@ export namespace Properties {
             }while((end = pBuffer.indexOf(eol,end+1))>-1 || (i < pBuffer.length));
 
             if(entry.key!=null){
-                res.ok.value[entry.key] = entry;
+                if(pOptions.raw){
+                    res.ok.value[entry.key] = entry;
+                }else{
+                    entry.value = ModelStringValue.addStringRefTo( res.strings, entry.value as string, false) as ModelStringValue;
+                    (entry.value as ModelStringValue).tags = tags;
+                    res.ok.value[entry.key] = entry;
+                }
             }else if(entry != null){
                 res.invalid.push(entry);
             }

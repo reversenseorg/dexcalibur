@@ -1,13 +1,12 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
-import {Request, Response} from "express";
+import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import {LicenceManager} from "../credit/LicenceManager.js";
-import {GenericScanner} from "../audit/common/GenericScanner.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PRIVACY_WEB_API: DelegateWebApi = new DelegateWebApi();
 
+// DEPRECATED ?
 
 PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
     '/dashboard',
@@ -19,7 +18,7 @@ PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
+                const scanner:any = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN");
 
                 const data = {
                     db_names: [],
@@ -52,7 +51,7 @@ PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
+                const scanner:any = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN");
 
                 //scanner.hasCredit()
                 /*scanner.scan({
@@ -92,7 +91,7 @@ PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
+                const scanner:any = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN");
 
                 //scanner.hasCredit()
                 const report = await scanner.runModel(req.dxc.project);
@@ -126,7 +125,7 @@ PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
+                const scanner:any = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as any;
 
                 // get hook instance by ID
                 const data = {
@@ -159,7 +158,7 @@ PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
+                const scanner:any = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as any;
 
                 $.sendSuccess(res,  scanner.model.toJsonObject());
             }catch(err){

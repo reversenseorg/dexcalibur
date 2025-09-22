@@ -10,18 +10,16 @@
 // ====== CONFIG TASK ======
 
 
-import {AndroidPermission, AndroidPermissionGroup, AndroidProtectionLevel} from "../../src/android/Permissions.js";
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import BusEvent from "../../src/BusEvent.js";
 import AndroidAppAnalyzer from "../../src/android/AndroidAppAnalyzer.js";
 import {OperatingSystem} from "@dexcalibur/dxc-core-api";
-import {AndroidResource, ResourceReference} from "../../src/android/AndroidResource.js";
-import ModelResource from "../../src/ModelResource.js";
 import {AndroidManifest, AndroidSharedUser} from "../../src/android/AndroidManifest.js";
+import {AndroidPermissionGroup, AndroidProtectionLevel, ModelPermission} from "../../src/android/ModelPermission.js";
 
 const Permissions = {
-    ACCEPT_HANDOVER: new AndroidPermission({
+    ACCEPT_HANDOVER: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 28,
         name: "android.permission.ACCEPT_HANDOVER",
@@ -37,7 +35,7 @@ const Permissions = {
         This permission protects access to the TelecomManager.acceptHandover(Uri, int, PhoneAccountHandle) which the receiving side of the handover uses to accept a handover.
         `
     }),
-    ACCESS_BACKGROUND_LOCATION: new AndroidPermission({
+    ACCESS_BACKGROUND_LOCATION: new ModelPermission({
         protectionLevel: AndroidProtectionLevel.DANGEROUS,
         apiVersion: 29,
         name: "android.permission.ACCESS_BACKGROUND_LOCATION",
@@ -48,7 +46,7 @@ const Permissions = {
         This is a hard restricted permission which cannot be held by an app until the installer on record whitelists the permission. For more details see PackageInstaller.SessionParams.setWhitelistedRestrictedPermissions(Set).
         `
     }),
-    ACCESS_CHECKIN_PROPERTIES: new AndroidPermission({
+    ACCESS_CHECKIN_PROPERTIES: new ModelPermission({
         //protectionLevel: AndroidProtectionLevel.UNKNOW,
         apiVersion: 1,
         name: "android.permission.ACCESS_CHECKIN_PROPERTIES",
@@ -60,7 +58,7 @@ const Permissions = {
         `
     }),
 
-    ACCESS_COARSE_LOCATION: new AndroidPermission({
+    ACCESS_COARSE_LOCATION: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 1,
         name:"android.permission.ACCESS_COARSE_LOCATION",
@@ -70,7 +68,7 @@ const Permissions = {
         `
      }),
 
-    ACCESS_FINE_LOCATION: new AndroidPermission({
+    ACCESS_FINE_LOCATION: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 1,
         name:"android.permission.ACCESS_FINE_LOCATION",
@@ -79,7 +77,7 @@ const Permissions = {
         Allows an application to access extra location provider commands. 
         `
      }),
-    ACCESS_LOCATION_EXTRA_COMMANDS: new AndroidPermission({
+    ACCESS_LOCATION_EXTRA_COMMANDS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         apiVersion: 1,
         name:"android.permission.ACCESS_LOCATION_EXTRA_COMMANDS",
@@ -89,7 +87,7 @@ const Permissions = {
         `
      }),
 
-    ACCESS_MEDIA_LOCATION: new AndroidPermission({
+    ACCESS_MEDIA_LOCATION: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 29,
         name:"android.permission.ACCESS_MEDIA_LOCATION",
@@ -99,7 +97,7 @@ const Permissions = {
         `
      }),
 
-    ACCESS_NETWORK_STATE: new AndroidPermission({
+    ACCESS_NETWORK_STATE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         apiVersion: 1,
         name:"android.permission.ACCESS_NETWORK_STATE",
@@ -108,7 +106,7 @@ const Permissions = {
         
         `
      }),
-    ACCESS_NOTIFICATION_POLICY: new AndroidPermission({
+    ACCESS_NOTIFICATION_POLICY: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         apiVersion: 23,
         name:"android.permission.ACCESS_NOTIFICATION_POLICY",
@@ -117,7 +115,7 @@ const Permissions = {
         
         `
      }),
-    ACCESS_WIFI_STATE: new AndroidPermission({
+    ACCESS_WIFI_STATE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         apiVersion: 1,
         name:"android.permission.ACCESS_WIFI_STATE",
@@ -127,7 +125,7 @@ const Permissions = {
         `
      }), 
 
-    ACCOUNT_MANAGER: new AndroidPermission({
+    ACCOUNT_MANAGER: new ModelPermission({
         apiVersion: 5,
         name:"android.permission.ACCOUNT_MANAGER",
         label:"ACCOUNT_MANAGER",
@@ -136,7 +134,7 @@ const Permissions = {
         `
      }),
 
-     ACTIVITY_RECOGNITION: new AndroidPermission({
+     ACTIVITY_RECOGNITION: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 29,
         name:"android.permission.ACTIVITY_RECOGNITION",
@@ -146,7 +144,7 @@ const Permissions = {
         `
      }),
 
-    ADD_VOICEMAIL: new AndroidPermission({
+    ADD_VOICEMAIL: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 14,
         name:"android.permission.ADD_VOICEMAIL",
@@ -156,7 +154,7 @@ const Permissions = {
         `
      }),
  
-    ANSWER_PHONE_CALLS: new AndroidPermission({
+    ANSWER_PHONE_CALLS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 26,
         name:"android.permission.ANSWER_PHONE_CALLS",
@@ -166,7 +164,7 @@ const Permissions = {
         `
      }),
 
-    BATTERY_STATS: new AndroidPermission({
+    BATTERY_STATS: new ModelPermission({
         protectionLevel: [
             AndroidProtectionLevel.SIGNATURE,
             AndroidProtectionLevel.PRIVILEGED,
@@ -180,7 +178,7 @@ const Permissions = {
         `
      }),
 
-     BIND_ACCESSIBILITY_SERVICE: new AndroidPermission({
+     BIND_ACCESSIBILITY_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         apiVersion: 16,
         name:"android.permission.BIND_ACCESSIBILITY_SERVICE",
@@ -193,7 +191,7 @@ const Permissions = {
         `
      }),
 
-    BIND_APPWIDGET: new AndroidPermission({
+    BIND_APPWIDGET: new ModelPermission({
         apiVersion: 3,
         name:"android.permission.BIND_AUTOFILL_SERVICE",
         label:"BIND_AUTOFILL_SERVICE",
@@ -202,7 +200,7 @@ const Permissions = {
         `
      }),
 
-    BIND_AUTOFILL_SERVICE: new AndroidPermission({
+    BIND_AUTOFILL_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         apiVersion: 26,
         name:"android.permission.BIND_AUTOFILL_SERVICE",
@@ -216,7 +214,7 @@ const Permissions = {
      }),
 
 
-    BIND_CARRIER_SERVICES: new AndroidPermission({
+    BIND_CARRIER_SERVICES: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         apiVersion: 1,
         name:"android.permission.BIND_CARRIER_SERVICES",
@@ -225,7 +223,7 @@ const Permissions = {
         
         `
      }),
-    BIND_CHOOSER_TARGET_SERVICE: new AndroidPermission({
+    BIND_CHOOSER_TARGET_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_CHOOSER_TARGET_SERVICE",
         label:"BIND_CHOOSER_TARGET_SERVICE",
@@ -233,7 +231,7 @@ const Permissions = {
         
         `
      }),
-    BIND_CONDITION_PROVIDER_SERVICE: new AndroidPermission({
+    BIND_CONDITION_PROVIDER_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_CONDITION_PROVIDER_SERVICE",
         label:"BIND_CONDITION_PROVIDER_SERVICE",
@@ -241,7 +239,7 @@ const Permissions = {
         
         `
      }),
-    BIND_DEVICE_ADMIN: new AndroidPermission({
+    BIND_DEVICE_ADMIN: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_DEVICE_ADMIN",
         label:"BIND_DEVICE_ADMIN",
@@ -249,7 +247,7 @@ const Permissions = {
         
         `
      }),
-    BIND_DREAM_SERVICE: new AndroidPermission({
+    BIND_DREAM_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_DREAM_SERVICE",
         label:"BIND_DREAM_SERVICE",
@@ -257,7 +255,7 @@ const Permissions = {
         
         `
      }),
-    BIND_INCALL_SERVICE: new AndroidPermission({
+    BIND_INCALL_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_INCALL_SERVICE",
         label:"BIND_INCALL_SERVICE",
@@ -265,7 +263,7 @@ const Permissions = {
         
         `
      }),
-    BIND_INPUT_METHOD: new AndroidPermission({
+    BIND_INPUT_METHOD: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_INPUT_METHOD",
         label:"BIND_INPUT_METHOD",
@@ -273,7 +271,7 @@ const Permissions = {
         
         `
      }),
-    BIND_MIDI_DEVICE_SERVICE: new AndroidPermission({
+    BIND_MIDI_DEVICE_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_MIDI_DEVICE_SERVICE",
         label:"BIND_MIDI_DEVICE_SERVICE",
@@ -281,7 +279,7 @@ const Permissions = {
         
         `
      }),
-    BIND_NFC_SERVICE: new AndroidPermission({
+    BIND_NFC_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_NFC_SERVICE",
         label:"BIND_NFC_SERVICE",
@@ -289,7 +287,7 @@ const Permissions = {
         
         `
      }),
-    BIND_NOTIFICATION_LISTENER_SERVICE: new AndroidPermission({
+    BIND_NOTIFICATION_LISTENER_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
         label:"BIND_NOTIFICATION_LISTENER_SERVICE",
@@ -297,7 +295,7 @@ const Permissions = {
         
         `
      }),
-    BIND_PRINT_SERVICE: new AndroidPermission({
+    BIND_PRINT_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_PRINT_SERVICE",
         label:"BIND_PRINT_SERVICE",
@@ -305,7 +303,7 @@ const Permissions = {
         
         `
      }),
-    BIND_SCREENING_SERVICE: new AndroidPermission({
+    BIND_SCREENING_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_SCREENING_SERVICE",
         label:"BIND_SCREENING_SERVICE",
@@ -313,7 +311,7 @@ const Permissions = {
         
         `
      }),
-    BIND_TELECOM_CONNECTION_SERVICE: new AndroidPermission({
+    BIND_TELECOM_CONNECTION_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_TELECOM_CONNECTION_SERVICE",
         label:"BIND_TELECOM_CONNECTION_SERVICE",
@@ -321,7 +319,7 @@ const Permissions = {
         
         `
      }),
-    BIND_TEXT_SERVICE: new AndroidPermission({
+    BIND_TEXT_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_TEXT_SERVICE",
         label:"BIND_TEXT_SERVICE",
@@ -329,7 +327,7 @@ const Permissions = {
         
         `
      }),
-    BIND_TV_INPUT: new AndroidPermission({
+    BIND_TV_INPUT: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_TV_INPUT",
         label:"BIND_TV_INPUT",
@@ -337,7 +335,7 @@ const Permissions = {
         
         `
      }),
-    BIND_VISUAL_VOICEMAIL_SERVICE: new AndroidPermission({
+    BIND_VISUAL_VOICEMAIL_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_VISUAL_VOICEMAIL_SERVICE",
         label:"BIND_VISUAL_VOICEMAIL_SERVICE",
@@ -345,7 +343,7 @@ const Permissions = {
         
         `
      }),
-    BIND_VOICE_INTERACTION: new AndroidPermission({
+    BIND_VOICE_INTERACTION: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_VOICE_INTERACTION",
         label:"BIND_VOICE_INTERACTION",
@@ -356,7 +354,7 @@ const Permissions = {
         This permission is required to define hotword detection.
         `
      }),
-    BIND_VPN_SERVICE: new AndroidPermission({
+    BIND_VPN_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_VPN_SERVICE",
         label:"BIND_VPN_SERVICE",
@@ -364,7 +362,7 @@ const Permissions = {
         
         `
      }),
-    BIND_VR_LISTENER_SERVICE: new AndroidPermission({
+    BIND_VR_LISTENER_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_VR_LISTENER_SERVICE",
         label:"BIND_VR_LISTENER_SERVICE",
@@ -372,7 +370,7 @@ const Permissions = {
         
         `
      }),
-    BIND_WALLPAPER: new AndroidPermission({
+    BIND_WALLPAPER: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.BIND_WALLPAPER",
         label:"BIND_WALLPAPER",
@@ -381,7 +379,7 @@ const Permissions = {
         `
      }),
 
-    BLUETOOTH: new AndroidPermission({
+    BLUETOOTH: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         apiVersion: 1,
         name:"android.permission.BLUETOOTH",
@@ -390,7 +388,7 @@ const Permissions = {
         Allows applications to connect to paired bluetooth devices. 
         `
      }),
-    BLUETOOTH_ADMIN: new AndroidPermission({
+    BLUETOOTH_ADMIN: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         apiVersion: 1,
         name:"android.permission.BLUETOOTH_ADMIN",
@@ -399,7 +397,7 @@ const Permissions = {
         Allows applications to discover and pair bluetooth devices. 
         `
      }),
-    BLUETOOTH_PRIVILEGED: new AndroidPermission({
+    BLUETOOTH_PRIVILEGED: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         apiVersion: 19,
         name:"android.permission.BLUETOOTH_PRIVILEGED",
@@ -409,7 +407,7 @@ const Permissions = {
         `
      }),
      
-    BODY_SENSORS: new AndroidPermission({
+    BODY_SENSORS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.BODY_SENSORS",
         label:"BODY_SENSORS",
@@ -418,7 +416,7 @@ const Permissions = {
         `
      }),
 
-    BROADCAST_STICKY: new AndroidPermission({
+    BROADCAST_STICKY: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         apiVersion: 1,
         name:"android.permission.BROADCAST_STICKY",
@@ -428,7 +426,7 @@ const Permissions = {
         `
      }),
 
-    CALL_COMPANION_APP: new AndroidPermission({
+    CALL_COMPANION_APP: new ModelPermission({
         protectionLevel: AndroidProtectionLevel.NORMAL,
         apiVersion: 29, 
         name: "android.permission.CALL_COMPANION_APP",
@@ -442,7 +440,7 @@ const Permissions = {
 
     }),
     
-    CALL_PHONE: new AndroidPermission({
+    CALL_PHONE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 1,
         name:"android.permission.CALL_PHONE",
@@ -451,7 +449,7 @@ const Permissions = {
         Allows an application to initiate a phone call without going through the Dialer user interface for the user to confirm the call. 
         `
      }),
-    CAMERA: new AndroidPermission({
+    CAMERA: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         apiVersion: 1,
         name:"android.permission.CAMERA",
@@ -463,7 +461,7 @@ const Permissions = {
         `
 
      }),
-    CHANGE_NETWORK_STATE: new AndroidPermission({
+    CHANGE_NETWORK_STATE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.CHANGE_NETWORK_STATE",
         label:"CHANGE_NETWORK_STATE",
@@ -471,7 +469,7 @@ const Permissions = {
         
         `
      }),
-    CHANGE_WIFI_MULTICAST_STATE: new AndroidPermission({
+    CHANGE_WIFI_MULTICAST_STATE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.CHANGE_WIFI_MULTICAST_STATE",
         label:"CHANGE_WIFI_MULTICAST_STATE",
@@ -479,7 +477,7 @@ const Permissions = {
         
         `
      }),
-    CHANGE_WIFI_STATE: new AndroidPermission({
+    CHANGE_WIFI_STATE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.CHANGE_WIFI_STATE",
         label:"CHANGE_WIFI_STATE",
@@ -488,7 +486,7 @@ const Permissions = {
         `
      }),
 
-    CLEAR_APP_CACHE: new AndroidPermission({
+    CLEAR_APP_CACHE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.CLEAR_APP_CACHE",
         label:"CLEAR_APP_CACHE",
@@ -497,7 +495,7 @@ const Permissions = {
         `
     }),
 
-    DISABLE_KEYGUARD: new AndroidPermission({
+    DISABLE_KEYGUARD: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.DISABLE_KEYGUARD",
         label:"DISABLE_KEYGUARD",
@@ -505,7 +503,7 @@ const Permissions = {
         
         `
      }),
-    EXPAND_STATUS_BAR: new AndroidPermission({
+    EXPAND_STATUS_BAR: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.EXPAND_STATUS_BAR",
         label:"EXPAND_STATUS_BAR",
@@ -513,7 +511,7 @@ const Permissions = {
         
         `
      }),
-    FOREGROUND_SERVICE: new AndroidPermission({
+    FOREGROUND_SERVICE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.FOREGROUND_SERVICE",
         label:"FOREGROUND_SERVICE",
@@ -522,7 +520,7 @@ const Permissions = {
         `
      }),
 
-    GET_ACCOUNTS: new AndroidPermission({
+    GET_ACCOUNTS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.GET_ACCOUNTS",
         label:"GET_ACCOUNTS",
@@ -531,7 +529,7 @@ const Permissions = {
         `
      }),
 
-    GET_PACKAGE_SIZE: new AndroidPermission({
+    GET_PACKAGE_SIZE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.GET_PACKAGE_SIZE",
         label:"GET_PACKAGE_SIZE",
@@ -539,7 +537,7 @@ const Permissions = {
         
         `
      }),
-    INSTALL_SHORTCUT: new AndroidPermission({
+    INSTALL_SHORTCUT: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.INSTALL_SHORTCUT",
         label:"INSTALL_SHORTCUT",
@@ -547,7 +545,7 @@ const Permissions = {
         
         `
      }),
-    INTERNET: new AndroidPermission({
+    INTERNET: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.INTERNET",
         label:"INTERNET",
@@ -555,7 +553,7 @@ const Permissions = {
         
         `
      }),
-    KILL_BACKGROUND_PROCESSES: new AndroidPermission({
+    KILL_BACKGROUND_PROCESSES: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.KILL_BACKGROUND_PROCESSES",
         label:"KILL_BACKGROUND_PROCESSES",
@@ -563,7 +561,7 @@ const Permissions = {
         
         `
     }),
-    MANAGE_DOCUMENTS: new AndroidPermission({
+    MANAGE_DOCUMENTS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.MANAGE_DOCUMENTS",
         label:"MANAGE_DOCUMENTS",
@@ -571,7 +569,7 @@ const Permissions = {
         
         `
     }),
-    MANAGE_OWN_CALLS: new AndroidPermission({
+    MANAGE_OWN_CALLS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.MANAGE_OWN_CALLS",
         label:"MANAGE_OWN_CALLS",
@@ -579,7 +577,7 @@ const Permissions = {
         
         `
      }),
-    MODIFY_AUDIO_SETTINGS: new AndroidPermission({
+    MODIFY_AUDIO_SETTINGS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.MODIFY_AUDIO_SETTINGS",
         label:"MODIFY_AUDIO_SETTINGS",
@@ -587,7 +585,7 @@ const Permissions = {
         
         `
      }),
-    NFC: new AndroidPermission({
+    NFC: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.NFC",
         label:"NFC",
@@ -596,7 +594,7 @@ const Permissions = {
         `
      }),
 
-     PROCESS_OUTGOING_CALLS: new AndroidPermission({
+     PROCESS_OUTGOING_CALLS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.PROCESS_OUTGOING_CALLS",
         label:"PROCESS_OUTGOING_CALLS",
@@ -605,7 +603,7 @@ const Permissions = {
         `
      }),
 
-    READ_CALENDAR: new AndroidPermission({
+    READ_CALENDAR: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.READ_CALENDAR",
         label:"READ_CALENDAR",
@@ -614,7 +612,7 @@ const Permissions = {
         `
     }),
 
-    READ_CALL_LOG: new AndroidPermission({
+    READ_CALL_LOG: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.READ_CALL_LOG",
         label:"READ_CALL_LOG",
@@ -623,7 +621,7 @@ const Permissions = {
         `
     }),
 
-    READ_CONTACTS: new AndroidPermission({
+    READ_CONTACTS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.READ_CONTACTS",
         label:"READ_CONTACTS",
@@ -632,7 +630,7 @@ const Permissions = {
         `
      }),
 
-    READ_EXTERNAL_STORAGE: new AndroidPermission({
+    READ_EXTERNAL_STORAGE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.READ_EXTERNAL_STORAGE",
         label:"READ_EXTERNAL_STORAGE",
@@ -641,7 +639,7 @@ const Permissions = {
         `
      }),
 
-    READ_PHONE_STATE: new AndroidPermission({
+    READ_PHONE_STATE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.READ_PHONE_STATE",
         label:"READ_PHONE_STATE",
@@ -650,7 +648,7 @@ const Permissions = {
         `
      }),
 
-    READ_PHONE_NUMBERS: new AndroidPermission({
+    READ_PHONE_NUMBERS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.READ_PHONE_NUMBERS",
         label:"READ_PHONE_NUMBERS",
@@ -659,7 +657,7 @@ const Permissions = {
         `
      }),
 
-    READ_SMS: new AndroidPermission({
+    READ_SMS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.READ_SMS",
         label:"READ_SMS",
@@ -668,7 +666,7 @@ const Permissions = {
         `
      }),
 
-    READ_SYNC_SETTINGS: new AndroidPermission({
+    READ_SYNC_SETTINGS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.READ_SYNC_SETTINGS",
         label:"READ_SYNC_SETTINGS",
@@ -677,7 +675,7 @@ const Permissions = {
         `
     }),
 
-    READ_SYNC_STATS: new AndroidPermission({
+    READ_SYNC_STATS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.READ_SYNC_STATS",
         label:"READ_SYNC_STATS",
@@ -686,7 +684,7 @@ const Permissions = {
         `
     }),
     
-    READ_VOICEMAIL: new AndroidPermission({
+    READ_VOICEMAIL: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.READ_VOICEMAIL",
         label:"READ_VOICEMAIL",
@@ -695,7 +693,7 @@ const Permissions = {
         `
     }),
     
-    RECEIVE_BOOT_COMPLETED: new AndroidPermission({
+    RECEIVE_BOOT_COMPLETED: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.RECEIVE_BOOT_COMPLETED",
         label:"RECEIVE_BOOT_COMPLETED",
@@ -706,7 +704,7 @@ const Permissions = {
 
     
 
-    RECEIVE_MMS: new AndroidPermission({
+    RECEIVE_MMS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.RECEIVE_MMS",
         label:"RECEIVE_MMS",
@@ -715,7 +713,7 @@ const Permissions = {
         `
     }),
     
-    RECEIVE_SMS: new AndroidPermission({
+    RECEIVE_SMS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.RECEIVE_SMS",
         label:"RECEIVE_SMS",
@@ -724,7 +722,7 @@ const Permissions = {
         `
      }),
 
-    RECEIVE_WAP_PUSH: new AndroidPermission({
+    RECEIVE_WAP_PUSH: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.RECEIVE_WAP_PUSH",
         label:"RECEIVE_WAP_PUSH",
@@ -733,7 +731,7 @@ const Permissions = {
         `
      }),
 
-    RECORD_AUDIO: new AndroidPermission({
+    RECORD_AUDIO: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.RECORD_AUDIO",
         label:"RECORD_AUDIO",
@@ -742,7 +740,7 @@ const Permissions = {
         `
      }),
     
-    REORDER_TASKS: new AndroidPermission({
+    REORDER_TASKS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.REORDER_TASKS",
         label:"REORDER_TASKS",
@@ -751,7 +749,7 @@ const Permissions = {
         `
     }),
      
-    REQUEST_COMPANION_RUN_IN_BACKGROUND: new AndroidPermission({
+    REQUEST_COMPANION_RUN_IN_BACKGROUND: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.REQUEST_COMPANION_RUN_IN_BACKGROUND",
         label:"REQUEST_COMPANION_RUN_IN_BACKGROUND",
@@ -760,7 +758,7 @@ const Permissions = {
         `
     }),
     
-    REQUEST_COMPANION_USE_DATA_IN_BACKGROUND: new AndroidPermission({
+    REQUEST_COMPANION_USE_DATA_IN_BACKGROUND: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.REQUEST_COMPANION_USE_DATA_IN_BACKGROUND",
         label:"REQUEST_COMPANION_USE_DATA_IN_BACKGROUND",
@@ -769,7 +767,7 @@ const Permissions = {
         `
     }),
     
-    REQUEST_DELETE_PACKAGES: new AndroidPermission({
+    REQUEST_DELETE_PACKAGES: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.REQUEST_DELETE_PACKAGES",
         label:"REQUEST_DELETE_PACKAGES",
@@ -778,7 +776,7 @@ const Permissions = {
         `
     }),
     
-    REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: new AndroidPermission({
+    REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
         label:"REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
@@ -787,7 +785,7 @@ const Permissions = {
         `
     }),
 
-    REQUEST_INSTALL_PACKAGES: new AndroidPermission({
+    REQUEST_INSTALL_PACKAGES: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.REQUEST_INSTALL_PACKAGES",
         label:"REQUEST_INSTALL_PACKAGES",
@@ -796,7 +794,7 @@ const Permissions = {
         `
     }),
 
-    SEND_SMS: new AndroidPermission({
+    SEND_SMS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.SEND_SMS",
         label:"SEND_SMS",
@@ -805,7 +803,7 @@ const Permissions = {
         `
      }),
 
-    SET_ALARM: new AndroidPermission({
+    SET_ALARM: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.SET_ALARM",
         label:"SET_ALARM",
@@ -813,7 +811,7 @@ const Permissions = {
         
         `
      }),
-    SET_WALLPAPER: new AndroidPermission({
+    SET_WALLPAPER: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.SET_WALLPAPER",
         label:"SET_WALLPAPER",
@@ -821,7 +819,7 @@ const Permissions = {
         
         `
      }),
-    SET_WALLPAPER_HINTS: new AndroidPermission({
+    SET_WALLPAPER_HINTS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.SET_WALLPAPER_HINTS",
         label:"SET_WALLPAPER_HINTS",
@@ -830,7 +828,7 @@ const Permissions = {
         `
     }),
 
-    SYSTEM_ALERT_WINDOW: new AndroidPermission({
+    SYSTEM_ALERT_WINDOW: new ModelPermission({
         protectionLevel: [AndroidProtectionLevel.SIGNATURE, AndroidProtectionLevel.SPECIAL],
         name:"android.permission.SYSTEM_ALERT_WINDOW",
         label:"SYSTEM_ALERT_WINDOW",
@@ -839,13 +837,13 @@ const Permissions = {
         `
     }),
     /*
-    SYSTEM_ALERT_WINDOW: new AndroidPermission({
+    SYSTEM_ALERT_WINDOW: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SPECIAL,
         name:"android.permission.SYSTEM_ALERT_WINDOW",
         label:"SYSTEM_ALERT_WINDOW"
      }),*/
 
-    TRANSMIT_IR: new AndroidPermission({
+    TRANSMIT_IR: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.TRANSMIT_IR",
         label:"TRANSMIT_IR",
@@ -853,7 +851,7 @@ const Permissions = {
         
         `
      }),
-    USE_FINGERPRINT: new AndroidPermission({
+    USE_FINGERPRINT: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.USE_FINGERPRINT",
         label:"USE_FINGERPRINT",
@@ -862,7 +860,7 @@ const Permissions = {
         `
      }),
      
-    USE_SIP: new AndroidPermission({
+    USE_SIP: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.USE_SIP",
         label:"USE_SIP",
@@ -871,7 +869,7 @@ const Permissions = {
         `
      }),
 
-    VIBRATE: new AndroidPermission({
+    VIBRATE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.VIBRATE",
         label:"VIBRATE",
@@ -879,7 +877,7 @@ const Permissions = {
         
         `
     }),
-    WAKE_LOCK: new AndroidPermission({
+    WAKE_LOCK: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.WAKE_LOCK",
         label:"WAKE_LOCK",
@@ -888,7 +886,7 @@ const Permissions = {
         `
     }),
 
-    WRITE_CALENDAR: new AndroidPermission({
+    WRITE_CALENDAR: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.WRITE_CALENDAR",
         label:"WRITE_CALENDAR",
@@ -897,7 +895,7 @@ const Permissions = {
         `
      }),
 
-     WRITE_CALL_LOG: new AndroidPermission({
+     WRITE_CALL_LOG: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.WRITE_CALL_LOG",
         label:"WRITE_CALL_LOG",
@@ -906,7 +904,7 @@ const Permissions = {
         `
      }),
 
-     WRITE_CONTACTS: new AndroidPermission({
+     WRITE_CONTACTS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.WRITE_CONTACTS",
         label:"WRITE_CONTACTS",
@@ -915,7 +913,7 @@ const Permissions = {
         `
      }),
 
-    WRITE_EXTERNAL_STORAGE: new AndroidPermission({
+    WRITE_EXTERNAL_STORAGE: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.DANGEROUS,
         name:"android.permission.WRITE_EXTERNAL_STORAGE",
         label:"WRITE_EXTERNAL_STORAGE",
@@ -924,7 +922,7 @@ const Permissions = {
         `
      }),
 
-    WRITE_SETTINGS: new AndroidPermission({
+    WRITE_SETTINGS: new ModelPermission({
         protectionLevel: [AndroidProtectionLevel.SIGNATURE,AndroidProtectionLevel.SPECIAL],
         name:"android.permission.WRITE_SETTINGS",
         label:"WRITE_SETTINGS",
@@ -933,13 +931,13 @@ const Permissions = {
         `
      }),
      /*
-    WRITE_SETTINGS: new AndroidPermission({
+    WRITE_SETTINGS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SPECIAL,
         name:"android.permission.WRITE_SETTINGS",
         label:"WRITE_SETTINGS"
      }),*/
 
-    WRITE_SYNC_SETTINGS: new AndroidPermission({
+    WRITE_SYNC_SETTINGS: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.NORMAL,
         name:"android.permission.WRITE_SYNC_SETTINGS",
         label:"WRITE_SYNC_SETTINGS",
@@ -948,7 +946,7 @@ const Permissions = {
         `
      }),
 
-    WRITE_VOICEMAIL: new AndroidPermission({
+    WRITE_VOICEMAIL: new ModelPermission({
         protectionLevel:AndroidProtectionLevel.SIGNATURE,
         name:"android.permission.WRITE_VOICEMAIL",
         label:"WRITE_VOICEMAIL",
@@ -1106,19 +1104,19 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
 
                 if(pEvent.data.obj==null) return;
 
-                let i = (pEvent.data.obj as AndroidPermission).name.lastIndexOf('.');
+                let i = (pEvent.data.obj as ModelPermission).name.lastIndexOf('.');
                 let p=false;
 
                 // scan android built-in permissions
                 for(let i in Permissions){
         
                     if(Permissions[i].name===pEvent.data.obj.name){
-                        pEvent.data.update(Permissions[i]);
+                        (pEvent.data.obj as ModelPermission).update(Permissions[i]);
                         return;
                     }
                 }
 
-                (pEvent.data.obj as AndroidPermission).setCustom(true);
+                //(pEvent.data.obj as ModelPermission).setCustom(true);
             }
     }
 });

@@ -373,8 +373,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess(res, (await am.dropReport(req.user, app, req.params.unsafeReportUUID)));
             }catch(err){
-                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+                Logger.error("[API][AUDIT] Report cannot be deleted. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be deleted. Cause : " + err.message);
             }
         }
     },{
@@ -526,7 +526,12 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     req.params.aid as string
                 );
 
-                let rap = await am.getLatestReport(req.user, app);
+                let rap:AssuranceReport;
+                if(req.query!=null && req.query.mid!=null){
+                    rap = await am.getLatestReport(req.user, app, req.query.mid as string);
+                }else{
+                    rap = await am.getLatestReport(req.user, app);
+                }
 
                 $.sendSuccess(res, (rap!=null ? rap.toJsonObject(): null));
             }catch(err){

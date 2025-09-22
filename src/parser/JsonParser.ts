@@ -4,6 +4,7 @@ import ModelResource from "../ModelResource.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {TagUUID} from "@dexcalibur/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
+import {Struct} from "@dexcalibur/dxc-struct";
 
 
 export namespace Json {
@@ -41,30 +42,44 @@ export namespace Json {
 
         }
 
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8', raw:true}):Promise<Results> {
+        static isUtf8Str(pBuffer:Buffer, pOffset:number):boolean {
+             return (pBuffer.at(pOffset)==0xEF
+                    && pBuffer.at(pOffset+1)==0xBB
+                    && pBuffer.at(pOffset+2)==0xBF );
+        }
+
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8', tags:[], raw:true}):Promise<Results> {
+            if(pOptions.tags==null) pOptions.tags = [];
+
             const res =  {
                 ok: null,
-                invalid: []
+                invalid: [],
+                strings: (pOptions.raw ? null : [])
             };
+
+            const tags = pOptions.tags.map(t => t.getUUID());
+
+            if(Parser.isUtf8Str(pBuffer,pOffset)) pOffset+=3;
 
             const raw = pBuffer.subarray(pOffset).toString(pOptions.encoding);
             const m = new ModelResource<any>({
                 value: null,
-                tags: [] //this.jsonTag]
+                tags: pOptions.tags.map(t => t.getUUID())
             });
-
-            const strings:Record<string,ModelStringValue> = {};
 
             const data = JSON.parse(
                 raw,
                 function (this: any, key: string, value: any):any {
-                    //console.log(key + ' => ' + value);
-                    /*if(typeof value === 'string') {
+                    if(typeof value !== "string") return value;
 
-                    }*/
-                    return value;
+                    if(pOptions.raw){
+                        return value;
+                    }else{
+                        const v = ModelStringValue.addStringRefTo( res.strings, value as string, false) as ModelStringValue;
+                        v.tags = tags;
+                        return v;
+                    }
                 }
-                // TODO : add reviver with context
             );
 
             m.setProperty('data',data);

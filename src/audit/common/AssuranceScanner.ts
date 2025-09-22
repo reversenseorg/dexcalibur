@@ -221,7 +221,11 @@ export class AssuranceScanner extends /* ReversenseProduct */ Product {
 
     }
 
-    public _prepareTestPlan():TestPlan {
+    public _prepareTestPlan(pContext:DexcaliburProject):TestPlan {
         return new TestPlan();
+    }
+
+    runModel(pContext:DexcaliburProject):any{
+
     }
 }

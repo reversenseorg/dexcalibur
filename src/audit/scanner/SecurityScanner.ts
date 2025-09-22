@@ -81,12 +81,12 @@ export interface PrivacyScannerOpts {
  *
  * @class
  */
-export class PrivacyScanner extends AssuranceScanner {
+export class SecurityScanner extends AssuranceScanner {
 
-    static DEFAULT_NAME = "scanner.privacy";
-    static HUMAN_NAME = "Privacy Scanner";
-    static PRODUCT_CODE = "PRIV_CLD_SSCAN";
-    static DESCR = "Scanner for privacy assessment";
+    static DEFAULT_NAME = "scanner.generic";
+    static PRODUCT_CODE = "GEN_CLD_SSCAN";
+    static HUMAN_NAME = "Generic Scanner";
+    static DESCR = "Scanner for generic multi-purpose assessment"
     static VERSION = "1.0.1";
 
     private _mainDB = 'global';
@@ -97,9 +97,9 @@ export class PrivacyScanner extends AssuranceScanner {
 
     constructor(pConfig:PrivacyScannerOpts) {
         super({
-            name: PrivacyScanner.DEFAULT_NAME,
-            __pCode: PrivacyScanner.PRODUCT_CODE,
-            __pVersion: PrivacyScanner.VERSION,
+            name: SecurityScanner.DEFAULT_NAME,
+            __pCode: SecurityScanner.PRODUCT_CODE,
+            __pVersion: SecurityScanner.VERSION,
             __pSerial: pConfig.project.getLicenseNo(),
             __pKey: pConfig.project.getLicenseKey()
         });
@@ -128,10 +128,10 @@ export class PrivacyScanner extends AssuranceScanner {
      * @param pReport
      * @param pCtrlNode
      */
-    async doAssessment(pReport:AssuranceReport, pContext:DexcaliburProject, pCtrlNode:ControlNode, vIndex:number =-1):Promise<void> {
+    async doAssessment(pReport:AssuranceReport, pCtrlNode:ControlNode, vIndex:number =-1):Promise<void> {
 
         if(!pCtrlNode.ctrl.isControlAssessment()){
-            Logger.info(`[SCANNER][${PrivacyScanner.DEFAULT_NAME}][doAssessment] skip control node (cause= control node is not a set of rules) : `+pCtrlNode.canonicalID);
+            Logger.info(`[SCANNER][${SecurityScanner.DEFAULT_NAME}][doAssessment] skip control node (cause= control node is not a set of rules) : `+pCtrlNode.canonicalID);
             return;
         }
 
@@ -147,14 +147,6 @@ export class PrivacyScanner extends AssuranceScanner {
             if(!vRule.hasBusSubscriber()){
 
                 if(Merlin.isRule(vRule)){
-                    console.log((vRule as MerlinRule).targetOS,pContext.os);
-
-                    if((vRule as MerlinRule).targetOS!==pContext.os && (vRule as MerlinRule).targetOS!=='*'){
-                        // skip;
-                        continue;
-                    }
-
-
                     try{
                         if(vRule.hasErrors()){
                             Logger.error(`Rule [uid=${pCtrlNode.canonicalID}#${vRuleOffset}] has errors (${vRule.getErrors().length}`);
@@ -182,7 +174,7 @@ export class PrivacyScanner extends AssuranceScanner {
                             });
                         }
                     }catch(err){
-                        Logger.error(`[SCANNER][${PrivacyScanner.DEFAULT_NAME}][doAssessment] Rule : ${pCtrlNode.canonicalID} ${vRuleOffset} `,err.stack);
+                        Logger.error(`[SCANNER][${SecurityScanner.DEFAULT_NAME}][doAssessment] Rule : ${pCtrlNode.canonicalID} ${vRuleOffset} `,err.stack);
                         Logger.error(vRule.toSearchString());
                         // add error
                         /*pReport.addError(
@@ -193,13 +185,6 @@ export class PrivacyScanner extends AssuranceScanner {
                     }
 
                 }else{
-
-                    console.log((vRule as MerlinRule).targetOS,pContext.os);
-
-                    if((vRule as MerlinRule).targetOS!==pContext.os && (vRule as MerlinRule).targetOS!=='*'){
-                        // skip;
-                        continue;
-                    }
 
                     try{
 
@@ -226,7 +211,7 @@ export class PrivacyScanner extends AssuranceScanner {
                             });
                         }
                     }catch(err){
-                        Logger.error(`[SCANNER][${PrivacyScanner.DEFAULT_NAME}][doAssessment] Search Request : `,err.stack);
+                        Logger.error(`[SCANNER][${SecurityScanner.DEFAULT_NAME}][doAssessment] Search Request : `,err.stack);
 
                     }
 
@@ -626,7 +611,7 @@ export class PrivacyScanner extends AssuranceScanner {
             switch (vStep.type){
                 case TestType.STATIC_SCAN:
                     console.log("SAST : "+vStep.controls.length);
-                    await this._staticScan( this.report, pContext, vStep.controls, pOptions);
+                    await this._staticScan( this.report, vStep.controls, pOptions);
                     break;
                 case TestType.IAST:
                     console.log("IAST : "+vStep.controls.length); // TODO : add device
@@ -1118,35 +1103,25 @@ export class PrivacyScanner extends AssuranceScanner {
      *
      * @private
      */
-    private async _staticScan( pReport:AssuranceReport, pContext:DexcaliburProject, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<any> {
+    private async _staticScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<void[]> {
         const max = pControlNodes.length;
         let passed = 0;
-
-        for(let i=0; i<max; i++){
-            //Logger.info(`Start SAST Assessment : ${vI} / ${max}`);
-            await this.doAssessment(pReport, pContext, pControlNodes[i], i);
-            passed++;
-            Logger.info(`Assessment done : ${passed} / ${max}`);
-        }
-
-        return true;
-        /*
         return await Promise.all(pControlNodes.map(async (vCtrl, vI) => {
 
             //Logger.info(`Start SAST Assessment : ${vI} / ${max}`);
-            await this.doAssessment(pReport, pContext, vCtrl, vI);
+            await this.doAssessment(pReport, vCtrl, vI);
             passed++;
             Logger.info(`Assessment done : ${passed} / ${max}`);
-        }));*/
+        }));
     }
 
-    private async _iastScan( pReport:AssuranceReport, pContext:DexcaliburProject, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<void[]> {
+    private async _iastScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<void[]> {
         const max = pControlNodes.length;
         let passed = 0;
         return await Promise.all(pControlNodes.map(async (vCtrl, vI) => {
 
             Logger.info(`Start IAST Assessment : ${vI} / ${max}`);
-            await this.doAssessment(pReport, pContext, vCtrl, vI);
+            await this.doAssessment(pReport, vCtrl, vI);
             passed++;
             Logger.info(`${passed} / ${max}`);
         }));
@@ -1213,7 +1188,7 @@ export class PrivacyScanner extends AssuranceScanner {
      */
     private async _extraRun( pContext:DexcaliburProject, pModel:AssuranceModel):Promise<AssuranceReport>{
 
-        const extScanner = new PrivacyScanner({ project:pContext });
+        const extScanner = new SecurityScanner({ project:pContext });
         extScanner.setModel(pModel);
 
         if(extScanner.model==null){
@@ -1262,7 +1237,7 @@ export class PrivacyScanner extends AssuranceScanner {
     }
 
     /**
-     * To prepare a PrivacyScanner to be serialized
+     * To prepare a SecurityScanner to be serialized
      *
      * @return {any} Poor object
      * @method
@@ -1275,7 +1250,7 @@ export class PrivacyScanner extends AssuranceScanner {
             o.dashboards[name] = this.dashboards[name].toJsonObject();
         }
 
-        CoreDebug.checkJsonSerialize(o, "PrivacyScanner");
+        CoreDebug.checkJsonSerialize(o, "SecurityScanner");
 
         return o;
     }
@@ -1493,10 +1468,10 @@ export class PrivacyScanner extends AssuranceScanner {
 }
 
 LicenceManager.registerNewProduct(new ReversenseProduct({
-    code: PrivacyScanner.DEFAULT_NAME,
-    name: PrivacyScanner.HUMAN_NAME,
-    description: PrivacyScanner.DESCR,
-    version: PrivacyScanner.VERSION,
+    code: SecurityScanner.DEFAULT_NAME,
+    name: SecurityScanner.HUMAN_NAME,
+    description: SecurityScanner.DESCR,
+    version: SecurityScanner.VERSION,
     author: {
         name: "Reversense",
         contact: "contact@reversense.com",
@@ -1506,8 +1481,8 @@ LicenceManager.registerNewProduct(new ReversenseProduct({
     price: 6000,
     releases: [
         new ProductRelease({
-            version: PrivacyScanner.VERSION,
-            description: PrivacyScanner.DESCR
+            version: SecurityScanner.VERSION,
+            description: SecurityScanner.DESCR
         })
     ]
-}), PrivacyScanner);
+}), SecurityScanner);

@@ -2,8 +2,8 @@ import {AssuranceScanner, AssuranceScannerUID} from "../common/AssuranceScanner.
 import DexcaliburProject, {DexcaliburProjectUUID} from "../../DexcaliburProject.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
-import {GenericScanner} from "../common/GenericScanner.js";
 import {PrivacyScanner} from "./PrivacyScanner.js";
+import {SecurityScanner} from "./SecurityScanner.js";
 
 
 export class ScannerFactory {
@@ -31,8 +31,13 @@ export class ScannerFactory {
 
 
         switch (pAUID){
-            case GenericScanner.DEFAULT_NAME:
+            /*case GenericScanner.DEFAULT_NAME:
                 scanner = new GenericScanner({
+                    project: pProject
+                });
+                break;*/
+            case SecurityScanner.DEFAULT_NAME:
+                scanner = new SecurityScanner({
                     project: pProject
                 });
                 break;

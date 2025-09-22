@@ -1153,6 +1153,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
                 const proj = (await $.context.getProjectManager().preloadForDirect(req.user, req.params.pid));
 
+                // TODO
                 const result = (await (MerlinSearchRequest.getByRef({
                     __:parseInt(nodeType,10),
                     _uid:nodeUID

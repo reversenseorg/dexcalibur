@@ -1,4 +1,4 @@
-import {IParser, IParserFeature, IResults} from "./IParser.js";
+import {IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 
 
@@ -56,7 +56,9 @@ export namespace Xml {
 
         }
 
-        async fromBuffer(pBuffer:Buffer, pOffset:number):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = { encoding:'utf-8', raw:true }):Promise<Results> {
+            if(pOptions.tags==null) pOptions.tags = [];
+
             const res:Results = {
                 ok: null,
                 invalid: [ new Error("Builtin XML parser not supported here.")]

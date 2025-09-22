@@ -339,6 +339,55 @@ export class IndicatorBuilder {
         return segs;
     }
 
+
+    /**
+     *
+     *
+     * @param pReport
+     * @param pKPI
+     * @private
+     */
+    private async _prepareStackedData( pReport:AssuranceReport, pKPI:Indicator):Promise<DataSegment[]> {
+        let segs:DataSegment[] = [];
+        let rule:any;
+        let data:any;
+
+        // first segment is about the whole data (size, color, ...)
+        // others segments are subparts
+
+        for(let i=0; i<pKPI.rules.length; i++){
+            rule = pKPI.rules[i];
+            switch (rule.on){
+                case "control":
+
+                    data = await this._groupByControlRule(pReport, rule);
+
+                    for(let k in data){
+                        segs.push({
+                            value: data[k].controls.length,
+                            label: data[k].name,
+                            extra: data[k].extra
+                        });
+                    }
+                    break;
+                case "match":
+                    data = await this._groupByDataRule(pReport, rule);
+                    for(let k in data){
+                        segs.push({
+                            value: data[k].evidences,
+                            label: data[k].name,
+                            extra: data[k].extra
+                        });
+                    }
+                    break;
+                default:
+                    throw IndicatorBuilderException.KPI_RULE_NOT_SUPPORTED(pKPI.getUID(), rule.on);
+            }
+        }
+
+        return segs;
+    }
+
     /**
      * To count by applying rule on matching node
      *
@@ -401,6 +450,12 @@ export class IndicatorBuilder {
                 data = await this._prepareDoughnutData( pReport, pIndicator);
                 break;
             case IndicatorViewType.RADAR:
+                data = await this._prepareRadarData( pReport, pIndicator);
+                break;
+            case IndicatorViewType.STACKED:
+                data = await this._prepareRadarData( pReport, pIndicator);
+                break;
+            case IndicatorViewType.PROGRESS:
                 data = await this._prepareRadarData( pReport, pIndicator);
                 break;
             default:

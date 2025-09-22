@@ -164,10 +164,13 @@ export default class ModelResource<T> extends Savable
         this.location = new DataLocation({
             type: DataLocationType.FILE,
             source: {
-                nodeType: NodeInternalType.FILE,
+                file: pFile,
+                fileUID: pFile.getUID(),
+                offset: 0
+                /*nodeType: NodeInternalType.FILE,
                 node: pFile,
                 offset: pOffset,
-                length: pLength
+                length: pLength*/
             }
         });
     }

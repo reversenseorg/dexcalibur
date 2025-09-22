@@ -217,4 +217,41 @@ export class AndroidDataAnalyzer implements IDelegatedDataAnalyzer {
 
         return obs;
     }
+
+    /**
+     * To scan the 'path' as APK content
+     *
+     * @param path
+     * @param pType
+     */
+    async detectFmtFiles(pFiles:ModelFile[], pScope:DataScope):Promise<Observable<ModelFile[]>>{
+
+        let db:IDbCollection = this.ctx.getProjectDB().getCollectionOf(ModelFile.TYPE.getType());
+
+
+        let  files:Record<string,ModelFile>={};
+        for(let i=0; i<pFiles.length; i++){
+            files[pFiles[i].getRealPath()] = pFiles[i] as ModelFile;
+        }
+
+        // scan file formats
+        return this.ctx.getDataAnalyzer()._detectFileFormatFrom(Object.keys(files))
+            .pipe(
+                mergeMap( async(vFiles:ModelFile[])=>{
+
+                    // consolidate and save files
+                    for(let i=0;i<vFiles.length; i++){
+                        files[vFiles[i].getRealPath()].__t = vFiles[i].__t;
+                        files[vFiles[i].getRealPath()].__p = vFiles[i].__p;
+                        files[vFiles[i].getRealPath()].type = vFiles[i].type;
+                        await this.ctx.getProjectDB().save(vFiles[i], null, ['__p','__t','type']);
+                    }
+
+                    // files.length
+                    Logger.info("[*] "+vFiles.length+" files analyzed");
+
+                    return vFiles;
+                })
+            );
+    }
 }

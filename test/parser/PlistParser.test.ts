@@ -78,6 +78,26 @@ describe('PlistParser', function() {
             expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type')).to.be.equal("ios-app");
         });
 
+        it('Buffer is parsed with OOB raw', async function () {
+
+
+            // @ts-ignore
+            let oobBuf = _fs_.readFileSync(_path_.join(Util.__dirname(import.meta.url),"../files/bp_oob.plist"));
+
+            const parser = new Plist.Parser();
+            const vres = await parser.fromBuffer(oobBuf, -1, {encoding:'binary', raw:true});
+
+            assert.isObject(vres.ok);
+            assert.isOk(vres.ok);
+            assert.isNull(vres.strings);
+
+            console.log(vres.ok);
+
+            //expect(vres.ok.__).to.be.equal(NodeInternalType.RESOURCE);
+            //expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type')).to.be.equal("ios-app");
+        });
+
+
         it('Structured parsing with string indexing', async function () {
 
             const parser = new Plist.Parser();
@@ -94,6 +114,28 @@ describe('PlistParser', function() {
             expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type')._uid).to.be.equal("90c9cb8dce64103fe84150e5b2f437a67b73f96c");
             expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type').__).to.be.equal(38);
 
+        });
+
+        it('Structured parsing with string indexing (oob)', async function () {
+
+            const parser = new Plist.Parser();
+            // @ts-ignore
+            let oobBuf = _fs_.readFileSync(_path_.join(Util.__dirname(import.meta.url),"../files/bp_oob.plist"));
+            const vres = await parser.fromBuffer(oobBuf, -1, {encoding:'binary', raw:false});
+
+            const d = vres.ok.value.data;
+
+            assert.isObject(vres.ok);
+            assert.isOk(vres.ok);
+            assert.isArray(vres.strings);
+
+            console.log(vres);
+            /*
+            expect(vres.ok.__).to.be.equal(NodeInternalType.RESOURCE);
+            expect(vres.strings.length).to.be.gte(1);
+            expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type')._uid).to.be.equal("90c9cb8dce64103fe84150e5b2f437a67b73f96c");
+            expect((vres.ok as ModelResource<PlistDocument>).value.getData('product-type').__).to.be.equal(38);
+*/
         });
     });
 

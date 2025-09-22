@@ -427,8 +427,10 @@ export namespace Nib {
          * @param {number} pOffset
          * @param pEOL
          */
-         async fromBuffer(pBuffer:Buffer, pOffset = 0, pOptions:ParserOptions = {encoding:'binary', print:false, raw:true }):Promise<Results> {
-             let res = { ok:null, invalid:[]};
+         async fromBuffer(pBuffer:Buffer, pOffset = 0, pOptions:ParserOptions = {encoding:'binary', print:false, tags:[], raw:true }):Promise<Results> {
+            if(pOptions.tags==null) pOptions.tags = [];
+
+            let res = { ok:null, invalid:[]};
              let o = pOffset;
              let header = this.parseHeader(pBuffer, o);
 
@@ -478,7 +480,8 @@ export namespace Nib {
 
             //const a = new NibArchive(archive);
             const r = new ModelResource<NibArchive>({
-                value: new NibArchive(archive)
+                value: new NibArchive(archive),
+                tags: pOptions.tags.map(t => t.getUUID())
             });
 
             // todo : index models strings and ref and push it in properties

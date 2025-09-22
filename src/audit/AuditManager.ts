@@ -15,7 +15,6 @@ import {LicenceManager} from "../credit/LicenceManager.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {ApplicationUnit, ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
-import {GenericScanner} from "./common/GenericScanner.js";
 import {ScannerFactory} from "./scanner/ScannerFactory.js";
 import {BusinessPlan, BusinessPlanType} from "../billing/BusinessPlan.js";
 import {ScanOrder, ScanOrderUUID} from "./common/ScanOrder.js";
@@ -550,14 +549,14 @@ export class AuditManager {
         const model = await this.getModelByUID(pUser, pModel);
 
         // get scanner required by model
-        const scanner:GenericScanner = LicenceManager.getProduct(pProject, model.getScannerID()) as GenericScanner;
+        const scanner:AssuranceScanner = LicenceManager.getProduct(pProject, model.getScannerID()) as AssuranceScanner;
 
 
         // set model to scan
         scanner.setModel(model);
 
         //scanner.hasCredit()
-        return await scanner.runModel(pProject);
+        return await (scanner as any).runModel(pProject);
     }
 
     /**
@@ -574,9 +573,6 @@ export class AuditManager {
         // get model with ACL
         const model = await this.getModelByUID(pUser, pModel);
         const scanner = await this.getScanner(pUser, pProject, model.getScannerID());
-
-        // get scanner required by model
-        // const scanner:GenericScanner = LicenceManager.getProduct(pProject, model.getScannerID()) as GenericScanner;
 
         // set model to scan
         scanner.setModel(model);
@@ -722,7 +718,7 @@ export class AuditManager {
      * @param pUser
      * @param pModelID
      */
-    async getLatestReport( pUser:UserAccount, pApp:ApplicationUnit):Promise<Nullable<AssuranceReport>> {
+    async getLatestReport( pUser:UserAccount, pApp:ApplicationUnit, pModel:Nullable<AssuranceModelUUID>=null):Promise<Nullable<AssuranceReport>> {
 
         let reports = await this.getReports(pUser, pApp);
 
@@ -731,13 +727,17 @@ export class AuditManager {
 
         reports = reports
             .filter(x => {
-                return (x.terminated>-1) && (x.indicators.length>0)
+                return (x.terminated>-1); // && (x.indicators.length>0)
             })
             .sort((r1:AssuranceReport, r2:AssuranceReport)=>{
                 return (r1.terminated>r2.terminated ? 1 : -1);
             });
 
-        return reports[0];
+        if(pModel!=null){
+            return reports.find(x => (x.model===pModel));
+        }else{
+            return reports[0];
+        }
     }
 
     /**
@@ -770,16 +770,17 @@ export class AuditManager {
             ]
         );
 
+        const reportQ = new AssuranceReport({ uid:pReport });
         // verify the report is a part of the application
         const rep:AssuranceReport = await (this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType()) as MongodbDbCollection)
-            .asyncGetEntry(pReport);
+            .search(reportQ);
 
-        if(rep.application!=null && rep.application!=pApp.getUID()){
+        if(rep==null || rep.application!=null && rep.application!=pApp.getUID()){
             throw AuditManagerException.REPORT_NOT_FOUND(pReport);
         }
 
         await (this.engine.getEngineDB().getCollectionOf(AssuranceReport.TYPE.getType()) as MongodbDbCollection)
-            .asyncRemoveEntry(pReport);
+            .asyncRemoveEntry(reportQ);
     }
 
 

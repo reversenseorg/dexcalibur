@@ -24,6 +24,7 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 import DalvikInstructionFormat from "../DalvikInstructionFormat.js";
 import {IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import {Buffer} from "buffer";
+import {Tag} from "@dexcalibur/dexcalibur-orm";
 
 
 const SML_MAIN=0;
@@ -1196,7 +1197,7 @@ export namespace Smali {
             //console.log("[!] this.annotation not implemented");
         }
 
-        parse(pSource:string):ModelClass{
+        parse(pSource:string, pTags:Tag[] = []):ModelClass{
             let lines:string[]=pSource.split("\n"), line:string=null, sml:string[]=null, obj:any=null;
 
             for(let l:number=0; l<lines.length; l++){
@@ -1257,8 +1258,14 @@ export namespace Smali {
                         break;
                 }
             }
-            //console.log(this.obj);
-            //this.obj.dump();
+
+            for(let k in this.obj.methods){
+                pTags.map(t => this.obj.methods[k].addTag(t));
+            }
+            for(let k in this.obj.fields){
+                pTags.map(t => this.obj.fields[k].addTag(t));
+            }
+
             return this.obj;
         }
 
@@ -1267,10 +1274,16 @@ export namespace Smali {
          * @param pBuffer
          * @param pOffset
          */
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8', raw:true}):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8', raw:true, tags:[]}):Promise<Results> {
+            if(pOptions.tags==null) pOptions.tags = [];
+
             let res = { ok:null, invalid:[] };
             try{
-                res.ok = this.parse( ((pBuffer as Uint8Array).slice(pOffset) as Buffer).toString(pOptions.encoding));
+                res.ok = this.parse( ((pBuffer as Uint8Array).slice(pOffset) as Buffer).toString(pOptions.encoding), pOptions.tags);
+
+                pOptions.tags.map(t => {
+                    res.ok.addTag(t);
+                });
             }catch(e){
                 res.ok = null;
                 res.invalid.push(e);

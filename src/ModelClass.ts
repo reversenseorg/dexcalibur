@@ -84,14 +84,14 @@ export default class ModelClass extends Savable implements INode, IPersistent
     annotations = [];
 
     // a list of the declared method
-    methods:IMethodSet = {};
+    methods:Record<string, ModelMethod> /* IMethodSet */ = {};
     inherit = {};
 
     // the count of methods inside the class
     _methCount = 0;
 
     // a list of the declared fields
-    fields:IFieldSet = {};
+    fields:Record<string, ModelField>/*IFieldSet*/ = {};
 
     // the count of declared fields
     _fieldCount = 0;

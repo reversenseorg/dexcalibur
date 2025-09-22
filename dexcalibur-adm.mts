@@ -1561,7 +1561,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                                 if(projectArgs.mShowPlan){
                                     console.log(chalk.whiteBright("[*] Test plan :"));
 
-                                    const plan = scanner._prepareTestPlan();
+                                    const plan = scanner._prepareTestPlan(null);
 
                                     plan.steps.map((vStep, vIndex)=>{
                                         console.log(chalk.redBright(` [${vStep.type}] `)+chalk.white("Controls :"));

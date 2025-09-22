@@ -9,9 +9,7 @@ import BusEvent from "../../src/BusEvent.js";
 import AndroidActivity from "../../src/android/AndroidActivity.js";
 import * as Log from "../../src/Logger.js";
 import {AndroidManifest, AndroidSharedUser} from "../../src/android/AndroidManifest.js";
-import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer.js";
 import AndroidApplication from "../../src/android/AndroidApplication.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

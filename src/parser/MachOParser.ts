@@ -142,7 +142,9 @@ export namespace MachO {
             }
         }
 
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'binary', raw:true}):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'binary', raw:true, tags:[] }):Promise<Results> {
+            if(pOptions.tags==null) pOptions.tags = [];
+
             const res:Results = {
                 ok: null,
                 invalid: []
@@ -150,7 +152,8 @@ export namespace MachO {
 
             let file = new ModelFile({
                 chunks: [],
-                sections: []
+                sections: [],
+                tags: pOptions.tags.map(t => t.getUUID())
             });
 
             try{
@@ -167,7 +170,7 @@ export namespace MachO {
                 //file.tagAs()
                 res.ok = new ModelResource<ModelFile>({
                     value: file,
-                    tags: [] //this.jsonTag]
+                    tags: pOptions.tags.map(t => t.getUUID())
                 });
 
             }catch (e){

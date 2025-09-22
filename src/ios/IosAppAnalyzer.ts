@@ -18,8 +18,6 @@ import {NibArchive} from "./NibArchive.js";
 import DataScope from "../DataScope.js";
 import Util from "../Utils.js";
 import {PlistDocument} from "./PlistDocument.js";
-import {MerlinRule} from "../search/MerlinRule.js";
-import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
 import {Endpoint} from "../network/Endpoint.js";
 
 export interface Bundle {
@@ -259,25 +257,7 @@ export default class IosAppAnalyzer implements IAppAnalyzer
         let boards:Record<string, any> = {}, b:string, rsc:INode;
 
         for(let i=0; i<vFiles.length; i++) {
-            /*if(vFiles[i].endsWith(".nib")){
-
-                res = await nibParser.fromBuffer( _fs_.readFileSync(vFiles[i]));
-
-                if(_path_.dirname(vFiles[i])===pInfo.path){
-                    //  NIB in Bundle
-                    if(res.ok!=null && res.invalid.length==0){
-
-                        rsc = (res.ok as NibArchive).toModelResource();
-                        rsc = await this.ctx.getProjectDB().save(rsc);
-
-                        pBundleModel.childAppend( rsc);
-                    }
-                }else{
-                    // NIB in Storyboardc
-
-                   // pBundleModel.childAppend( (res.ok as NibArchive).toModelResource())
-                }
-            }else */if(vFiles[i].endsWith(".storyboardc")){
+            if(vFiles[i].endsWith(".storyboardc")){
                 b =_path_.basename(vFiles[i]);
                 boards[b] = new ModelResource<any>({
                     name: b,
@@ -285,8 +265,6 @@ export default class IosAppAnalyzer implements IAppAnalyzer
                 });
             }
         }
-
-        //console.log("_importResourceBundle : ",vFiles);
     }
 
     private async _importFrameworks(pFolder: string, pScope:Nullable<DataScope> = null) {
@@ -316,7 +294,6 @@ export default class IosAppAnalyzer implements IAppAnalyzer
     async getPathContext(vPath:string, vFile:string, vIsDir:boolean, vCtx:any):Promise<any> {
 
         let pkg:ModelPackage;
-
         vCtx.file = null;
 
         if(vIsDir==false){
@@ -335,6 +312,8 @@ export default class IosAppAnalyzer implements IAppAnalyzer
         if(_path_.dirname(vPath)===vCtx.payload){
             vCtx.tags = {};
         }
+
+        let sbomTag:Nullable<string> = null;
 
         if(vFile.endsWith(".bundle") && vIsDir){
             pkg = this.bundles.find(x => x.name == vFile);
@@ -358,7 +337,9 @@ export default class IosAppAnalyzer implements IAppAnalyzer
             });
 
         }else if(vFile==="Frameworks" && vIsDir){
-            if(vCtx.tags["objc.bundle"]==undefined) vCtx.tags["objc.bundle"]=this.tags.nsbundle;
+            if(vCtx.tags[this.tags.nsbundle.getUID()]==undefined){
+                vCtx.tags[this.tags.nsbundle.getUID()]=this.tags.nsbundle;
+            }
         }else if(vFile==="_CodeSignature" && vIsDir){
             pkg= new ModelPackage({
                 sname: vFile,
@@ -378,7 +359,12 @@ export default class IosAppAnalyzer implements IAppAnalyzer
             const s = _path_.join(vPath,'Package.swift');
             if(_fs_.existsSync(s)){
                 pkg = await this._importSwiftBundle(vPath, vFile, vCtx);
+                sbomTag  = (this.tags.bundle as Tag).getUID();
             }
+        }
+
+        if(vCtx.tags[this.tags.nsbundle.getUID()]!=null){
+            sbomTag  = this.tags.nsbundle.getUID();
         }
 
         if(pkg!=null){
@@ -403,6 +389,17 @@ export default class IosAppAnalyzer implements IAppAnalyzer
 
             pkg = await this.ctx.getProjectDB().save(
                 pkg,null,['name','sname','alias','children','tags']) as ModelPackage;
+
+            if(sbomTag!=null){
+                vCtx.trigger({
+                    type: "app.package.new",
+                    data: {
+                        pkg: pkg,
+                        sbomType: sbomTag,
+                    }
+                });
+            }
+
 
             // propagate tags
             vCtx.self = pkg;

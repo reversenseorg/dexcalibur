@@ -66,13 +66,13 @@ export interface PrivacyScannerOpts {
  *
  * @class
  */
-export class GenericScanner extends AssuranceScanner {
+export class OldGenericScanner extends AssuranceScanner {
 
     static DEFAULT_NAME = "scanner.generic.old";
     static PRODUCT_CODE = "GEN_CLD_SSCAN";
     static HUMAN_NAME = "Generic Scanner";
     static DESCR = "Scanner for generic multi-purpose assessment"
-    static VERSION = "1.0.2";
+    static VERSION = "1.0.1";
 
     private _mainDB = 'global';
 
@@ -80,9 +80,9 @@ export class GenericScanner extends AssuranceScanner {
 
     constructor(pConfig:PrivacyScannerOpts) {
         super({
-            name: GenericScanner.DEFAULT_NAME,
-            __pCode: GenericScanner.PRODUCT_CODE,
-            __pVersion: GenericScanner.VERSION,
+            name: OldGenericScanner.DEFAULT_NAME,
+            __pCode: OldGenericScanner.PRODUCT_CODE,
+            __pVersion: OldGenericScanner.VERSION,
             __pSerial: pConfig.project.getLicenseNo(),
             __pKey: pConfig.project.getLicenseKey()
         });

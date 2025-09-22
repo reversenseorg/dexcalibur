@@ -99,6 +99,10 @@ import {AbiManager, AbiType} from "./binary/ABI.js";
 import {ProgramManager} from "./core/ProgramManager.js";
 import ModelStringValue from "./ModelStringValue.js";
 import {DataFormatManager} from "./formats/DataFormatManager.js";
+import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection.js";
+import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -243,31 +247,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     return new AnalyzerConfiguration();
                 }
             }),
-        /*(new NodeProperty("inspectors")).volatile().type(DbDataType.BLOB)
-            .sleep( (x:NodePropertyState)=>{
-                if(x.p!=null){
-                    const insp:any = {};
-                    for(let i in x.p){
-                        insp[i] = (x.p[i] as Inspector).toJsonObject();
-                    }
-
-                    return insp;
-                }else{
-                    return [];
-                }
-            })
-            .wakeUp( (x:NodePropertyState)=>{
-                if(x.p!=null){
-                    const insp:InspectorMap = {};
-                    for(let i in x.p){
-                        insp[i] = Inspector.fromJsonObject(x.p[i]);
-                        // insp[i].injectContext(x.ctx);
-                    }
-                    return insp; //UserService.findUserByUID(x.p, DexcaliburEngine.getInstance().UID);
-                }else{
-                    return [];
-                }
-            }),*/
 
         (new NodeProperty("_attr"))
             .type(DbDataType.STRING)
@@ -750,96 +729,35 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @param pAccount
      */
     isOwnedBy( pAccount:UserAccount):boolean {
-
         try{
-
             AccessControl.isAuthorizedByAttr(
                 ProjectAccessControl.attr.OWNER,
                 this,
                 pAccount
             );
-
             return true;
         }catch (err){
             return false;
         }
-
-        /*
-        let ret_owned = false;
-
-
-
-        try{
-            AccessControl.checkAttr(
-                AccessZone.PROJECT,
-                ProjectAccessControl.attr.OWNER,
-                this,
-                pAccount
-            );
-
-            ret_owned = true;
-
-        }catch(errACL){
-            if(errACL.hasOwnProperty('getCode') &&  ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
-                AccessControl.check(
-                    AccessZone.PROJECT,
-                    AccessControl.access.PROJ_CHOWN,
-                    this,
-                    pAccount
-                );
-
-                ret_owned = true;
-            }else{throw  errACL;}
-        }
-
-        return ret_owned;
-        //return (this.owner != null && this.owner.is(pUser));*/
     }
 
+    /**
+     * Determines whether the provided user account is authorized to perform testing actions.
+     *
+     * @param {UserAccount} pAccount - The user account to be checked for test authorization.
+     * @return {boolean} - Returns true if the user account is authorized to test, otherwise false.
+     */
     isAuthorizedToTest( pAccount:UserAccount):boolean {
-
-
-
         try{
-
             AccessControl.isAuthorizedByAttr(
                 ProjectAccessControl.attr.TESTER,
                 this,
                 pAccount
             );
-
             return true;
         }catch (err){
             return false;
         }
-        /*
-        let ret_owned = false;
-
-        try{
-            AccessControl.checkAttr(
-                AccessZone.PROJECT,
-                ProjectAccessControl.attr.TESTER,
-                this,
-                pAccount
-            );
-
-
-            ret_owned = true;
-
-        }catch(errACL){
-            if(errACL.hasOwnProperty('getCode') &&  ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
-                AccessControl.check(
-                    AccessZone.PROJECT,
-                    AccessControl.access.PROJ_CHOWN,
-                    this,
-                    pAccount
-                );
-
-                ret_owned = true;
-            }else{throw  errACL;}
-        }
-
-        return ret_owned;*/
     }
 
     /**
@@ -849,6 +767,13 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         return this.bus;
     }
 
+    /**
+     * Configures the workflow for the current instance and initializes its execution if not already started.
+     * Also updates related components with the same workflow and subscribes to workflow message events.
+     *
+     * @param {Workflow} pWorkflow - The workflow instance to be set and managed by the current instance.
+     * @return {void} - This method does not return a value.
+     */
     setWorkflow( pWorkflow:Workflow):void {
         this._wf = pWorkflow;
         if(this.analyze!=null) this.analyze.setWorkflow(pWorkflow);
@@ -1135,13 +1060,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             this.connector = ConnectorFactory.getInstance().newConnector(wsSettings.getDefaultConnector() , this);
         }
 
-        // open/create db
-        //const sqliteConn:SqliteConnector = ConnectorFactory.getInstance().newConnector('sqlite' , this)
-        //sqliteConn.connect(this.workspace.getDbPath());
-        //this.db = sqliteConn.getDB();
-
-
-
 
         Logger.info("PROJECT > init > tagManager ready");
 
@@ -1170,25 +1088,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this.merlin.setDatabase(this.analyze.getData());
 
 
-        // TODO : moved to TagManager presets
-        /*
-        this.analyze.addTagCategory(
-            "hash",
-            ["md5","sha1","sha256","sha512"]
-        );
-        this.analyze.addTagCategory(
-            "key",
-            ["256","1024","2048","4096"]
-        );*/
-
         // todo : move to context free
         this.dexHelper = new DexHelper(this);
-
-        // pkgName => uid => read project.json
-        // todo : move as inspector
-        //this.packagePatcher = new PackagePatcher(this.uid, this.config);
-
-
 
         this.state = ProjectState.INIT_FILE_ANALYZER;
 
@@ -1916,49 +1817,13 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
 
 
-        //const project = new DexcaliburProject({ engine:pEngine, uid:pProjectUID });
-
-        /*
-        project.workspace = new ProjectWorkspace(_path_.join( pEngine.workspace.getLocation(), pProjectUID));
-
-        // check if the folder contains configuration file
-        if(!_fs_.existsSync(project.workspace.getProjectCfgPath())){
-            pEngine.clean({
-                type: 'project',
-                data: pProjectUID
-            });
-            throw DexcaliburProjectException.MISSING_CONFIG_FILE(pProjectUID);
-        }
-
-        const data = JSON.parse( _fs_.readFileSync( project.workspace.getProjectCfgPath()).toString());
-
-
-        if(!data.hasOwnProperty("engineVersion")){
-            data.engineVersion = DexcaliburEngine.VERSION_MIN;
-            _fs_.writeFileSync(
-                project.workspace.getProjectCfgPath(),
-                JSON.stringify(data)
-            );
-        }*/
-
         // remove sensitive data
         if(pZone==SecurityZone.PUBLIC){
             // ORM adapter data
             if(project !=null && project.connector!=null){
                 delete project.connector;
             }
-            // remove local FS path
-            //project.apk.path="";
         }
-
-       /* if(data._attr != null){
-            project.importAccessAttributes(data._attr);
-        }
-
-        if(data.meta != null){
-            project.meta = data.meta;
-        }
-        */
 
         AccessControl.isAuthorized(
             AccessControl.access.PROJ_OPEN_OWN,
@@ -2050,7 +1915,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     static async load( pEngine:DexcaliburEngine, pProjectUID:DexcaliburProjectUUID, pAcc:UserAccount, pConfig:Nullable<any> = null, pWorkflow:Nullable<Workflow> = null):Promise<DexcaliburProject>{
 
         let project:Nullable<DexcaliburProject>;
-        let notPersisted = true;
         let data:any;
 
         Logger.debug("[PROJECT] Start loading : "+pProjectUID);
@@ -2058,11 +1922,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         try{
            project = await pEngine.getEngineDB().getProject(pProjectUID);
 
-           //project.engineVersion = pEngine.version;
            project.dirty();
             Logger.debug("[PROJECT] [LOADING] Project read from DB : "+(project as any)._id);
-            //console.log("PROJECT FOUND > ",(project as any)._id);
-            //console.log("PROJECT VERSION > ",project.engineVersion);
         }catch (err){
             console.error(err);
             if(err.code==EngineDatabaseException.CODE.UNKNOWN_PROJECT){
@@ -2101,19 +1962,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }else{
             data = project;
         }
-        /*
-        if(pConfig == null){
-            try{
-                const cfgPath = project.workspace.getProjectCfgPath();
-                data = JSON.parse(_fs_.readFileSync( cfgPath).toString());
-            }catch(e){
-                throw DexcaliburProjectException.MISSING_CONFIG_FILE(pProjectUID);
-            }
-        }else{
-            data = pConfig;
-        }*/
-
-
 
         if(!project.engineVersion){
             if(data.engineVersion!=null){
@@ -2213,12 +2061,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             await project.init();
 
 
-        // if not exists in DB, create it
-        /*if(notPersisted){
-            console.log(project);
-            project = await pEngine.getEngineDB().createProject(project);
-        }*/
-
         Logger.debug("[PROJECT] Project loaded : "+pProjectUID);
 
         return project;
@@ -2229,20 +2071,11 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      *  
      * @param {*} pExportPath 
      */
-    save( pExportPath:string = null):void{
-        /*
-        if(pExportPath == null){
-            pExportPath = this.workspace.getProjectCfgPath();
-        }
-    */
+    save():void{
+
         if(this.engineVersion==null){
             this.engineVersion = this.engine.version;
         }
-/*
-        _fs_.writeFileSync(
-            pExportPath, 
-            JSON.stringify(this.toJsonObject())
-        );*/
 
         if(this.hook!=null){
             this.hook.saveAll();
@@ -2318,51 +2151,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             }
         }
 
-        // add last modified, user, etc ...
-        /*
-        o.uid = this.uid;
-        o.package = this.pkg;
-        // o.archs = this.archs;
-        // o.os = this.os;
-        o.device = this.device!=null? this.device.getUID() : null;
-        if(this.platform !=null){
-
-            o.platform = this.platform.getUID!=null? this.platform.getUID() : this.platform;
-        }else{
-            o.platform = null;
-        }
-        o.nofrida = this.nofrida;
-        if(this.analCfg!=null){
-            o.analCfg = this.analCfg.toJsonObject!=null ? this.analCfg.toJsonObject() : this.analCfg;
-        }else{
-            o.analCfg = null;
-        }
-        //o.anal = this.analCfg.toJsonObject();
-        if(this.connector!=null){
-            o.connector = this.connector.toJsonObject!=null ? this.connector.toJsonObject() : this.connector;
-        }else{
-            o.connector = null;
-        }
-
-        o._attr = {};
-        o.meta = this.meta;
-        for(const n in this._attr){
-            if(this._attr[n]!=null){
-                o._attr[n] = (this._attr[n].toJsonObject!=null)?this._attr[n].toJsonObject():this._attr[n];
-            }else{
-                o._attr[n] = null;
-            }
-        }
-
-
-
-        if(this.workspace.getApk() != null){
-            o.apk = this.workspace.getApk().toJsonObject();
-        }else{
-            o.apk = null;
-        }
-
-        */
         CoreDebug.checkJsonSerialize(o, "DexcaliburProject");
         return o;
     }
@@ -2439,7 +2227,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     }
 
 
-    /**
+    /*
      * To perform a scan of the application byetcode only.
      * 
      * All reference to Android system classes will be tagged MissingReference or VMBinding
@@ -2449,7 +2237,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @deprecated ?
      * @method
      */
-    async scan( pPath:string):Promise<void>{
+    /*async scan( pPath:string):Promise<void>{
         // make IR 
         if(pPath !== undefined){   
             await this.analyze.path( pPath);
@@ -2470,17 +2258,14 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             // file analysis : icon detection, strings, etc ...
             // TODO : multi threading : each file can be treated separately
 
-            //if(this.dataAnalyzer.isScopeIndexed(pkgScope)==false){
-            // data analysis
+            // TODO : useless : replaced by  Analyzer.path(...)
             (await this.dataAnalyzer.indexFilesIn(pkgScope)).subscribe((vFiles:ModelFile[])=>{
                 // update internal in-memory DB with file analyzer DB
                 this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getAll());
             });
             //}
-
-
         }
-    }
+    }*/
 
     getPlatform():Platform {
         return this.platform;
@@ -2555,37 +2340,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         return this;
     }
 
-    /**
-     * To perform a scan of the set of files (not bytecode/dex/smali).
-     * 
-     * @param {string} path Optional, the path of the folder containing the decompiled smali code. 
-     * @returns {Project} Returns the instance of this project
-     * @method
-     * @deprecated
-     */
-    scanForFiles(path:string){
-        throw new Error('[PROJET] scanForFiles() : deprecated');
-        /*
-        if(path == null){   
-            Logger.error("Invalid filepaths to scan");
-            return null;
-        }
 
-        let files = this.dataAnalyzer.scan(path);
-        
-        this.analyze.updateFiles( files.getDb().getFiles());
-        this.analyze.updateBuffers( files.getDb().getBuffers());
-        
-        return this;*/
-    }
-
-    async initDataAnalysis(){
-        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:BusEvent<any>)=>{
-
-            Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.index> Indexing file : "+pEvent.getData().path);
-            this.analyze.insertIn( "files", [pEvent.getData()]);
-        }));
-    }
     /**
      * To perform a fullsacn of the application. It  performs :
      *      - Android API bytecode scan (for the specified API version - by default it's API 25)
@@ -2642,11 +2397,11 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // TODO : if dirty, restore data
 
         if(this.platform.getLocalPath()!=null){
-            await this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM, );
+            await this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM, null, [internTag]);
             this.getWorkflow().pushStatus(new StatusMessage(11, "Analyzing byte arrays from target platform"))
             this.analyze.updateDataBlock();
             this.getWorkflow().pushStatus(new StatusMessage(12, "Tagging discovered elements"));
-            this.analyze.tagAllIf((k,x) => {  return true; }, [internTag]);
+            //this.analyze.tagAllIf((k,x) => {  return true; }, [internTag]);
         }else{
             Logger.info(`[PROJECT] Cannot retrieve platform binary code for ${this.platform.getUID()}, image is empty = ${this.platform.getLocalPath()}`);
         }
@@ -2680,137 +2435,110 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             await this.appAnalyzer.importMeta();
         }
 
-        // scan files  
-       /* if(pPath != undefined){
-            this.analyze.path( pPath);
+        const targetPath:string = await this.appAnalyzer.getDefaultTargetPath();
 
+        // prepare, configure and restore state of the native analyzer
+        this._prepareNativeAnalyzer();
 
-            this.getWorkflow().pushStatus(new StatusMessage(16, "Indexing and analysis of flat files"));
-            this.dataAnalyzer.indexFilesIn(
-                this.dataAnalyzer.getScope('PKG')
-            );
-            
-        // this.analyze.scanManifest(Path.join(path,"AndroidManifest.xml"));
-            this.getWorkflow().pushStatus(new StatusMessage(17, "Manifest analysis"));
-            success = await this.appAnalyzer.importManifest(_path_.join(pPath,"AndroidManifest.xml"));
-            //success = await this.appAnalyzer.scan(AppPackage); <--- add abstraction
-
-        }else{*/
-            //        let dexPath = this.workspace.getWD()+"dex";
-            // To replace by package app (abstraction of apk/ipa/elf/..)
-            //  par exemple : getAppDir() => path of folder containing extracted files
-            const targetPath:string = await this.appAnalyzer.getDefaultTargetPath();
-
-            // prepare, configure and restore state of the native analyzer
-            this._prepareNativeAnalyzer();
-
-            Logger.info("Scanning default path : "+targetPath);
+        Logger.info("Scanning default path : "+targetPath);
 
 
 
-            // If android or iOS bytecode code analysis
-            // TODO : multi threading
-            await this.analyze.path( targetPath, CodeLocation.APP, pkgScope);
+        // If android or iOS bytecode code analysis
+        // TODO : multi threading
+        await this.analyze.path( targetPath, CodeLocation.APP, pkgScope);
 
-            this.analyze.tagAllIf(
-                (k,x) => {  return !internTag.match(x); },
-                [sastTag]);
+        this.analyze.tagAllIf(
+            (k,x) => {  return !internTag.match(x); },
+            [sastTag]);
 
-            this.analyze.tagIf<ModelStringValue>(
-                (k,x) => {
-                    let e = x.src.find( s => internTag.match(s));
-                    return (e!=null);
-                },
-                "strings",
-                [sastTag]);
+        this.analyze.tagIf<ModelStringValue>(
+            (k,x) => {
+                let e = x.src.find( s => internTag.match(s));
+                return (e!=null);
+            },
+            "strings",
+            [sastTag]);
 
-            // save model
-            //await this.pdb.saveAnalyzerDB(this.analyze.getData());
-            // update DB only on first open
-            if(this._createMode){
-               await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
-            }
+        // save model
+        //await this.pdb.saveAnalyzerDB(this.analyze.getData());
+        // update DB only on first open
+        if(this._createMode){
+           await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
+        }
 
-            // load hooks
-            await this.hook.load();
+        // load hooks
+        await this.hook.load();
 
-            this.getWorkflow().setStep('App resources', 60);
-            this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
+        this.getWorkflow().setStep('App resources', 60);
+        this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
 
 
 
 
-            this._analysis$.subscribe(async (vProjEvt)=>{
-                if([ProjectEventType.DATA_ANALYSIS_DONE,
-                    ProjectEventType.DATA_ANALYZER_LOADED].indexOf(vProjEvt.type)>-1){
+        this._analysis$.subscribe(async (vProjEvt)=>{
+            if([ProjectEventType.DATA_ANALYSIS_DONE,
+                ProjectEventType.DATA_ANALYZER_LOADED].indexOf(vProjEvt.type)>-1){
 
-                    // update progression
-                    this.getWorkflow().setStep('Runtime data', 80);
-                    this.getWorkflow().pushStatus(new StatusMessage(60, "Updating analyzer DB with discovered files"));
+                // update progression
+                this.getWorkflow().setStep('Runtime data', 80);
+                this.getWorkflow().pushStatus(new StatusMessage(60, "Updating analyzer DB with discovered files"));
 
-                    // update internal DB with file from package only (at this step)
-                    this.analyze.updateFileIndex(
-                        await this.dataAnalyzer.getIndex('PKG'), true
-                    );
+                // update internal DB with file from package only (at this step)
+                this.analyze.updateFileIndex(
+                    await this.dataAnalyzer.getIndex('PKG'), true
+                );
 
-                    // when data analyzer DB is ready, start native analysis
-                    this.getWorkflow().setStep('App native libraries', 85);
-                    this.getWorkflow().pushStatus(new StatusMessage(80, "Analysis of native libraries"));
+                // when data analyzer DB is ready, start native analysis
+                this.getWorkflow().setStep('App native libraries', 85);
+                this.getWorkflow().pushStatus(new StatusMessage(80, "Analysis of native libraries"));
 
-                    // detect and scan libs
-                    // this.performNativeAnalysis(pkgScope);
-                    const execFiles = await this.getDB().getFileDB().searchExecutables(pkgScope);
+                // detect and scan libs
+                // this.performNativeAnalysis(pkgScope);
+                const execFiles = await this.getDB().getFileDB().searchExecutables(pkgScope);
 
-                    for(let i=0; i<execFiles.length; i++){
-                        if(this.analyze.hasBeenAnalyzed(execFiles[i])){
-                            // skip it or load in memory somethings
-                        }else if(this.analyze.isEligibleTo(pkgScope, execFiles[i],'native:discovery')){
-                            try{
-                                await this.discoverExecutableFile(execFiles[i], true);
-                            }catch (e){
-                                console.error("Cannot analyze binary file : ",execFiles[i].getUID());
-                            }
-
+                for(let i=0; i<execFiles.length; i++){
+                    if(this.analyze.hasBeenAnalyzed(execFiles[i])){
+                        // skip it or load in memory somethings
+                    }else if(this.analyze.isEligibleTo(pkgScope, execFiles[i],'native:discovery')){
+                        try{
+                            await this.discoverExecutableFile(execFiles[i], true);
+                        }catch (e){
+                            console.error("Cannot analyze binary file : ",execFiles[i].getUID());
                         }
+
                     }
                 }
-                else if(ProjectEventType.NATIVE_ANALYSIS_DONE === vProjEvt.type){
-                    // start whole app analysis
+            }
+            else if(ProjectEventType.NATIVE_ANALYSIS_DONE === vProjEvt.type){
+                // start whole app analysis
 
-                    // xref analysis :
-                    // - indexes strings in resource files
-                    // - extract app icon
-                    // - solves reference between Resource and resource UID
-                    // - finds implementation of component
-                    // - ...
-                    await this.getAppAnalyzer().performXrefAnalysis();
+                // xref analysis :
+                // - indexes strings in resource files
+                // - extract app icon
+                // - solves reference between Resource and resource UID
+                // - finds implementation of component
+                // - ...
+                await this.getAppAnalyzer().performXrefAnalysis();
 
-                    await this.hook.loadNativeHook();
-                }
-            })
+                await this.hook.loadNativeHook();
+            }
+        })
 
-            // perform data analaysis or load results
-            if(!this.dataAnalyzer.hasIndexed(pkgScope)) {
-                (await this.dataAnalyzer.indexFilesIn(pkgScope)).subscribe(async (vFiles:ModelFile[])=>{
-                    Logger.info(`[package files analyzed=${vFiles.length}]`);
+        // perform data analaysis or load results
+        if(!this.dataAnalyzer.hasIndexed(pkgScope)) {
 
-                    // update internal DB with file from package only (at this step)
-                    this.analyze.updateFileIndex(
-                        await this.dataAnalyzer.getIndex('PKG'), true
-                    );
+            const req = MerlinSearchRequest.fromCondition(this.merlin, ModelFile.TYPE, "@data.type.unknown", { not:false });
+            const result = (await (this.getAnalyzer().db.getDataSetFromNodeType(ModelFile.TYPE.getType()) as InMemoryDbCollection).search(
+                req,
+                new InMemoryDbIndex()
+            )).getAsList() as INode[];
 
-                    // parsing and indexing
-                    // this.dataAnalyzer.analyze(vFiles);
+            console.log(result);
 
+            (await  this.dataAnalyzer.detectFmtFiles(result as ModelFile[], pkgScope)).subscribe(async (vFiles:ModelFile[])=>{
+                Logger.info(`[package files analyzed=${vFiles.length}]`);
 
-                    // trigger next steps
-                    this._analysis$.next({
-                        type: ProjectEventType.DATA_ANALYSIS_DONE,
-                        data: null
-                    })
-                });
-            }else{
-                this.dataAnalyzer.loadIndex(pkgScope );
                 // update internal DB with file from package only (at this step)
                 this.analyze.updateFileIndex(
                     await this.dataAnalyzer.getIndex('PKG'), true
@@ -2818,19 +2546,49 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
                 // trigger next steps
                 this._analysis$.next({
-                    type: ProjectEventType.DATA_ANALYZER_LOADED,
+                    type: ProjectEventType.DATA_ANALYSIS_DONE,
                     data: null
                 })
-            }
+            });
 
-            // loadSyscall / Instr hook
 
-            this.getWorkflow().setStep('Application topology analysis', 91);
-            this.getWorkflow().pushStatus(new StatusMessage(86, "Manifest analysis"));
+           /*(await this.dataAnalyzer.indexFilesIn(pkgScope)).subscribe(async (vFiles:ModelFile[])=>{
+                Logger.info(`[package files analyzed=${vFiles.length}]`);
 
-            // application topology analysis
-            //success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
-       // }
+                // update internal DB with file from package only (at this step)
+                this.analyze.updateFileIndex(
+                    await this.dataAnalyzer.getIndex('PKG'), true
+                );
+
+                // parsing and indexing
+                // this.dataAnalyzer.analyze(vFiles);
+
+
+                // trigger next steps
+                this._analysis$.next({
+                    type: ProjectEventType.DATA_ANALYSIS_DONE,
+                    data: null
+                })
+            });*/
+        }else{
+            this.dataAnalyzer.loadIndex(pkgScope );
+            // update internal DB with file from package only (at this step)
+            this.analyze.updateFileIndex(
+                await this.dataAnalyzer.getIndex('PKG'), true
+            );
+
+            // trigger next steps
+            this._analysis$.next({
+                type: ProjectEventType.DATA_ANALYZER_LOADED,
+                data: null
+            })
+        }
+
+        // loadSyscall / Instr hook
+
+        this.getWorkflow().setStep('Application topology analysis', 91);
+        this.getWorkflow().pushStatus(new StatusMessage(86, "Manifest analysis"));
+
 
         if(success){
             this.setPackageName( this.appAnalyzer.getAppUid());
@@ -2906,15 +2664,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     if( _fs_.lstatSync(bc).isDirectory()) {
                         Logger.info("Scanning previously discovered dex chunk : " + bc);
                         await this.analyze.path(bc, loc, dynBcScope);
-                    }/*else{
-                    // dex files
-                    this.dataAnalyzer.indexFilesIn(
-                        this.dataAnalyzer.getScope('DYN_BYTECODE')
-                    );
-                    this.analyze.updateFileIndex(
-                        this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
-                    );
-                }*/
+                    }
                 }
 
                 this.analyze.tagAllIf(
@@ -2953,19 +2703,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this.state = ProjectState.FULLSCAN_END;
 
         this._emit("dxc.fullscan.post_deploy" );
-        
-        // trigger event
-       // this._emit("dxc.appview.new" );
-
-        //this.analyze.updateFiles( this.dataAnalyzer.getDB());
-
-        /*this.analyze.insertIn( "files",
-            this.dataAnalyzer.getDB().getIndex(
-                this.dataAnalyzer.getScope('PKG').getName()));*/
-
-
-        //this._emit("filescan.new" );
-        //this._emit("dxc.initialized" );
 
         this.ready = true;
 
@@ -2978,9 +2715,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // update project config (icon, checksum, cert, ...)
         this.save();
 
-
-        // make CFG
-        //this.analyze.cfg();
         return this;
     }
 
@@ -3081,11 +2815,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     }
 
 
-    /*async scanNativeLibraries():Promise<boolean> {
-
-        return true;
-    }*/
-
     /**
      * To get 'ready' status
      * 
@@ -3141,18 +2870,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
     }
 
-
-    triggerAndSave(pOptions:BusEventOptions<any>):void{
-        //this.getProjectDB().saveAsync(pOptions.data);
-        /*
-        if(this.getBus()!=null){
-            this.getBus().send(new BusEvent(pOptions));
-        }
-        */
-    }
-
-
-
     /**
      * To get application package name
      * 
@@ -3177,11 +2894,11 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         );
     }
 
+
     /**
-     * To get project's workspace
+     * Retrieves the current project workspace. If the workspace does not exist, it initializes and returns a new workspace.
      *
-     * @return {ProjectWorkspace}
-     * @method
+     * @return {ProjectWorkspace} The project workspace instance.
      * @since 1.0.0
      */
     getWorkspace(): ProjectWorkspace {

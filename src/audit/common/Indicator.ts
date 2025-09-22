@@ -12,7 +12,8 @@ export enum IndicatorViewType {
     RADAR='radar',
     CURV='curv',
     PLOT='plot',
-    STACK='stack'
+    STACKED='stacked_bar',
+    PROGRESS='progress'
 }
 
 export interface DataSegment {

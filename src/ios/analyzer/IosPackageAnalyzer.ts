@@ -117,7 +117,7 @@ export class IosPackageAnalyzer implements IPackageAnalyzer {
         }
 
         if(!_fs_.existsSync(path)){
-            throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+            throw DexcaliburProjectException.APP_FILE_NOT_FOUND();
         }
 
         return path;
@@ -142,7 +142,7 @@ export class IosPackageAnalyzer implements IPackageAnalyzer {
 
 
         if(_fs_.existsSync(fpath)){
-            throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+            throw DexcaliburProjectException.APP_FILE_NOT_FOUND();
         }
 
         return
@@ -169,7 +169,7 @@ export class IosPackageAnalyzer implements IPackageAnalyzer {
             throw AnalyzerException.CANNOT_PREPARE_PKG("Project is not configured");
         }
         if(this._main==null){
-            throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+            throw DexcaliburProjectException.APP_FILE_NOT_FOUND();
         }
 
         let targetApp:TargetApp;

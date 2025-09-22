@@ -9,11 +9,7 @@ import {
     TagUUID, SerializeOptions
 } from "@dexcalibur/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {CoreDebug} from "../core/CoreDebug.js";
-import ControlAssessment from "../audit/common/ControlAssessment.js";
-import {OperatingSystem} from "../platform/OperatingSystem.js";
-import ModelCall from "../ModelCall.js";
+import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Metadata, MetadataType} from "../audit/common/Metadata.js";
 import {Savable, STUB_TYPE} from "../ModelSavable.js";
 import {ModelLocation} from "../ModelLocation.js";

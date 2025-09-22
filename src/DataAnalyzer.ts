@@ -330,18 +330,13 @@ export class DataAnalyzer implements IAnalyzerUnit
                         console.log("Debug vFiles > "+vFiles.length);
                     })
                 })
-                //files = this.binwalk.analyzeFolder(pPath, this.context, pSkipGlob);
                 break;
             case FileAnalysisType.MAGIC:
-                // magic mode use only magic number (file cmd)
-                //files = this.magic.analyzeFolder(path, this.context, checkIfSmali);
                 files = this.magic.analyzeFolder(pPath, this.context, pSkipGlob);
                 obsFiles.next(files);
                 break;
             case FileAnalysisType.SMART:
                 // smart mode mixes magic and deep.
-                // scan lib/ folder
-                // scan unknow + assets
                 files = this.smartScan(pPath, this.context, pSkipGlob);
                 obsFiles.next(files);
                 break;
@@ -674,8 +669,12 @@ export class DataAnalyzer implements IAnalyzerUnit
      *
      * @param {ModelFile[]} pFiles List of files to parse
      */
-    async analyze(pFiles:ModelFile[]):Promise<void>{
-        pFiles.map((vFile:ModelFile)=>{
+    async analyze(pFiles:ModelFile[], pCreateMode = false):Promise<void>{
+
+        let vFile:ModelFile;
+
+        for(let i=0;i<pFiles.length; i++){
+            vFile = pFiles[i];
             if(vFile.getType()==null){
 
                 if(this.context.platform.isAndroid() && this.delegate[OperatingSystem.ANDROID]!=null) {
@@ -694,7 +693,7 @@ export class DataAnalyzer implements IAnalyzerUnit
                     parserConstructors = this.context.getDataFormatMgr().getParserByFileExtension<any>(fmt);
 
                     if(parserConstructors.length > 0){
-                        results = (parserConstructors[0]).fromBuffer(
+                        results = await (parserConstructors[0]).fromBuffer(
                             _fs_.readFileSync(vFile.getRealPath())
                         );
 
@@ -705,7 +704,8 @@ export class DataAnalyzer implements IAnalyzerUnit
                             data: {
                                 file: vFile,
                                 parser: parserConstructors[0],// (parserConstructors[0]).UID,
-                                format: fmt
+                                format: fmt,
+                                saved: pCreateMode
                             }
                         });
                     }
@@ -719,7 +719,9 @@ export class DataAnalyzer implements IAnalyzerUnit
                 }
 
             }
-        })
+        }
+
+
     }
 
 
@@ -737,5 +739,42 @@ export class DataAnalyzer implements IAnalyzerUnit
                 this.delegate[OperatingSystem.IOS] = new IosDataAnalyzer(this.context);
                 break;
         }
+    }
+
+    /**
+     * To scan the 'path' as APK content
+     *
+     * @param path
+     * @param pType
+     */
+    async detectFmtFiles(pFiles:ModelFile[], pScope:DataScope):Promise<Observable<ModelFile[]>>{
+
+        let db:IDbCollection = this.context.getProjectDB().getCollectionOf(ModelFile.TYPE.getType());
+
+
+        let  files:Record<string,ModelFile>={};
+        for(let i=0; i<pFiles.length; i++){
+            files[pFiles[i].getRealPath()] = pFiles[i] as ModelFile;
+        }
+
+        // scan file formats
+        return this._detectFileFormatFrom(Object.keys(files))
+            .pipe(
+                mergeMap( async(vFiles:ModelFile[])=>{
+
+                    // consolidate and save files
+                    for(let i=0;i<vFiles.length; i++){
+                        files[vFiles[i].getRealPath()].__t = vFiles[i].__t;
+                        files[vFiles[i].getRealPath()].__p = vFiles[i].__p;
+                        files[vFiles[i].getRealPath()].type = vFiles[i].type;
+                        await this.context.getProjectDB().save(vFiles[i], null, ['__p','__t','type']);
+                    }
+
+                    // files.length
+                    Logger.info("[*] "+vFiles.length+" files analyzed");
+
+                    return vFiles;
+                })
+            );
     }
 }
