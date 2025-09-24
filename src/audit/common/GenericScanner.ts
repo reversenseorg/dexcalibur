@@ -133,7 +133,7 @@ export class GenericScanner extends AssuranceScanner {
                             Logger.error(`Rule [uid=${pCtrlNode.ctrl.id}#${vRuleOffset}] has errors (${vRule.getErrors().length}`);
                             continue;
                         }
-                        res = await vRule.execute(this.project);
+                        res = await vRule.execute(this.project,true);
                         if(res.count()>0){
                             console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
                             res.foreach((offset:number,x:any) => {
@@ -165,7 +165,7 @@ export class GenericScanner extends AssuranceScanner {
                         }
 
                         (vRule as MerlinSearchRequest).setContext(this._searchContext);
-                        res = await vRule.execute(this.project);
+                        res = await vRule.execute(this.project,true);
                         if(res.count()>0){
                             console.log("[SCAN][FOUND](request) : "+res.count()+"  "+vRule.toSearchString());
                             res.foreach((offset:number,x) => {

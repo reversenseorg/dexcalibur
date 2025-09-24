@@ -857,5 +857,33 @@ export default class Util {
         }
     }
 
+    /**
+     * To list running processes
+     */
+    static psList(pOptions = { command:null }):any {
+
+        let proc:any = Util.execSync("ps -axo pid,args").split("\n"); //.filter(x=>x.indexOf("slave-node")>-1);
+        proc.shift();
+        const cleaned:{ pid:number, command:string }[] = [];
+
+        proc.map((line:string) => {
+            line = line.trim();
+            const s = line.indexOf(" ");
+            const d = {
+                pid : parseInt(line.substring(0,s),10),
+                command : line.substring(s+1),
+            };
+
+            if(pOptions.command!=null){
+                if((pOptions.command as RegExp).test(d.command)){
+                    cleaned.push(d);
+                }
+            }else{
+                cleaned.push(d);
+            }
+        });
+
+        return cleaned;
+    }
 }
 

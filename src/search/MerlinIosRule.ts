@@ -11,7 +11,7 @@ import {Nullable} from "../core/IStringIndex.js";
 export class MerlinIosRule extends MerlinRule {
 
     constructor(pOpts:MerlinRuleOptions) {
-        super(OperatingSystem.ANDROID, pOpts);
+        super(OperatingSystem.IOS, pOpts);
     }
 
     override getRequestByNode(pRequestOpts:SerializedSearchRequest,pOpts:SearchOptions|any|null):Nullable<MerlinSearchRequest> {

@@ -164,7 +164,7 @@ export class PrivacyScanner extends AssuranceScanner {
 
                         startTime = (new Date()).getTime();
                         //Logger.info(` Execute [${vIndex}][${vRuleOffset}]...`);
-                        res = await vRule.execute(this.project);
+                        res = await vRule.execute(this.project, true);
                         Logger.info(` Execute [${vIndex}][${vRuleOffset}] : (ms) ${Math.floor((new Date()).getTime()-startTime)} : ${res.count()}`);
 
                         if(pCtrlNode.canonicalID.startsWith("*.4091cae9-")){
@@ -212,7 +212,7 @@ export class PrivacyScanner extends AssuranceScanner {
                         //res = await vRule.execute(this.project);
 
                         startTime = (new Date()).getTime();
-                        res = await vRule.execute(this.project);
+                        res = await vRule.execute(this.project, true);
                         Logger.info(` Execute [${vIndex}][${vRuleOffset}] : (ms) ${Math.floor((new Date()).getTime()-startTime)} : ${res.count()}`);
 
                         if(res.count()>0){
@@ -283,7 +283,7 @@ export class PrivacyScanner extends AssuranceScanner {
         if(node!=null) return node;
 
         console.log(`[SCANNER][MATCH NOT FOUND IN MEMORY. TRY MERLIN IN MEM] ${pRef.__} ${pRef._uid}`);
-        let res:FinderResult = await (MerlinSearchRequest.getByRef(pRef,pProject.getMerlinEngine() )).execute(pProject);
+        let res:FinderResult = await (MerlinSearchRequest.getByRef(pRef,pProject.getMerlinEngine() )).execute(pProject, true);
 
 
 

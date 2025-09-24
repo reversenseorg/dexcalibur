@@ -1184,11 +1184,13 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   /**
    * To prepare, execute the request and return the result
    *
+   * @param {DexcaliburProject} pProject
+   * @param {boolean} pPdbIfEmpty Alternatively execute on Project Database if InMemory DB is empty
    * @return {Promise<FinderResult>}
    * @method
    * @async
    */
-  async execute(pProject:DexcaliburProject):Promise<FinderResult> {
+  async execute(pProject:DexcaliburProject, pPdbIfEmpty = false):Promise<FinderResult> {
 
     let coll:IDbCollection|IDbIndex;
 
@@ -1212,6 +1214,9 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       coll = db.getDataSetFromNodeType((this._type as NodeType).getType());
     }
 
+    if(coll.size()==0 && pPdbIfEmpty){
+      return await this.executePDB(pProject)
+    }
 
     // resolve Tags name
     this._resolveTagNames(pProject);

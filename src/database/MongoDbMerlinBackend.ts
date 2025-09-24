@@ -157,7 +157,7 @@ export class MongoDbMerlinBackend {
                         //filters[cs.field].push({ [cs.field]: cs.pattern })
 
 
-                        filters['$and'].push({ [field]: { $regex: cs.getRegExpPattern() }});
+                        filters['$and'].push({ [field]: { $regex: cs.getRegExpPattern(), $options: (cs.opts?.nocase ? 'i' : '') }});
                         /*filter[cs.field] = {
                             [cs.field]: cs.pattern
                         };

@@ -121,23 +121,6 @@ export class AssuranceScanner extends /* ReversenseProduct */ Product {
                                 }
                             });
                         });
-
-                    /*
-                    searchAPI
-                        .class("name:"+Util.escapeRE(vSign.sig.pattern))
-                        .foreach((vIndex, vMatchingNode)=>{
-                            console.log(vMatchingNode.name);
-                            //console.log("[PRIVACY][TRACKER+CODE] "+vSign.tracker.name+" ("+vSign.sig.pattern+") found in : "+vMatchingNode.name);
-                            pReport.addThreat(
-                                new PrivacyFinding<TrackerInfo>({
-                                    type: PrivacyFindingType.TRACKER,
-                                    trust: 10,
-                                    signature: vSign.sig,
-                                    source: vSign.tracker,
-                                    node: (vMatchingNode as ModelClass)
-                                })
-                            );
-                        });*/
                     break;
                 case NodeInternalType.CLASS:
                     searchAPI

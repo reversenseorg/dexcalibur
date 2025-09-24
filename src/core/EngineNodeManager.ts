@@ -25,6 +25,8 @@ import * as _path_ from "path";
 import {ChildProcess} from "child_process";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {ProjectOrder} from "../project/ProjectOrder.js";
+import * as console from "node:console";
+import Util from "../Utils.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1383,9 +1385,17 @@ export class EngineNodeManager {
      * To count running node
      */
     async countRunningNode():Promise<number> {
-        return (await this.getNodes({
-            running: true
-        })).length;
+
+        // refresh
+        if(process.env.KUBERNETES_PORT!=null){
+            return (await this.getNodes({
+                running: true
+            })).length;
+        }else{
+            const slaves = Util.psList({ command:/slave-node/ });
+            console.log(slaves);
+            return slaves.length;
+        }
     }
 
     spawnController(pDelay:number, pNodeOpts:any = [], pDebug = false):void {

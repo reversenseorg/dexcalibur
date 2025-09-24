@@ -362,7 +362,7 @@ export class MerlinRule extends MerlinSearchAPI<any> implements MerlinPrimitive 
      *
      * @param pProject
      */
-    async execute(pProject:DexcaliburProject):Promise<FinderResult> {
+    async execute(pProject:DexcaliburProject, pPdbIfEmpty = false):Promise<FinderResult> {
         // update DB
 
         this.setDatabase(pProject.getAnalyzer().getData());
@@ -382,7 +382,7 @@ export class MerlinRule extends MerlinSearchAPI<any> implements MerlinPrimitive 
             case MerlinRuleType.STATIC:
                 // hook & start
                 this.getRequest().setContext(this);
-                result = await this.getRequest().execute(pProject);
+                result = await this.getRequest().execute(pProject,pPdbIfEmpty);
                 break;
         }
 
