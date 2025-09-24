@@ -391,7 +391,7 @@ export default class IosAppAnalyzer implements IAppAnalyzer
                 pkg,null,['name','sname','alias','children','tags']) as ModelPackage;
 
             if(sbomTag!=null){
-                vCtx.trigger({
+                this.ctx.trigger({
                     type: "app.package.new",
                     data: {
                         pkg: pkg,

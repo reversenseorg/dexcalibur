@@ -89,7 +89,7 @@ export default new InspectorFactory({
 
     useGUI: true,
 
-    version: "1.0.4",
+    version: "1.0.5",
     tags: [
         {
             name:"android.cmp",
@@ -294,7 +294,7 @@ export default new InspectorFactory({
             
             const evt = pEvent.getData();
 
-             if(evt.sbomType=="swift.bundle" || (tm.getTag("swift.bundle")).match(parserEvent.pkg as ModelPackage)){
+             if(evt.sbomType=="swift.bundle" || (tm.getTag("swift.bundle")).match(evt.pkg as ModelPackage)){
                   console.log(parserEvent);
                     ctx.trigger({
                         type:"sca.sbom.new",
@@ -310,7 +310,7 @@ export default new InspectorFactory({
                     });
                     return;
                 }
-                if(evt.sbomType=="objc.bundle" || (tm.getTag("objc.bundle")).match(parserEvent.pkg as ModelPackage)){
+                if(evt.sbomType=="objc.bundle" || (tm.getTag("objc.bundle")).match(evt.pkg as ModelPackage)){
                     console.log(parserEvent);
                     ctx.trigger({
                         type:"sca.sbom.new",
@@ -326,8 +326,8 @@ export default new InspectorFactory({
                     });
                     return;
                 }
-                if(evt.sbomType=="ai.coreml" || (tm.getTag("ai.coreml")).match(parserEvent.pkg as ModelPackage)){
-                     console.log(parserEvent);
+                if(evt.sbomType=="ai.coreml" || (tm.getTag("ai.coreml")).match(evt.pkg as ModelPackage)){
+                     console.log(evt);
                     ctx.trigger({
                         type:"sca.sbom.new",
                         data: {

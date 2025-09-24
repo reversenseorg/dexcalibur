@@ -3,22 +3,20 @@ import {FinderResult} from "./FinderResult.js";
 import {Finder} from "./Finder.js";
 import {SearchRequestCondition, ValidateOptions} from "./SearchRequestCondition.js";
 import Util from "../Utils.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, NodeInternalTypeName, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {BusSubscriber} from "../Bus.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {NodeInternalType, NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../core/CoreDebug.js";
 import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
-import {NodeType, NodeProperty, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection, IDbIndex, NodeProperty, NodeType} from "@dexcalibur/dexcalibur-orm";
 import * as Log from "../Logger.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {SearchPattern} from "./SearchPattern.js";
-import {SearchToken} from "./SearchToken.js";
 import {MerlinSearchRequestException} from "./error/MerlinSearchRequestException.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {INodeRef} from "../INode.js";
 import ModelStringValue from "../ModelStringValue.js";
+
+;
 
 const TAG_TOKEN = '@';
 const SEP_TOKEN = ':';
@@ -1232,6 +1230,10 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     }else{
       Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > SEARCH ");
       res = await coll.search(this, resultIndex);
+    }
+
+    if(resultIndex.size()==0 && pProject.os===OperatingSystem.IOS && pPdbIfEmpty){
+      return await this.executePDB(pProject)
     }
 
     if(await res == null){
