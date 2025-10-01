@@ -149,7 +149,7 @@ export class PrivacyScanner extends AssuranceScanner {
                 if(Merlin.isRule(vRule)){
                     console.log((vRule as MerlinRule).targetOS,pContext.os);
 
-                    if((vRule as MerlinRule).targetOS!==pContext.os && (vRule as MerlinRule).targetOS!=='*'){
+                    if((vRule as MerlinRule).targetOS!==pContext.os){ // && (vRule as MerlinRule).targetOS!=='*'){
                         // skip;
                         continue;
                     }
@@ -194,9 +194,9 @@ export class PrivacyScanner extends AssuranceScanner {
 
                 }else{
 
-                    console.log((vRule as MerlinRule).targetOS,pContext.os);
+                    //console.log((vRule as MerlinRule).targetOS,pContext.os);
 
-                    if((vRule as MerlinRule).targetOS!==pContext.os && (vRule as MerlinRule).targetOS!=='*'){
+                    if((vRule as MerlinRule).targetOS!==pContext.os){ // && (vRule as MerlinRule).targetOS!=='*'){
                         // skip;
                         continue;
                     }
