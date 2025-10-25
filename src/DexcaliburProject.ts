@@ -795,9 +795,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      */
     getWorkflow():Workflow {
         if(this._wf==null){
-            this._wf = new Workflow({ uid: this.getUID() });
-            this._wf.start();
+            throw new Error(`Workflow does not exist in project ${this.getUID()}`);
         }
+
         return this._wf;
     }
 
@@ -1922,6 +1922,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         try{
            project = await pEngine.getEngineDB().getProject(pProjectUID);
 
+           project.setWorkflow(pWorkflow);
+
            project.dirty();
             Logger.debug("[PROJECT] [LOADING] Project read from DB : "+(project as any)._id);
         }catch (err){
@@ -2142,6 +2144,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 case "owner":
                 case "tester":
                 case "modelAPI":
+                case "_dfm":
+                case "LOG":
+                case "validator":
                     break;
                 default:
                     if(!pOptions.excludeNull || this[i]!=null){

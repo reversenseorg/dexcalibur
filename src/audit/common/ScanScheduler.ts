@@ -144,10 +144,20 @@ export class ScanScheduler {
 
         // prepare project if it is not yet ready
         if(!pProject.isReady()){
-            wf = new Workflow({
+
+            wf = await this._ctx.getProjectManager().createWorkflow(
+                pUser.getUID(),
+                null,
+                pProject.getUID(),
+                "scan"
+            );
+
+            /*wf = new Workflow({
                 uid: `${pProject.getUID()}:scan:${(new Date()).getTime()}`
-            });
+            });*/
+
             project = await DexcaliburProject.load(this._ctx, pProject.getUID(), pUser, null, wf);
+
             await project.reattachWorkspace();
         }else{
             project = pProject;

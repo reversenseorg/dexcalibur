@@ -7,7 +7,7 @@ import {UserSession} from "../user/session/UserSession.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {UserAccount} from "../user/UserAccount.js";
 import Platform from "../platform/Platform.js";
-import {Workflow} from "../Workflow.js";
+import {Workflow, WorkflowUUID} from "../Workflow.js";
 import StatusMessage from "../StatusMessage.js";
 import PlatformManager from "../platform/PlatformManager.js";
 import Downloader from "../Downloader.js";
@@ -15,15 +15,14 @@ import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.j
 import {Settings} from "../Settings.js";
 import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
 import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "../analyzer/ProjectInput.js";
-import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {InputTemplate, NewProjectFlowType} from "../project/ProjectManager.js";
-import {SecurityZone} from "../security/SecurityZone.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {UploadedResource} from "../common/UploadedResource.js";
 import {EngineNode, NodePurpose} from "../core/EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import {NodeState} from "../core/EngineNodeManager.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -142,7 +141,17 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 // init workflow
-                wf = $.context.newWorkflow(projectUID).changeOwner(((req as any).user as UserAccount));
+                wf = (await $.context.newWorkflow(
+                    req.user,
+                    projectUID,
+                    $.context.getNodeUUID(),
+                    false,
+                    "new"
+                ));
+
+                // to track and save changes in workflow
+                $.context.registerWorkflow(wf);
+
 
                 // TODO : retrieve platform from special value of req.body['platform'] : target, from target device, target API version from manifest , ...
 
@@ -693,6 +702,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         ready: true,
                         node: $.context.getNodeUUID()
                     });
+                    return;
                 }
 
                 let candidate = await $.context.getNodeManager()
@@ -722,29 +732,81 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY),
                     {
                         cookie: req.cookies
+                    },
+                    (pNodeBefore)=>{
+                       /* let subscription:Subscription;
+                        subscription = pNodeBefore.nodeState$.subscribe((vChange)=>{
+                            if(subscription!=null){
+                                subscription.unsubscribe();
+                            }
+
+                            if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
+                                //nodeReady = true;
+                                $.sendSuccess(res, {
+                                    ready: true,
+                                    node: vChange.nodeUUID
+                                });
+                            }else{
+                                //subscription.unsubscribe();
+                                //nodeReady = true;
+
+                                let wfuid:Nullable<WorkflowUUID> = null;
+                                if(pNodeBefore.activeOpe!=null){
+                                    wfuid = pNodeBefore.activeOpe.order.wf;
+                                }else if(pNodeBefore.waitingQueue.length>0){
+                                    wfuid = pNodeBefore.waitingQueue[0].order.wf;
+                                }
+
+                                $.sendSuccess(res, {
+                                    ready: false,
+                                    wf: wfuid,
+                                    state: vChange.new,
+                                    node: vChange.nodeUUID
+                                });
+                            }
+                        });*/
                     }
                 );
 
+            /*   let wf:Nullable<WorkflowUUID> = null;
+                if(targetNode.activeOpe!=null){
+                    wf = targetNode.activeOpe.order.wf;
+                }else if(targetNode.waitingQueue.length>0){
+                    wf = targetNode.waitingQueue[0].order.wf;
+                } */
 
-                let nodeReady = false;
 
-                const subscription = targetNode.nodeState$.subscribe((vChange)=>{
-                    if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
-                        subscription.unsubscribe();
-                        nodeReady = true;
-                        $.sendSuccess(res, {
-                            ready: true,
-                            node: vChange.nodeUUID
-                        });
-                    }else{
-                        subscription.unsubscribe();
-                        nodeReady = true;
-                        $.sendSuccess(res, {
-                            ready: false,
-                            node: vChange.nodeUUID
-                        });
-                    }
-                });
+                //if(wf!=null){
+
+                    let sub = setInterval(()=>{
+                        $.context.getNodeManager().getNodeByUUID(targetNode.getUID()).then((vNode)=>{
+                            if(vNode==null){
+                                sub.close();
+                                $.sendSuccess(res, {
+                                    ready: false,
+                                    createErr: true,
+                                    msg: "Cannot retrieve node state",
+                                    node: vNode.getUID()
+                                });
+                            }else if([NodeState.NEW, NodeState.QUEUED, NodeState.REGISTERED, NodeState.BUSY].indexOf(vNode.state)==-1){
+                                sub.close();
+                                $.sendSuccess(res, {
+                                    ready: true,
+                                    wf: null,
+                                    node: vNode.getUID()
+                                });
+                            }
+                        })
+                    },1000)
+                /*}else{
+                    $.sendSuccess(res, {
+                        ready: false,
+                        createErr: true,
+                        msg: "Cannot retrieve workflow",
+                        node: targetNode.getUID()
+                    });
+                }*/
+
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Opening project failed : "+err.message+"\n"+err.stack);
@@ -820,16 +882,28 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                                     }
                                 }else{
                                     console.log("WAITING QUEUE IS NOT EMPTY ",vNode.getUID(),", waiting queue = ",vNode.waitingQueue.length);
-                                    // start next ope
+
+                                    // execute next operation in queue
                                     vNode.operation$.next(null);
                                 }
-
-
                             }
-                        })
+                        });
+
                     }
                 );
 
+                /*
+                $.sendSuccess( res, {
+                    ready: false,
+
+                    node: targetNode.getUID()
+                });
+
+                /*
+                $.sendSuccess( res, {
+                    wfuid: targetNode
+                    node: targetNode.getUID()
+                });
 
                 Logger.info(`[API][PROJECT MGT] Open project from slave : waiting ...`);
                 if(!sent){
@@ -839,7 +913,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         ready: nodeReady,
                         node: targetNode.getUID()
                     });
-                }
+                }*/
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Opening project on slave node failed : "+err.message+"\n"+err.stack);
@@ -1032,7 +1106,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     }));
 
                 $.sendSuccess(pRes, {
-                    ... res.wf.toJsonObject(SecurityZone.PUBLIC),
+                    //... res.wf.toJsonObject(null, SecurityZone.PUBLIC),
+                    wf: res.wf,
                     __puid:  res.puid
                 });
 
@@ -1102,7 +1177,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 $.sendSuccess(pRes, {
-                    ... res.wf.toJsonObject(SecurityZone.PUBLIC),
+                    //... res.wf.toJsonObject(null, SecurityZone.PUBLIC),
+                    wf: res.wf,
                     __puid:  res.puid
                 });
 
@@ -1158,7 +1234,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 ));
 
                 $.sendSuccess(pRes, {
-                    ... res.wf.toJsonObject(SecurityZone.PUBLIC),
+                    //... res.wf.toJsonObject(null, SecurityZone.PUBLIC),
+                    wf: res.wf,
                     __puid:  res.puid
                 });
 

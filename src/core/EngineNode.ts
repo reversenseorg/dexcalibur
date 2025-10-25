@@ -369,7 +369,7 @@ export class EngineNode implements INode {
      * PID of the process associated to this node
      * @private
      */
-    private _pid:number = -1;
+    _pid:number = -1;
 
     /**
      * Event stream of node state changes
@@ -495,8 +495,9 @@ export class EngineNode implements INode {
          * TYPE : HTTP
          * FLOW : MAIN
          *
+         * If pOrder is  null, the next operation is pull from the waiting list (queue)
          */
-        this.operation$.subscribe((pOrder:Order)=>{
+        this.operation$.subscribe((pOrder:Nullable<Order>)=>{
             if(pOrder!=null && pOrder.type!=OperationType.USER_WEB_REQUEST){
                 Logger.info(" NODE MAIN HANDLER TRIGGED : "+pOrder+", is ready : "+this.isReady());
             }
@@ -508,10 +509,15 @@ export class EngineNode implements INode {
                     oldest = pOrder;
                     Logger.info(`[ENGINE NODE][${this.UUID}][1] Execute operation direct : ${oldest.type} ${new Date(oldest.created)}`);
                     this.execOperation2(oldest)
-                        .then((vRes)=>{
+                        .then((vRes:EngineNode)=>{
+                            // BYPASS queue
                             Logger.info(`[ENGINE NODE][${this.UUID}][1] Operation execution done : `);
                             this.opeTerminated.push(oldest);
+                            // execute next operation in queue
                             this.operation$.next(null);
+                            if(vRes!=null){
+                                vRes.setState(NodeState.IDLE, true);
+                            }
                         },(err)=>{
                             Logger.error(`[ENGINE NODE][${this.UUID}][1] Operation execution failed : `,err);
                             console.log(err.stack);
@@ -521,7 +527,7 @@ export class EngineNode implements INode {
                     this.nextWaitingOpe().then((vOrder)=>{
                         if(vOrder==null){
                             Logger.info(`[ENGINE NODE][${this.UUID}][2] Waiting queue is empty. State = ${this.isReady()}`)
-                            if(!this.isReady()){
+                            if(this.isReady()){
                                 this.setState(NodeState.IDLE);
                             }
                             return;
@@ -529,10 +535,15 @@ export class EngineNode implements INode {
 
                         Logger.info(`[ENGINE NODE][${this.UUID}][2] Execute operation from waiting queue : ${vOrder.type} ${new Date(vOrder.created)}`);
                         this.execOperation2(vOrder)
-                            .then((vRes)=>{
+                            .then((vRes:EngineNode)=>{
                                 Logger.success(`[ENGINE NODE][${this.UUID}][2] Operation execution done : `);
                                 //console.log(vRes,vOrder);
                                 this.opeTerminated.push(vOrder);
+
+                                if(vRes!=null){
+                                    vRes.setState(NodeState.IDLE, true);
+                                }
+                                // execute next operation in queue
                                 this.operation$.next(null);
                             },(err)=>{
                                 Logger.error(`[ENGINE NODE][${this.UUID}][2] Operation execution failed : `,err);
@@ -738,13 +749,20 @@ export class EngineNode implements INode {
         this.startedAt = (new Date()).getTime();
 
         // gather current statefulset size
-        const size = await (this._engine as DexcaliburEngine).getNodeManager().countRunningNode();
-        Logger.info("[ENGINE NODE] There are "+size+" nodes running, increasing by one ....");
 
+        let size:number;
         if(process.env.KUBERNETES_PORT!=null){
+            size = await (this._engine as DexcaliburEngine).getNodeManager().countRunningNode();
+            Logger.info("[ENGINE NODE] There are "+size+` nodes running, increasing by one with port  ....`);
             // size = minimal/current statefulset size
             return await K8sHelper.scale(K8ResourceType.STATEFULSET, 'dxcslaves', (size==0?1:size)+1, "default");
         }else{
+
+            const psList = await (this._engine as DexcaliburEngine).getNodeManager().listRunningNodeFromPs();
+            size = psList.length;
+
+            Logger.info("[ENGINE NODE] There are "+size+` nodes running, increasing by one with port ....`);
+            //<pNodeOpts
             return await this.spawn(pCause, false, pNodeOpts);
         }
 
@@ -1373,6 +1391,7 @@ export class EngineNode implements INode {
         Logger.info(`[appendToQueue] [node=${this.UUID}] [suspended=${this._suspendQueue?'true':'false'}] ${pOpeType} : Order = ${pOrder!=null? pOrder.getUID() : "NULL"}`)
 
         if(!this._suspendQueue){
+            // execute next operation in queue
             this.operation$.next(null);
         }
     }
@@ -1663,7 +1682,9 @@ export class EngineNode implements INode {
     async stopped(pEngine:DexcaliburEngine):Promise<void> {
         Logger.info("STOPPING "+this.getUID())
 
-        console.log("RUNNING ", this.getUID(),this.running,this.state);
+        console.log("STOPPING ... ", this.getUID(),this.running,this.state);
+
+        try{throw new Error(`STOPPING ... ${this.getUID()}`)}catch (e){console.error(e.stack);}
 
         /*
         try{
@@ -1785,7 +1806,7 @@ export class EngineNode implements INode {
             this.httpsPort,
         );
 
-        c.init('term-control');
+        c.init(); //'term-control');
         return c;
     }
 
@@ -1842,6 +1863,7 @@ export class EngineNode implements INode {
     }
 
     resumeQueue() {
+        // execute next operation in queue
         this.operation$.next(null);
     }
 

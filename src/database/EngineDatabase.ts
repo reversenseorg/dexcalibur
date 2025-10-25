@@ -38,6 +38,7 @@ import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 import {FileManager} from "../core/FileManager.js";
 import {IFileDatabase} from "../core/commons.js";
 import {ReversenseProduct} from "../billing/ReversenseProduct.js";
+import {Workflow, WorkflowUUID} from "../Workflow.js";
 import DatabaseSettings = Settings.DatabaseSettings;
 
 
@@ -155,7 +156,8 @@ export class EngineDatabase implements IFileDatabase {
         AssuranceModel.TYPE,
         AssuranceReport.TYPE,
         ScanOrder.TYPE,
-        ReversenseProduct.TYPE
+        ReversenseProduct.TYPE,
+        Workflow.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
@@ -664,10 +666,11 @@ export class EngineDatabase implements IFileDatabase {
      * scan order, projects metadata, devices, inspectors info
      *
      * @param {INode} pObject
+     * @param {string[]} pSet
      * @async
      * @method
      */
-    async save(pObject:INode):Promise<INode> {
+    async save(pObject:INode, pSet:string[]|Record<string,any> = null):Promise<INode> {
         let obj:INode;
         let collName:Nullable<string> = null;
         let collType:Nullable<NodeType> = null;
@@ -729,7 +732,12 @@ export class EngineDatabase implements IFileDatabase {
             if(pObject._id!=null){
                 //console.log("MONGO > asyncUpdateEntry > ",pObject);
 
-                if((await coll.asyncUpdateEntry( pObject, {upsert:true, filter: {_id:pObject._id} }))===false){
+                let opts:any = {upsert:true, filter: { _id:pObject._id}};
+                if(pSet!=null){
+                    opts['$set'] = pSet;
+                }
+
+                if((await coll.asyncUpdateEntry( pObject, opts))===false){
                     throw EngineDatabaseException.UPDATE_FAILED_FOR(NodeInternalTypeName[pObject.__], pObject._id );
                 }else{
                     obj = pObject;
@@ -989,5 +997,19 @@ export class EngineDatabase implements IFileDatabase {
 
     getFileManager():FileManager {
         return this._fmgr;
+    }
+
+    /**
+     * To retrieve wa workflow from DB
+     *
+     * @param {WorkflowUUID} pUID
+     */
+    async getWorkflow(pUID: WorkflowUUID):Promise<Workflow> {
+        const r = await this.search({ _uid:pUID },NodeInternalType.WORKFLOW);
+        if(r!=null && r.length>0){
+            return r[0];
+        }else{
+            return null;
+        }
     }
 }

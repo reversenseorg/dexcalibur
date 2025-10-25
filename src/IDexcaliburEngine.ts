@@ -3,7 +3,7 @@ import {IpcMode} from "./DexcaliburServerChildProcess.js";
 import Configuration from "./Configuration.js";
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 import DeviceManager from "./DeviceManager.js";
-import {Workflow} from "./Workflow.js";
+import {Workflow, WorkflowUUID} from "./Workflow.js";
 import InspectorManager from "./InspectorManager.js";
 import PlatformManager from "./platform/PlatformManager.js";
 import WebServer from "./WebServer.js";
@@ -16,6 +16,7 @@ import {UserAccount} from "./user/UserAccount.js";
 import {EngineDatabase} from "./database/EngineDatabase.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
+import {EngineNodeUUID} from "./core/EngineNode.js";
 
 export interface IDexcaliburEngine {
     closeProject( pUser:UserAccount, pProject:DexcaliburProject):boolean;
@@ -41,9 +42,12 @@ export interface IDexcaliburEngine {
     // ( pUser:UserAccount, pUID:string):Promise<DexcaliburProject>;
     newProject( pUID:DexcaliburProjectUUID, pInputs:ProjectInput[], pDevice:any):Promise<DexcaliburProject>;
     getLocalFridaVersion():string;
-    newWorkflow(pName:string):Workflow;
-    getWorkflow(pUID:string, pExternal:boolean):Workflow;
-    onNewWorkflow( pUID:string, pCallback:any, pExternal:boolean):void;
+    newWorkflow(pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
+                pNode:Nullable<EngineNodeUUID>,
+                pStart:boolean, pName:string):Promise<Workflow>;
+
+    getWorkflow(pUID:WorkflowUUID):Workflow;
+    onNewWorkflow( pUID:WorkflowUUID, pCallback:any):void;
     listProjectsOf( pUser:UserAccount):Promise<Record<string,DexcaliburProject>>;
 
 }

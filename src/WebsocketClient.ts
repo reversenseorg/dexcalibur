@@ -49,7 +49,7 @@ export class WebsocketClient {
     /**
      *
      */
-    init(pProtocol:string):Nullable<WebSocketClient>{
+    init(pProtocol:string = ""):Nullable<WebSocketClient>{
 
         this._wsResponse$ = new Subject();
         this._wsRequest$ = new Subject();
@@ -83,6 +83,7 @@ export class WebsocketClient {
 
             this._wsRequest$.subscribe((vMsg)=>{
                 if(this._wsReady && this._wsConn!=null){
+                    Logger.info(`[node=${this._node}][WEBSOCKET] Forwarding request to client connection ... ${this._protocol}`);
                     this._wsConn.sendUTF(vMsg);
                 }else if(this._wsClosed == true){
                     Logger.info(`[node=${this._node}][WEBSOCKET] Connection is close. Re-open ... ${this._protocol}`);
@@ -106,6 +107,10 @@ export class WebsocketClient {
 
     getWsInput():Subject<any> {
         return this._wsRequest$;
+    }
+
+    sendMsg(pMsg:any):void {
+        this._wsRequest$.next(pMsg);
     }
 
     getWsOutput():Subject<any> {

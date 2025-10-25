@@ -860,7 +860,7 @@ export default class Util {
     /**
      * To list running processes
      */
-    static psList(pOptions = { command:null }):any {
+    static psList(pOptions = { command:null }):{ command:string, pid: number }[] {
 
         let proc:any = Util.execSync("ps -axo pid,args").split("\n"); //.filter(x=>x.indexOf("slave-node")>-1);
         proc.shift();

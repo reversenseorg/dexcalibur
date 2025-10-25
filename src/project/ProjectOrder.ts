@@ -1,7 +1,7 @@
 import {NewProjectWorkflowOptions} from "./ProjectManager.js";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {ACTION_DATE, ActionDates} from "../common/ActionDates.js";
-import {Workflow} from "../Workflow.js";
+import {Workflow, WorkflowUUID} from "../Workflow.js";
 import {ProjectState} from "../ProjectState.js";
 import {
     DbDataType,
@@ -52,7 +52,7 @@ export interface ProjectOrderOptions {
     tags?:number[];
     dates?: ActionDates;
     stateDates?: Record<string,number>;
-    wf?:Workflow;
+    wf?:WorkflowUUID;
 
     inputs?:ProjectInput[];
 }
@@ -107,25 +107,7 @@ export class ProjectOrder implements INode {
             (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
             (new NodeProperty("state")).type(DbDataType.STRING).def(ProjectState.NONE),
             (new NodeProperty("stateDates")).type(DbDataType.STRING).def({ }),
-            (new NodeProperty("wf"))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{
-                    if(x.p!=null){
-                        return (x.p as Workflow).toJsonObject(SecurityZone.PRIVATE);
-                    }else{
-                        return null;
-                    }
-                })
-                .wakeUp( (x:NodePropertyState)=>{
-                    if(x.p!=null){
-                        const wf =  new Workflow(x.p);
-                        wf.setParent(x.self);
-                        return wf;
-                    }else{
-                        return null;
-                    }
-                })
-                .def(null),
+            (new NodeProperty("wf")).type(DbDataType.STRING).def(null),
             (new NodeProperty("inputs"))
                 .type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState)=>{
@@ -199,7 +181,7 @@ export class ProjectOrder implements INode {
      */
     stateDates:Record<string,number> = {};
 
-    wf:Nullable<Workflow> = null;
+    wf:Nullable<WorkflowUUID> = null;
 
     tags:TagUUID[] = [];
 
@@ -278,7 +260,7 @@ export class ProjectOrder implements INode {
         return this.state;
     }
 
-    getWorflow():Workflow {
+    getWorkflow():WorkflowUUID {
         return this.wf;
     }
 
@@ -336,7 +318,7 @@ export class ProjectOrder implements INode {
             tags: this.tags,
             dates: this.dates,
             stateDates: this.stateDates,
-            wf: (this.wf!=null? this.wf.toJsonObject(pZone):null),
+            wf: this.wf, //this.wf.toJsonObject(null,pZone):null),
             inputs:[]
         }
 

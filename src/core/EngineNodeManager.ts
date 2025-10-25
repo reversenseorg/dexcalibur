@@ -1,4 +1,5 @@
 import * as _fs_ from "fs";
+import * as _ps_ from "process";
 
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
@@ -27,6 +28,7 @@ import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {ProjectOrder} from "../project/ProjectOrder.js";
 import * as console from "node:console";
 import Util from "../Utils.js";
+import * as process from "node:process";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -326,6 +328,7 @@ export class EngineNodeManager {
         return (this.portCounter++);
     }
 
+
     async getNextPorts():Promise<{ http:number, https:number }> {
         // gather running node
         const nodes = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()) as MongodbDbCollection)
@@ -342,9 +345,23 @@ export class EngineNodeManager {
             portSlices.push(x.httpPort,x.httpsPort);
         });
 
-        let start = this.portRange[0];
-        while(portSlices.indexOf(start)>-1 && portSlices.indexOf(start+1)>-1){
+
+        let start:number = this.portRange[0];
+        if(process.env.KUBERNETES_PORT==null){
+            let psList = await this.listRunningNodeFromPs();
+            psList = psList.sort((p1,p2)=>{
+                return (p1.httpPort>p2.httpPort ? -1 : 1);
+            });
+            console.log(psList);
+            if(psList.length>0){
+                start = psList[0].httpPort
+            }
             start+=2;
+        }else{
+            start = this.portRange[0];
+            while(portSlices.indexOf(start)>-1 && portSlices.indexOf(start+1)>-1){
+                start+=2;
+            }
         }
 
         return {
@@ -969,6 +986,7 @@ export class EngineNodeManager {
 
         if(vEvent.new==NodeState.IDLE || vEvent.new==NodeState.REGISTERED){
 
+            // execute next operation in queue
             node.operation$.next(null);
         }
     }
@@ -1112,9 +1130,9 @@ export class EngineNodeManager {
                 up = await pNode.getHcStatus(pEngine);
             }
 
-            Logger.debug("RUNNING | "+pNode.getUID()+" | "+up+" | "+pNode.state);
             if(up===false){
                 if([NodeState.QUEUED,NodeState.NEW].indexOf(pNode.state)==-1){
+                    Logger.info("RUNNING | "+pNode.getUID()+" | "+up+" | "+pNode.state);
                     await pNode.stopped(this.engine);
                     if(pRemove){
                         await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
@@ -1134,12 +1152,13 @@ export class EngineNodeManager {
                     || (pNode.createdAt>-1 && createdDelay > 24)
                     || (pNode.startedAt>-1 && startDelay > 24)
                 ) {
+                    Logger.info("RUNNING | "+pNode.getUID()+" | "+up+" | "+pNode.state);
                     // mark node as stopped and flush data for node running for more than 24 hours
                     await pNode.stopped(this.engine);
-                    if(pRemove==true){
+                    //if(pRemove==true){
                         await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                             .asyncRemoveEntry(pNode);
-                    }
+                    //}
 
                     return false;
                 }
@@ -1148,6 +1167,7 @@ export class EngineNodeManager {
         }else{
             Logger.debug("NOT RUNNING | "+pNode.getUID()+" | none |  "+pNode.state+" | "+pRemove);
             if(pNode.getUID()!=this.uuid  && pRemove==true){
+                Logger.info("NOT RUNNING | "+pNode.getUID()+" | none |  "+pNode.state+" | "+pRemove);
                     await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                         .asyncRemoveEntry(pNode);
             }
@@ -1162,12 +1182,21 @@ export class EngineNodeManager {
     /**
      * To refresh the state of all nodes, update pools
      */
-    async refreshPool(pRemove = true):Promise<EngineNodeInfo[]> {
+    async refreshPool(pRemove = false):Promise<EngineNodeInfo[]> {
 
         let nodes:EngineNode[] = await (this.engine.getEngineDB().getCollectionOf(EngineNode.TYPE.getType()))
                                     .getAsList();
 
+
+        let localPs:any[] = [];
+        if(process.env.KUBERNETES_PORT==null){
+            localPs = await this.listRunningNodeFromPs();
+        }
+
         let info:EngineNodeInfo[] = [];
+        let waiting:EngineNodeInfo[] = [];
+        let runningList:any[] = [];
+
         // if the node is not registered, "this.uuid" is always equal to "local:dxc"
         let up = false;
         for(let i=0; i<nodes.length; i++){
@@ -1181,10 +1210,37 @@ export class EngineNodeManager {
                     info.push({
                         node: nodes[i],
                         idleTime: -1 // (nodes[i].state===NodeState.IDLE ? )
-                    })
+                    });
+                    runningList.push(nodes[i]);
+                }else{
+                    if(nodes[i].state===NodeState.QUEUED && (nodes[i].startedAt==-1 || (nodes[i].createdAt-Util.now())<1200*1000)){
+                        // 15 min
+                        runningList.push(nodes[i]);
+                    }
                 }
             }
         }
+
+        if(localPs.length > runningList.length){
+            // re-synch
+            let isSync:any;
+            for(let i=0; i<localPs.length; i++){
+                isSync = runningList.find((vNode)=>{
+                    return (vNode._pid===localPs[i].pid);
+                });
+
+                if(isSync==null){
+                    // running node is not up according to DB
+                    // kill process
+                    if(process.env.KUBERNETES_PORT==null){
+                        Logger.info(`Kill excessive, not tracked/zombie, node running under PID ${localPs[i].pid}`);
+                        _ps_.kill(localPs[i].pid, 'SIGHUP');
+                    }
+                }
+            }
+        }
+
+
 
         return info;
     }
@@ -1379,6 +1435,31 @@ export class EngineNodeManager {
         nextNode.setState(NodeState.REGISTERED);
 
         return nextNode.getUID();
+    }
+
+    /**
+     * To count running node
+     */
+    async listRunningNodeFromPs():Promise<{ pid:number, command:string, httpPort:number, wsPort:number}[]> {
+
+        // refresh
+        if(process.env.KUBERNETES_PORT!=null){
+            return [];
+        }else{
+            let slaves:any = Util.psList({ command:/slave-node/ });
+            slaves = slaves.map((s:any) => {
+                let ports = /--port=([0-9]+) /s.exec(s.command);
+                if(ports!=null){
+                    s.httpPort = parseInt(ports[1],10);
+                }
+                ports = /--port-ws=([0-9]+) /s.exec(s.command);
+                if(ports!=null){
+                    s.wsPort = parseInt(ports[1],10);
+                }
+                return s;
+            }) as any;
+            return slaves;
+        }
     }
 
     /**

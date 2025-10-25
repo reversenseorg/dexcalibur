@@ -1592,7 +1592,10 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                         }
 
                         // create a workflow in engine
-                        const wf = dxcInstance.newWorkflow(projectArgs.mPkg).changeOwner(usrSess.getUserAccount());
+                        const wf = await dxcInstance.newWorkflow(
+                            usrSess.getUserAccount(),
+                            projectArgs.mPkg,
+                            null, true, 'cli-scan');
 
                         const dxcProject = await dxcInstance.openProject( usrSess.getUserAccount(), projectArgs.mPkg);
 
@@ -1881,7 +1884,10 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                                 console.log(acc);
                             }
 
-                            wf = dxcInstance.newWorkflow(projectArgs.projUID).changeOwner(acc);
+                            const wf = await dxcInstance.newWorkflow(
+                                acc,
+                                projectArgs.projUID,
+                                null, true, 'cli-proj');
 
                             let filetype = "apk";
                             if(projectArgs.projFType){

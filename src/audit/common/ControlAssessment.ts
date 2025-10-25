@@ -106,7 +106,11 @@ export enum MetadataTopic {
     CTRL='ctrl',
     PREFERED_ABI='pabi',
     FILE_HEADER='file.header',
-    FILE_DATA='file.data'
+    FILE_DATA='file.data',
+    OS='os',
+    CPE_ID="cpeid",
+    CVE_ID="cveid",
+    CWE_ID="cweid",
 }
 
 

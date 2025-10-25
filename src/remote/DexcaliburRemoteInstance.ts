@@ -10,13 +10,14 @@ import {TerminalServer} from "../TerminalServer.js";
 import {External} from "../external/External.js";
 import {UserService} from "../user/UserService.js";
 import WebServer from "../WebServer.js";
-import {Workflow} from "../Workflow.js";
+import {Workflow, WorkflowUUID} from "../Workflow.js";
 import DexcaliburWorkspace from "../DexcaliburWorkspace.js";
 import {IpcMode} from "../DexcaliburServerChildProcess.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {EngineDatabase} from "../database/EngineDatabase.js";
 import {ProjectInput} from "../analyzer/ProjectInput.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
+import {EngineNodeUUID} from "../core/EngineNode.js";
 
 export class DexcaliburRemoteInstance implements IDexcaliburEngine {
 
@@ -96,7 +97,7 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
     }
 
 
-    getWorkflow(pUID: string, pExternal: boolean): Workflow {
+    getWorkflow(pUID: string): Workflow {
         return undefined;
     }
 
@@ -108,11 +109,13 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
         return Promise.resolve(undefined);
     }
 
-    newWorkflow(pName: string): Workflow {
+    newWorkflow(pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
+                pNode:Nullable<EngineNodeUUID> = null,
+                pStart = false, pName:string = ''): Promise<Workflow> {
         return undefined;
     }
 
-    onNewWorkflow(pUID: string, pCallback: any, pExternal: boolean): void {
+    onNewWorkflow(pUID: WorkflowUUID, pCallback: any): void {
     }
 
     openProject(pUserAccount:UserAccount, pUID: string): Promise<DexcaliburProject> {

@@ -856,7 +856,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
    * @param pOperations
    */
   static stringify( pOperations:Operation[], pNodeType:NodeInternalType|string=null):string{
-    let s = "";
+    let s = "", patt:any;
 
     if(pOperations==null || !Array.isArray(pOperations)) return "";
 
@@ -885,10 +885,36 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     pOperations.map((x:Operation,i:number)=>{
       switch (x.type){
         case OperationType.SEARCH:
-          let o = ", {";
+          let o = "";
           const sArgs:SearchOperationArgs = x.args as SearchOperationArgs;
 
-          if(sArgs.pattern !=null && sArgs.pattern.length>0){
+
+          if(sArgs.pattern !=null){
+
+            patt = (!Array.isArray(sArgs.pattern) ? [sArgs.pattern] : sArgs.pattern);
+
+            o = "";
+            patt.map( (vP,vI) => {
+
+              if(vP.opts!=null){
+                if(vP.opts.query_string) o += ` query_string: ${JSON.stringify(vP.opts.query_string)},`;
+                if(vP.opts.not) o += ` not: ${JSON.stringify(vP.opts.not)},`;
+                if(vP.opts.regexp) o += ` regexp: "${vP.opts.regexp}",`;
+                if(vP.opts.range) o += ` range: [${JSON.stringify(vP.opts.range)}],`;
+                if(vP.opts.copyTo) o += ` copyTo: ${JSON.stringify(vP.opts.copyTo)},`;
+                if(vP.opts.strict) o += ` strict: ${JSON.stringify(vP.opts.strict)},`;
+              }
+
+              if(vI>0) o+=",";
+
+              if(o.length>3){
+                o +=  `{ ${vP.raw}, opts:{ ${o.substring(0,o.length-1)} }}`;
+              } else{
+                o += `{${vP.raw} }`;
+              }
+            })
+
+            /*
             if(sArgs.pattern[0].opts!=null){
               if(sArgs.pattern[0].opts.query_string) o += ` query_string: ${JSON.stringify(sArgs.pattern[0].opts.query_string)},`;
               if(sArgs.pattern[0].opts.not) o += ` not: ${JSON.stringify(sArgs.pattern[0].opts.not)},`;
@@ -896,18 +922,14 @@ export class MerlinSearchRequest implements MerlinPrimitive{
               if(sArgs.pattern[0].opts.range) o += ` range: [${JSON.stringify(sArgs.pattern[0].opts.range)}],`;
               if(sArgs.pattern[0].opts.copyTo) o += ` copyTo: ${JSON.stringify(sArgs.pattern[0].opts.copyTo)},`;
               if(sArgs.pattern[0].opts.strict) o += ` strict: ${JSON.stringify(sArgs.pattern[0].opts.strict)},`;
-            }
+            }*/
 
-            if(o.length>3){
-              o =  o.substring(0,o.length-1)+ "}";
-            } else{
-              o= "";
+            if(nodeType==null){
+              //s += `.search(" ${o} ${sArgs.pattern[0].raw}"${o})`;
+              s += `.search([ ${o} ])`;
             }
-
-            if(nodeType==null)
-              s += `.search("${sArgs.pattern[0].raw}"${o})`;
             else
-              s += `.${nodeType}("${sArgs.pattern[0].raw}"${o})`;
+              s += `.${nodeType}([ ${o} ]) `;
           }else{
             o = "";
             s += `.search([])`;
@@ -1315,7 +1337,8 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       _type = this._type;
     }
 
-      let o:any = {
+    let oper:any = {};
+    let o:any = {
         TYPE: this.TYPE,
         _live: this._live,
         _type: _type,
@@ -1337,11 +1360,12 @@ export class MerlinSearchRequest implements MerlinPrimitive{
           break;*/
         case OperationType.SEARCH:
         case OperationType.FILTER:
-          o._oper[vIdx] = vOpe;
-          o._oper[vIdx].args.pattern = [];
+          oper = JSON.parse(JSON.stringify(vOpe));
+          oper.pattern = [];
           (vOpe.args as SearchOperationArgs).pattern.map( cond => {
-            o._oper[vIdx].args.pattern.push( (cond as SearchRequestCondition).toJsonObject() )
+            oper.pattern.push( (cond as SearchRequestCondition).toJsonObject() )
           });
+          o._oper[vIdx] = oper;
           break;
         default:
           o._oper[vIdx] = vOpe;

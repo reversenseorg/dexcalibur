@@ -1,17 +1,23 @@
 import StatusMessage from "./StatusMessage.js";
-import {User} from "./User.js";
-
 
 import * as Log from "./Logger.js";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
-import {UserAccount} from "./user/UserAccount.js";
+import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
 import {Auditable} from "./Auditable.js";
 import {SecurityZone} from "./security/SecurityZone.js";
-import {Access} from "./user/acl/Access.js";
-import AccessControl from "./user/acl/AccessControl.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
-import {INode} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {
+    DbDataType,
+    DbKeyType,
+    INode,
+    NodeProperty,
+    NodeType,
+    SerializeOptions, TagUUID,
+    ValidationRule
+} from "@dexcalibur/dexcalibur-orm";
 import {Subject, Subscription} from "rxjs";
+import {DexcaliburProjectUUID} from "./DexcaliburProject.js";
+import {EngineNodeUUID} from "./core/EngineNode.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -24,12 +30,31 @@ export interface WorkflowFollower {
 
 export interface WorkflowOptions {
     uid?: string;
+    _uid?: WorkflowUUID;
+    user?: UserAccountUUID;
+    project?: DexcaliburProjectUUID;
+    node?: EngineNodeUUID;
+    purpose?:string;
+
     _parent?: Nullable<INode>;
     followers?:WorkflowFollower[];
     msg?:StatusMessage[];
     activeStep?: number;
 }
 
+
+export interface WorkflowChange {
+    type:string;
+    value:any;
+}
+
+
+export interface WorkflowUpdate {
+    wf: Workflow,
+    changes: Record<string, WorkflowChange>
+}
+
+export type WorkflowUUID = string;
 
 
 /**
@@ -40,8 +65,34 @@ export interface WorkflowOptions {
  *
  * @class
  */
-export class Workflow extends Auditable {
+export class Workflow extends Auditable implements INode{
 
+    static TYPE:NodeType = (new NodeType( "workflow", NodeInternalType.WORKFLOW, [
+        (new NodeProperty("_uid"))
+            .type(DbDataType.STRING)
+            .key(DbKeyType.PRIMARY)
+            .addValidationRule(ValidationRule.uuid()),
+
+        (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
+        // cdx
+        (new NodeProperty("msgs")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("activeStep")).type(DbDataType.NUMERIC).def(0),
+        (new NodeProperty("node")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("user")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("project")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("purpose")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("started")).type(DbDataType.NUMERIC).def(0),
+        (new NodeProperty("stoped")).type(DbDataType.NUMERIC).def(-1),
+
+        (new NodeProperty("_d")).type(DbDataType.NUMERIC).def(0),
+        (new NodeProperty("_t")).type(DbDataType.NUMERIC).def(0),
+        (new NodeProperty("_m")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("_b")).type(DbDataType.NUMERIC).def(0),
+    ])).dataSource("ENGINE_DB");
+
+    __ = NodeInternalType.WORKFLOW;
+
+    _uid:WorkflowUUID;
 
     /**
      * Workflow uid
@@ -50,7 +101,19 @@ export class Workflow extends Auditable {
      */
     uid:string = "";
 
+    user:Nullable<UserAccountUUID> = null;
+
     msg$:Subject<StatusMessage>;
+
+    update$:Subject<WorkflowUpdate>;
+
+    node:Nullable<EngineNodeUUID> = null;
+
+    project: Nullable<DexcaliburProjectUUID> = null;
+
+    started: number = 0;
+
+    stoped: number = 0;
 
     /**
      * Hold status
@@ -94,11 +157,18 @@ export class Workflow extends Auditable {
 
     private _followSubs:Nullable<Subscription> = null;
 
+    tags:TagUUID[] = [];
+
+    purpose:string = "";
+
+    private _subscriptions: Record<string, Subscription> = {};
+
     constructor( pConfig:WorkflowOptions = {}) {
         super(null);
 
         for(let i in pConfig) this[i] = pConfig[i];
     }
+
 
     /**
      *
@@ -136,7 +206,7 @@ export class Workflow extends Auditable {
     }
 
     getUID():string {
-        return this.uid;
+        return this._uid;
     }
 
     pushStatus(pMsg:StatusMessage):void {
@@ -146,6 +216,19 @@ export class Workflow extends Auditable {
         this._t = pMsg.progress;
 
         this.msg$.next(pMsg.addProgress(this.activeStep));
+
+        if(this.update$!=null){
+            this.update$.next({
+                wf:this,
+                changes: {
+                    status: {
+                        type: 'new',
+                        value: pMsg
+                    }
+                }
+            });
+        }
+
         this.sendStatusToFollowers();
     }
 
@@ -205,8 +288,9 @@ export class Workflow extends Auditable {
      * @return {Workflow} This instance
      * @method
      */
-    changeOwner( pAccount:UserAccount):Workflow {
-        this.setAccessAttribute(GlobalAccessControl.attr.OWNER, [pAccount.getUID()]);
+    changeOwner( pAccount:UserAccountUUID):Workflow {
+        this.user = pAccount;
+        this.setAccessAttribute(GlobalAccessControl.attr.OWNER, [pAccount]);
         return this;
     }
 
@@ -270,6 +354,8 @@ export class Workflow extends Auditable {
     }
 
     start():void {
+        this.started = (new Date()).getTime();
+
         this.msg$ = new Subject<StatusMessage>();
         this._followSubs =  this.msg$.subscribe(()=>{
             this.sendStatusToFollowers();
@@ -307,13 +393,18 @@ export class Workflow extends Auditable {
     }
 
 
-    toJsonObject(pSecurityZone:SecurityZone):any {
+    toJsonObject(pOptions:SerializeOptions = {}, pSecurityZone:SecurityZone = SecurityZone.PUBLIC):any {
         let o={
-            uid: this.uid,
-            _parent: null,
+            _uid: this._uid,
+            project: this.project,
+            node: this.node,
+            user: this.user,
             msg: this.msgs,
+            activeStep: this.activeStep,
+
+            _parent: null,
             followers:[],
-            activeStep: this.activeStep
+            uid: this.uid
         };
 
         this.followers.map(x => {
@@ -326,4 +417,29 @@ export class Workflow extends Auditable {
 
         return o;
     }
+
+    /**
+     * To subscribe to update$
+     *
+     * @param param
+     * @method
+     */
+    subscribeUpdate(pName:string, pListener: ((vWfUpdate:WorkflowUpdate) => void)) {
+        if(this.update$==null){
+            this.update$ = new Subject<WorkflowUpdate>();
+        }
+        this._subscriptions[pName] = this.update$.subscribe(pListener);
+    }
+
+
+    /**
+     *
+     * @param pName
+     * @method
+     */
+    unsubscribeUpdate(pName:string) {
+        if(this._subscriptions[pName]!=null)
+            this._subscriptions[pName].unsubscribe();
+    }
 }
+Workflow.TYPE.builder(Workflow);

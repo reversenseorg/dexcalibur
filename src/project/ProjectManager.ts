@@ -1,5 +1,5 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {UserAccount} from "../user/UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
@@ -8,16 +8,16 @@ import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessCont
 import DeviceManager from "../DeviceManager.js";
 import {Device, DeviceUUID} from "../Device.js";
 import Platform from "../platform/Platform.js";
-import {Workflow} from "../Workflow.js";
+import {Workflow, WorkflowUUID} from "../Workflow.js";
 import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "../analyzer/ProjectInput.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import StatusMessage from "../StatusMessage.js";
 import PlatformManager from "../platform/PlatformManager.js";
 import Downloader from "../Downloader.js";
 import {AnalyzerConfiguration} from "../AnalyzerConfiguration.js";
-import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import * as Log from "../Logger.js";
-import {EngineNode, NodePurpose, OperationType} from "../core/EngineNode.js";
+import {EngineNode, EngineNodeUUID, NodePurpose, OperationType} from "../core/EngineNode.js";
 import {ProjectOrder, ProjectOrderUUID} from "./ProjectOrder.js";
 import {ProjectState} from "../ProjectState.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
@@ -33,6 +33,7 @@ import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 import * as _fs_ from "node:fs";
 import {IosPackageAnalyzer} from "../ios/analyzer/IosPackageAnalyzer.js";
+import {Page} from "../core/commons.js";
 
 const API_NAME = "PROJ_MGT";
 
@@ -109,7 +110,7 @@ export class ProjectManager {
      *
      * @private
      */
-    private async _listAllProjects():Promise<DexcaliburProject[]> {
+    private async _listAllProjects(pPage:Nullable<Page>=null):Promise<DexcaliburProject[]> {
         const projects = await this._ctx.getEngineDB()
             .getCollectionOf(DexcaliburProject.TYPE.getType())
             .getAsList();
@@ -175,7 +176,7 @@ export class ProjectManager {
      * @returns {Promise<DexcaliburProject[]>} List of projects
      * @method
      */
-    async listProjectByUser( pAccount:UserAccount, pPurpose:NodePurpose = NodePurpose.ANY):Promise<DexcaliburProject[]> {
+    async listProjectByUser( pAccount:UserAccount, pPurpose:NodePurpose = NodePurpose.ANY, pPage:Nullable<Page>=null):Promise<DexcaliburProject[]> {
 
         let projects:DexcaliburProject[] = [];
         try{
@@ -184,7 +185,7 @@ export class ProjectManager {
                 pAccount
             );
 
-            projects = await this._listAllProjects();
+            projects = await this._listAllProjects(pPage);
         }catch (e){
             AccessControl.isAuthorized(
                 AccessControl.access.PROJ_META_READ,
@@ -197,7 +198,7 @@ export class ProjectManager {
 
             for(let oid in mss){
                 org = await this._ctx.getOrgManager().getOrganization(pAccount, oid);
-                projects = projects.concat( await this.listProjectByOrgUnit(pAccount, org));
+                projects = projects.concat( await this.listProjectByOrgUnit(pAccount, org, pPage));
             }
         }
 
@@ -218,7 +219,7 @@ export class ProjectManager {
      * @param pAccount
      * @param pOrg
      */
-    async listProjectByOrgUnit( pAccount:UserAccount, pOrg:OrganizationUnit):Promise<DexcaliburProject[]> {
+    async listProjectByOrgUnit( pAccount:UserAccount, pOrg:OrganizationUnit, pPage:Nullable<Page>=null):Promise<DexcaliburProject[]> {
 
         let projUIDs:DexcaliburProjectUUID[] = [];
 
@@ -244,10 +245,13 @@ export class ProjectManager {
      * @param pAccount
      * @param pApp
      */
-    async listProjectByAppUnit( pAccount:UserAccount, pApp:ApplicationUnit):Promise<DexcaliburProject[]> {
+    async listProjectByAppUnit( pAccount:UserAccount, pApp:ApplicationUnit, pPage:Nullable<Page>=null):Promise<DexcaliburProject[]> {
 
        const projects = await (this._ctx.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()))
-            .search({ filter: { uid: { $in: pApp.getReleases() } } }, {raw:true});
+            .search({ filter: { uid: { $in: pApp.getReleases() } } }, {
+                raw:true,
+                page: pPage
+            });
 
         return projects.map(x => { x.setEngine(this._ctx);  return x; });
     }
@@ -261,7 +265,7 @@ export class ProjectManager {
      */
     async newProjectOrder(pAccount:UserAccount, pOrg:OrganizationUnit,
                           pAppUnit:ApplicationUnit, pOptions:NewProjectWorkflowOptions,
-                          pExtraOwnerOpts:any = null):Promise<{ puid:DexcaliburProjectUUID, wf:Workflow}> {
+                          pExtraOwnerOpts:any = null):Promise<{ puid:DexcaliburProjectUUID, wf:WorkflowUUID}> {
 
         AccessControl.isAuthorized(
             AccessControl.access.ORG_AU_NEW_PROJ,
@@ -329,9 +333,14 @@ export class ProjectManager {
         }
 
         // create workflow
-        const wf = new Workflow({
-            uid: pOrg.getUID()+":exec"
-        });
+
+        const wf = await this._ctx.getProjectManager().createWorkflow(
+            pAccount.getUID(),
+            (node!=null? node.getUID() : null),
+            proj.getUID(),
+            "exec",
+            true
+        );
 
         // build project order
         let newPrjOrder= new ProjectOrder({
@@ -348,7 +357,7 @@ export class ProjectManager {
                 projectUID: proj.getUID(),
                 options: pOptions
             },
-            wf: wf
+            wf: wf.getUID()
         });
 
         newPrjOrder.addOption('extra', {
@@ -357,7 +366,6 @@ export class ProjectManager {
         });
 
         newPrjOrder = (await this._ctx.getEngineDB().save(newPrjOrder) as ProjectOrder);
-        wf.start();
 
         // start a new node
         if(node == null){
@@ -381,7 +389,7 @@ export class ProjectManager {
 
         return {
             puid: newPrjOrder.settings.projectUID,
-            wf: newPrjOrder.getWorflow()
+            wf: newPrjOrder.getWorkflow()
         };
     }
 
@@ -452,7 +460,11 @@ export class ProjectManager {
         try{
 
             // retrieve workflow from order (WF has been created on master node)
-            workflow = pOrder.getWorflow();
+
+
+            workflow = await this.getWorkflow(pOrder.getWorkflow())
+
+
             if(!workflow.isStarted()){
                 workflow.start();
             }
@@ -651,6 +663,7 @@ export class ProjectManager {
             this._ctx.getEngineDB().updateOrder(pOrder, ['inputs']);
 
 
+            const wf = await this.getWorkflow(pOrder.getWorkflow());
 
             // start to init the project
             project = await this._ctx.newProject(
@@ -661,7 +674,7 @@ export class ProjectManager {
                 platform,
                 anal,
                 app,
-                pOrder.getWorflow()//.getUID()
+                wf//.getUID()
             );
 
             if(orderOpts.projectName!=null){
@@ -957,8 +970,6 @@ export class ProjectManager {
             (pOnBefore)(currNode);
         }
 
-        // create a new workflow for this opening
-        this._ctx.newWorkflow(pProjectUID).changeOwner(pUser);
 
         // if project not loaded, open it locally
         project = await this._openLocally(pUser, pProjectUID, currNode);
@@ -1093,7 +1104,14 @@ export class ProjectManager {
 
             this._waitingPreload[pUID] = true;
             
-            const wf:Workflow = this._ctx.newWorkflow( "preload:"+pUID, true);
+            const wf:Workflow = await this._ctx.newWorkflow(
+                pUser,
+                pUID,
+                this._ctx.getNodeUUID(),
+                true,
+                "preload"
+            );
+
             const prj =  await DexcaliburProject.load(this._ctx, pUID, pUser, null,wf);
             this._preload[pUID] = prj;
             return prj;
@@ -1120,6 +1138,22 @@ export class ProjectManager {
         let project:DexcaliburProject = null, success:any = false;
         let currNode:EngineNode;
 
+        // retrieve workflow associated to project + node
+        // TODO : retrieve WF from EngineNode (stateless) instead of DexcaliburEngine (stateful)
+        // try to retrieve workflow of create new one
+        let wf:Nullable<Workflow> = await this.retrieveWorkflow(pUID, pNode);
+
+        if(wf==null){
+            // create a new workflow for this opening
+            wf = (await this._ctx.newWorkflow(
+                pUserAccount,
+                pUID,
+                (pNode!=null ? pNode.getUID() : null),
+                true,
+                'de'));
+
+        }
+
         //const currNode = this._ctx.getNodeManager().getNodeByUUID(this._ctx.getNodeUUID());
         if(this._ctx.getEngineMode()==DexcaliburEngineMode.SLAVE){
             currNode = pNode;
@@ -1133,9 +1167,6 @@ export class ProjectManager {
         }
 
 
-        // retrieve workflow associated to project
-        // TODO : retrieve WF from EngineNode (stateless) instead of DexcaliburEngine (stateful)
-        const wf:Workflow = this._ctx.getWorkflow( pUID);
 
         Logger.info("ENGINE : openProject : workflow : "+(wf!=null? wf.getUID() : '<null>'));
 
@@ -1148,7 +1179,7 @@ export class ProjectManager {
 
             wf.pushStatus(new StatusMessage(7, "Loading project data"));
 
-            project = await DexcaliburProject.load(this._ctx, pUID, pUserAccount, null);
+            project = await DexcaliburProject.load(this._ctx, pUID, pUserAccount, null, wf);
 
             Logger.success("[ENGINE] [OPEN PROJECT] Project loaded");
 
@@ -1383,5 +1414,108 @@ export class ProjectManager {
 
         return await this._ctx.getEngineDB().deleteProjectByUID(pProjectUUID);
 
+    }
+
+    async createWorkflow(pUser:UserAccountUUID,
+                            pNode:EngineNodeUUID,
+                            pProjectUUID:DexcaliburProjectUUID,
+                         pPurpose:string, pStart = false ):Promise<Workflow> {
+
+       let wf = new Workflow({
+            _uid: await this._ctx.getEngineDB().generateFreeUuid(
+               Workflow.TYPE.getType(),
+               '_uid'
+            ),
+            node: pNode,
+            project: pProjectUUID,
+            purpose: pPurpose
+        });
+
+
+       if(pStart){
+           wf.start();
+       }
+
+       if(pUser!=null){
+           wf.changeOwner(pUser);
+       }
+
+       wf = await this._ctx.getEngineDB().save(wf) as Workflow;
+
+       return wf;
+
+    }
+
+    /**
+     * To retrieve a workflow from current instance
+     * or from DB.
+     *
+     * If retrieved from DB, rehydrate it
+     *
+     * @param pUID
+     * @param pNode
+     * @private
+     */
+    private async retrieveWorkflow(pUID: DexcaliburProjectUUID, pNode: Nullable<EngineNode>) {
+
+        let wf:Nullable<Workflow> = null;
+        try{
+            // search exising workflow in instance
+            wf = this._ctx.getWorkflow( pUID);
+
+            if(wf==null){
+                const wfs = await this._ctx.getEngineDB().search({
+                    project: pUID,
+                    node: pNode
+                },NodeInternalType.WORKFLOW);
+
+                if(wfs!=null && wfs.length>0){
+                    wf = wfs[0];
+                    this._ctx.registerWorkflow(wf);
+                }else{
+                    return null;
+                }
+            }
+
+        }catch(e){
+            console.log("CANNOT RETRIEVE WF > ",e);
+            return null;
+        }finally {
+            return wf;
+        }
+    }
+
+    /**
+     * To retrieve a workflow from current instance
+     * or from DB.
+     *
+     * If retrieved from DB, rehydrate it
+     *
+     * @param pUID
+     * @param pNode
+     * @private
+     */
+    private async getWorkflow(pUID: WorkflowUUID):Promise<Workflow> {
+
+        let wf:Nullable<Workflow> = null;
+        try{
+            // search exising workflow in instance
+            wf = this._ctx.getWorkflow( pUID);
+
+            if(wf==null){
+                const wf = await this._ctx.getEngineDB().getWorkflow(pUID);
+                if(wf){
+                    this._ctx.registerWorkflow(wf);
+                    return wf;
+                }else{
+                    return null;
+                }
+            }
+
+            return wf;
+        }catch(e){
+            console.log("CANNOT RETRIEVE WF > ",e);
+            return null;
+        }
     }
 }

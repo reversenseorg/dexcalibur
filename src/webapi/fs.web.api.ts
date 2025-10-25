@@ -5,7 +5,7 @@ import ModelFile from "../ModelFile.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import * as _fs_ from "fs";
-import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {MerlinSearchRequest, OperationType} from "../search/MerlinSearchRequest.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {SafetyCheck} from "../security/SafetyCheck.js";
 import {SecurityCheck} from "../security/SecurityCheck.js";
@@ -21,7 +21,6 @@ FS_WEB_API.addAsyncAuthenticatedRoute(
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
-            let project:DexcaliburProject = null;
 
             try{
 
@@ -41,7 +40,7 @@ FS_WEB_API.addAsyncAuthenticatedRoute(
                 // TODO : validate $.project.dataAnalyzer.isValidScope(req.query['scope']);
 
                 let file:ModelFile;
-                if(req.query['scope']!=null
+                /*if(req.query['scope']!=null
                     && Object.keys(req.project.dataAnalyzer.scopes).indexOf(req.query.scope as string)>-1){
 
                     const scope = req.project.dataAnalyzer.getScope(req.query['scope'] as string);
@@ -50,17 +49,21 @@ FS_WEB_API.addAsyncAuthenticatedRoute(
                     file = await req.project.dataAnalyzer.getFile(req.query['path'] as string, scope); // res.getEntry(req.query['path']  as string);
 
                     //project.dataAnalyzer.free(res);
-                }else{
+                }else{*/
 
                     const mreq = new MerlinSearchRequest(
-                        null,
-                        ModelFile.TYPE,
-                        []
+                        (req.project as DexcaliburProject).getMerlinEngine(),
+                        ModelFile.TYPE, [{
+                            type:OperationType.SEARCH,
+                            args:{
+                                pattern: MerlinSearchRequest.parseObjectCondition({
+                                    _uid: req.query['uid']
+                                },{ not:false })
+                            }
+                        }]
                     );
 
-                    mreq.search('_uid:'+req.query['uid'], { strict:true, not:false });
-
-                    const files = (await mreq.execute(project)).getData();
+                    const files = (await mreq.execute(req.project)).getData();
 
                     if(files.length>0){
                         file = files[0];
@@ -79,24 +82,24 @@ FS_WEB_API.addAsyncAuthenticatedRoute(
 
                     // TODO : ajouter ModelFile.read() dont le comportement depend du scope ModelFile.scope
                     file = (search.get(0) as ModelFile);*/
-                }
+                //}
 
 
 
 
-                let d:any;
 
                 // TODO replace by file content stored with object (depends of scope)
                 // replace path by local path (for remote file)
+                let d:any;
                 if(_fs_.existsSync(file.getPath())){
 
-                    Logger.raw(file.__p.f_list)
-                    if(file.isExecutable()){
+                    //Logger.raw(file.__p.f_list)
+                    /* if(file.isExecutable()){
                         d = file.toJsonObject({extra:{ cmd:'sections:f_list'}});
-                    }else{
+                    }else{*/
                         d = file.toJsonObject();
                         d.ctn = _fs_.readFileSync( file.getPath(), {encoding: "utf-8"});
-                    }
+                    //}
 
                     /*{
                         _t: 'c',

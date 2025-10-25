@@ -17,6 +17,7 @@ import {EngineNodeUUID, NodePurpose, WebSocketClient} from "./core/EngineNode.js
 import {UserAccountUUID} from "./user/UserAccount.js";
 import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {DexcaliburProjectException} from "./errors/DexcaliburProjectException.js";
+import * as console from "node:console";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -266,6 +267,7 @@ export class WebsocketServer
                                                         }else{
                                                             // start later
                                                             self.engine.onNewWorkflow(unsafeJSON.data.opts, ((pWorkflow:Workflow)=>{
+                                                                console.log("WF : ON NEW WORKFLOW > ",unsafeJSON.data.opts)
                                                                 pWorkflow.declareOwner(sess.getUserAccount(), conn, { localid: unsafeJSON.data.localid });
                                                             }));
                                                         }
@@ -304,7 +306,6 @@ export class WebsocketServer
                                                             if(self._wsclients[nodeUID]==null){
                                                                 self._wsclients[nodeUID] = vNode.createWebsocketClient();
                                                                 self._wsclients[nodeUID].setNodeUid(nodeUID);
-                                                                self._wsclients[nodeUID].connectWS('term-protocol');
                                                                 self._wsclients[nodeUID].getWsOutput().subscribe((vMsg:any)=>{
 
                                                                     // INSECURE ZONE :
@@ -316,22 +317,25 @@ export class WebsocketServer
                                                                         sss.socket.sendUTF(vMsg);
                                                                     }
                                                                 })
+                                                                self._wsclients[nodeUID].connectWS('term-protocol');
+                                                                //this.getSocket(conn)
+                                                                self._wsclients[nodeUID].sendMsg(message.utf8Data);
+                                                            }else{
+                                                                //this.getSocket(conn)
+                                                                self._wsclients[nodeUID].sendMsg(message.utf8Data);
                                                             }
-
-
-                                                            //this.getSocket(conn)
-                                                            self._wsclients[nodeUID].getWsInput().next(message.utf8Data);
                                                         }catch(e2){
-                                                            console.log(e2);
+                                                            console.log("E2",e2);
                                                         }
 
                                                     }
                                                 });
                                             }catch(eee){
-                                                console.log(eee);
+                                                console.log("EEE",eee);
                                             }
 
                                         }else{
+
 
                                             if(!ValidationRule.uuid().test(unsafeJSON['prj'])){
                                                 throw DexcaliburProjectException.INVALID_UUID_FMT(unsafeJSON['prj'])

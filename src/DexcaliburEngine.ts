@@ -20,7 +20,7 @@ import {WebsocketServer} from "./WebsocketServer.js";
 import {TerminalServer} from "./TerminalServer.js";
 import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProcess.js";
 import {ApkPackage} from "./android/ApkPackage.js";
-import {Workflow} from "./Workflow.js";
+import {Workflow, WorkflowUpdate, WorkflowUUID} from "./Workflow.js";
 import ApkHelper from "./ApkHelper.js";
 import JavaHelper from "./JavaHelper.js";
 import {BinwalkHelper} from "./BinwalkHelper.js";
@@ -454,7 +454,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     /**
      * Hold workflow's callbacks to execute when the WF is created
      */
-    wfCbs: any = {};
+    wfCbs: Record<WorkflowUUID, any> = {};
 
     /**
      * Hold global settings : server and external tools settings
@@ -1601,7 +1601,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     async newProject( pUID:string,  pInputs:ProjectInput[], /*pAppPath:string, pFileType:string,*/
                       pDevice:Nullable<Device>=null, pUserAccount:UserAccount = null,
                       pPlatform:Nullable<Platform> = null, pAnalyzersOpts:any = {},
-                      pAppUnit:Nullable<ApplicationUnit> = null, pWorkflow:Nullable<string|Workflow> = null):Promise<DexcaliburProject>{
+                      pAppUnit:Nullable<ApplicationUnit> = null, pWorkflow:Nullable<WorkflowUUID|Workflow> = null):Promise<DexcaliburProject>{
 
 
 
@@ -1616,9 +1616,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         let wf:Workflow;
         if(typeof pWorkflow=='string'){
-            wf = this.getWorkflow(pWorkflow, true);
+            wf = this.getWorkflow(pWorkflow);
         }else if(pWorkflow==null){
-            wf = this.getWorkflow(pUID, true);
+            wf = this.getWorkflow(pUID);
         } else{
             wf = pWorkflow;
         }
@@ -1811,10 +1811,25 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * To create a new workflow and to attach it to engine
      * @param pName
      */
-    newWorkflow(pName:string, pExternal = false):Workflow {
-        const wf:Workflow = new Workflow({ uid:(pExternal?'':'de:')+pName });
-        wf.start();
+    async newWorkflow(pUser:UserAccount, pProjectUID:DexcaliburProjectUUID,
+                      pNode:Nullable<EngineNodeUUID> = null,
+                      pStart = false, pName:string = ''):Promise<Workflow> {
+
+
+        //const wf:Workflow = new Workflow({ uid:(pExternal?'':'de:')+pName });
+
+        const wf = await this.getProjectManager().createWorkflow(
+            pUser.getUID(),
+            pNode,
+            pProjectUID,
+            pName,
+            pStart
+        );
+
+        //const wf:Workflow = new Workflow({ uid:(pExternal?'':'de:')+pName });
         this.registerWorkflow(wf);
+
+
         return wf;
     }
 
@@ -1824,6 +1839,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     registerWorkflow(pWf:Workflow):void {
 
+        // add to local instance
         this.workflows.push(pWf);
 
         // execute scheduled job
@@ -1833,18 +1849,22 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 vFn(pWf);
             })
         }
+
+        // listen workflow update
+        pWf.subscribeUpdate('edb',(vWfUpdate:WorkflowUpdate)=>{
+            const f = Object.keys(vWfUpdate.changes);
+            this.getEngineDB().save( vWfUpdate.wf, f).then(()=>{
+                console.log(`Workflow [${vWfUpdate.wf.getUID()}] updated`);
+            }).catch((e)=>{
+                console.log(`Workflow [${vWfUpdate.wf.getUID()}] cannot be updated`,e);
+            });
+        })
     }
 
-    /**
-     * To create a new workflow and to attach it to engine
-     * @param pName
-     */
-    getWorkflow(pUID:string, pExternal=false):Workflow{
+    getWorkflow(pUID:string):Workflow{
         let f:Workflow = null;
-        const name = (pExternal? '' : 'de:')+pUID;
-
         this.workflows.map( (pWF:Workflow)=>{
-            if(pWF.getUID()===name){
+            if(pWF.getUID()===pUID){
                 f = pWF;
             }
         });
@@ -1861,12 +1881,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @param {boolean} pExternal Optional. Default FALSE. TRUE if the workflow is external with a global UID, else FALSE if the workflow is attached to engine
      * @method
      */
-    onNewWorkflow( pUID:string, pCallback:any, pExternal=false):void {
-        const name = (pExternal? '' : 'de:')+pUID;
-        if(this.wfCbs[name]==null){
-            this.wfCbs[name] = [];
+    onNewWorkflow( pUID:WorkflowUUID, pCallback:any):void {
+        if(this.wfCbs[pUID]==null){
+            this.wfCbs[pUID] = [];
         }
-        this.wfCbs[name].push(pCallback);
+        this.wfCbs[pUID].push(pCallback);
     }
 
     /**

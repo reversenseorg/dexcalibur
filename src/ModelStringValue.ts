@@ -184,6 +184,7 @@ export default class ModelStringValue extends Savable implements INode
     toJsonObject():any{
         let o:any = {};
         o.__ = this.__;
+        o._uid = this._uid;
         o.value = this.value;
         o.src = [];
 

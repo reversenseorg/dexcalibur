@@ -1,31 +1,24 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
-import WebServer, {HTTP_CODE_ERROR} from "../WebServer.js";
+import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
-import FridaHelper from "../FridaHelper.js";
-import {Router, Request, Response} from "express";
 import * as Log from "../Logger.js";
-import {IDbIndex} from "../persist/orm/DbAbstraction.js";
-import DataScope from "../DataScope.js";
 import * as _path_ from "path";
-import ModelFile from "../ModelFile.js";
 import {UserSession} from "../user/session/UserSession.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import Util from "../Utils.js";
-import Platform from "../platform/Platform.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {AccessZone} from "../user/acl/Zones.js";
-import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 import * as _fs_ from "fs";
-import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import {TagManager} from "../tags/TagManager.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {UserAccount} from "../user/UserAccount.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
-import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
+import {NodePurpose} from "../core/EngineNode.js";
+import {Page} from "../core/commons.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -106,7 +99,7 @@ PROJECT_WEB_API.addAsyncAuthenticatedRoute(
                 let app:Nullable<ApplicationUnit> = null;
 
 
-                console.log(req.query);
+                let t1 = Util.now();
 
                 if(req.query.oid!=null){
                     if(OrganizationUnit.VALIDATE.uuid.test(req.query.oid)){
@@ -131,29 +124,66 @@ PROJECT_WEB_API.addAsyncAuthenticatedRoute(
                     }
                 }
 
+
+                let page:Page = { offset:0, size:-1, sort: [{
+                    field:'meta.creationDate',
+                    sort: 'desc'
+                }] };
+
+                if(req.query.offset!=null){
+                    page.offset =parseInt(req.query.offset as string, 10);
+                }
+                if(req.query.size!=null){
+                    page.size =parseInt(req.query.size as string, 10);
+                }
+
+
+
                 let projColl:DexcaliburProject[];
                 if(app!=null){
                     projColl = await $.context.getProjectManager().listProjectByAppUnit(
                         req.user as UserAccount,
-                        app
+                        app,
+                        page
                     );
                 }else if(org!=null){
                     projColl = await $.context.getProjectManager().listProjectByOrgUnit(
                         req.user as UserAccount,
-                        org
+                        org,
+                        page
                     );
                 }else {
                     projColl = await $.context.getProjectManager().listProjectByUser(
-                        req.user as UserAccount
+                        req.user as UserAccount,
+                        NodePurpose.ANY,
+                        page
                     );
                 }
 
-
                 const data:any[] = [];
+
+
+                projColl = projColl.sort((a:DexcaliburProject,b:DexcaliburProject)=>{
+                    const dateA = a.meta.lastOpenDate!=null ? a.meta.lastOpenDate : a.meta.creationDate;
+                    const dateB = b.meta.lastOpenDate!=null ? b.meta.lastOpenDate : b.meta.creationDate;
+                    return dateA>dateB ? -1 : 1;
+                });
+
+                if(req.query.offset!=null && req.query.size !=null){
+                    if((typeof req.query.offset!="string") || (typeof req.query.size!="string")){
+                        throw new Error("Window is invalid.")
+                    }
+
+                    const o = parseInt(req.query.offset as string, 10);
+                    const s = parseInt(req.query.size as string, 10);
+                    projColl = projColl.slice(o,o+s);
+                }
 
                 projColl.map(x =>{
                     data.push( x.toJsonObject());
                 });
+
+                Logger.info(`Listed project in ${(Util.now()-t1)/1000}s`);
                 $.sendSuccess( res, data);
 
             }catch(err){
