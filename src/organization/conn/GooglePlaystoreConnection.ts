@@ -9,7 +9,8 @@ export class GooglePlaystoreConnection extends HttpConnection {
           { name:"aas_token", secret:null }
       ],
       fields: [
-          { name:"account_username", field:"" }
+          { name:"account_username", field:"" },
+          { name:"device", field:null }
       ]
     };
 
