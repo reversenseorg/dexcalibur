@@ -167,7 +167,7 @@ APP_WEB_API.addAsyncAuthenticatedRoute(
                 // gather extra data from store
                 
                 $.sendSuccess(
-                    pRes, { download:upl.getUID() }
+                    pRes, { download: upl.map(x => x.getUID()) }
                 );
             }catch(err){
 

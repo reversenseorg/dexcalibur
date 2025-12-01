@@ -23,20 +23,21 @@
     <style>
 
         body {
-            background-color: #9595fd;
-            background-image:  repeating-radial-gradient( circle at 0 0, transparent 0, #9595fd 10px ), repeating-linear-gradient( #00000055, #000000 );
+            /*background-color: #9595fd;
+            background-image:  repeating-radial-gradient( circle at 0 0, transparent 0, #9595fd 10px ), repeating-linear-gradient( #00000055, #000000 );*/
+
+            background: conic-gradient(from 90deg, rgba(0, 0, 4, 1.000) 0.000deg, rgba(0, 12, 79, 1.000) 60.000deg, rgba(91, 129, 131, 1.000) 120.000deg, rgb(29, 67, 96) 180.000deg, rgba(255, 178, 68, 1.000) 240.000deg, rgba(158, 71, 0, 1.000) 300.000deg, rgba(0, 0, 0, 1.000) 360.000deg);
+
         }
 
        .lpanel {
            margin: 20vh 15vw;
            height: 60vh;
-           background: white;
-           border: 10px solid;
-           border-left:0;
-           border-right:0;
-           border-bottom:0;
-           border-image-slice: 1;
-           border-image-source: linear-gradient(to left, #743ad5, #d53a9d);
+           background: #00000080;
+           color: #fff;
+           border: 1px solid #ffffff40;
+           border-radius:10px;
+
        }
 
        .lpanel div.header {
@@ -49,6 +50,8 @@
            color: #FFF;
            align-content: center;
            text-align: center;
+           border-top-left-radius: 10px;
+           border-top-right-radius: 10px;
        }
 
         .lpanel div.body {

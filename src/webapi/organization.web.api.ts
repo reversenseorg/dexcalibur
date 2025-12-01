@@ -1491,9 +1491,11 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 );
 
                 // gather extra data from store
-
                 $.sendSuccess(
-                    pRes, { download:upl.getUID() }
+                    pRes, upl.map(x => { return {
+                        uid:x.getUID(),
+                        purpose:x.getExtra("purpose")
+                    }})
                 );
 
             } catch (err) {

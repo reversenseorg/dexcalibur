@@ -54,7 +54,7 @@ import {ReversenseProduct, ReversenseProductUUID} from "../billing/ReversensePro
 import {INodeRef} from "../INode.js";
 import {AssuranceModelPreview, AssuranceModelUUID} from "../audit/common/AssuranceModel.js";
 import {IosPackageAnalyzer} from "../ios/analyzer/IosPackageAnalyzer.js";
-import {ProjectInputPurpose} from "../analyzer/ProjectInput.js";
+import {DownloadedProjectInput, ProjectInputPurpose} from "../analyzer/ProjectInput.js";
 import {LogMessage} from "../log/Log.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -612,7 +612,7 @@ export class OrganizationManager {
     async createApplication(pUserAccount:UserAccount, pOrg:OrganizationUnit, pApp:ApplicationUnit):Promise<ApplicationUnit> {
 
         AccessControl.isAuthorized(
-            AccessControl.access.ORG_AU_MODIFY,
+            AccessControl.access.ORG_OU_MODIFY,
             pUserAccount,
             pOrg,
             [
@@ -2687,16 +2687,32 @@ export class OrganizationManager {
 
 
     /**
+     * To download remote binary or application and store it in DB.
      *
-     * @param pUser
-     * @param pOrg
-     * @param pApp
-     * @param pConn
-     * @param pCheckExists
+     * The purpose of the future ProjectInput is appended to each
+     * UploadedResource as an extra property
+     *
+     * @param {UserAccount} pUser
+     * @param {OrganizationUnit} pOrg
+     * @param {ApplicationUnit} pApp
+     * @param {ConnectionUUID} pConn
+     * @param {boolean} pCheckExists
+     * @returns {Promise<UploadedResource[]>}
      */
     async downloadApp( pUser:UserAccount, pOrg:OrganizationUnit,
                        pApp:ApplicationUnit, pConn:ConnectionUUID,
-                       pCheckExists = false):Promise<UploadedResource> {
+                       pCheckExists = false):Promise<UploadedResource[]> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_MODIFY,
+            pUser,
+            pApp,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.MEMBER_GRP,
+            ]
+        );
 
         return await  this.download(pUser, pOrg, pApp.packageID, pConn, pCheckExists)
     }
@@ -2712,7 +2728,7 @@ export class OrganizationManager {
      */
     async download( pUser:UserAccount, pOrg:OrganizationUnit,
                     pPackage:string, pConn:ConnectionUUID,
-                    pCheckExists = false):Promise<UploadedResource> {
+                    pCheckExists = false):Promise<UploadedResource[]> {
 
         const conn = pOrg.getConnection(pConn);
 
@@ -2730,7 +2746,7 @@ export class OrganizationManager {
         const sessDestFolder = _path_.join(destFolder,Util.now()+"");
 
         let helper:any;
-        let path:string[] = [];
+        let path:DownloadedProjectInput[] = [];
         switch(conn.type){
             case ConnectionProtocol.FDROID:
             case ConnectionProtocol.APKPURE:
@@ -2748,15 +2764,20 @@ export class OrganizationManager {
         if(pCheckExists){
             // TODO : gather checksum of inputs and check if exists
         }
-        const uplres = await this._ctx.getWebserver().uploader.uploadFile(pUser, path[0], path[0]);
 
+        let uplres:UploadedResource;
+        let ress:UploadedResource[] = [];
+        for(let i=0;i<path.length;i++){
+            uplres = await this._ctx.getWebserver().uploader.uploadFile(pUser, path[i].path, path[i].path);
+            uplres.appendExtra({ purpose: path[i].purpose });
+            await this._ctx.getEngineDB().save(uplres);
+            ress.push(uplres);
+        }
 
-        await this._ctx.getEngineDB().save(uplres);
-
-        // Importent : don't remove file here
+        // Important : don't remove file here
         _fs_.rm(sessDestFolder,{ recursive:true },()=>{  });
 
-        return uplres;
+        return ress;
     }
 
 

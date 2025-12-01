@@ -724,7 +724,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         return;
                     }
                 }
-
+                let nodeReady = false;
                 // else : allocate a node , start it and open the project
                 const targetNode = await $.context.getProjectManager().open(
                     req.user,
@@ -734,7 +734,28 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         cookie: req.cookies
                     },
                     (pNodeBefore)=>{
-                       /* let subscription:Subscription;
+                       /*
+                        (vNode)=>{
+                        const subscription = vNode.nodeState$.subscribe((vChange)=>{
+                            if(vChange.new==NodeState.IDLE && vChange.before==NodeState.BUSY){
+                                subscription.unsubscribe();
+                                nodeReady = true;
+                                $.sendSuccess(res, {
+                                    ready: true,
+                                    node: vChange.nodeUUID
+                                });
+                            }else{
+                                subscription.unsubscribe();
+                                nodeReady = true;
+                                $.sendSuccess(res, {
+                                    ready: false,
+                                    node: vChange.nodeUUID
+                                });
+                            }
+                        });
+                    }
+
+                       let subscription:Subscription;
                         subscription = pNodeBefore.nodeState$.subscribe((vChange)=>{
                             if(subscription!=null){
                                 subscription.unsubscribe();

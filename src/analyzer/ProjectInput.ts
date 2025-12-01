@@ -3,6 +3,10 @@ import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {JsonObject} from "../Utils.js";
 
+export interface DownloadedProjectInput {
+    path:string;
+    purpose:ProjectInputPurpose;
+}
 
 export enum ProjectInputType {
     REGULAR_FILE='regular_file',
