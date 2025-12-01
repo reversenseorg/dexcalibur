@@ -556,6 +556,7 @@ export default class SmaliParser
                 break;
             case CONST.LEX.STRUCT.PARAMS:
                 // this.__tmp_meth.params = parseInt(sml[1],10);
+                console.log("OLD SmaliParser called");
                 this.__tmp_meth.params.push(
                     this.opcodeParser.parseParamInContext(sml, raw_src, src_line)// TODO : sml[1] replaced by sml[]
                 );

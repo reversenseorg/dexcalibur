@@ -36,6 +36,8 @@ export interface IParser<T> {
 
     FILE_EXTENSIONS:string[];
 
+    description:string;
+
     fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:any):Promise<IResults<T>>;
 
     setContext(pProject:DexcaliburProject):void;
@@ -43,4 +45,5 @@ export interface IParser<T> {
 
 export interface IMagicParser<T> extends IParser<T> {
     hasSignature(pBuffer:Buffer, pOffset:number, pOptions:any):Promise<boolean>;
+    getMagic():any;
 }

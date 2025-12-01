@@ -49,6 +49,8 @@ export namespace Xml {
 
         FILE_EXTENSIONS:string[] = [".xml"];
 
+        description = "XML file";
+
         static SUPPORTED_SEPARATORS = [':','='];
 
 

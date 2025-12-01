@@ -25,6 +25,9 @@ import DalvikInstructionFormat from "../DalvikInstructionFormat.js";
 import {IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import {Buffer} from "buffer";
 import {Tag} from "@dexcalibur/dexcalibur-orm";
+import {ModelRegister} from "../elixir/ModelRegister.js";
+import {AndroidTypes} from "../android/AndroidTypes.js";
+import {DataType} from "../types/DataType.js";
 
 
 const SML_MAIN=0;
@@ -309,7 +312,7 @@ export namespace Smali {
         }
 
         /**
-         *
+         * To parse the instruction according to opcode
          * @param src
          * @param raw_src
          * @param src_line
@@ -356,6 +359,8 @@ export namespace Smali {
          *
          * To parse param name is such case:
          *
+         * Transforms parameter initializing by set string instruction
+         *
          * .method parameters(IILjava/lang/String;)V
          *   .param p3, "stringParameter"
          *
@@ -363,9 +368,115 @@ export namespace Smali {
          * @param raw_src
          * @param src_line
          */
-        parseParamInContext(src:string[], raw_src:string, src_line:number):any{
+        parseParamInContext(src:string[], raw_src:string, src_line:number):any {
             const instr = DalvikInstructionFormat.setstring(src, raw_src, this.tags);
+
             return { param:instr.left, name:instr.right._value };
+        }
+
+
+
+        parseParamDirective(pLine: string, pMethod:ModelMethod):ModelInstruction {
+            const paramRegex = /\.param\s+(p\d+),\s*"([^"]+)"\s*#?\s*([^=\s]+)(?:\s*=\s*(.+))?/;
+            const match = pLine.match(paramRegex);
+
+            if (!match) {
+                return;
+            }
+
+            const [, registerName, paramName, typeSignature, defaultValue] = match;
+            const dataType = this.parseTypeSignature(typeSignature);
+
+            let initialValue: any = undefined;
+
+            console.log(registerName, paramName, typeSignature, defaultValue, pLine);
+
+            if (defaultValue) {
+                /*
+                initialValue = this.parseInitialValue(defaultValue);
+
+                if(initialValue.kind!="constant") {
+                    initialValue = initialValue.value;
+                }else {
+                    initialValue = undefined;
+                }*/
+            }
+
+            pMethod.declareParameter(dataType, initialValue, paramName, parseInt(registerName,10) );
+        }
+
+        /**
+         * Parse une valeur initiale
+         */
+        parseInitialValue(
+            valueStr: string
+        ): {kind:"constant"|"null"|"undefined", value?:any } {
+            const trimmed = valueStr.trim();
+
+            if (trimmed === 'null') {
+                return { kind: 'null' };
+            }
+
+            if (trimmed === 'true' || trimmed === 'false') {
+                return {
+                    kind: 'constant',
+                    value: trimmed === 'true'
+                };
+            }
+
+            if (trimmed.startsWith('0x') || trimmed.startsWith('-0x')) {
+                return {
+                    kind: 'constant',
+                    value: parseInt(trimmed, 16)
+                };
+            }
+
+            if (trimmed.includes('.') || trimmed.includes('e') || trimmed.includes('E')) {
+                return {
+                    kind: 'constant',
+                    value: parseFloat(trimmed)
+                };
+            }
+
+            if (/^-?\d+[LSs]?$/.test(trimmed)) {
+                const numStr = trimmed.replace(/[LSs]$/, '');
+                return {
+                    kind: 'constant',
+                    value: parseInt(numStr, 10)
+                };
+            }
+
+            if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                return {
+                    kind: 'constant',
+                    value: trimmed.slice(1, -1)
+                };
+            }
+
+            return { kind: 'undefined' };
+        }
+
+        parseTypeSignature(pTypeSignature: string):DataType {
+            switch (pTypeSignature) {
+                case 'V': return AndroidTypes.V;
+                case 'Z': return AndroidTypes.Z;
+                case 'B': return AndroidTypes.B;
+                case 'S': return AndroidTypes.S;
+                case 'C': return AndroidTypes.C;
+                case 'I': return AndroidTypes.I;
+                case 'J': return AndroidTypes.J;
+                case 'F': return AndroidTypes.F;
+                case 'D': return AndroidTypes.D;
+                case 'Ljava/lang/String;': return AndroidTypes.STRING;
+                default:
+                    if (pTypeSignature.startsWith('L')) {
+                        return AndroidTypes.OBJECT;
+                    }
+                    if (pTypeSignature.startsWith('[')) {
+                        return AndroidTypes.ARRAY;
+                    }
+                    return AndroidTypes.UNKNOWN;
+            }
         }
     }
 
@@ -394,7 +505,7 @@ export namespace Smali {
         obj:ModelClass = null;
         objReady:any = false;
 
-        opcodeParser:OpcodeParser;
+        opcodeParser:Smali.OpcodeParser;
 
         __tmp_meth:ModelMethod = null;
         __tmp_block:ModelBasicBlock|ModelDataBlock = null;
@@ -417,7 +528,7 @@ export namespace Smali {
          */
         setContext(context:DexcaliburProject):void{
             this.ctx = context;
-            this.opcodeParser = new OpcodeParser(this.ctx);
+            this.opcodeParser = new Smali.OpcodeParser(this.ctx);
         }
 
         isModifier(name:string):boolean{
@@ -875,9 +986,20 @@ export namespace Smali {
                     break;
                 case CONST.LEX.STRUCT.PARAMS:
                     // this.__tmp_meth.params = parseInt(sml[1],10);
-                    this.__tmp_meth.params.push(
-                        this.opcodeParser.parseParamInContext(sml, raw_src, src_line)// TODO : sml[1] replaced by sml[]
-                    );
+                    console.log("NEW SmaliParser called");
+
+                    try{
+                        const paramDir = this.opcodeParser.parseParamDirective(raw_src, this.__tmp_meth);
+
+
+
+                        this.__tmp_meth.params.push(
+                            this.opcodeParser.parseParamInContext(sml, raw_src, src_line)// TODO : sml[1] replaced by sml[]
+                        );
+                    }catch(e){
+                        console.log(e.stack);
+                    }
+
 
                     break;
                 case CONST.LEX.STRUCT.REG:
@@ -1274,7 +1396,7 @@ export namespace Smali {
          * @param pBuffer
          * @param pOffset
          */
-        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8', raw:true, tags:[]}):Promise<Results> {
+        async fromBuffer(pBuffer:Buffer, pOffset:number, pOptions:IParserOptions = {encoding:'utf-8', raw:true, tags:[]}):Promise<Smali.Results> {
             if(pOptions.tags==null) pOptions.tags = [];
 
             let res = { ok:null, invalid:[] };
@@ -1323,7 +1445,9 @@ export namespace Smali {
 
         }
 
-
+        description = "Smali file";
     }
+
+
 }
 

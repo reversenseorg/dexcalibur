@@ -62,7 +62,10 @@ export namespace Properties {
 
         FORMAT_NAMES:string[] = ["properties"];
 
-        FILE_EXTENSIONS:string[] = [".properties"];
+        FILE_EXTENSIONS:string[] = [".properties",".prop"];
+
+
+        description = "Properties file";
 
         static RE_KEY_TERM = /[^\\]([:=])/;
 

@@ -13,6 +13,7 @@ import {Buffer} from "buffer";
 import {cipher} from "node-forge";
 import * as console from "node:console";
 import {of} from "rxjs";
+import {MagicSignature} from "../formats/common.js";
 
 /**
  *
@@ -95,6 +96,8 @@ export namespace Cgbi {
 
         FILE_EXTENSIONS:string[] = [".png"];
 
+        description = "CgBI file";
+
         static PNG_HEADER = Buffer.from("89504e470d0a1a0a",'hex');
         static CGBI_TAG = Buffer.from("CgBI");
 
@@ -110,8 +113,18 @@ export namespace Cgbi {
 
         }
 
+
+        getMagic(): MagicSignature[] {
+            return [
+                { offset:0, magic:Parser.PNG_HEADER.toString(), next:[
+                    { offset:12, magic:Parser.CGBI_HEADER},
+                ]},
+
+            ];
+        }
+
         async hasSignature(pBuffer: Buffer, pOffset: number): Promise<boolean> {
-            return false;
+            return Parser.isPngFile(pBuffer,pOffset) && Parser.isCgbiFile(pBuffer,pOffset);
         }
 
         static isCgbiFile(pBuffer:Uint8Array, pOffset:number):boolean {

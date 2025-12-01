@@ -34,6 +34,7 @@ export namespace Json {
 
         FILE_EXTENSIONS:string[] = [".json"];
 
+        description = "JSON file";
         static SUPPORTED_SEPARATORS = [':','='];
 
         jsonTag:Nullable<TagUUID> =null;

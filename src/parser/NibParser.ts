@@ -7,6 +7,7 @@ import { IMagicParser, IParserFeature, IParserOptions, IResults} from "./IParser
 import DexcaliburProject from "../DexcaliburProject.js";
 import ModelResource from "../ModelResource.js";
 import {Buffer} from "buffer";
+import {MagicSignature} from "../formats/common.js";
 
 /**
  *  Parser and types for NibArchive files
@@ -134,6 +135,9 @@ export namespace Nib {
 
         static MAGIC = "NIBArchive";
 
+
+        description = "NIBArchive file";
+
         static HEADER_TPL:BinTpl[] = [
             ["<I","_formatVersion"],           // UIMaximumCompatibleFormatVersion == 0x1
             ["<I","_coderVersion"],             // UICurrentCoderVersion == 0xa (as of macOS 10.15)
@@ -152,7 +156,12 @@ export namespace Nib {
 
 
         async hasSignature(pBuffer: Buffer, pOffset: number): Promise<boolean> {
-            return false;
+            const magic = Struct.unpack("10s", pBuffer, pOffset);
+            return (magic[0]===Parser.MAGIC);
+        }
+
+        getMagic(): MagicSignature[] {
+            return [{ offset:0, magic:Parser.MAGIC }];
         }
 
         readVarint(buffer: Uint8Array, offset: number = 0):Varint {

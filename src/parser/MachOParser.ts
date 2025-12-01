@@ -11,6 +11,7 @@ import {MetadataTopic} from "../audit/common/ControlAssessment.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {Buffer} from "buffer";
 import ModelResource from "../ModelResource.js";
+import {MagicSignature} from "../formats/common.js";
 
 
 export namespace MachO {
@@ -66,7 +67,7 @@ export namespace MachO {
 
         FORMAT_NAMES:string[] = ["macho"];
 
-        FILE_EXTENSIONS:string[] = [""]; // "" = no extension DO NOT REPLACE BY NULL !
+        FILE_EXTENSIONS:string[] = ["",".dylib"]; // "" = no extension DO NOT REPLACE BY NULL !
 
         static HEADER_TPL:BinTpl[] = [
             ["<I","cpuType"],
@@ -79,9 +80,22 @@ export namespace MachO {
         execTag: Nullable<Tag> = null;
         machoTag: Nullable<Tag> = null;
 
+        description = "MachO Binary";
+
         constructor() {
 
         }
+
+        getMagic():MagicSignature[] {
+            return [
+                { offset:0, magic:"\xcf\xfa\xed\xfe" },
+                { offset:0, magic:"\xce\xfa\xed\xfe" },
+                { offset:0, magic:"\xfe\xed\xfa\xcf" },
+                { offset:0, magic:"\xfe\xed\xfa\xce" },
+                { offset:0, magic:"\xca\xfe\xba\xbe" }
+            ];
+        }
+
 
         async hasSignature(pBuffer: Buffer, pOffset: number): Promise<boolean> {
             const magic = Buffer.from(Struct.unpack("4B",pBuffer,pOffset));

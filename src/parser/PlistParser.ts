@@ -10,6 +10,7 @@ import ModelResource from "../ModelResource.js";
 import {Tag, NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
 import {INodeRef} from "../INode.js";
+import {MagicSignature} from "../formats/common.js";
 
 /**
  *
@@ -437,6 +438,9 @@ export namespace Plist {
 
         FILE_EXTENSIONS:string[] = [".plist"];
 
+
+        description = "PList file";
+
         static MAX_OBJ_CTR = BigInt(32768);
 
         static MAX_OBJ_SZ = BigInt(100 * 1000 * 1000);
@@ -455,6 +459,14 @@ export namespace Plist {
             return (pBuffer.slice(pOffset,6).toString()==="bplist");
         }
 
+
+
+
+        getMagic(): MagicSignature[] {
+            return [
+                { offset:0, magic:"bplist" }
+            ];
+        }
 
         async hasSignature(pBuffer: Buffer, pOffset: number): Promise<boolean> {
 
