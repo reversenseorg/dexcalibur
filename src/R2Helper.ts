@@ -16,6 +16,8 @@ import {TagManager} from "./tags/TagManager.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {INativeHelper, NativeHelperCmd} from "./analyzer/INativeHelper.js";
 import {NativeBackend} from "./NativeAnalyzer.js";
+import {Architecture} from "./Architecture.js";
+import {ModelRegister} from "./elixir/ModelRegister.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -125,8 +127,10 @@ export default class RadareHelper implements INativeHelper
         this._t = pType;
         this.target = pBinary;
         this.opts = pOptions;
-        this._typeMgr = pOptions.ctx.getTypeManager();
-        this._tagMgr = pOptions.ctx.getTagManager();
+        if(pOptions.ctx!=null){
+            this._typeMgr = pOptions.ctx.getTypeManager();
+            this._tagMgr = pOptions.ctx.getTagManager();
+        }
     }
 
     /**
@@ -172,15 +176,12 @@ export default class RadareHelper implements INativeHelper
 
         let fns:ModelFunction[] = [];
 
-
-        Logger.debug("R2 > parse functions ...");
-
         try{
             pOut.map( vFn => {
 
                 let f:ModelFunction = new ModelFunction({
                     name: vFn.name,
-                    addr: vFn.offset,
+                    addr: vFn.addr,
                     sz: vFn.size,
                     nbbs: vFn.nbbs,
                     edges: vFn.edges,
@@ -202,13 +203,14 @@ export default class RadareHelper implements INativeHelper
                     f.setReturn(
                         new ModelVariable({
                             n: "ret",
-                            __t: ModelVariableLocation.REG,
-                            type: this._typeMgr.getNativeType("uint64_t"),
-                            ref: ARCH_RET.aarch64
+                            //__t: ModelVariableLocation.REG,
+                            type: (this._typeMgr!=null ? this._typeMgr.getNativeType("uint64_t") : null),
+                            //ref: ARCH_RET.aarch64
                         })
                     );
                 }
 
+                /*
                 if(vFn.hasOwnProperty('callrefs')){
                     vFn.callrefs.map( ref => {
                         f.cref.push( new ModelNativeRef({
@@ -246,37 +248,7 @@ export default class RadareHelper implements INativeHelper
                             addr: addr
                         }))
                     });
-                }
-
-                if(vFn.hasOwnProperty('regvars')){
-                    f.regvars = [];
-                    vFn.regvars.map( ref => {
-                        f.regvars.push( new ModelVariable({
-                                n: ref.name,
-                                __t: (ref.kind==ModelVariableLocation.REG ? ModelVariableLocation.REG:ModelVariableLocation.STACK),
-                                type: this._typeMgr.getNativeType(ref.type),
-                                ref: ref.refs
-                            })
-                        )
-                    });
-                    f.args = f.regvars;
-                }
-
-
-                ['spvars','bpvars'].map( vType => {
-                    if(vFn.hasOwnProperty(vType)){
-                        f[vType] = [];
-                        vFn[vType].map( ref => {
-                            f[vType].push( new ModelVariable({
-                                    n: ref.name,
-                                    __t: (ref.kind==ModelVariableLocation.REG ? ModelVariableLocation.REG:ModelVariableLocation.STACK),
-                                    type: this._typeMgr.getNativeType(ref.type),
-                                    ref: ref.refs
-                                })
-                            )
-                        });
-                    }
-                })
+                }*/
 
 
                 fns.push(f);
@@ -328,8 +300,6 @@ export default class RadareHelper implements INativeHelper
         let data:any;
         let res:R2CmdResult[] =[];
         let parsedData:any;
-
-
 
         Logger.info('[R2] Run command : '+pCommands.join(','));
 
@@ -389,13 +359,53 @@ export default class RadareHelper implements INativeHelper
                     break;
                 case NativeAnalyzerCommands.FUNC_CMD.DISASS:
                     if((pOptions.fn instanceof  ModelFunction) && (pOptions.fn.getAddr()!=null)){
-                        data = await this._p.runCmd("pdfj @ "+pOptions.fn.getAddr(), {json:true, ignoreErr: false});
+                        const fnaddr = pOptions.fn.getMemoryAddress().toHex(-1);
+                        data = await this._p.runCmd("pdfj @ "+fnaddr, {json:true, ignoreErr: false});
                         if(data != null){
-                            pOptions.fn.addDisass(await this.parseDisassembly(await data.ops));
-                            //this._h.f_disass = true;
+                            pOptions.fn.addDisass(await this.parseDisassembly(data.data.ops));
+                        }
+                        res.push(data);
+                        if(data) k++;
+
+                        data = await this._p.runCmd("afvj @ "+fnaddr, {json:true, ignoreErr: false});
+                        if(data != null){
+                            pOptions.fn.addArguments(await this.parseLocals(data.data, "args", null));
+                            pOptions.fn.addLocalVars(await this.parseLocals(data.data, "locals", null));
+                        }
+                    }
+                    break;
+                case NativeAnalyzerCommands.FUNC_CMD.DECOMPILE:
+                    if((pOptions.fn instanceof  ModelFunction) && (pOptions.fn.getAddr()!=null)){
+                        data = await this._p.runCmd("pdcj @ "+pOptions.fn.getAddr(), {json:true, ignoreErr: false});
+                        if(data != null){
+                            pOptions.fn.addDecompile(data.data.code);
                         }
                         if(data) k++;
                     }
+                    break;
+                case NativeHelperCmd.SEARCH_INT:
+                    // TODO : replace svc by dynamically choosen interrupt
+                    data = await this._p.runCmd('/ad/j svc');
+                    if(data.success){
+                        /*this._h.f_list = true;
+
+                        data.data = await this.parseFunctionList(data.data, {
+                            src: {
+                                __:ModelFile.TYPE.getType(),
+                                _uid: this.target.getUID()
+                            }
+                        });*/
+
+                        res.push(data);
+
+                        /*if(pOptions.update){
+                            this.target.appendFunctions(data.data);
+                            //this.target.tagAs('$r');
+                        }*/
+                    }else{
+                        res.push(null);
+                    }
+                    if(data) k++;
                     break;
                 case 'syscall':
                     // TODO : detect platform x86 vs ARM to custome command, default ARM
@@ -408,10 +418,6 @@ export default class RadareHelper implements INativeHelper
                     let cfg:any = await this._p.runCmd("aslj");
                     this.updateHelperConfig(cfg);
                     break;
-            }
-
-            if(data!=null){
-                res.push(data);
             }
         }
 
@@ -447,20 +453,28 @@ export default class RadareHelper implements INativeHelper
      * @method
      * @since 1.0.0
      */
-     async start(pCommands=['sections','f_list']):Promise<any>{
+     async start(pCommands=['sections','f_list',NativeHelperCmd.SEARCH_INT]):Promise<any>{
         let data:any = {
             success: false,
             data: null
         };
         try {
-            Logger.debug(`[R2] (extraCmds=${pCommands.join(',')}) Start analysis of : ${this.target.getPath()} `)
+            Logger.info(`[R2] (extraCmds=${pCommands.join(',')}) Start analysis of : ${this.target.getPath()} `)
             this._p = R2Pipe.open(this.target.getPath());
+
+            const isReady = (this._p.history.find(c => {
+                return (c.cmd==="aa;aac\n")
+            })!=null);
+
+            if(isReady) return {
+                success: true
+            };
 
             let res:any = await this._p.runCmd("aa;aac", { json:false, ignoreErr:true });
 
 
             if(res != null){
-                if(res.success && !this._typeMgr.isInitialized(DATATYPE_CATEGORY.NATIVE)){
+                if(res.success && (this._typeMgr!=null && !this._typeMgr.isInitialized(DATATYPE_CATEGORY.NATIVE))){
                     await this.initDataTypes();
                 }
 
@@ -556,8 +570,80 @@ export default class RadareHelper implements INativeHelper
                 i[k] = vInst[k];
             }
             instrs.push(i);
-        })
+        });
+
         return instrs;
+    }
+
+    /**
+     * To parse the JSON output of 'pdf' r2 command
+     *
+     *
+     * @param res
+     */
+    async parseLocals(pData: any, pType:"args"|"locals", pArch:Nullable<Architecture>):Promise<ModelVariable[]> {
+        let vars:ModelVariable[] = []
+
+        // get SP reg name from Architecture and call convention
+        const sp = "sp";
+
+        switch(pType){
+            case "locals":
+                if(pData[sp]!=null && pData[sp].length>0){
+                    pData[sp].map( vArg => {
+                        if(vArg.kind=="var"){
+                            vars.push(new ModelVariable({
+                                n: vArg.name,
+                                type: (this._typeMgr!=null ? this._typeMgr.getNativeType(vArg.type) : vArg.type),
+                                offset: vArg.offset,
+                                reg: new ModelRegister({
+                                    name: vArg.ref.base,
+                                    id: -1
+                                })
+                            }))
+                        }
+                    })
+                }
+                break;
+            case "args":
+                if(pData.reg!=null){
+                    pData.reg.map( vArg => {
+                        if(vArg.kind=="reg"){
+                            vars.push(new ModelVariable({
+                                n: vArg.name,
+                                type: (this._typeMgr!=null ? this._typeMgr.getNativeType(vArg.type) : vArg.type),
+                                offset: -1,
+                                reg: new ModelRegister({
+                                    name: vArg.ref,
+                                    id: Number(vArg.ref.substring(1)).valueOf()
+                                })
+                            }))
+                        }
+                    });
+                }
+
+                if(pData.sp!=null){
+                    const spReg = new ModelRegister({
+                        name: "sp",
+                        id: -1
+                    });
+
+                    pData.sp.map( vArg => {
+                        if(vArg.kind=="arg"){
+                            vars.push(new ModelVariable({
+                                n: vArg.name,
+                                type: (this._typeMgr!=null ? this._typeMgr.getNativeType(vArg.type) : vArg.type),
+                                offset: vArg.ref,
+                                reg: spReg
+                            }))
+                        }
+
+                    })
+                }
+                break;
+        }
+
+        return vars;
     }
 
     /**

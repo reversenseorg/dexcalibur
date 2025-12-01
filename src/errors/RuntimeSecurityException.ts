@@ -36,6 +36,8 @@ export class RuntimeSecurityException extends MonitoredError {
         return new RuntimeSecurityException("Signature of cookie value failed : secret not provided",ErrorCode.SECURITY_RUNTIME + 116) };
     static COOKIE_UNSIGN_FAILURE = ()=>{
         return new RuntimeSecurityException("Signature of cookie cannot be verified : secret not provided",ErrorCode.SECURITY_RUNTIME + 117) };
+    static FORBIDDEN_IN_COMMAND = (pCause:string)=>{
+        return new RuntimeSecurityException("Forbidden : "+pCause,ErrorCode.SECURITY_RUNTIME + 118) };
 
 
 
