@@ -120,9 +120,10 @@ export default class AccessControl {
         // report
         AUDIT_REPORT_READ: new Access( AccessType.READ, 'AUDIT_REPORT_READ', 'Read a scan report'),
         AUDIT_REPORT_DEL: new Access( AccessType.WRITE, 'AUDIT_REPORT_DEL', 'Delete a scan report'),
-        AUDIT_DX_ACCESS: new Access( AccessType.EXE, 'AUDIT_DX_ACCESS', 'Access to deep inspection tool')
+        AUDIT_DX_ACCESS: new Access( AccessType.EXE, 'AUDIT_DX_ACCESS', 'Access to deep inspection tool'),
 
         // other
+        RSC_DOWNLOAD: new Access( AccessType.WRITE, 'RSC_DOWNLOAD', 'Download remote resources'),
     };
 
     private _aclMgr:AccessControlManager;
