@@ -31,6 +31,8 @@ import {ApplicationIcon} from "../../organization/ApplicationUnit.js";
 import {ImageFormatHelper} from "../../platform/ImageFormat.js";
 import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {EFileFormat} from "../../formats/common/EFileFormat.js";
+import {FileFormatDetector} from "../../formats/identifier/FileFormatDetector.js";
+import {Zip} from "../../parser/ZipParser.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -63,7 +65,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
     private _data:Record<string, any> = {};
 
-    constructor(pConfig:AndroidPackageAnalyzerOptions = { msa_auto:false, ssa_auto:false }) {
+    constructor(pConfig:AndroidPackageAnalyzerOptions = { msa_auto:true, ssa_auto:false }) {
         this._cfg = pConfig;
 
         for(let i in pConfig){
@@ -89,6 +91,12 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             );
         }
 
+        if(this._cfg.msa_auto==null){
+            this._cfg.msa_auto = true;
+        }
+        if(this._cfg.ssa_auto==null){
+            this._cfg.ssa_auto = false;
+        }
     }
 
     async getAppIcon(): Promise<string> {
@@ -373,9 +381,35 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         // pBaseApk has been already extracted to apk dir into project workspace
         for (let extraBundle of extraToMerge) {
-            if (extraBundle.getOriginalName().endsWith(".apk") || extraBundle.getPath().endsWith(".apk")) {
+            if(extraBundle.type!=ProjectInputType.FOLDER){
+                //extraBundle.getOriginalName().endsWith(".apk") || extraBundle.getPath().endsWith(".apk")) {
 
                 try{
+
+                    let isApk = false;
+                    try{
+                        const zp = this._project.getDataFormatMgr().getParserByFormat("zip");
+                        if(zp.length==0) throw new Error("Zip parser not found");
+
+                        const pkg = _fs_.readFileSync(extraBundle.getPath());
+                        zp[0].setContext(this._project);
+                        const dump = await (zp[0] as Zip.Parser).fromBuffer(pkg,0);
+
+                        if(dump.ok!=null){
+                            isApk = pkg.indexOf("AndroidManifest.xml")>-1;
+                        }
+                    }catch (e1){
+                        console.log(e1);
+                    }
+
+                    // check if the file is an APK
+                    if(!isApk){
+                        // check if the file is a library or more
+                        Logger.warn("File "+extraBundle.getPath()+" is not an APK : input skipped");
+                        continue;
+                    }
+
+
                     // extract APK into tmp folder, and merge content with apk folder
                     tmpApp = new TargetApp("bin", extraBundle.getPath());
 

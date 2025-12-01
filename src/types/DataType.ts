@@ -12,6 +12,8 @@ export class DataType
      */
     signed:boolean;
 
+    descr:string = "";
+
     /**
      * Bit len
      */
@@ -40,6 +42,11 @@ export class DataType
         else if(this.name==="char *"){
             this.str = true;
         }
+    }
+
+    setDescription(pDescr:string):DataType {
+        this.descr = pDescr;
+        return this;
     }
 
     /**

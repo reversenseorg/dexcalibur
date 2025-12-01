@@ -7,6 +7,7 @@ import Util from "./Utils.js";
 import ModelConstantValue from "./ModelConstantValue.js";
 
 import * as Log from './Logger.js';
+import {ModelRegister} from "./elixir/ModelRegister.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class DalvikInstructionFormat {
@@ -16,6 +17,7 @@ export default class DalvikInstructionFormat {
 
         instr.left = OpcodeSmaliParser.singleVar(src[1]);
         instr.right = OpcodeSmaliParser.singleVar(src[2]);
+
 
         return instr;
     }

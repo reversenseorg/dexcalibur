@@ -10,6 +10,8 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {MachO} from "../parser/MachOParser.js";
 import {Elf} from "../parser/ElfParser.js";
+import {Zip} from "../parser/ZipParser.js";
+import {MagicSignature} from "./common.js";
 
 let gInstance:DataFormatManager = null;
 
@@ -42,6 +44,7 @@ export class DataFormatManager {
             new Nib.Parser(),
             new Cgbi.Parser(),
             new Smali.Parser(),
+            new Zip.Parser(),
             new MachO.Parser(),
             new Elf.Parser(),
             //new Xml.Parser(),
@@ -101,10 +104,23 @@ export class DataFormatManager {
      *
      * @param {string} pFormat File format name
      */
-    getParserByFileExtension<T>(pFormat:string, pOptions:{magicFirst:boolean} = {magicFirst:false}):IParser<T>[] /*Parser*/ {
-        if(pOptions.magicFirst){
-
+    getMagicByFormat<T>(pFormat:string):MagicSignature[]  {
+        let candidates:MagicSignature[] = [];
+        for(let i=0, len=this.magic.length; i<len;i++){
+            if(this.magic[i].FORMAT_NAMES.indexOf(pFormat)>-1){
+                candidates.push(this.magic[i].getMagic());
+            }
         }
+        return candidates;
+    }
+
+    /**
+     * To get a list of candidate parser from format name
+     *
+     * @param {string} pFormat File format name
+     */
+    getParserByFileExtension<T>(pFormat:string, pOptions:{skipEmpty:boolean} = {skipEmpty:false}):IParser<T>[] /*Parser*/ {
+        if(pOptions.skipEmpty && pFormat=="") return [];
 
         return this.getParserBy( "ext", pFormat);
     }

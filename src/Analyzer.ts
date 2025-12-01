@@ -40,17 +40,20 @@ import {
     INode,
     NodeUtils,
     Tag,
-    TagCategory, TagUUID,
+    TagCategory,
+    TagUUID,
     ValidationRule
 } from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {Smali} from "./parser/SmaliParser.js";
-import {IParser, IResults} from "./parser/IParser.js";
+import {IMagicParser, IParser, IParserFeature, IResults} from "./parser/IParser.js";
 import {DataFormatManagerException} from "./formats/error/DataFormatManagerException.js";
 import ModelResource from "./ModelResource.js";
 import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
 import {DataLocation, DataLocationType} from "./DataLocation.js";
 import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
+import ModelBom from "./ModelBom.js";
+import {CompositionAnalyzer} from "./analyzer/CompositionAnalyzer.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1436,7 +1439,7 @@ export default class Analyzer
             }else{
                 fparser.fromBuffer(_fs_.readFileSync(pFilePath), 0, { encoding: this.encoding }).then((vRes)=>{
                     if(vRes.ok==null){
-                        Logger.error(`[ANALYZER] File ${pFilename} cannot analyzed. Cause : ${vRes.invalid.length>0 ? vRes.invalid[0].msg : '?' }`)
+                        Logger.error(`[ANALYZER][${this.context.os}] file : File ${pFilename} cannot analyzed. Cause : ${vRes.invalid.length>0 ? vRes.invalid[0].msg : '?' }`)
                         return;
                     }
 
@@ -1460,7 +1463,7 @@ export default class Analyzer
         }else{
             fparser.fromBuffer(_fs_.readFileSync(pFilePath), 0, { encoding: this.encoding }).then((vRes)=>{
                 if(vRes.ok==null){
-                    Logger.error(`[ANALYZER] File ${pFilename} cannot analyzed. Cause : ${vRes.invalid.length>0 ? vRes.invalid[0].msg : '?' }`)
+                    Logger.error(`[ANALYZER][${this.context.os}] file : File ${pFilename} cannot analyzed. Cause : ${vRes.invalid.length>0 ? vRes.invalid[0].msg : '?' }`)
                     return;
                 }
                 this.saveParsedObject(vRes.ok, pCtx).then(()=>{});
@@ -1479,9 +1482,12 @@ export default class Analyzer
     async fileAsync( pFilePath:string, pFilename:string, vCtx:any = null):Promise<void>{
 
 
-        if(vCtx!=null && vCtx.exclude!=null){
-            if(vCtx.exclude.indexOf(pFilePath)>0) /* skip */ return ;
+        if(vCtx!=null){
+            if(vCtx.exclude!=null) {
+                if (vCtx.exclude.indexOf(pFilePath) > 0) /* skip */ return;
+            }
         }
+
         let fparser:IParser<any> = this.parser;
         let res:IResults<any>;
         let candidateParsers:IParser<any>[] = [];
@@ -1489,6 +1495,10 @@ export default class Analyzer
         let stat = _fs_.lstatSync(pFilePath);
 
         const ffmt = _path_.extname(pFilename);
+
+        if(vCtx.openOpts!=null && vCtx.openOpts.filterFmt!=null) {
+            if (vCtx.openOpts.filterFmt.indexOf(ffmt)==-1) /* skip */ return;
+        }
 
         let file = new ModelFile({
             path:pFilePath,
@@ -1507,26 +1517,48 @@ export default class Analyzer
 
         if(fparser == null){
             try{
-                if(ffmt!=null){
-                    if(ffmt===""){
-                        candidateParsers = await this.context.getDataFormatMgr().getParserBySignature<any>(input, 0, {encoding:'binary', raw:true});
-                    }else{
-                        candidateParsers = this.context.getDataFormatMgr().getParserByFileExtension<any>(ffmt);
-                    }
 
+                if(ffmt!=""){
+                    candidateParsers = this.context.getDataFormatMgr().getParserByFileExtension<any>(ffmt,{skipEmpty:true});
+
+                    for(let i=0; i<candidateParsers.length; i++){
+                        if(candidateParsers[i].FEATURES.indexOf(IParserFeature.MAGIC_CHECK)>-1){
+                            if((candidateParsers[i] as IMagicParser<any>).hasSignature(input, 0, {encoding:'binary', raw:true})){
+                                fparser = candidateParsers[i];
+                                break;
+                            }
+                        }
+                    }
+                }else{
+                    candidateParsers = await this.context.getDataFormatMgr().getParserBySignature<any>(input, 0, {encoding:'binary', raw:true});
+                }
+
+                /*
+                candidateParsers = await this.context.getDataFormatMgr().getParserBySignature<any>(input, 0, {encoding:'binary', raw:true});
+
+                if(candidateParsers.length==0 && ffmt!=null){
+                    candidateParsers = this.context.getDataFormatMgr().getParserByFileExtension<any>(ffmt,{skipEmpty:true});
+                }*/
+
+                /*
+                if(ffmt===""){
+                    candidateParsers = await this.context.getDataFormatMgr().getParserBySignature<any>(input, 0, {encoding:'binary', raw:true});
+                }else{
+                    candidateParsers = this.context.getDataFormatMgr().getParserByFileExtension<any>(ffmt);
+                }*/
+
+                if(fparser==null){
                     if(candidateParsers.length>0){
                         fparser = candidateParsers[0];
                     }else{
+                        console.log("No parser found for file: "+pFilePath);
                         err.push(DataFormatManagerException.NOT_PARSABLE(ffmt,'app code analyzer',pFilePath));
 
                         // save
                         file.addTag(this.context.getTagManager().getTag("data.type.unknown"));
                         await this.saveParsedObject(file, vCtx, null, null, null, []);
-
                         return;
                     }
-                }else{
-                    console.log(`File format is null : ${pFilePath}`);
                 }
 
             }catch(e){
@@ -1570,7 +1602,8 @@ export default class Analyzer
 
                 res = await fparser.fromBuffer(input, 0, { encoding: this.encoding, print:false, raw:false, tags:vCtx.tagAlways });
                 if(res.ok==null){
-                    Logger.error(`[ANALYZER] File ${pFilename} cannot analyzed. Cause : ${res.invalid.length>0 ? res.invalid[0].msg : '?' }`);
+                    Logger.error(`[ANALYZER] fileAsync : File ${pFilename} cannot analyzed. Cause : ${res.invalid.length>0 ? res.invalid[0].msg : '?' }`);
+                    console.log(res.invalid);
                     err = err.concat(res.invalid);
                     this._errors[pFilePath] = err;
 
@@ -1816,7 +1849,7 @@ export default class Analyzer
      * @returns {void}
      * @method
      */
-    async path(pPath:string, pLocation:ModelLocation=null, pDataScope:Nullable<DataScope>=null, pAlwaysTag:Tag[] = []):Promise<void>{
+    async path(pPath:string, pLocation:ModelLocation=null, pDataScope:Nullable<DataScope>=null, pAlwaysTag:Tag[] = [], pOptions:any = {}):Promise<void>{
 
         let self:Analyzer = this;
         let baseCtx:any = {
@@ -1852,6 +1885,12 @@ export default class Analyzer
 
             vCtx = await this.context.getAppAnalyzer().getPathContext(vPath, vFile, vIsDir, vCtx);
             vCtx.tagAlways = pAlwaysTag;
+            vCtx.createMode = (true===pOptions.createMode);
+            vCtx.openOpts =  (pOptions.openOpts!=null ? pOptions.openOpts:{});
+
+            if(pDataScope!=null){
+                vCtx.scope = pDataScope;
+            }
 
             if(vIsDir){
                 vCtx.location = pLocation;
@@ -2360,5 +2399,31 @@ export default class Analyzer
             //evtType = "model.class.new";
         });
     }
+
+    /**
+     * To extract SBOM
+     * @param {*} pOptions
+     */
+    async performSca(pOptions:any={ duplex:false }):Promise<ModelBom[]>{
+        let sboms:ModelBom[] = [];
+        let sca = new CompositionAnalyzer({
+            ctx: this.context
+        });
+
+        if(pOptions.duplex){
+            let candidates = await sca.extractChunks();
+            console.log(candidates);
+        }
+        // search packages in DB from ModelPackage FQN
+
+        // search packages in DB from native library names
+        // search native libraries in DB from symbols signature
+        // search native libraries in DB from symbols signature
+
+
+        return sboms;
+    }
+
+
 }
 

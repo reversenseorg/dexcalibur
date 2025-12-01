@@ -11,6 +11,7 @@ import {MetadataTopic} from "../audit/common/ControlAssessment.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {Buffer} from "buffer";
 import ModelResource from "../ModelResource.js";
+import {MagicSignature} from "../formats/common.js";
 
 
 export namespace Elf {
@@ -60,9 +61,9 @@ export namespace Elf {
 
         FORMAT_NAMES:string[] = ["elf"];
 
-        FILE_EXTENSIONS:string[] = [""]; // "" = no extension DO NOT REPLACE BY NULL !
+        FILE_EXTENSIONS:string[] = ["",".so"]; // "" = no extension DO NOT REPLACE BY NULL !
 
-        DESCR = "ELF Binary";
+        description = "ELF Binary";
 
         static MAGIC = "\x7FELF";
         static HEADER_TPL:BinTpl[] = [
@@ -85,7 +86,13 @@ export namespace Elf {
         }
 
         async hasSignature(pBuffer: Buffer, pOffset: number): Promise<boolean> {
-            return false;
+            const magic = Struct.unpack("4s", pBuffer, pOffset);
+            return (magic[0]===Parser.MAGIC);
+        }
+
+
+        getMagic(): MagicSignature[] {
+            return [{ offset:0, magic:Parser.MAGIC }];
         }
 
         parseHeader(pBuffer:Buffer, pOffset:number, pPrint = false):ElfHeader {
