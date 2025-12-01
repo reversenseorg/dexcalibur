@@ -7,6 +7,14 @@ import {Connection, ConnectionProtocol} from "../organization/conn/Connection.js
 import {UserAccount} from "../user/UserAccount.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import Util from "../Utils.js";
+import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import * as Log from "../Logger.js";
+import {DownloadedProjectInput, ProjectInputPurpose} from "../analyzer/ProjectInput.js";
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
 
 
 export interface ApkDownloaderOptions {
@@ -14,6 +22,8 @@ export interface ApkDownloaderOptions {
     token:string;
     store?:string;
     destFolder:string;
+    device?:string;
+    split_apk?:string
 }
 
 export class ApkeepHelper extends  External.ExternalHelper {
@@ -43,19 +53,29 @@ export class ApkeepHelper extends  External.ExternalHelper {
      * @param pConnection
      * @param pDest
      */
-    downloadWith( pUser:UserAccount, pPackageID:string, pOrg:OrganizationUnit, pConnection:Connection, pDest:string):string{
+    downloadWith( pUser:UserAccount, pPackageID:string, pOrg:OrganizationUnit, pConnection:Connection, pDest:string):DownloadedProjectInput[]{
 
         const opts:ApkDownloaderOptions = {
             store: "",
             username: "",
             token: "",
-            destFolder: pDest
+            destFolder: pDest,
+            device: null,
+            split_apk: null
         };
 
 
         // authentication
         if(pConnection.hasField("account_username")){
             opts.username =  (pConnection.getField("account_username") as any).field;
+        }
+
+        if(pConnection.hasField("device")){
+            opts.device =  (pConnection.getField("device") as any).field;
+        }
+
+        if(pConnection.hasField("split_apk")){
+            opts.split_apk =  (pConnection.getField("split_apk") as any).field;
         }
 
         if(pConnection.hasSecret("aas_token")){
@@ -79,7 +99,7 @@ export class ApkeepHelper extends  External.ExternalHelper {
      * @param pPackageID
      * @param pConnection
      */
-    download( pUser:UserAccount, pPackageID:string, pOptions:ApkDownloaderOptions):string {
+    download( pUser:UserAccount, pPackageID:string, pOptions:ApkDownloaderOptions):DownloadedProjectInput[] {
         let args:string[] = [];
 
         const pkgid = Util.trim(pPackageID,false,true);
@@ -100,6 +120,28 @@ export class ApkeepHelper extends  External.ExternalHelper {
             args.push(pOptions.username);
         }
 
+        const extr:string[] = [];
+        let mult = false;
+
+        if(pOptions.device!=null){
+            if(pOptions.device.match(/^[a-zA-Z0-9_]+$/)===null){
+                throw RuntimeSecurityException.FORBIDDEN_IN_COMMAND("Invalid device name");
+            }
+            extr.push(`device=${pOptions.device}`);
+        }
+        if(pOptions.split_apk!=null){
+            if(!ValidationRule.newPinklistAssert(["true","false"]).test(pOptions.split_apk)){
+                throw RuntimeSecurityException.FORBIDDEN_IN_COMMAND("Invalid value for split_apk option");
+            }
+            extr.push(`split_apk=${pOptions.split_apk}`);
+            mult = true;
+        }
+
+        if(extr.length>0){
+            args.push("-o");
+            args.push(extr.join(","));
+        }
+
         if(pOptions.token){
             args.push('-t');
             args.push(pOptions.token);
@@ -112,15 +154,44 @@ export class ApkeepHelper extends  External.ExternalHelper {
         args.push(pOptions.destFolder);
 
         const result = _proc_.spawnSync(ApkeepHelper.BIN, args, {
-            stdio: ['ignore', 'pipe', 'pipe'],
+            stdio: ['ignore', process.stdout, process.stderr /*'pipe', 'pipe'*/ ],
         });
 
-        const output = _path_.join( pOptions.destFolder, pkgid+'.apk');
-        if(!_fs_.existsSync(output)){
-            throw new Error("Application package cannot be downloaded.")
+        if(mult){
+            // split APKs mode
+            const dest = _path_.join(pOptions.destFolder,pPackageID)
+            const entries = _fs_.readdirSync(dest);
+            let res:DownloadedProjectInput[] = [];
+
+            entries.map((vEntry:string)=>{
+                if(vEntry.endsWith('.apk')){
+                    res.push({
+                        path: _path_.join(dest,vEntry),
+                        purpose: (vEntry===pPackageID+".apk" ? ProjectInputPurpose.MAIN : ProjectInputPurpose.EXTRA)
+                    });
+
+                    Logger.info("[*] Split APK : "+vEntry+" downloaded.");
+                }
+            })
+
+            if(res.length==0){
+                throw new Error("Application packages cannot be downloaded.")
+            }
+
+
+            return res;
+        }else{
+            // single APK mode
+            const apk = _path_.join(pOptions.destFolder,pPackageID+".apk");
+            if(!_fs_.existsSync(apk)){
+                throw new Error("Application package cannot be downloaded.")
+            }
+
+
+            Logger.info("[*] Single APK : "+apk+" downloaded.");
+            return [{ path:apk, purpose: ProjectInputPurpose.MAIN }];
         }
 
-        return output;
     }
 }
 const p = Util.whereIs(ApkeepHelper.BIN);
