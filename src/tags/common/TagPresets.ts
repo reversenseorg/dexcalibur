@@ -35,7 +35,16 @@ export function newTagPresets(){
     const OBJC = new TagCategory({ name: "objc" });
     const SWIFT = new TagCategory({ name: "swift" });
     const IA = new TagCategory({ name: "ia" });
+    const ANALYZED = new TagCategory({ name: "analyzed" });
 
+
+    const ANALYZED_TAGS = [
+        new Tag({ name:"native_func", label:"Native Functions" }),
+        new Tag({ name:"bin_sections", label:"Sections" }),
+        new Tag({ name:"str", label:"Strings" }),
+        new Tag({ name:"crypto_key", label:"Crypto Key" }),
+        new Tag({ name:"crypto_alg", label:"Crypto Algorithm" }),
+    ];
 
     const OBJC_TAGS = [
         new Tag({ name:"bundle", label:"NSBundle" }),
@@ -123,6 +132,11 @@ export function newTagPresets(){
         new Tag({ name:"raw" }),
         new Tag({ name:"plist" }),
         new Tag({ name:"nib" }),
+        new Tag({ name:"zip" }),
+        new Tag({ name:"aar" }),
+        new Tag({ name:"apk" }),
+        new Tag({ name:"asar" }),
+        new Tag({ name:"ipa" }),
         new Tag({ name:"xcprivacy" }),
         new Tag({ name:"unknown" }),
     ];
@@ -263,6 +277,9 @@ export function newTagPresets(){
     }*/
 
     AUDIT_POLICY_TAGS.map( x => { AUDIT_POLICY.addTag(x); });
+    ANALYZED_TAGS.map( x => { ANALYZED.addTag(x); });
+
+
 
     CODE_NATIVE_TAGS.map( x => { CODE_NATIVE.addTag(x); });
     CODE_GLOBAL_TAGS.map( x => { CODE_GLOBAL.addTag(x); });
@@ -333,7 +350,8 @@ export function newTagPresets(){
 
         OBJC,
         SWIFT,
-        IA
+        IA,
+        ANALYZED
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();
