@@ -1,8 +1,7 @@
 import DexcaliburProject from "../DexcaliburProject.js";
 import ModelFile from "../ModelFile.js";
-import DataScope from "../DataScope.js";
 import {UserAccount} from "../user/UserAccount.js";
-import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {MerlinSearchRequest, OperationType} from "../search/MerlinSearchRequest.js";
 
 /**
  * This class offers API to give information about anything related to code, ast, files and more
@@ -38,8 +37,26 @@ export class ProgramManager {
      * @async
      */
     async listProjectLibraries(pUser:UserAccount):Promise<ModelFile[]> {
+
+
+        const res =  await this._prj.getProjectDB().merlinSearch(
+            MerlinSearchRequest
+                .fromCondition(
+                    this._prj.merlin,
+                    ModelFile.TYPE,
+                    "@data.type.executable", { not:false })
+                .addOperation({
+                    type: OperationType.FILTER,
+                    args: {
+                        pattern: "scope:PKG"
+                    }
+                })
+        );
+
+        return res.getAsList();
+        /*
         return this._prj.getAnalyzer().getNativeAnalyzer().getAnalyzedFiles(
             this._prj.getDataAnalyzer().getScope('PKG')
-        );
+        );*/
     }
 }
