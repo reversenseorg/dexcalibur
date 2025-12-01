@@ -3,7 +3,8 @@ import ModelExecutableSection from "../ModelExecutableSection.js";
 
 export enum NativeHelperCmd {
     LIST_SECTIONS='sections',
-    LIST_FUNCS='f_list'
+    LIST_FUNCS='f_list',
+    SEARCH_INT='s_svc'
 }
 
 export interface INativeHelper {
