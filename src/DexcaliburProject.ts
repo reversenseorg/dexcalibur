@@ -44,13 +44,13 @@ import {Auditable} from "./Auditable.js";
 import DataScope from "./DataScope.js";
 import KeyPointManager from "./hook/KeyPointManager.js";
 import {ScriptManager} from "./ScriptManager.js";
-import {TypeManager} from "./types/TypeManager.js";
+import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager.js";
 import {AnalyzerState} from "./AnalyzerState.js";
 import {IAppAnalyzer} from "./analyzer/IAppAnalyzer.js";
 import {TagManager} from "./tags/TagManager.js";
 import {DexcaliburProjectException} from "./errors/DexcaliburProjectException.js";
 import {Architecture} from "./Architecture.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {ProjectState} from "./ProjectState.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
@@ -59,7 +59,6 @@ import {CoreDebug} from "./core/CoreDebug.js";
 import {ScanSchedulerProject} from "./audit/common/ScanSchedulerProject.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import TargetApp from "./common/TargetApp.js";
-import {Metadata} from "./audit/common/Metadata.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {
     AppContextType,
@@ -73,10 +72,9 @@ import {
     NodePropertyState,
     NodeType,
     Tag,
-    TagUUID, ValidationRule
+    TagUUID,
+    ValidationRule
 } from "@dexcalibur/dexcalibur-orm";
-
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";
@@ -100,9 +98,9 @@ import {ProgramManager} from "./core/ProgramManager.js";
 import ModelStringValue from "./ModelStringValue.js";
 import {DataFormatManager} from "./formats/DataFormatManager.js";
 import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection.js";
 import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
+import {AndroidTypes} from "./android/AndroidTypes.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1022,6 +1020,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this.tagManager = new TagManager();
         this.typeManager = new TypeManager();
 
+        this._initTypes();
 
 
         // init project workspace
@@ -2346,6 +2345,20 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     }
 
 
+    private _getOpenOptions():any {
+        switch (this.os){
+            case OperatingSystem.ANDROID:
+                if(this._createMode===true){
+                    return  {}
+                }else{
+                    return  {
+                        filterFmt: [".smali"]
+                    }
+                }
+            default:
+                return {};
+        }
+    }
     /**
      * To perform a fullsacn of the application. It  performs :
      *      - Android API bytecode scan (for the specified API version - by default it's API 25)
@@ -2451,7 +2464,16 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         // If android or iOS bytecode code analysis
         // TODO : multi threading
-        await this.analyze.path( targetPath, CodeLocation.APP, pkgScope);
+        await this.analyze.path(
+            targetPath,
+            CodeLocation.APP,
+            pkgScope,
+            [sastTag],
+            {
+                createMode: this._createMode,
+                openOpts: this._getOpenOptions()
+            }
+        );
 
         this.analyze.tagAllIf(
             (k,x) => {  return !internTag.match(x); },
@@ -3211,6 +3233,14 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
     getDataFormatMgr():DataFormatManager {
         return this._dfm;
+    }
+
+    private _initTypes() {
+        switch (this.os){
+            case OperatingSystem.ANDROID:
+                this.getTypeManager().initTypes(DATATYPE_CATEGORY.JAVA, Object.values(AndroidTypes));
+                break;
+        }
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

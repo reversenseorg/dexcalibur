@@ -54,6 +54,7 @@ export const CONST = {
             LOCALS: ".locals",
             LOCAL: ".local",
             REG: ".registers",
+            PARAM: ".param",
             PARAMS: ".params",
             METHOD_BEG: ".method",
             ANNOT_BEG: ".annotation",

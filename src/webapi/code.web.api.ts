@@ -900,9 +900,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
             try{
 
                 // ========== SECURITY CHECKS
-
-
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -993,6 +990,8 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
+
+
 CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/libraries',
     {
@@ -1026,38 +1025,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
 );
 
-/*
-CODE_WEB_API.addAsyncAuthenticatedRoute(
-    '/libraries',
-    {
-        'get': async (req:DelegateRequest, res:DelegateResponse) => {
-
-
-            let $: WebServer = req.dxc.$;
-            let project:DexcaliburProject;
-
-            try{
-                if(req.query['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                $.sendSuccess( res,
-                    (await project.getProgramManager().listProjectLibraries(req.user))
-                        .map(x => x.toJsonObject({}, SecurityZone.PUBLIC))
-                );
-            }catch(err){
-                Logger.error("[API][CODE] Content of package cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Content of package cannot be listed. Cause : " + err.message);
-            }
-        }
-    }
-);*/
 
 
 CODE_WEB_API.addAsyncAuthenticatedRoute(
@@ -1225,3 +1192,41 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
         nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
+
+
+
+CODE_WEB_API.addAsyncAuthenticatedRoute(
+    '/analysis/sca',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+
+            let $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                // ========== SECURITY CHECKS
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                let compo = await project.getAnalyzer().performSca({
+                    duplex: true
+                });
+
+                $.sendSuccess( res, compo);
+
+            }catch(err){
+                Logger.error("[API][CODE] Disassembly failure from node ref. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Disassembly failure from node ref. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+

@@ -1118,7 +1118,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             // start engine controller
             if(this.engine_type===DexcaliburEngineMode.MASTER){
-                this.getNodeManager().spawnController(10000);
+                this.getNodeManager().spawnController(100000);
             }
         }
 

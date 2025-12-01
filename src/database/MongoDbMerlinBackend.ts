@@ -103,7 +103,7 @@ export class MongoDbMerlinBackend {
                         for(let i=0;i<parts.length;i++){
                             try{
                                 currPpt = currType.getProperty(parts[i]);
-                                if(currPpt.isNode()){
+                                if(currPpt!=null && currPpt.isNode()){
                                     // require inner-join-like request
                                     joins.push({
                                         type: currPpt.getNodeType(),
@@ -134,9 +134,9 @@ export class MongoDbMerlinBackend {
                     // prepare filters
                     if(cs.hasTag()==true){
                         if(cs.isNested()){
-                            field = /*cs.field*/finalField+"._tags";
+                            field = /*cs.field*/finalField+".tags"; // _tags
                         }else{
-                            field = "_tags";
+                            field = "tags";
                         }
 
                         filters["$and"].push({ [field]: {
@@ -146,30 +146,31 @@ export class MongoDbMerlinBackend {
 
                         if(cs.isTagOnly()){
                             i++;
-                            continue;
+                        }
+                    }
+                    else{
+                        field = finalField; //cs.field;
+
+
+                        if (cs.isRegExp()) {
+                            //filters[cs.field].push({ [cs.field]: cs.pattern })
+
+
+                            filters['$and'].push({ [field]: { $regex: cs.getRegExpPattern(), $options: (cs.opts?.nocase ? 'i' : '') }});
+                            /*filter[cs.field] = {
+                                [cs.field]: cs.pattern
+                            };
+                            /*match = match
+                                && (Util.readValue(vData, cs.field)
+                                    === cs.pattern);*/
+                        } else {
+                            filters['$and'].push({ [field]: cs.pattern })
+                            //match = match && cs.test(vData);
+                            //filters[cs.field].push({ $regex: cs.getRegExpPattern() });
+
                         }
                     }
 
-                    field = finalField; //cs.field;
-
-
-                    if (cs.isRegExp()) {
-                        //filters[cs.field].push({ [cs.field]: cs.pattern })
-
-
-                        filters['$and'].push({ [field]: { $regex: cs.getRegExpPattern(), $options: (cs.opts?.nocase ? 'i' : '') }});
-                        /*filter[cs.field] = {
-                            [cs.field]: cs.pattern
-                        };
-                        /*match = match
-                            && (Util.readValue(vData, cs.field)
-                                === cs.pattern);*/
-                    } else {
-                        filters['$and'].push({ [field]: cs.pattern })
-                        //match = match && cs.test(vData);
-                        //filters[cs.field].push({ $regex: cs.getRegExpPattern() });
-
-                    }
 
 
                     // example : method('enclosingClass.name:/toto/')
