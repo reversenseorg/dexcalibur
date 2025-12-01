@@ -1463,3 +1463,57 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/report/:unsafeReportUUID/:aid/export/:type',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                const rep = (await am.getReport(req.user, req.params.unsafeReportUUID, app));
+                let sanitizedOpts:any = {};
+
+                if(ValidationRule.structure({
+                    appendApp: ValidationRule.bool(),
+                    appendDevice: ValidationRule.bool(),
+                    appendPlatform: ValidationRule.bool(),
+                    clean: ValidationRule.bool(),
+                    embedKpis: ValidationRule.bool(),
+                    groupSampleByNode: ValidationRule.bool(),
+                    sampling: ValidationRule.bool(),
+                    samplingSize: ValidationRule.number(0,1000),
+                }).test(req.body.opts)){
+                    sanitizedOpts = req.body.opts;
+                }else{
+                    throw new Error("Invalid export options.");
+                }
+
+                let ex:any;
+                switch (req.params.type){
+                    case "json":
+                        ex = await $.context.getAuditManager().exportJson(req.user, rep, sanitizedOpts);
+                        $.sendSuccess( res, ex);
+                        break;
+                    default:
+                        throw new Error("Unknown export type.");
+                }
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
+    }
+);
+

@@ -1,6 +1,6 @@
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import AssuranceModel, {AssuranceModelPreview, AssuranceModelUUID} from "./common/AssuranceModel.js";
-import AssuranceReport, {AssuranceReportUUID} from "./common/AssuranceReport.js";
+import AssuranceReport, {AssuranceReportUUID, ReportExportOptions} from "./common/AssuranceReport.js";
 import {AuditManagerException} from "./errors/AuditManagerException.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import * as Log from "../Logger.js";
@@ -1000,5 +1000,10 @@ export class AuditManager {
         }
 
         return reports;
+    }
+
+    async exportJson(pUser:UserAccount,  pReport:AssuranceReport, pOptions:ReportExportOptions):Promise<any> {
+        const rep = pReport.exportJson(pOptions);
+        return rep;
     }
 }

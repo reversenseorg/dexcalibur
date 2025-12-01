@@ -14,7 +14,7 @@ import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 
 import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {FinderResult} from "../../search/FinderResult.js";
-import {INode, NodeType, NodeUtils, SerializeOptions, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, NodeUtils, SerializeOptions, TagUUID, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../../core/IStringIndex.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
@@ -28,6 +28,17 @@ import {ExportOptions} from "../ExplainedReport.js";
 import ControlAssessment from "./ControlAssessment.js";
 import Control from "./Control.js";
 import {MatchOccurence} from "./Match.js";
+
+export interface ReportExportOptions {
+    appendApp: boolean,
+    appendDevice: boolean,
+    appendPlatform: boolean,
+    clean: boolean,
+    embedKpis: boolean,
+    groupSampleByNode: boolean,
+    sampling: boolean,
+    samplingSize: number
+}
 
 export interface MatchGroup {
     model: AssuranceModelUUID,
@@ -366,8 +377,13 @@ export default class AssuranceReport implements INode {
     toJsonObject(pOptions?:SerializeOptions):any {
         const o:any = {};
         let match:Match;
+        const excl = (pOptions!=null && pOptions.exclude!=null)? pOptions.exclude as string[] : [];
 
         for(let i in this){
+
+            if(excl.indexOf(i)!=-1){
+                continue;
+            }
             if(this[i]==null){
                 o[i] = null;
                 continue;
@@ -1045,6 +1061,16 @@ export default class AssuranceReport implements INode {
         }
 
         return kpi;
+    }
+
+    exportJson(pOptions:ReportExportOptions):any {
+
+        let opts:any = {exclude:[]};
+        if(pOptions.appendApp===false) opts.exclude.push("appInfo");
+        if(pOptions.appendDevice===false) opts.exclude.push("deviceInfo");
+        //if(pOptions.appendPlatform===false) opts.exclude.push("project");
+
+        return this.toJsonObject(opts);
     }
 }
 AssuranceReport.TYPE.builder(AssuranceReport);
