@@ -16,11 +16,17 @@ export interface ConnectionProtocolType {
 export interface SecretMapping {
     name: string;
     secret: any;
+    help?: string;
+    descr?: string;
+    values?: any[];
 }
 
 export interface FieldMapping {
     name: string;
     field: string;
+    help?: string;
+    descr?: string;
+    values?: any[];
 }
 
 export interface ProtocolMapping {
