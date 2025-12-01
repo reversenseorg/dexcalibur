@@ -12,7 +12,7 @@ import {
     INode,
     NodeProperty,
     NodePropertyState,
-    NodeType,
+    NodeType, NodeUtils,
     SerializeOptions,
     Tag,
     ValidationRule
@@ -26,6 +26,8 @@ import {SecurityZone} from "./security/SecurityZone.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {Metadata, MetadataType} from "./audit/common/Metadata.js";
 import {MetadataTopic} from "./audit/common/ControlAssessment.js";
+import ModelCpuInstruction from "./ModelCpuInstruction.js";
+import ModelSyscall from "./ModelSyscall.js";
 
 
 
@@ -157,7 +159,7 @@ export default class ModelFile implements INode,IPersistent {
                     const sect:ModelExecutableSection[] = [];
                     let s:ModelFileSection;
                     for(let i=0; i<x.p.length; i++){
-                        sect.push(new ModelExecutableSection(x.p));
+                        sect.push(new ModelExecutableSection(x.p[i]));
                     }
                     return sect;
 
@@ -197,6 +199,17 @@ export default class ModelFile implements INode,IPersistent {
                     for(let k in x.p){
                         switch (k){
                             case "f_list":
+                                p.f_list = {};
+                                if(x.p.f_list!=null){
+                                    for(let addr in x.p.f_list){
+                                        if(NodeUtils.isNodeRef( x.p.f_list[addr])){
+                                            p.f_list[addr] = x.p.f_list[addr];
+                                        }else{
+                                            p.f_list[addr] = NodeUtils.asNodeRef(x.p.f_list[addr]);
+                                        }
+                                    }
+                                }
+                                break;
                             case "m":
                             case "sections":
                                 /*ignore*/
@@ -730,6 +743,16 @@ export default class ModelFile implements INode,IPersistent {
 
     getEntropy():number {
         return this.entropy;
+    }
+
+    addSyscall(pSyscall:ModelSyscall):void {
+        if(this.__p==null) this.__p = {};
+        if(this.__p.syscalls==null) this.__p.syscalls = [];
+        this.__p.syscalls.push(pSyscall);
+    }
+
+    getSyscalls():ModelSyscall[] {
+        return (this.__p!=null ? this.__p.syscalls : []);
     }
 }
 

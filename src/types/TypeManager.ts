@@ -34,11 +34,15 @@ export class TypeManager {
         let success = true;
         switch (pCategory){
             case DATATYPE_CATEGORY.JAVA:
-                pTypes.map( (vType:DataType)=>{ this._java[vType.getName()] = vType });
+                pTypes.map( (vType:DataType)=>{
+                    this.addJavaType(vType);
+                });
                 this._initf[pCategory] = true;
                 break;
             case DATATYPE_CATEGORY.NATIVE:
-                pTypes.map( (vType:DataType)=>{ this._native[vType.getName()] = vType });
+                pTypes.map( (vType:DataType)=>{
+                    this.addNativeType(vType);
+                });
                 this._initf[pCategory] = true;
                 break;
             default:
@@ -64,5 +68,8 @@ export class TypeManager {
     getNativeType( pName):DataType{
         return this._native[pName];
     }
-
+    
+    getJavaType( pName):DataType{
+        return this._java[pName];
+    }
 }

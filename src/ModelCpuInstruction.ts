@@ -63,7 +63,7 @@ export default class ModelCpuInstruction
 
 
     toJsonObject(pOptions:SerializeOptions):any{
-        const exclude:Nullable<IStringIndex<boolean>> = (pOptions.exclude!=null ? pOptions.exclude : null);
+        const exclude:Nullable<IStringIndex<boolean>> = (pOptions!=null && pOptions.exclude!=null ? pOptions.exclude : null);
         let o:any = {};
         for(let i in this){
             if(exclude!=null && exclude[i]==true) continue;

@@ -187,6 +187,7 @@ export default class ModelStringValue extends Savable implements INode
         o._uid = this._uid;
         o.value = this.value;
         o.src = [];
+        o._uid = this.getUID();
 
         // "instr" can be empty is the string has been gathered at runtime
         /*if(this.instr !=null){

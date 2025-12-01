@@ -13,6 +13,8 @@ import {NativeAnalyzerException} from "../errors/NativeAnalyzerException.js";
 import {NativeAnalyzerCommands} from "../analyzer/NativeAnalyzerCommands.js";
 import Util from "../Utils.js";
 import {AbiManager} from "../binary/ABI.js";
+import {NativeHelperCmd} from "../analyzer/INativeHelper.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -90,6 +92,77 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
         }
     }
 );
+
+
+NATIVE_WEB_API.addAsyncAuthenticatedRoute(
+    '/search/:type',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                // ========== SECURITY CHECKS
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // ========== LOGIC
+
+                const sanitizedUID = ModelFile.TYPE.sanitize( '_uid', req.query['uid']);
+                const fileRes = await req.dxc.project.merlin.file({
+                    _uid: sanitizedUID.getValue()
+                }).executePDB(req.project);
+
+
+                // const file:ModelFile = project.find.get.files(sanitizedUID.getValue());
+                if(fileRes.count()==0){
+                    throw new Error("[NATIVE::ANALYSIS] #NAT_2 File not found");
+                }
+
+                const file = fileRes.get(0) as ModelFile;
+
+                if(req.params['type']!=null){
+
+
+                    let success = -1;
+
+                    switch(req.params['type']){
+                        case NativeHelperCmd.SEARCH_INT:
+                            if(project.analyze.getNativeAnalyzer().requireAnalysis( file as ModelFile, [NativeHelperCmd.SEARCH_INT], {} )){
+                                Logger.info("Search syscall in binary: ");
+                                success = await project.analyze.getNativeAnalyzer().scan( file, [NativeHelperCmd.SEARCH_INT], {});
+                                if(success>-1){
+                                    $.sendSuccess(res, file.getSyscalls());
+                                    return;
+                                }
+                            }else {
+                                $.sendSuccess(res, file.getSyscalls());
+                                return;
+                            }
+                            break;
+                    }
+                }
+
+                $.sendError(res, " Fail to retrieve data from file.  ");
+
+            }catch(err){
+                Logger.error("[API][NATIVE] Fail to retrieve data from file. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Fail to retrieve data from file. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+
 
 
 NATIVE_WEB_API.addAsyncAuthenticatedRoute(
@@ -224,10 +297,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
                 // ========== SECURITY CHECKS
-
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -244,11 +314,22 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 const fn_uid = req.query['uid']  as string;
-                const fn:ModelFunction = project.find.get.func(fn_uid); // .func.get('_uid:'+req.query['uid']);
-                if(fn == null){
+                const fns = await project.merlin.func({
+                    __s: fn_uid
+                }).executePDB(project);
+
+                if(fns.count()==0){
                     throw new Error("Function ("+fn_uid+") not found ");
                 }
 
+                const fn:ModelFunction = fns.get(0);
+
+                if(fn.isDisassembled()){
+                    $.sendSuccess( res, fn.getDisassembly().map((i)=>{
+                        return i.toJsonObject({});
+                    }));
+                    return;
+                }
 /*
                 let file:any = fn.getDeclaringFile();
                 if(typeof file === 'string'){
@@ -263,25 +344,78 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 const natAnal:NativeAnalyzer = project.analyze.getNativeAnalyzer();
-                let commands:string[];
-                if(req.query['cmd']!=null){
-                    commands = NativeAnalyzerCommands.getFuncCmd(req.query['cmd']  as string);
-                }else{
-                    commands = [NativeAnalyzerCommands.FUNC_CMD.DISASS];
-                }
-
-                /*if(natAnal.requireAnalysis( file as ModelFile, commands, null)){
-                    //Logger.error('[ANTIVEZ ANALYZER] Already analyzed files : '+Object.keys(natAnal.r2factory.helpers).join(' : '));
-                    throw NativeAnalyzerException.ANALYSIS_REQUIRED((file as ModelFile).getRelativePath());
-                }*/
+                let commands:string[] = [NativeAnalyzerCommands.FUNC_CMD.DISASS];
 
                 Logger.info("[NATIVE ANALYZER] Commands : ",commands.join(', '))
-                const success = await natAnal.analyzeFunction(fn, commands, null);
+                const results = await natAnal.analyzeFunction(fn, commands, null);
 
-                if(success)
-                    $.sendSuccess( res,fn.toJsonObjectWithCmd(commands));
+                if(results.success)
+                    $.sendSuccess( res,fn.getDisassembly().map(i => i.toJsonObject({})));
                 else
                     $.sendError(res, " Disassembly of function failed without errors :( Please file an issue, if this error occurs.");
+            }catch(err){
+                Logger.error("[API][NATIVE] Disassembly of function failed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Disassembly of function failed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+
+NATIVE_WEB_API.addAsyncAuthenticatedRoute(
+    '/funcs/:ope',
+    {
+        'post':  async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                // ========== SECURITY CHECKS
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // ========== LOGIC
+                if(req.body['uid']==null){
+                    throw new Error("Function UID is missing");
+                }
+
+                const fn_uid = req.body['uid']  as string;
+                const fns = await project.merlin.func({
+                    __s: fn_uid
+                }).executePDB(project);
+
+                if(fns.count()==0){
+                    throw new Error("Function ("+fn_uid+") not found ");
+                }
+
+                const natAnal:NativeAnalyzer = project.analyze.getNativeAnalyzer();
+
+                let commands:string[];
+                switch (req.params['ope']) {
+                    case 'decompile':
+                        commands = [NativeAnalyzerCommands.FUNC_CMD.DECOMPILE];
+                        const results = await natAnal.analyzeFunction(fns.get(0), commands, null);
+                        if (results.success){
+                            $.sendSuccess(res, fns.get(0).toJsonObjectWithCmd(commands));
+                        }else{
+                            $.sendError(res, " Cannot decompile function", {
+                                cause: (results.results!=null && results.results.length>0 ? results.results[0] : "Unknown error")
+                            });
+                        }
+                        return;
+                    case 'xref':
+                    default:
+                        $.sendError(res, " Operations over function failed without errors :( Please file an issue, if this error occurs.");
+                        return;
+                }
             }catch(err){
                 Logger.error("[API][NATIVE] Disassembly of function failed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, " Disassembly of function failed. Cause : " + err.message);
@@ -301,8 +435,6 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
             try{
 
                 // ========== SECURITY CHECKS
-
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -325,27 +457,42 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                 switch (req.params['type']){
                     case 'file':
                         const sanitizedUID = ModelFile.TYPE.sanitize( '_uid', req.body['uid']);
-                        const file:ModelFile = project.find.get.files(sanitizedUID.getValue());
-                        if(file==null){
+                        const fileRes = await req.dxc.project.merlin.file({
+                            _uid: sanitizedUID.getValue()
+                        }).executePDB(req.project);
+
+
+                        // const file:ModelFile = project.find.get.files(sanitizedUID.getValue());
+                        if(fileRes.count()==0){
                             throw new Error("[NATIVE::ANALYSIS] #NAT_2 File not found");
                         }
+
+                        const file = fileRes.get(0) as ModelFile;
 
                         const cmd = (req.body['cmd']!=null ?  req.body['cmd'].split(':') : ['*']);
 
                         if(project.analyze.getNativeAnalyzer().requireAnalysis( file, cmd, null) || (req.body['force']===true)){
+                            const bin = await project.analyze.getNativeAnalyzer().discover( file);
+                            $.sendSuccess( res, file.toJsonObject({ extra:{ cmd:cmd.join(':') }}));
+                            return;
+                            /*
                             const n = await project.analyze.getNativeAnalyzer().scan( file, cmd);
                             if(n>-1){
                                 $.sendSuccess( res, file.toJsonObject({ extra:{ cmd:cmd.join(':') }}));
                             }else{
                                 throw new Error('Analysis failed');
-                            }
+                            }*/
                         }else{
-                            throw new Error('File already analyzed (cache response)');
+                            // throw new Error('File already analyzed (cache response)');
+                            $.sendSuccess( res, file.toJsonObject({ extra:{ cmd:cmd.join(':') }}));
+                            return;
                         }
 
                         break;
                 }
 
+                $.sendError(res, " File not analyzed.");
+                return;
             }catch(err){
                 Logger.error("[API][NATIVE] Perform native analysis failed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, " Perform native analysis failed. Cause : " + err.message);
@@ -371,4 +518,61 @@ NATIVE_WEB_API.addPublicRoute(
 );
 
 
+NATIVE_WEB_API.addAsyncAuthenticatedRoute(
+    '/emulate/create',
+    {
+        'post':  async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                // ========== SECURITY CHECKS
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+
+                // ========== LOGIC
+                if(req.body['uid']==null){
+                    throw new Error("Function UID is missing");
+                }
+
+                let e_uid:string, e_list:FinderResult;
+
+                switch(req.body['type']){
+                    case NodeInternalType.FUNC:
+                        e_uid = req.body['uid']  as string;
+                        e_list = await project.merlin.func({
+                            __s: e_uid
+                        }).executePDB(project);
+
+                        if(e_list.count()==0){
+                            throw new Error("Function ("+e_uid+") not found ");
+                        }
+                        break;
+                    default:
+                        throw new Error("Cannot emulate this node");
+                        break;
+                }
+
+
+
+                const natAnal:NativeAnalyzer = project.analyze.getNativeAnalyzer();
+                $.sendSuccess(res, (await natAnal.emulateFunc(e_list.get(0) as ModelFunction)).toConfigOptions({}));
+
+
+            }catch(err){
+                Logger.error("[API][NATIVE] Fail to create emulator configuration. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Fail to create emulator configuration. Cause : " + err.message);
+            }
+        }
+    }
+);
 

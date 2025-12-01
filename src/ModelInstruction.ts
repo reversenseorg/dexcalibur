@@ -11,6 +11,7 @@ import {CodeLabel, ModelRegisterReference} from "./ModelReference.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelConstantValue from "./ModelConstantValue.js";
 import {ElixirOpcodeDefinition} from "./Opcode.js";
+import {Operand} from "./elixir/common.js";
 
 /**
  * Represents an instruction from the Application bytecode
@@ -28,10 +29,6 @@ export default class ModelInstruction extends Savable
 
     // location into parser file (line number)
     // oline:number;
-
-    // line number into source (.jav, .kotlin, ...) file. Its a metadata
-    iline:Nullable<number> = null;
-
     // operands
     opcode:Nullable<ElixirOpcodeDefinition> = null;
     left:any = null;
@@ -40,12 +37,20 @@ export default class ModelInstruction extends Savable
     // experimental
     read:any = false;
 
-    // info
-    offset:number = 0;
-
     // VM
     value:any = null;
 
+
+    /**
+     @since 1.13.0
+     */
+    destination?: Operand;
+    operands: Operand[];
+
+    // info
+    offset:number = 0;
+    // line number into source (.jav, .kotlin, ...) file. Its a metadata
+    iline:Nullable<number> = null;
 
     constructor(pConfig:any=null) {
         super(STUB_TYPE.INSTR);

@@ -1399,7 +1399,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
             o.args.pattern.push(new SearchRequestCondition(vPattern))
           })
         }else{
-
+            o.args.pattern = [MerlinSearchRequest.parseConditionString((pObject.args as any).pattern)]
         }
         return o;
       case OperationType.INNERJOIN:

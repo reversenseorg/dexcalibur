@@ -9,7 +9,7 @@ import {
     DbKeyType,
     INode,
     IStringIndex,
-    NodeProperty,
+    NodeProperty, NodePropertyState,
     NodeType,
     SerializeOptions,
     Tag
@@ -22,6 +22,11 @@ import {AbstractHook} from "./hook/AbstractHook.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import ts from "typescript";
 import {INodeRef} from "./INode.js";
+import ModelExecutableSection from "./ModelExecutableSection.js";
+import ModelFileSection from "./ModelFileSection.js";
+import {ModelRegister} from "./elixir/ModelRegister.js";
+import NativeFunctionHook from "./hook/NativeFunctionHook.js";
+import {MemoryAddress} from "./memory/MemoryAddress.js";
 
 export interface ModelFunctionList {
     [pAddress:string] :ModelFunction
@@ -81,7 +86,9 @@ const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false
 export class ModelFunction implements INode, IPersistent {
 
     static CMD_MAPPING = {
-        [NativeAnalyzerCommands.FUNC_CMD.DISASS]: ['instr']
+        [NativeAnalyzerCommands.FUNC_CMD.DISASS]: ['instr'],
+        [NativeAnalyzerCommands.FUNC_CMD.XREF]: ['instr'],
+        [NativeAnalyzerCommands.FUNC_CMD.DECOMPILE]: ['dec']
     };
 
     static TYPE:NodeType = (new NodeType(
@@ -97,14 +104,69 @@ export class ModelFunction implements INode, IPersistent {
             (new NodeProperty("addr")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("edges")).type(DbDataType.INTEGER).def(0),
             (new NodeProperty("src")).type(DbDataType.BLOB).def(null),
+            (new NodeProperty("dec")).type(DbDataType.STRING).def(null),
             (new NodeProperty("stack")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("sz")).type(DbDataType.INTEGER).def(-1),
+            (new NodeProperty("instr"))
+                .type(DbDataType.BLOB)
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return null;
+                    const ins:any[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        ins.push(x.p[i].toJsonObject());
+                    }
+                    return ins;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p==null) return [];
+                    const ins:ModelCpuInstruction[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        ins.push(new ModelCpuInstruction(x.p[i]));
+                    }
+                    return ins;
+
+                })
+                .def([]),
             (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
 
             (new NodeProperty("regvars"))
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return null;
+                    const ins:any[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        ins.push(x.p[i].toJsonObject());
+                    }
+                    return ins;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p==null) return [];
+                    const ins:ModelVariable[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        ins.push(ModelVariable.fromObject(x.p[i]));
+                    }
+                    return ins;
+                })
+                .def([])
                 .type(DbDataType.BLOB),
 
             (new NodeProperty("spvars"))
+                .def([])
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return null;
+                    const ins:any[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        ins.push(x.p[i].toJsonObject());
+                    }
+                    return ins;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p==null) return [];
+                    const ins:ModelVariable[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        ins.push(ModelVariable.fromObject(x.p[i]));
+                    }
+                    return ins;
+                })
                 .type(DbDataType.BLOB),
 
             (new NodeProperty("cref"))
@@ -118,6 +180,26 @@ export class ModelFunction implements INode, IPersistent {
 
             (new NodeProperty("xdref"))
                 .type(DbDataType.BLOB),
+
+            (new NodeProperty("args"))
+                .type(DbDataType.BLOB)
+                .def([])
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return null;
+                    const ins:any[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        ins.push(x.p[i].toJsonObject());
+                    }
+                    return ins;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p==null) return [];
+                    const ins:ModelVariable[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        ins.push(ModelVariable.fromObject(x.p[i]));
+                    }
+                    return ins;
+                }),
 
 
             (new NodeProperty("ctype")).type(DbDataType.STRING)
@@ -138,20 +220,28 @@ export class ModelFunction implements INode, IPersistent {
 
     symbol:string = null;
 
+
+    dec:string = null;
+
     /**
-     * Same as regvars
+     * Function's arguments
      */
     args:ModelVariable[] = [];
+
     ret:ModelVariable = null;
 
     src:Nullable<INodeRef> = null;
 
     /**
-     *
+     * Local variables bound to register
      */
     regvars:ModelVariable[] = [];
 
+    /**
+     * Local variables from stack
+     */
     spvars:ModelVariable[] = [];
+
     bpvars:ModelVariable[] = [];
 
     xcref:ModelNativeRef[] = [];
@@ -168,9 +258,11 @@ export class ModelFunction implements INode, IPersistent {
 
     probing?:boolean;
 
-    instr:ModelCpuInstruction[];
+    instr:ModelCpuInstruction[] = [];
+
     alias:string = null;
-    hooks:any[] = []
+
+    hooks:NativeFunctionHook[] = []
 
     // signature
     __s:string = null;
@@ -261,16 +353,44 @@ export class ModelFunction implements INode, IPersistent {
     }
 
     addDisass(pInstrs:ModelCpuInstruction[]):void {
-        Logger.info("Set disassembled instr : ",JSON.stringify(pInstrs));
         this.instr = pInstrs;
     }
 
-    getDisass():ModelCpuInstruction[] {
-        return this.instr;
+    addArguments(pVar:ModelVariable[], pReset = true):void {
+        if(pReset){
+            this.args = [];
+        }
+        pVar.map( (v:ModelVariable)=>{
+            if(v.isRegister()){
+                this.args.push(v);
+            }else if(v.isOnStack()){
+                this.args.push(v);
+            }
+        });
+    }
+
+    addLocalVars(pVar:ModelVariable[]):void {
+        pVar.map( (v:ModelVariable)=>{
+            if(v.isRegister()){
+                this.regvars.push(v);
+            }else if(v.isOnStack()){
+                this.spvars.push(v);
+            }
+        });
+    }
+
+
+    addDecompile(pCode:string):void {
+        Logger.info("Set decompiled code : ",pCode);
+        this.dec = pCode;
     }
 
     getAddr():number {
         return this.addr;
+    }
+
+    getMemoryAddress():MemoryAddress {
+        return new MemoryAddress(BigInt(this.addr));
     }
 
     /**
@@ -435,6 +555,22 @@ export class ModelFunction implements INode, IPersistent {
         }
         CoreDebug.checkJsonSerialize(obj, "ModelFunction");
         return obj;
+    }
+
+    isDisassembled() {
+        return (this.instr != null && this.instr.length > 0);
+    }
+
+    isDecompiled() {
+        return (this.dec != null && this.dec.length > 0);
+    }
+
+    getDisassembly():ModelCpuInstruction[] {
+        return this.instr;
+    }
+
+    getDecompiled():string {
+        return this.dec;
     }
 }
 ModelFunction.TYPE.builder(ModelFunction);

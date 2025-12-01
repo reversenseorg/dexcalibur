@@ -1,7 +1,9 @@
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {DataType} from "./types/DataType.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {ModelRegister} from "./elixir/ModelRegister.js";
+import {RegisterType} from "./elixir/common.js";
 
 
 export enum ModelVariableType {
@@ -20,25 +22,42 @@ interface ModelVariableReference {
   offset?:string;
 }
 
+export interface ModelVariableOptions {
+    n?:string;
+    type?:DataType;
+    refs?:ModelVariableReference[];
+    reg?:Nullable<ModelRegister>;
+    offset?:number;
+}
 /**
  * Represents a local/global variable or argument of a function
  *
  * @class
  */
 export class ModelVariable {
-  _t:NodeInternalType = NodeInternalType.VAR;
+
+    __:NodeInternalType = NodeInternalType.VAR;
+
+    _t:NodeInternalType = NodeInternalType.VAR;
+
   __t:ModelVariableLocation = ModelVariableLocation.STACK;
+
   n:string = "";
+
+  name:string = "";
+
   type:DataType;
+
   refs:ModelVariableReference = null;
 
+  reg:Nullable<ModelRegister> = null;
 
-  constructor(pConfig:any = null){
+  offset:number = 0;
 
+  constructor(pConfig:Nullable<ModelVariableOptions> = null){
     if(pConfig!==undefined)
       for(let i in pConfig)
         this[i]=pConfig[i];
-
   }
 
   getName():string{
@@ -56,8 +75,16 @@ export class ModelVariable {
    * To check if the variable is stored
    */
   isRegister(){
-    return (this.__t==ModelVariableLocation.REG);
+    return (this.reg!=null && this.reg.type==RegisterType.CPU);
   }
+
+    /**
+     * To check if the variable is stored
+     */
+    isOnStack(){
+        return (this.reg!=null && this.reg.type==RegisterType.CPU && this.reg.name==="sp" && this.offset>-1);
+    }
+
 
   /**
    * TODO
@@ -88,6 +115,14 @@ export class ModelVariable {
     }
     CoreDebug.checkJsonSerialize(o, "ModelVariable");
     return o;
+  }
+
+  static fromObject(pOpts:any):ModelVariable {
+      const o = new ModelVariable(pOpts);
+      if(pOpts.reg!=null){
+          o.reg = new ModelRegister(pOpts.reg);
+      }
+      return o;
   }
 
 }

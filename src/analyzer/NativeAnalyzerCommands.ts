@@ -3,7 +3,8 @@
 export class NativeAnalyzerCommands {
     static FUNC_CMD = {
         DISASS: 'f_disass',
-        DECOMPILE: 'f_dec'
+        DECOMPILE: 'f_dec',
+        XREF: 'f_xref'
     };
 
     static FILE_CMD = {

@@ -17,6 +17,10 @@ import JavaMethodHook from "./hook/JavaMethodHook.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {IStringIndex} from "./core/IStringIndex.js";
 import ModelInstruction from "./ModelInstruction.js";
+import {ModelRegister} from "./elixir/ModelRegister.js";
+import {DataType} from "./types/DataType.js";
+import {RegisterType} from "./elixir/common.js";
+import {ElixirInstructionBuilder} from "./elixir/ElixirInstructionBuilder.js";
 
 
 /*interface LazyMethodReference {
@@ -55,9 +59,18 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
     hooks:JavaMethodHook[] = [];
 
+    /**
+     * Maximum number of local registers
+     * Mainly used to store or model local variable
+     * Exclude parameter register
+     */
     locals = 0;
+
     registers = 0;
-    params:any = [];
+
+    params:ModelRegister[] = [];
+    // new
+    localsR:ModelRegister[] = [];
 
     enclosingClass:ModelClass = null;
     declaringClass:ModelClass|string = null; // TODO : rename for memory perfomance
@@ -728,6 +741,71 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
     hasModifier(pMod:number):boolean {
         return (this.modifiers & pMod)==pMod;
+    }
+
+    /**
+     *
+     * @param dataType
+     * @param initialValue
+     * @param paramName
+     */
+    declareParameter(pDataType: DataType, pDefaultValue: any, pName: string, pId:number):ModelRegister {
+        const reg: ModelRegister = new ModelRegister({
+            type: RegisterType.PARAMETER,
+            id: pId,
+            dataType: pDataType,
+            name: pName || `p${this.params.length}`,
+            initialValue: pDefaultValue
+        });
+
+        let param:ModelRegister;
+        let found = false;
+        for(let i=0; i<this.params.length; i++){
+            param = this.params[i];
+            if( param.type===RegisterType.PARAMETER && param.id===pId){
+                found = true;
+                param.setInitialValue(pDefaultValue);
+            }
+        }
+
+        if(!found) this.params.push(reg);
+
+        return reg;
+
+    }
+
+    /**
+     * Generates an initialization block that initializes registers with their predefined values.
+     * The initialization process may also include metadata for specific instructions, such as line numbers and comments.
+     *
+     * @return {ModelBasicBlock} A ModelBasicBlock containing the initialization instructions for the registers.
+     */
+    generateInitializationBlock(): ModelBasicBlock {
+        const initBlock = new ModelBasicBlock({
+
+        });
+
+        const createInitInstr = (vRegister:ModelRegister)=>{
+            const instr = ElixirInstructionBuilder.initRegister(
+                initBlock,
+                vRegister
+            );
+
+            return instr;
+        }
+
+        this.params.map((vP)=>{
+            if(vP.initialValue!==undefined){
+                initBlock.addInstruction(createInitInstr(vP));
+            }
+        });
+        this.localsR.map((vP)=>{
+            if(vP.initialValue!==undefined){
+                initBlock.addInstruction(createInitInstr(vP));
+            }
+        });
+
+        return initBlock;
     }
 }
 ModelMethod.TYPE.builder(ModelMethod);

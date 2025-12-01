@@ -3,8 +3,6 @@ import AnalyzerDatabase from "./AnalyzerDatabase.js";
 import DexcaliburProject from "./DexcaliburProject.js";
 import {SearchAPI} from "./SearchAPI.js";
 import * as Log from './Logger.js';
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
-
 import RadareFactory from "./R2Factory.js";
 import RadareHelper from "./R2Helper.js";
 import ModelFile from "./ModelFile.js";
@@ -18,13 +16,22 @@ import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyz
 import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile.js";
 import {NativeAnalyzerException} from "./errors/NativeAnalyzerException.js";
 import {AnalyzerState} from "./AnalyzerState.js";
-import {IDatabase, IDbCollection, Tag} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection, Tag} from "@dexcalibur/dexcalibur-orm";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
-import {Nullable} from "./core/IStringIndex.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {MetadataType} from "./audit/common/Metadata.js";
 import {MetadataTopic} from "./audit/common/ControlAssessment.js";
 import {STATE_PPTS} from "./Analyzer.js";
+import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
+import {EmulatorConfig} from "./emulator/EmulatorConfig.js";
+import {MemoryAddress} from "./memory/MemoryAddress.js";
+import {ModelRegister} from "./elixir/ModelRegister.js";
+import ModelCpuInstruction from "./ModelCpuInstruction.js";
+import {Architecture} from "./Architecture.js";
+import {RegisterType} from "./elixir/common.js";
+import {R2CmdResult} from "./external/R2Pipe.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export enum NativeBackend {
@@ -66,18 +73,18 @@ export default class NativeAnalyzer {
     /**
      * List of analyzed files grouped per scope
      *
-     * @type {NativeFileList}
+     * @type {Record<string, ModelFile[]>}
      * @field
      */
-    targets:NativeFileList = {};
+    targets:Record<string, ModelFile[]> = {};
 
     /**
      * List of analyzable files grouped per scope
      *
-     * @type {NativeFileList}
+     * @type {Record<string, ModelFile[]>}
      * @field
      */
-    targetable:NativeFileList = {};
+    targetable:Record<string, ModelFile[]> = {};
 
     r2factory: RadareFactory=null;
     context:DexcaliburProject = null;
@@ -577,11 +584,25 @@ export default class NativeAnalyzer {
 
 
     requireAnalysis( pFile:ModelFile, pCommands:string[], pOptions:any):boolean {
+
+        if(this.targets.hasOwnProperty('all')){
+            const targeted = this.targets.all.find( (pF:ModelFile) => {
+                if(pF.getUID()==pFile.getUID()){
+                    return true;
+                }
+            });
+            return (targeted == null);
+        }else{
+            this.targets.all = [];
+            return true;
+        }
+
+        /*
         if(!this.r2factory.isOpened(pFile)){
             return true;
         }else{
             return (this.r2factory.getHelperFor(pFile).isReadyFor(pCommands,pOptions)===false);
-        }
+        }*/
     }
 
 
@@ -705,14 +726,24 @@ export default class NativeAnalyzer {
 
         let file = pFunc.getDeclaringFile();
         if(file !=null){
-            const node = await this.context.dataAnalyzer.findFile(file._uid)
+            const node = await this.context.merlin.file({ _uid: file._uid }).executePDB(this.context);
 
+            if(node==null || node.count()==0){
+                throw NativeAnalyzerException.MISSING_FILE(file._uid);
+            }
             /*if(node != null){s
                 pFunc.setDeclaringFile(node);
             }*/
 
+            let helper = this.r2factory.getHelperFor(node.get(0));
 
-            return this.r2factory.getHelperFor(node);
+            if(helper==null){
+                helper = await this.getHelper(node.get(0));
+                await helper.start([]);
+            }
+
+            return helper;
+
         }else {
             throw NativeAnalyzerException.CANNOT_DISASS_VOLATILE();
         }
@@ -723,9 +754,12 @@ export default class NativeAnalyzer {
      * @param pCommands
      * @param pProfile
      */
-    async analyzeFunction(pFunc:ModelFunction, pCommands:string[], pProfile:NativeAnalyzerProfile):Promise<any>{
+    async analyzeFunction(pFunc:ModelFunction, pCommands:string[], pProfile:NativeAnalyzerProfile)
+            :Promise<{ success:boolean, results:Nullable<R2CmdResult[]> }>{
 
         let helper:RadareHelper;
+        let n:R2CmdResult[] = null;
+
         try{
 
             helper = await this.getHelperForFunc(pFunc); //this.r2factory.getHelperFor(pFunc.getDeclaringFile() as ModelFile);
@@ -735,9 +769,25 @@ export default class NativeAnalyzer {
                 return null;
             }
 
-            const n = await helper.runCmd(pCommands, {
+            n = await helper.runCmd(pCommands, {
                 fn: pFunc
             });
+
+            let updatePpt:string[] = [];
+            for(let i=0;i<pCommands.length;i++){
+                switch (pCommands[i]){
+                    case NativeAnalyzerCommands.FUNC_CMD.DECOMPILE:
+                        updatePpt.push('dec');
+                        break;
+                    case NativeAnalyzerCommands.FUNC_CMD.DISASS:
+                        updatePpt.push('instr');
+                        break;
+                }
+            }
+
+            if(updatePpt.length>0){
+                await this.context.getProjectDB().save(pFunc, ModelFunction.TYPE.getType(), updatePpt);
+            }
 
             let success = true;
             n.map(x => success = success && x.success);
@@ -745,26 +795,40 @@ export default class NativeAnalyzer {
             //Logger.info("[DB::FUNC] executed cmd : "+n);
             if(success){
                 Logger.info("[NATIVE ANALYZER] Function '"+pFunc.getSignature()+"' has been successfully analyzed ");
-                return true;
+                return {
+                    success: true,
+                    results: n
+                };
             }else{
                 Logger.error("[NATIVE ANALYZER] Analysis of function '"+pFunc.getSignature()+"' failed ");
-                return false;
+                return {
+                    success: false,
+                    results: n
+                };
 
             }
 
 
         }catch (err) {
             Logger.error("[NATIVE ANALYZER] "+err.message, err.stack)
-            return false;
+            return  {
+                success: false,
+                results: n
+            };
         }
-
-        return true;
     }
 
     analyzeMemory():void{
 
     }
 
+    isReadyFor(pFile:ModelFile, pCommands:string[], pOptions:any):boolean {
+        if(!this.r2factory.isOpened(pFile)){
+            return true;
+        }else{
+            return (this.r2factory.getHelperFor(pFile).isReadyFor(pCommands,pOptions)===false);
+        }
+    }
 
     /**
      * DEfault backend is R2, but different backend (ghidra, ida, binary ninja) could be configured
@@ -825,11 +889,13 @@ export default class NativeAnalyzer {
 
                 pFile.appendFunctions(funcs);
                 pFile.setProgramSection(sections);
+                //pFile.addTag(this.context.getTagManager().getTag("analyzed.native_func"))
+                //pFile.addTag(this.context.getTagManager().getTag("analyzed.sections"))
 
                 await this.markAsProcessed(pFile);
 
                 // save file
-                await this._pdb.save(pFile, ModelFile.TYPE.getType(), ['__p']);
+                await this._pdb.save(pFile, ModelFile.TYPE.getType(), ['__p','sections']);
             }
 
             if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
@@ -942,4 +1008,109 @@ export default class NativeAnalyzer {
             return f;
         }
      }
+
+    async emulateFunc(pFunc:ModelFunction, pOptions:any = { dir:"up", base: new MemoryAddress(BigInt(0x010000)) }):Promise<any> {
+
+        if(pFunc.instr.length===0){
+            throw NativeAnalyzerException.NOT_READY_TO_EMULATE("The target function has no instructions",pFunc.signature());
+        }
+
+        // setup func
+        const emuConfig = new EmulatorConfig();
+
+        emuConfig.setBaseAddress(pOptions.base);
+        emuConfig.addRelativeSession(pFunc.getAddr());
+
+        // retrieve parent file
+        let file = pFunc.getDeclaringFile();
+        if(file!=null){
+            const node = await this.context.merlin.file({ _uid: file._uid }).executePDB(this.context);
+
+
+            if(node!==null && node.count()>0){
+                const decl = node.get(0) as ModelFile;
+
+
+                emuConfig.addInput(
+                    decl,
+                    0,
+                    decl.getSize(),
+                    decl.getName()
+                );
+
+                decl.getSections().map(s => {
+
+                    // filter to keep only sections mapped in memory
+
+                    const mb = s.toMemoryBlock(emuConfig.baseAddress, pOptions.dir=="up"?1:-1)
+                    mb.mappedData = decl.getUID()+":"+s.getName();
+
+                    emuConfig.addMemory(mb, { align:0x1000 });
+                    emuConfig.addInput(
+                        decl,
+                        s.getVirtualAddr(),
+                        s.getSize(),
+                        decl.getUID()+":"+s.getName()
+                    );
+                })
+            }
+        }
+
+
+        // set CPU context
+        const prjArch = this.context.getArchitectures()[0]
+        const cpuCtx = NativeAnalyzer.getCpuContextFor(pFunc, prjArch===null? Architecture.AARCH64 : prjArch);
+
+        for(let rg in cpuCtx){
+            emuConfig.cpuContext.push(cpuCtx[rg]);
+        }
+
+        console.log(JSON.stringify(emuConfig.toConfigOptions()));
+
+        //
+        return emuConfig;
+    }
+
+    static getCpuContextFor(pFunc:ModelFunction, pArch:Architecture):Record<string,ModelRegister> {
+        let ctx:Record<string,ModelRegister> = {};
+
+        pFunc.getDisassembly().map( (vInstr:ModelCpuInstruction)=>{
+            if(vInstr.disasm==null) return;
+            switch (pArch){
+                case Architecture.AARCH64:
+                    const m = [...vInstr.disasm.matchAll(/\b([xw]([0-2]?[0-9]|3[0-1])|[xw]zr|sp)\b/g)];
+                    m.map( (v:RegExpMatchArray)=>{
+                        if(ctx[v[0]]==null){
+                            ctx[v[0]] = new ModelRegister({
+                                name: v[0],
+                                id: parseInt(v[0].substring(1)),
+                                type: RegisterType.CPU
+                            });
+                        }
+                    });
+                    break;
+            }
+        })
+
+        pFunc.args.map(vVar => {
+            if(vVar.reg==null || vVar.reg.name=="sp") return;
+
+            if(ctx[vVar.reg.name]==null){
+                ctx[vVar.reg.name] = vVar.reg;
+            }else if(vVar.reg.initialValue!=null){
+                ctx[vVar.reg.name].initialValue = vVar.reg.initialValue;
+            }
+        });
+
+        pFunc.regvars.map(vVar => {
+            if(vVar.reg==null || vVar.reg.name=="sp") return;
+
+            if(ctx[vVar.reg.name]==null){
+                ctx[vVar.reg.name] = vVar.reg;
+            }else if(vVar.reg.initialValue!=null){
+                ctx[vVar.reg.name].initialValue = vVar.reg.initialValue;
+            }
+        });
+        return ctx;
+    }
 }

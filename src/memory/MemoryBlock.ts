@@ -19,7 +19,11 @@ export class MemoryBlock {
     start:MemoryAddress;
     end:MemoryAddress;
 
+    align:number = 0;
+
     children:MemoryBlock[] = [];
+
+    mappedData:Nullable<string> = null;
 
     tags:TagUUID[]
 
@@ -77,6 +81,7 @@ export class MemoryBlock {
             description: this.description,
             perm: this.perm,
             tags: this.tags,
+            mappedData: this.mappedData,
             children: [],
             start: null,
             end: null
@@ -106,6 +111,7 @@ export class MemoryBlock {
         o.name = pObject.name;
         o.description = pObject.description;
         o.perm = pObject.perm;
+        o.mappedData = pObject.mappedData;
         o.start = (pObject.start!=null ? new MemoryAddress(pObject.start) : null);
         o.end = (pObject.end!=null ? new MemoryAddress(pObject.end) : null);
         o.children = [];

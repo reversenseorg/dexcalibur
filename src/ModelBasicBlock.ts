@@ -56,6 +56,8 @@ export default class ModelBasicBlock
 
     visited:boolean = false;
 
+    exceptionEdges: Map<string, number>;  // type -> handler block id
+
     /**
      * @param {Object} config Optional, an object wich can be used in order to initialize the instance
      * @constructor
@@ -322,6 +324,18 @@ export default class ModelBasicBlock
         });
         CoreDebug.checkJsonSerialize(o, "ModelBasicBlock");
         return o;
+    }
+
+    addInstruction(pInstr:ModelInstruction):void {
+        this.stack.push(pInstr);
+    }
+
+    /**
+     * Ajoute une arête d'exception vers un handler
+     */
+    addExceptionEdge(exceptionType: string, handlerBlockId: number): void {
+        this.exceptionEdges.set(exceptionType, handlerBlockId);
+        // this.addSuccessorId(handlerBlockId);
     }
 }
 ModelBasicBlock.TYPE.builder(ModelBasicBlock);
