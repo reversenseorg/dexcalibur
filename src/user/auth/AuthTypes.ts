@@ -18,7 +18,8 @@ export enum AuthCode {
     ACCOUNT_DEACTIVATED,
     MAX_ATTEMPTS_REACHED,
 
-    NOT_CONFIGURED
+    NOT_CONFIGURED,
+    INVALID_APIKEY,
 }
 
 export interface Authenticator {

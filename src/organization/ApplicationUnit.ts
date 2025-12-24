@@ -11,12 +11,11 @@ import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-
 import {Auditable} from "../Auditable.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import {OrganizationUnit, OrganizationUnitUUID} from "./OrganizationUnit.js";
-import {Avatar} from "@dexcalibur/dxc-orgs";
 import {AccessAttribute, AccessAttributeMap} from "../user/acl/AccessAttribute.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import { Architecture } from "../Architecture.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
-import {DeviceUUID} from "../Device.js";
+import {Device, DeviceUUID} from "../Device.js";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 import {Policy, PolicyUUID} from "../audit/Policy.js";
 import {randomUUID} from "crypto";
@@ -39,7 +38,6 @@ export interface ApplicationUnitOptions {
     description?:string;
     packageID?: string;
     icon?: Nullable<ApplicationIcon>;
-    sources?: any[];
     os?:OperatingSystem;
     projects?:DexcaliburProjectUUID[];
     devices?:DeviceUUID[];
@@ -65,17 +63,45 @@ export class ApplicationUnit extends Auditable implements INode {
         (new NodeProperty("uuid"))
             .type(DbDataType.STRING)
             .key(DbKeyType.PRIMARY)
-            .addValidationRule(ValidationRule.uuid()),
-        (new NodeProperty("name")).type(DbDataType.STRING),
-        (new NodeProperty("organization")).single(OrganizationUnit.TYPE),
-        (new NodeProperty("packageID")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("sources")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("devices")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("projects")).type(DbDataType.STRING).def([]),
+            .descr("The UUID  of the application unit")
+            .addValidationRule(ValidationRule.uuid())
+            .schema({ type: "string", format: "uuid" }),
+        (new NodeProperty("name"))
+            .type(DbDataType.STRING)
+            .descr("The name of the application in the application store")
+            .schema({ type: "string" }),
+        (new NodeProperty("organization"))
+            .single(OrganizationUnit.TYPE)
+            .descr("The parent organization containing this application unit")
+            .schema({ type: "string", format: "uuid" }),
+        (new NodeProperty("packageID"))
+            .type(DbDataType.STRING)
+            .def("")
+            .descr("The package identifier of the application, such as : `com.facebook.lite`, `com.google.android.apps.maps`, etc ...")
+            .schema({ type: "string" }),
+        (new NodeProperty("devices"))
+            .type(DbDataType.STRING)
+            .def([])
+            .schema(Device.TYPE.getPrimaryKey().toJSONSchemaPart(true))
+            .descr("List of devices assigned to this application unit. It is an array of DeviceUUID"),
+        (new NodeProperty("projects"))
+            .type(DbDataType.STRING)
+            .def([])
+            .schema(DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart(true))
+            .descr("List of DexcaliburProject instance contained into this application unit"),
         (new NodeProperty("orgUnit")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("icon")).type(DbDataType.BLOB).def(null),
-        (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("os")).type(DbDataType.STRING).def(OperatingSystem.NONE),
+        (new NodeProperty("icon"))
+            .type(DbDataType.BLOB)
+            .def(null)
+            .descr("The icon of the application unit. Can be null and contains tt is a base64 encoded image using this format : `interface ApplicationIcon { name?:string ,format: ImageFormat, data: string| Buffer }`"),
+        (new NodeProperty("tags"))
+            .type(DbDataType.STRING)
+            .def([]),
+        (new NodeProperty("os")).type(DbDataType.STRING)
+            .def(OperatingSystem.NONE)
+            .addValidationRule(ValidationRule.os())
+            .schema({ type: "string", enum: Object.values(OperatingSystem) as OperatingSystem[] })
+            .descr("The operating system targeted by this application unit"),
         (new NodeProperty("policies"))
             .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState) => {
@@ -92,7 +118,8 @@ export class ApplicationUnit extends Auditable implements INode {
                     return Policy.fromUnsafeObject(x);
                 });
             })
-            .def([]),
+            .def([])
+            .descr("The policies where scan preferences and post-processing actions are stored. The policy can reflect privacy policy of the organization as well as custom expectations"),
         (new NodeProperty("_attr"))
             .type(DbDataType.STRING)
             .wakeUp( (x:NodePropertyState) => {
@@ -111,7 +138,13 @@ export class ApplicationUnit extends Auditable implements INode {
                 }
             })
             .def({})
-    ]));
+    ])).descr(`
+Represent an **application_unit** node - such as "Microsoft Copilot" - in the universal representation.          
+ApplicationUnit represents all version of an application for the same package identifier and operating system.
+An OrganizationUnit has many ApplicationUnit, one per couple of operating system / package identifier.
+An ApplicationUnit contains at several DexcaliburProject, mainly one per version of the target application and 
+sources.
+    `);
 
     __:NodeInternalType = NodeInternalType.APP_UNIT;
 
@@ -121,7 +154,6 @@ export class ApplicationUnit extends Auditable implements INode {
     packageID: string;
     icon: Nullable<ApplicationIcon>;
     projects: DexcaliburProjectUUID[] = [];
-    sources: any[] = [];
     devices: DeviceUUID[] = [];
     orgUnit:OrganizationUnitUUID = null;
     os: OperatingSystem = OperatingSystem.NONE;
@@ -140,7 +172,6 @@ export class ApplicationUnit extends Auditable implements INode {
             this.description = pOptions.description!;
             this.packageID = pOptions.packageID!;
             this.icon = pOptions.icon!;
-            this.sources = pOptions.sources!;
             this.os = (pOptions.os!=null?pOptions.os : OperatingSystem.NONE);
             this.orgUnit = (pOptions.orgUnit!=null?pOptions.orgUnit : null);
             this.devices = (pOptions.devices!=null?pOptions.devices : []);
@@ -223,7 +254,6 @@ export class ApplicationUnit extends Auditable implements INode {
             name: this.name,
             description: this.description,
             icon: this.icon,
-            sources: this.sources,
             packageID: this.packageID,
             orgUnit: this.orgUnit,
             devices: this.devices,

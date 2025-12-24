@@ -77,7 +77,9 @@ export default class ModelCall implements INode
                 }
             })
             .def(null), //.single(ModelMethod.TYPE),
-        (new NodeProperty("calleed")).volatile().single(ModelMethod.TYPE),
+        (new NodeProperty("calleed"))
+            .volatile()
+            .single(ModelMethod.TYPE),
         (new NodeProperty("_called"))
             .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{

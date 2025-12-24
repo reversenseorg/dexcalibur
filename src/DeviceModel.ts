@@ -26,7 +26,11 @@ export class DeviceModel implements INode {
             (new NodeProperty("created_at")).type(DbDataType.STRING).def(""),
             (new NodeProperty("updated_at")).type(DbDataType.STRING).def(""),
 
-        ]);
+        ])
+        .descr(`
+Represent a **device_model** node - such as "Motorola One Vision" - in the universal representation.          
+Device models are stored into instance of DeviceModel class.
+        `);
 
     __:NodeInternalType = NodeInternalType.DEVICE_MODEL;
 

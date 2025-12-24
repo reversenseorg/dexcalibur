@@ -41,7 +41,13 @@ import {ElixirInstructionBuilder} from "./elixir/ElixirInstructionBuilder.js";
  */
 export default class ModelMethod extends Savable implements INode,IPersistent
 {
-    static TYPE:NodeType = (new NodeType( "method", NodeInternalType.METHOD, [])).dataSource("MEM", "method");
+    static TYPE:NodeType = (new NodeType( "method", NodeInternalType.METHOD, []))
+        .dataSource("MEM", "method")
+        .descr(`
+Represent a **method** node - such as Java method or method is OOP - in the universal representation and AST of the target application.          
+Methods are stored into instance of ModelMethod class, and contains parameters descriptions, return type description, cross references, basic blocks, instructions, hooks, and lot of more.
+Methods are found by parsing native code or bytecode from targeted application encapsulated into DexcaliburProject instance. Methods can be tagged using the property **tags**.  
+        `);
 
     __:NodeInternalType = NodeInternalType.METHOD;
     alias:string = null;

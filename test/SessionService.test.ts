@@ -1,5 +1,4 @@
 import * as _path_ from 'path';
-import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
 import {AuthType} from "../src/user/auth/AuthTypes.js";
@@ -9,10 +8,10 @@ import {SessionSettings} from "../src/user/session/SessionSettings.js";
 import {SessionService} from "../src/user/session/SessionService.js";
 import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js";
 import {Settings} from "../src/Settings.js";
-import ServerSettings = Settings.ServerSettings;
 import {UserSession} from "../src/user/session/UserSession.js";
 import {SessionCode} from "../src/user/session/SessionException.js";
 import Util from "../src/Utils.js";
+import ServerSettings = Settings.ServerSettings;
 
 const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.ok.json');
 
@@ -65,7 +64,7 @@ describe('SessionService', function() {
                 enforced: false,
                 maxAttempts: 10
             },
-            supported: [AuthType.PASSWORD,AuthType.TOKEN]
+            supported: [AuthType.PASSWORD,AuthType.TOKEN, AuthType.API_KEY]
         });
 
         try {

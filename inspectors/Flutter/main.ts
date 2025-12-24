@@ -61,6 +61,8 @@ var FlutterInspector:InspectorFactory = new InspectorFactory({
             let app = ctx.find.file("name:/^libapp\.so$/").get(0);
             let flutter = ctx.find.file("name:/^libflutter\.so$/").get(0);
             
+            ctx.merlin.file("path:/flutter_assets\/[a-zA-Z]+\.json$/");
+            
             //try to detect through libapp.so + libflutter.so
             if( app!=null && flutter!=null ){
                 ctx.trigger({
@@ -71,6 +73,8 @@ var FlutterInspector:InspectorFactory = new InspectorFactory({
                     }
                 })
             }
+            
+            
             `
         }
     }

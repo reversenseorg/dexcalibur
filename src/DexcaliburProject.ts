@@ -173,16 +173,38 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         (new NodeProperty("uid"))
             .type(DbDataType.STRING)
             .addValidationRule(ValidationRule.uuid())
+            .schema({ type: "string", format: "uuid" })
             .key(DbKeyType.PRIMARY),
-        (new NodeProperty("pkg")).type(DbDataType.STRING),
-        (new NodeProperty("name")).type(DbDataType.STRING),
-        (new NodeProperty("engineVersion")).type(DbDataType.STRING),
-        (new NodeProperty("state")).type(DbDataType.NUMERIC),
-        (new NodeProperty("os")).type(DbDataType.STRING),
-        (new NodeProperty("archs")).type(DbDataType.STRING),
-        (new NodeProperty("dbName")).type(DbDataType.STRING),
-        (new NodeProperty("name")).type(DbDataType.STRING),
-        (new NodeProperty("appUnit")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("pkg"))
+            .schema({ type: "string" })
+            .descr("Package identifier linked to this project")
+            .type(DbDataType.STRING),
+        (new NodeProperty("name"))
+            .type(DbDataType.STRING)
+            .descr("Human name of the project")
+            .schema({ type: "string" }),
+        (new NodeProperty("engineVersion"))
+            .schema({ type: "string" })
+            .descr("Version of Dexcalibur engine used to create this project")
+            .type(DbDataType.STRING),
+        (new NodeProperty("state"))
+            .descr("Current state of the project.")
+            .type(DbDataType.NUMERIC),
+        (new NodeProperty("os"))
+            .schema({ type: "string", enum: Object.values(OperatingSystem) as OperatingSystem[] })
+            .descr("Target Operating System")
+            .type(DbDataType.STRING),
+        (new NodeProperty("archs"))
+            .descr("Hardware architecture of the project")
+            .type(DbDataType.STRING),
+        (new NodeProperty("dbName"))
+            .schema({ type: "string" })
+            .type(DbDataType.STRING),
+        (new NodeProperty("appUnit"))
+            .type(DbDataType.STRING)
+            .schema({ type: "string", format: "uuid" })
+            .descr("UUID of the ApplicationUnit containing this project. If the value is NULL, the project is standalone.")
+            .def(null),
 
         //(new NodeProperty("db")).type(DbDataType.STRING),é
         (new NodeProperty("device")).type(DbDataType.STRING)
@@ -199,7 +221,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 }else{
                     return null;
                 }
-            }),
+            })
+            .descr("The default device assigned to this project. It is a DeviceUUID")
+            .schema(Device.TYPE.getPrimaryKey().toJSONSchemaPart()),
         (new NodeProperty("meta")).type(DbDataType.BLOB),
         (new NodeProperty("bus")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("inputs"))
@@ -227,7 +251,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 }else{
                     return [];
                 }
-            }),
+            })
+            .descr("The list of package or files passed as inputs to this project."),
         (new NodeProperty("hook")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("inspectors")).volatile().type(DbDataType.BLOB).def({}),
         (new NodeProperty("analCfg")).type(DbDataType.BLOB)

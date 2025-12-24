@@ -173,7 +173,7 @@ export default class PlatformManager extends ValidationCapable
         return this.local;
     }
 
-    getRemote():any{
+    getRemote():{ installed:Record<string, Platform>, remote:Record<string, Platform> }{
         if(Object.keys(this.remote).length==0){
             this.enumerate();
         }

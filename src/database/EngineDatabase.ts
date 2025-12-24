@@ -18,7 +18,6 @@ import {ProjectDatabase} from "./ProjectDatabase.js";
 import {LogMessage} from "../log/Log.js";
 import {UserSession} from "../user/session/UserSession.js";
 import AssuranceReport from "../audit/common/AssuranceReport.js";
-import {Connection, Credential} from "@dexcalibur/dxc-orgs";
 import Inspector from "../Inspector.js";
 import Role from "../user/acl/common/Role.js";
 import AccessControl from "../user/acl/AccessControl.js";
@@ -40,6 +39,8 @@ import {IFileDatabase} from "../core/commons.js";
 import {ReversenseProduct} from "../billing/ReversenseProduct.js";
 import {Workflow, WorkflowUUID} from "../Workflow.js";
 import DatabaseSettings = Settings.DatabaseSettings;
+import {Connection} from "../organization/conn/Connection.js";
+import {Credential} from "../organization/conn/Credential.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

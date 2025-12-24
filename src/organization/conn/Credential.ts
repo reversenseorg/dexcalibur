@@ -1,0 +1,78 @@
+import {
+    DbDataType,
+    DbKeyType,
+    INode,
+    NodeProperty,
+    NodeType,
+    SerializeOptions,
+    TagUUID
+} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+
+
+export enum CredentialFormat {
+    PUBLIC_KEY="public",
+    PRIVATE_KEY="private",
+    SECRET_KEY="secret",
+    PASSWORD="password"
+}
+
+
+export interface CredentialOptions {
+    uuid?:string;
+    name?:string;
+    description?:string;
+    format?:CredentialFormat;
+    extra?:any;
+    owner?:string;
+}
+
+export class Credential implements INode {
+
+    static TYPE:NodeType = (new NodeType( "credential", NodeInternalType.CREDENTIAL, [
+        (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("name")).type(DbDataType.STRING),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("format")).type(DbDataType.STRING).def(CredentialFormat.SECRET_KEY),
+        (new NodeProperty("extra")).type(DbDataType.STRING).def({}),
+        (new NodeProperty("owner")).type(DbDataType.STRING).def(null)
+    ]));
+
+    __:NodeInternalType = NodeInternalType.CREDENTIAL;
+
+    uuid:string;
+    name:string = "";
+    description:string = "";
+    format?:CredentialFormat;
+    extra:any = {}
+    owner:Nullable<string> = null;
+
+    tags:TagUUID[] = [];
+
+    constructor(pOptions:CredentialOptions) {
+
+        this.uuid = pOptions.uuid!;
+        this.name = pOptions.name!;
+        this.description = pOptions.description!;
+        this.format = pOptions.format!;
+        this.extra = pOptions.extra!;
+        this.owner = pOptions.owner!;
+    }
+
+    getUID():string {
+        return this.uuid;
+    }
+
+    toJsonObject(pOption?: SerializeOptions): any {
+        const o:any = {
+            uuid: this.uuid,
+            name: this.name,
+            description: this.description,
+            format: this.format,
+            extra: this.extra,
+            owner: this.owner
+        };
+
+        return o;
+    }
+}

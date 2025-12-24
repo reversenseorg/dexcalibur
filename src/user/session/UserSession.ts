@@ -119,10 +119,15 @@ export class UserSession implements IPersistent, INode {
 
         if(pConfig !=null){
             for(const i in pConfig){
-                this[i] = pConfig[i];
+                if(i!="cookie"){
+                    this[i] = pConfig[i];
+                }
             }
         }
 
+        if(pConfig.cookie!=null){
+            this.updateCookie(pConfig.cookie, (pConfig.trustProxy!=null?pConfig.trustProxy:false))
+        }
         if(this._created === -1){
             this._created = Date.now();
         }
@@ -133,8 +138,10 @@ export class UserSession implements IPersistent, INode {
     }
 
     set cookie(pCookie:Cookie) {
-        this._cookie = pCookie;
-        this.resetMaxAge();
+        if(pCookie!=null){
+            this._cookie = pCookie;
+            this.resetMaxAge();
+        }
     }
 
     get cookie():Cookie {
@@ -509,7 +516,9 @@ export class UserSession implements IPersistent, INode {
     }
 
     resetMaxAge():UserSession {
-        this.cookie.maxAge = this.cookie.originalMaxAge;
+        if(this.cookie!=null){
+            this.cookie.maxAge = this.cookie.originalMaxAge;
+        }
         return this;
     }
 
@@ -562,6 +571,8 @@ export class UserSession implements IPersistent, INode {
     }
 
     regenerate(pCallback:any) {
+
+
         this.req.sessionStore.regenerate(this.req, pCallback);
         return this;
     }

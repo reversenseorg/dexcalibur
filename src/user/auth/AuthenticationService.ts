@@ -40,6 +40,14 @@ import {PasswordlessAuthenticator} from "./PasswordlessAuthenticator.js";
 import {OrganizationEmailBuilder} from "../../organization/OrganizationEmailBuilder.js";
 import {PasswordlessAuthModule} from "./modules/PasswordlessAuthModule.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
+import {
+    ApiKeyStrategy,
+    DEFAULT_HEADER_API_KEY,
+    DEFAULT_HEADER_API_OID, DEFAULT_HEADER_API_SID,
+    DEFAULT_HEADER_API_UUID
+} from "./passport/ApiKeyStrategy.js";
+import {ApikeyAuthModule} from "./modules/ApikeyAuthModule.js";
+import {ApikeyAuthenticator} from "./ApikeyAuthenticator.js";
 
 const GOT = got.default;
 const BodyParser = (_bodyparser_ as any).default;
@@ -237,6 +245,13 @@ export class AuthenticationService {
         return new PasswordAuthenticator(this);
     }
 
+    /**
+     *
+     */
+    newApiKeyAuthenticator():Authenticator {
+        return new ApikeyAuthenticator(this);
+    }
+
     newPasswordlessAuthenticator():Authenticator {
         return new PasswordlessAuthenticator(this);
     }
@@ -401,12 +416,34 @@ export class AuthenticationService {
         let mods:AuthModule[] = [];
         let stratUID:string;
         let moduleState:LoadedAuthModule;
+        let apikeyMods:Record<OrganizationUnitUUID, AuthModule> = {};
+        let orgMods:Record<OrganizationUnitUUID, AuthModule[]> = {};
 
+        // gather all auth modules per orgs
+        for(let k=0; k<orgs.length; k++){
+            mods = orgs[k].getAuthModules();
+            orgMods[orgs[k].getUID()] = mods.filter(x => x.type!==AuthModuleType.APIKEY);
+            const apiMod = mods.find(x => x.type==AuthModuleType.APIKEY);;
+            if(apiMod!=null){
+                apikeyMods[orgs[k].getUID()] =apiMod;
+            }
+        }
+
+        // deploy global auth modules
+        if(Object.keys(apikeyMods).length>0){
+            this._setupApiKeyMiddlewares(pApp, basePath, apikeyMods, orgs);
+        }
+
+
+        // deploy orgs auth modules
         for(let k=0; k<orgs.length; k++){
 
             hasLocalAuth = false;
-            mods = orgs[k].getAuthModules();
+            mods = orgMods[orgs[k].getUID()]; //orgs[k].getAuthModules();
+
             strats.orgs[orgs[k].getUID()] = [];
+
+            // sort to push API key module at top priorities
 
             for(let i=0; i<mods.length; i++){
                 //stratUID = `${mods[i].type}_${orgs[k].getUID()}_${mods[i].getUID()}`;
@@ -472,6 +509,9 @@ export class AuthenticationService {
         }
         if(this.settings.isLocalAuthEnabled()){
             this._setupLocalStrategy(pApp)
+        }
+        if(this.settings.isApiKeyAuthEnabled()){
+            //this._setupApiKeyStrategy(pApp)
         }
     }
 
@@ -774,6 +814,93 @@ export class AuthenticationService {
         );
 
         Logger.info(`[AUTH SERVICE][org=${pOrg.getUID()}][mod=${pModule.getUID()}] Serve local auth over ${state.getAuthEndpoint()}`);
+
+        return state;
+    }
+
+
+    /**
+     * Setup api key authentication, and authentication endpoint
+     *
+     * @param pApp
+     * @param pCfg
+     * @private
+     */
+    private _setupApiKeyStrategy(pApp:Application|Router, pBasePath:string, pModule:AuthModule, pOrg:OrganizationUnit, pState:Nullable<LoadedAuthModule> = null):LoadedAuthModule {
+
+        let state = pState;
+
+        if(state==null){
+            state = new LoadedAuthModule(pModule,pOrg);
+            //state.updateGateEndpoint(this._getOrgAuthEndpointRoute(pOrg));
+            //state.updateGateFailure(this._getOrgAuthLongLoginRoute(pBasePath,pOrg));
+            //state.updateGateSuccess(this._getOrgHomeLongRoute(pBasePath,pOrg));
+        }else {
+            // trigger update
+        }
+
+
+        const str = new ApiKeyStrategy(
+            {
+                apiKeyHeader: {
+                    header: DEFAULT_HEADER_API_KEY,
+                    prefix: ''
+                },
+                apiOidHeader: DEFAULT_HEADER_API_OID,
+                apiUuidHeader: DEFAULT_HEADER_API_UUID,
+                apiSidHeader: DEFAULT_HEADER_API_SID,
+                passReqToCallback: true
+            },
+            (vReq,  vUuid:string, vApiKey:string, vVerifiedCB:any)=> {
+
+                /*if(vReq.dxcApiOid!==pOrg.getUID()){
+                    vVerifiedCB.apply(null, ['Invalid OID', null, null]);
+                    return;
+                }*/
+
+                ((this.newApiKeyAuthenticator()
+                    .doAuthentication(vUuid,vApiKey))  as Promise<AuthenticationResult>)
+                    .then((vAuthRes)=>{
+                        if(vAuthRes._success){
+
+                            this._ctx.getOrgManager().getOrganization(vAuthRes.getAccount(), vReq.dxcApiOid).then((ppOrg) => {
+                                console.log(`API KEY AUTHENTICATED, org = ${ppOrg.getUID()}, session :`,vReq.session);
+
+                                (vReq.session as UserSession).setUserAccount(vAuthRes.getAccount());
+                                (vReq.session as UserSession).passport.user = vAuthRes.getAccount();
+                                (vReq.session as UserSession).addData('org',ppOrg.getUID());
+                                (vReq.session as UserSession).save(()=>{
+                                    vVerifiedCB.apply(null, [null, vAuthRes.getAccount(), vAuthRes]);
+                                });
+                            })
+
+
+                            //vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
+                        }else{
+                            vVerifiedCB.apply(null, [null, null, vAuthRes]);
+                        }
+                    },(err)=>{
+                        vVerifiedCB.apply(null, [err, null, null]);
+                    }).catch((err)=>{
+                        vVerifiedCB.apply(null, [err, null, null]);
+                })
+            }
+        );
+
+        passport.use(state.getUUID(), str);
+
+        /*(pApp as Application).post(
+            '/',
+            BodyParser.urlencoded({ extended: false }),
+            passport.authenticate(state.getUUID(), {
+                successMessage: true,
+                failureMessage:true,
+                failureRedirect: state.getFailureEndpoint(),
+                successReturnToOrRedirect: state.getSuccessEndpoint(),
+            })
+        );*/
+
+        Logger.info(`[AUTH SERVICE][org=${pOrg.getUID()}][mod=${pModule.getUID()}] Serve API key auth over all HTTP uri`);
 
         return state;
     }
@@ -1218,10 +1345,10 @@ export class AuthenticationService {
                 currState = (pModule as PasswordlessAuthModule).setupAuthStrategy(this, pApp,pBasePath, pOrg, currState);
                 //currState = await this._setupOidcStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
                 break;
-            /*case AuthModuleType.APIKEY:
-                currState = await this._setupOidcStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
+            case AuthModuleType.APIKEY:
+                currState = await this._setupApiKeyStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
                 break;
-            case AuthModuleType.PASSWORDLESS:
+            /*case AuthModuleType.PASSWORDLESS:
                 currState = await this._setupOidcStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
                 break;*/
             default:
@@ -1262,4 +1389,56 @@ export class AuthenticationService {
         return tok;
     }
 
+    private async _setupApiKeyMiddlewares(pApp: any, pBasePath: string, pMods:Record<OrganizationUnitUUID, AuthModule>, pOrgs:OrganizationUnit[]):Promise<void> {
+
+
+        let moduleStates:Record<OrganizationUnitUUID, LoadedAuthModule> = {};
+        for(let oid in pMods){
+
+            if(!pMods[oid].active){
+                Logger.success(`[AUTH SERVICE][type=${pMods[oid].type}][org=${oid}][mod=${pMods[oid].getUID()}] Auth module disabled. Skip it ...`);
+                continue;
+            }
+
+            try{
+                moduleStates[oid] = await this.deployAuthModule(pApp, pBasePath, pMods[oid], pOrgs.find(x => x.getUID()==oid));
+                this._loadedModules[moduleStates[oid].getUUID()] = moduleStates[oid];
+                Logger.success(`[AUTH SERVICE][type=${pMods[oid].type}][org=${oid}][mod=${pMods[oid].getUID()}] Auth module deployed`);
+
+                // passport.use(moduleStates[oid], str);
+            }catch(err){
+                Logger.error(err.stack);
+                throw AuthenticationModuleException.AUTH_MODULE_DEPLOY_FAILURE(pMods[oid], pOrgs.find(x => x.getUID()==oid));
+            }
+        }
+
+
+        // catch dxc-api-key and dxc-api-oid
+        pApp.use((req:any, res:any, next:any)=>{
+            /*if(req.headers[DEFAULT_HEADER_API_KEY]!=null){
+                req.dxcApiKey = req.headers[DEFAULT_HEADER_API_KEY];
+            }
+            if(req.headers[DEFAULT_HEADER_API_OID]!=null){
+                req.dxcApiOid = req.headers[DEFAULT_HEADER_API_OID];
+            }
+            if(req.headers[DEFAULT_HEADER_API_UUID]!=null){
+                req.dxcApiUuid = req.headers[DEFAULT_HEADER_API_UUID];
+            }
+            if(req.headers[DEFAULT_HEADER_API_SID]!=null){
+                req.dxcApiSid = req.headers[DEFAULT_HEADER_API_SID];
+            }*/
+
+            // redirect to auth module
+            if(req.dxcApiKey!=null && moduleStates[req.dxcApiOid]!=null){
+                if(req.dxcApiSid!=null && req.session!=null){
+                    // auth api key + open session
+                    next();
+                }else{
+                    passport.authenticate(moduleStates[req.dxcApiOid].getUUID())(req,res,next);
+                }
+            }else
+                next();
+        })
+
+    }
 }

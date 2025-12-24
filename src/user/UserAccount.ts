@@ -21,6 +21,7 @@ import {Token, TokenOptions, TokenPurpose} from "../core/secrets/Token.js";
 import {UserServiceException} from "../errors/UserServiceException.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {UserGroup, UserGroupUUID} from "./acl/common/UserGroup.js";
+import {ApiKey, ApiKeyUUID} from "./auth/ApiKey.js";
 
 export interface Membership {
     locked: boolean,
@@ -109,6 +110,8 @@ export class UserAccount implements IPersistent, INode {
     private _history:UserAccountEvent[] =[];
     private _tokens:Token<any>[] =[];
     private _extra:Record<string, any> = {};
+    private _apikeys:ApiKey[] = [];
+
     /**
      * Server-level user groups
      * @private
@@ -584,6 +587,55 @@ export class UserAccount implements IPersistent, INode {
         return this._membership;
     }
 
+    getApiKeys():ApiKey[] {
+        return this._apikeys;
+    }
+
+    /**
+     * To check if the account has a valid api key
+     *
+     * @param {string} pClear API key to check
+     * @returns {boolean}
+     */
+    hasApiKey(pClear:string):boolean {
+        for(let i=0; i<this._apikeys.length; i++){
+            if(this._apikeys[i].keyEquals(pClear)){
+                return (this._apikeys[i].isExpired()===false);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * To generate a valid api key UUID
+     * @returns {ApiKeyUUID} The generated UUID
+     */
+    generateKeyUUID() {
+        let uuid:ApiKeyUUID;
+        do{
+            uuid = randomUUID();
+        }while(this._apikeys.find(k => (k.uid===uuid))!=null);
+        return uuid;
+    }
+
+    addApiKey(apiKey: ApiKey) {
+        const exists = (this._apikeys.find(k => (k.uid===apiKey.uid)) != null);
+        if(exists){
+            throw UserServiceException.API_KEY_ALREADY_EXISTS(this.getUID(), 'API key UUID conflict')
+        }
+        this._apikeys.push(apiKey);
+    }
+
+    dropApiKey(pKey: ApiKeyUUID) {
+        this._apikeys = this._apikeys.filter(k => (k.uid!==pKey));
+    }
+
+    getApiKey(pUuid: ApiKeyUUID):ApiKey {
+        let k = this._apikeys.find(k => (k.uid===pUuid));
+        if(k==null) throw UserServiceException.API_KEY_NOT_FOUND(this.getUID(),pUuid);
+        return k;
+    }
 }
 
 UserAccount.TYPE.builder(UserAccount);

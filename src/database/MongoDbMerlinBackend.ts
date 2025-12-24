@@ -291,15 +291,20 @@ export class MongoDbMerlinBackend {
                         }
 
 
-
+                        // innerjoin == follow a edge
+                        // if the property of the join is a INodeRef, the search nodes
                         const children = x[ppt];
+
                         if(children!=null){
                             if(Array.isArray(children)){
+
                                 phaseRes[i] = phaseRes[i].concat(children);
                             }else{
                                 phaseRes[i].push(children);
                             }
                         }
+
+
                     });
                     break;
                 case OperationType.AGGR:

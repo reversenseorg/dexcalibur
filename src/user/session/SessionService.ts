@@ -176,7 +176,9 @@ export class SessionService {
      * @method
      */
     isSessionExpired(pSession:UserSession):boolean {
-        return pSession.cookie.expires.getTime() <  (new Date()).getTime();
+        if(pSession.cookie==null){
+            return false;
+        }else return pSession.cookie.expires.getTime() <  (new Date()).getTime();
     }
 
 

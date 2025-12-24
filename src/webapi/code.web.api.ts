@@ -21,6 +21,8 @@ import {MerlinRule, MerlinRuleType} from "../search/MerlinRule.js";
 import {MerlinSearchAPI} from "../search/MerlinSearchAPI.js";
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
+import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import ModelCall from "../ModelCall.js";
 
 ;
 
@@ -298,89 +300,148 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
 
 CODE_WEB_API.addAsyncAuthenticatedRoute(
-    '/method/xref/:id',
+    '/xref/:node/:nodeuid',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse) => {
-
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
 
-                project = req.dxc.project;
+                const nodeType = req.params.node;
+                const nodeUID = decodeURI(Util.b64_decode(req.params.nodeuid));
+                const puid = req.query._puid as string;
 
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                if(!ValidationRule.uuid().test(puid)){
+                    throw new Error("Invalid project UID");
                 }
 
-                await project.resetIdleTime();
+                let project:DexcaliburProject;
+                if(req.dxc.project!=null && req.dxc.project.getUID()==puid){
+                    project = req.dxc.project;
+
+
+                    /*if(project == null || !project.isReady()) {
+                        throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                    }*/
+
+                    await project.resetIdleTime();
+                }else{
+                    project = (await $.context.getProjectManager().preloadForDirect(req.user, puid));
+                }
+
+                // TODO
+                const result = (await (MerlinSearchRequest.getByRef({
+                    __:parseInt(nodeType,10),
+                    _uid:nodeUID
+                },project.getMerlinEngine() )).executePDB(project));
+
+
+                if(result==null || result.count()==0){
+                    throw new Error("No XRef found.");
+                }
 
                 // ========== LOGIC
-                const type:string = req.query.type as string;
-                const tmgr = project.getTagManager();
-
-                // collect
-                const  method:ModelMethod = project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
-
-                if (method == null) {
-                    throw new Error("XRef to > Specified method not found : "+Util.decodeURI(Util.b64_decode(req.params.id)))
-                }
+                const type:string = req.query.dir as string;
+                const root = result.get(0);
 
                 const data:any = [];
                 let tmp:any = null, refs:(ModelMethod|string)[] = null, r2 = null;
 
+                let xrefs:FinderResult;
+
                 switch (type) {
                     case "from":
-                        Object.keys(method.getMethodUsed()).forEach(function (x) {
-                            let m:ModelMethod = project.find.get.method(x);
+                        xrefs = await (MerlinSearchRequest.fromCondition(
+                            project.merlin, ModelCall.TYPE,
+                            {
+                                _caller: {
+                                    __: ModelMethod.TYPE.getType(),
+                                    _uid: root.getUID()
+                                }
+                            }, {
+                                strict: true,
+                                not: false
+                            }
+                        )).executePDB(project);
 
-
-
-                            tmp = {
-                                // method signature
-                                s: m.signature(),
-                                // aliased signature
-                                a: m.__aliasedCallSignature__,
-                                // return type signature
-                                r: (m.getReturnType() != null ? m.getReturnType().signature() : null),
-                                // tags
-                                tags: m.getTags()
-                            };
-                            // args signatures
-                            tmp.p = [];
-                            if (m.hasArgs())
-                                m.getArgsType().map(x => tmp.p.push(x.signature()));
-                            data.push(tmp);
-                        });
-                        /*
-                        Object.keys(method.getClassUsed()).forEach( x => data.push({
-                            // method signature
-                            s: x,
-                            // type
-                            t: "c"
-                        }));*/
-                        Object.keys(method.getFieldUsed()).forEach(x => data.push({
-                            // method signature
-                            s: x,
-                            // type
-                            t: "f"
-                        }));
-
-                        break;
-                    case "to":
-
-                        refs = method.getCallers();
-                        //console.log(refs);
-                        for (let i:number = 0; i < refs.length; i++) {
+                        for (let i:number = 0; i < xrefs.count(); i++) {
                             const tags:number[] = [];
 
 
                             //r2 = $.project.find.get.method(refs[i]);
-                            r2 = refs[i];
-                            if( (r2 instanceof ModelMethod) == false){
-                                r2 = project.find.get.method(r2)
+                            r2 = xrefs.get(i);
+
+                            //if( (r2 instanceof ModelMethod) == false){
+                            //    r2 = project.find.get.method(r2)
+                            //}
+
+                            tmp = {
+                                // method signature
+                                s: r2.signature(),
+                                // aliased signature
+                                a: r2.__aliasedCallSignature__,
+                                // return type signature
+                                r: (r2.getReturnType() != null ? r2.getReturnType().signature() : null),
+                                // tags
+                                tags: r2.getTags()
+                            };
+
+                            /*(r2 as ModelMethod).getTags().map( t => {
+                                tmp.tags.push(t.getUUID());
+                            });*/
+
+                            // args signatures
+                            tmp.p = [];
+                            if (r2.hasArgs())
+                                r2.getArgsType().map(x => tmp.p.push(x.signature()));
+
+                            data.push(tmp);
+                        }
+
+
+
+                        break;
+                    case "to":
+
+                        xrefs = await (MerlinSearchRequest.fromCondition(
+                                project.merlin, ModelMethod.TYPE,
+                                {
+                                    "_called._uid": root.getUID()
+                                }, {
+                                    strict: true,
+                                    not: false
+                                }
+                            )
+                            .select(ModelCall.TYPE.getProperty("called"))
+                        ).executePDB(project);
+
+                        //project.merlin.call("calleed")
+
+                        /*xrefs = await (MerlinSearchRequest.fromCondition(
+                            project.merlin, ModelCall.TYPE,
+                            {
+                                "_called.__": ModelMethod.TYPE.getType(),
+                                "_called._uid": root.getUID()
+                            }, {
+                                strict: true,
+                                not: false
                             }
+                        )).executePDB(project);*/
+
+                        //refs = root.getCallers();
+                        //console.log(refs);
+                        for (let i:number = 0; i < xrefs.count(); i++) {
+                            const tags:number[] = [];
+
+
+                            //r2 = $.project.find.get.method(refs[i]);
+                            r2 = xrefs.get(i);
+
+                            //if( (r2 instanceof ModelMethod) == false){
+                            //    r2 = project.find.get.method(r2)
+                            //}
 
                             tmp = {
                                 // method signature
@@ -419,7 +480,9 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: true
+        readProject: true,
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
 );
 

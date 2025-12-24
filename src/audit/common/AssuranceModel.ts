@@ -3,7 +3,7 @@ import Threat from "./Threat.js";
 import CodeThreat from "./CodeThreat.js";
 import CodeConstraint from "./CodeConstraint.js";
 import Control from "./Control.js";
-import {Metadata, MetadataType} from "./Metadata.js";
+import {Metadata, MetadataJsonSchema, MetadataType} from "./Metadata.js";
 import {Auditable} from "../../Auditable.js";
 import {AuditAccessControl} from "../../user/acl/rbac/AuditAccessControl.js";
 import ControlAssessment, {AnalysisType, DataOperation, MetadataTopic} from "./ControlAssessment.js";
@@ -86,19 +86,42 @@ export default class AssuranceModel extends Auditable implements INode {
     __ = NodeInternalType.ASSURANCE_MODEL;
 
     static TYPE:NodeType = (new NodeType( "assurance_model", NodeInternalType.ASSURANCE_MODEL, [
-        (new NodeProperty("_uid")).type(DbDataType.STRING)
+        (new NodeProperty("_uid"))
+            .type(DbDataType.STRING)
             .key(DbKeyType.PRIMARY)
+            .descr("UUID of an assurance model")
+            .schema({type:"string", pattern:"^[a-zA-Z0-9_\\.]+$"})
             .rule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_\\.]+$/)),
-        (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("id"))
+            .type(DbDataType.STRING)
+            .key(DbKeyType.PRIMARY)
+            .schema({type:"string", pattern:"^[a-zA-Z0-9_\\.]+$"}),
         //(new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
         (new NodeProperty("scannerID")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("name")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("name"))
+            .type(DbDataType.STRING)
+            .descr("Human name")
+            .schema({type:"string" })
+            .def(""),
+        (new NodeProperty("description"))
+            .type(DbDataType.STRING)
+            .descr("Description of the assurance model. Optional")
+            .schema({type:"string" })
+            .def(""),
         (new NodeProperty("links")).type(DbDataType.STRING).def([]),
         (new NodeProperty("generic")).type(DbDataType.BOOLEAN).def(true),
-        (new NodeProperty("primaryAssets")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("secondaryAssets")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("globalThreats")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("primaryAssets"))
+            .descr("Type of primary assets involved into the assurance model.")
+            .schema({type:"string" })
+            .type(DbDataType.STRING).def([]),
+        (new NodeProperty("secondaryAssets"))
+            .descr("Type of secondary assets involved into the assurance model.")
+            .schema({type:"string" })
+            .type(DbDataType.STRING).def([]),
+        (new NodeProperty("globalThreats"))
+            .descr("Type of global threats involved into the assurance model.")
+            .schema({type:"string" })
+            .type(DbDataType.STRING).def([]),
         (new NodeProperty("controls"))
             .type(DbDataType.STRING)
             .sleep((x:NodePropertyState)=>{
@@ -120,7 +143,10 @@ export default class AssuranceModel extends Auditable implements INode {
             })
             .def([]),
 
-        (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("metadata"))
+            .type(DbDataType.STRING)
+            .schema({ type:"array", items: MetadataJsonSchema })
+            .def([]),
         (new NodeProperty("indicators"))
             .type(DbDataType.STRING)
             .wakeUp( (x:NodePropertyState) => {

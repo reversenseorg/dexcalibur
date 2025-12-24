@@ -59,6 +59,7 @@ export class AuthenticationSettings {
     private _parent:ServerSettings;
     private _oidc:Nullable<OidcOptions> = null;
     private _localAuth:boolean = false;
+    private _apikeyAuth:boolean = false;
 
     /**
      * Create an object which hold authentication settings.
@@ -330,6 +331,11 @@ ${"\t".repeat(pIndent)}response Type = ${this._oidc.responseType}
 
     isLocalAuthEnabled():boolean {
         return (process.env.DXC_LOCAL_AUTH!=null ? (process.env.DXC_LOCAL_AUTH==="1"): this._localAuth);
+    }
+
+
+    isApiKeyAuthEnabled():boolean {
+        return (process.env.DXC_APIKEY_AUTH!=null ? (process.env.DXC_APIKEY_AUTH==="1"): this._apikeyAuth);
     }
 
     getSupportedString():string {

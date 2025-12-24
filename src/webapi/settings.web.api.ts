@@ -6,11 +6,13 @@ import {GlobalSettingsException} from "../errors/GlobalSettingsException.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {Settings} from "../Settings.js";
 import ExternalSettings = Settings.ExternalSettings;
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {ElixirUtils} from "../elixir/ElixirUtils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const SETTINGS_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-SETTINGS_WEB_API.addPublicRoute(
+SETTINGS_WEB_API.addAuthenticatedRoute(
     '/global',
     {
         'get': (req:DelegateRequest, res:DelegateResponse)=>{
@@ -49,83 +51,80 @@ SETTINGS_WEB_API.addPublicRoute(
                 Logger.error("[API][SETTINGS] Category cannot be retrieved : "+err.message+"\n\t"+err.stack);
                 $.sendError(res, err.message);
             }
-        }/*,
+        }
+    }
+)
+
+/*
+SETTINGS_WEB_API.addPublicRoute(
+    '/import',
+    {
         'post': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
-            let settings:any;
+            let data:any;
 
             try{
-                if(req.body['name'] == null){
-                    throw GlobalSettingsException.SETTING_UNKNOW();
-                }
-
-                switch (req.body['type']){
+                switch (req.query['type']){
                     case 'ext':
-                        settings = $.context.getSettings().getExternalSettings();
+                        data = $.context.getSettings().getExternalSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     case 'srv':
-                        settings = $.context.getSettings().getServerSettings();
+                        data = $.context.getSettings().getServerSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     case 'web':
-                        settings = $.context.getSettings().getWebserverSettings();
+                        data = $.context.getSettings().getWebserverSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     case 'conn':
-                        settings = $.context.getSettings().getConnectionSettings();
+                        data = $.context.getSettings().getConnectionSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     default:
                         throw GlobalSettingsException.CATEGORY_UNKNOW();
                 }
 
 
-                $.sendSuccess(res, settings.add(
-                    req.body['name'],
-                    req.body['value']
-                ));
+
+                $.sendSuccess(res, data);
             }catch(err){
                 Logger.error("[API][SETTINGS] Category cannot be retrieved : "+err.message+"\n\t"+err.stack);
                 $.sendError(res, err.message);
             }
-        },
-        'put': (req:DelegateRequest, res:DelegateResponse)=>{
+        }
+    }
+)*/
+
+SETTINGS_WEB_API.addAsyncAuthenticatedRoute(
+    '/resources',
+    {
+        'get': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
-            let data:any, settings:any;
 
             try{
-                if(req.body['name'] == null){
-                    throw GlobalSettingsException.SETTING_UNKNOW();
-                }
-
-                switch (req.body['type']){
-                    case 'ext':
-                        settings = $.context.getSettings().getExternalSettings();
-                        break;
-                    case 'srv':
-                        settings = $.context.getSettings().getServerSettings();
-                        break;
-                    case 'web':
-                        settings = $.context.getSettings().getWebserverSettings();
-                        break;
-                    case 'conn':
-                        settings = $.context.getSettings().getConnectionSettings();
-                        break;
-                    default:
-                        throw GlobalSettingsException.CATEGORY_UNKNOW();
-                }
-
-
-                settings.update(
-                    settings.sanitize( req.body['name'], req.body['value'])
-                );
-                settings.save();
-
-                $.sendSuccess(res, settings.save());
+                $.sendSuccess(res, ElixirUtils.exportDefinition( SecurityZone.PUBLIC));
             }catch(err){
                 Logger.error("[API][SETTINGS] Category cannot be retrieved : "+err.message+"\n\t"+err.stack);
                 $.sendError(res, err.message);
             }
-        }*/
+        }
+    }
+)
+
+
+SETTINGS_WEB_API.addAsyncAuthenticatedRoute(
+    '/tools',
+    {
+        'get': (req:DelegateRequest, res:DelegateResponse)=>{
+
+            const $:WebServer = req.dxc.$;
+
+            try{
+                $.sendSuccess(res, $.getMcpRoutes());
+            }catch(err){
+                Logger.error("[API][SETTINGS] Category cannot be retrieved : "+err.message+"\n\t"+err.stack);
+                $.sendError(res, err.message);
+            }
+        }
     }
 )
 

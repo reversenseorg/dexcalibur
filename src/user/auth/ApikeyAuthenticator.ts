@@ -1,0 +1,114 @@
+import {UserAccount} from "../UserAccount.js";
+import {AuthCode, AuthenticationException, Authenticator} from "./AuthTypes.js";
+import {AuthenticationService} from "./AuthenticationService.js";
+import * as Log from "../../Logger.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import {OrganizationUnit, OrganizationUnitUUID} from "../../organization/OrganizationUnit.js";
+import AccessControl from "../acl/AccessControl.js";
+import {OrganizationAccessControl} from "../acl/rbac/OrganizationAccessContol.js";
+import {AuthenticationResult} from "./PasswordAuthenticator.js";
+import {ApiKeyUUID} from "./ApiKey.js";
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+
+
+/**
+ * The purpose of password authenticator is to perform password-based authentication
+ * for a specified a user account
+ *
+ * @class
+ */
+export class ApikeyAuthenticator implements Authenticator{
+
+    /**
+     * Authentication service
+     *
+     * @field
+     */
+    svc: AuthenticationService;
+
+
+    constructor( pAuthSvc:AuthenticationService) {
+        this.svc = pAuthSvc;
+    }
+
+    /**
+     * To verify password
+     *
+     * @param pAccount
+     * @param pPwd
+     */
+    verifyKey( pAccount:UserAccount, pKey:string){
+        if(pKey==null || pKey.length==0 || typeof pKey !== 'string'){
+            throw new AuthenticationException("Invalid password : password cannot be empty", AuthCode.EMPTY_PASSWORD);
+        }
+
+        if(pAccount.isLocked()){
+            throw new AuthenticationException("Account is locked", AuthCode.ACCOUNT_LOCKED);
+        }
+
+        pAccount.passwordEquals(pKey);
+    }
+
+
+    /**
+     * To do authentication
+     *
+     * This method must catch any exception caused by authentication failure,
+     * and return AuthenticationResult object
+     *
+     * @param {string} pUsername Username
+     * @param {string} pPwd User password
+     */
+    async doAuthentication( pApiKeyUuid:ApiKeyUUID, pApiKey:string):Promise<AuthenticationResult> {
+        let res:AuthenticationResult;
+        let account:UserAccount = null;
+
+        try{
+            // compute api key
+            account = await this.svc.getUserService()
+                .findUserByApikey(pApiKeyUuid,pApiKey);
+
+            Logger.info("[AUTH] User ("+account.getUID()+") authenticated by API key");
+
+
+            // if the authenticator is trigged from a form bound to an organization
+            // the authentication includes a check of membership
+            /*if(pOrgUUID!=null){
+                try{
+                    const org = await this.svc.getUserService()._ctx.getOrgManager().getOrganization(
+                        account, pOrgUUID
+                    );
+                    AccessControl.isAuthorizedByAttr(
+                        OrganizationAccessControl.attr.MEMBER_GRP,
+                        org,
+                        account
+                    );
+                }catch (e){
+                    // if the user is not a member of target org, then check if the user has a role
+                    // with server admin permissions
+                    try{
+                        AccessControl.isAuthorized(
+                            AccessControl.access.SRV_INSTANCE_MGT,
+                            account
+                        );
+                    }catch (ee){
+                        throw e;
+                    }
+                }
+            }*/
+
+            // create session token
+
+            res = AuthenticationResult.successful( account);
+        }catch(err){
+            Logger.error("Authentication failed. Cause : "+err.message);
+            res = AuthenticationResult.failure( err.getCode(), account);
+        }finally {
+            // TODO : clean password from memory
+            return res;
+        }
+    }
+}

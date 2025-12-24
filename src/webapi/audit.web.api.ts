@@ -1,4 +1,4 @@
-import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi, HTTP_VERB} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import {LicenceManager, ProductInfo} from "../credit/LicenceManager.js";
@@ -461,17 +461,13 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 // ========== LOGIC
-                let models:string[] = [];
-                models = [req.params.modelID as string]
-
                 const am = $.context.getAuditManager();
                 const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
                     req.user,
-                    req.params.aid as string
+                    req.params.appUID as string
                 );
 
-                $.sendSuccess(res, await am.getReport(
-                    req.user, req.params.unsafeReportUUID, app));
+                $.sendSuccess(res, (await am.listReportsByApp(req.user, app)).map(x =>  x.asPreview().toJsonObject()) );
             }catch(err){
                 Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
@@ -592,25 +588,46 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 // ========== LOGIC
-                let models:string[] = [];
-                models = [req.params.modelID as string]
-
                 const am = $.context.getAuditManager();
                 const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
                     req.user,
-                    req.params.aid as string
+                    req.params.appUID as string
                 );
 
-                $.sendSuccess(res, await am.getReport(
-                    req.user, req.params.unsafeReportUUID, app));
+                const latest = await am.getLatestReport(req.user, app);
+                if(latest==null){
+                    throw new Error("No report found for application unit ["+app.getUID()+"]");
+                }
+
+                $.sendSuccess(res, latest.toJsonObject() );
+
+
             }catch(err){
                 Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
             }
         }
     },{
-        lazyProject: true,
-        nodeAffinity: DexcaliburEngineMode.MASTER
+        //lazyProject: true,
+        //nodeAffinity: DexcaliburEngineMode.MASTER,
+        ...DEFAULT_OPTIONS,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-get-latest-report-by-app',
+                uri: '/reports/{applicationUUID}/latest',
+                summary: `Return the latest report for application unit specified by its UUI in 'applicationUUID' params `,
+                parameters: [{
+                    name: 'applicationUUID',
+                    required: true,
+                    description: ApplicationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "The latest Assurance Report (an assurance_report object) for the specified application unit. It is a scan report",
+                    schemaDoc: AssuranceReport.TYPE.toJSONSchemaDoc()
+                }]
+            }
+        }
     }
 );
 
@@ -650,7 +667,36 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
             }
         }
-    },DEFAULT_OPTIONS);
+    },{
+        ...DEFAULT_OPTIONS,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-get-control-point',
+                uri: '/ctrl/{modelUUID}/{ctrlUUID}/{ctrlType}',
+                summary: `Return the specified Control point from the specified Assurance Model`,
+                parameters: [{
+                    name: 'modelUUID',
+                    required: true,
+                    description: AssuranceModel.TYPE.getPrimaryKey()._dscr,
+                    schema: AssuranceModel.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'ctrlUUID',
+                    required: true,
+                    description: "The UUID of the Control point in the specified model",
+                    schema: { type:"string" }
+                },{
+                    name: 'ctrlType',
+                    required: true,
+                    description: "The control type. Only support 'ctrl' for Control point.",
+                    schema: { type:"string", regex:"^ctrl$" }
+                }],
+                responses: [{
+                    description: "The whole assurance_model node. An 'assurance_model' is a referential or a set of requirements validated by Reversense platform during a scan.",
+                    schema: { type:"object" }
+                }]
+            }
+        }
+    });
 
 
 
@@ -723,7 +769,26 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
             }
         }
-    },DEFAULT_OPTIONS);
+    },{
+        ...DEFAULT_OPTIONS,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-get-assurance-model',
+                uri: '/model/{modelUID}',
+                summary: `Return an assurance model by its UUID.`,
+                parameters: [{
+                    name: 'modelUID',
+                    required: true,
+                    description: AssuranceModel.TYPE.getPrimaryKey()._dscr,
+                    schema: AssuranceModel.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "The whole assurance_model node. An 'assurance_model' is a referential or a set of requirements validated by Reversense platform during a scan.",
+                    schemaDoc: AssuranceModel.TYPE.toJSONSchemaDoc()
+                }]
+            }
+        }
+    });
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/model/:modelID',

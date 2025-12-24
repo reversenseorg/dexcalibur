@@ -13,8 +13,23 @@ import {EngineNodeManager, NodeState} from "../core/EngineNodeManager.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
+import {IJSONSchema, IJSONSchemaDocument} from "@dexcalibur/dexcalibur-orm";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+export type HttpVerb = "get" | "post" | "delete" | "put" | "options" | any;
+
+export interface McpDoc {
+    verb?:HttpVerb;
+    name:string;
+    uri?:string;
+    category?:string;
+    session?:boolean;
+    summary?:string;
+    parameters?:{name:string, description:string, required:boolean, schema?:IJSONSchema, schemaDoc?:IJSONSchemaDocument }[];
+    responses?:{ errCode?:number, description:string, schema?:IJSONSchema, schemaDoc?:IJSONSchemaDocument}[];
+    errors?:any
+}
 
 export enum HTTP_VERB {
     GET="get",
@@ -39,6 +54,10 @@ export interface RouteOptions {
     nodePurpose?: NodePurpose;
     async?: boolean;
     readProjectStrict?: boolean;
+    /**
+     * Web service documentation for MCP or OpenAPI
+     */
+    mcp?:Record<HttpVerb, McpDoc>;
     [ppt:string]:any;
 }
 
@@ -120,6 +139,8 @@ export class DelegateWebApi
      */
     router: Router;
 
+    mcpDoc:McpDoc[] = [];
+
     name:string;
 
 
@@ -141,11 +162,27 @@ export class DelegateWebApi
         this.ensureLoggedIn = pAuthMiddle;
     }
 
+    /**
+     * Too append the URI at the end of the base route
+     * @param {string} pBaseRoute
+     * @private
+     */
+    private _updateMcpDoc(pBaseRoute:string):void{
+        this.mcpDoc.forEach( (doc)=>{
+            if(doc.uri!=null){
+                doc.uri = pBaseRoute+doc.uri;
+            }
+        })
+    }
+
     injectServer( pWebserver: WebServer, pBaseRoute:string = "", pOptions:ExtraMiddlewareOptions = {afterAuth:[], beforeAuth:[], public:[], auth:null } ):void {
         this.srv = pWebserver;
         if(this._l != null){
             (this._l)(this, WebServer);
         }
+
+        // update routes in MCP doc
+        this._updateMcpDoc(pBaseRoute);
 
         const authMiddleW = pOptions.beforeAuth.concat([pOptions.auth!=null ? pOptions.auth : this.ensureLoggedIn]).concat(pOptions.afterAuth);
         const publicMiddleW = pOptions.public;
@@ -166,10 +203,18 @@ export class DelegateWebApi
 
             }
         }
+
+        // update global MCP-ready routes
+        this.srv.addMcpRoutes(this.mcpDoc);
     }
 
     getRouter():Router {
         return this.router;
+    }
+
+
+    getMcpDoc():McpDoc[] {
+        return this.mcpDoc;
     }
 
 
@@ -301,7 +346,46 @@ export class DelegateWebApi
         this.addAuthenticatedRoute( pRoute, pHandlers, pOptions);
     }
 
+    /**
+     * AI-Ready route for MCP server
+     *
+     * @param pRoute
+     * @param pHandlers
+     * @param pOptions
+     */
+    addMcpAsyncAuthenticatedRoute( pRoute:string, pHandlers:any, pOptions:RouteOptions = {} ):void{
+        if(pOptions==null) pOptions = {};
+        pOptions.async = true;
+        this.addAuthenticatedRoute( pRoute, pHandlers, pOptions);
+    }
 
+
+    private _appendMcpDoc(pVerb:string, pDocs:McpDoc):void{
+
+        if(pDocs==null) return;
+
+        if(pDocs.parameters!=null){
+            pDocs.parameters.map((param)=>{
+                if(param.schemaDoc==null && param.schema==null){
+                    throw new Error("Missing schemaDoc or schema for parameter ["+param.name+`] of MCP tool [${pDocs.name}] at `+pDocs.uri);
+                }
+            });
+        }
+
+        if(pDocs.responses!=null){
+            pDocs.responses.map((response, k)=>{
+                if(response.schemaDoc==null && response.schema==null){
+                    throw new Error("Missing schemaDoc or schema for response ["+k+`] of MCP tool [${pDocs.name}]`);
+                }
+            });
+        }
+
+
+        this.mcpDoc.push({
+            verb:pVerb,
+            ...pDocs,
+        })
+    }
 
     addAuthenticatedRoute(
         pRoute:string,
@@ -312,6 +396,13 @@ export class DelegateWebApi
             readProjectStrict:true
         }
     ):void {
+
+        if(pOptions.mcp!=null){
+            for(let verb in pOptions.mcp){
+                pOptions.mcp[verb].session = pOptions.mcp[verb].session || true;
+                this._appendMcpDoc(verb, pOptions.mcp[verb])
+            }
+        }
 
 
         const self = this;

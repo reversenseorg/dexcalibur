@@ -64,15 +64,42 @@ export default class Platform
     __ = NodeInternalType.PLATFORM_PPT;
 
     static TYPE:NodeType = (new NodeType( "platform", NodeInternalType.PLATFORM_PPT, [
-        (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("name")).type(DbDataType.STRING),
-        (new NodeProperty("version")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("source")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("vendor")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("model")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("format")).type(DbDataType.BOOLEAN).def(true),
-        (new NodeProperty("path")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("hash")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("uid"))
+            .type(DbDataType.STRING)
+            .descr("Unique identifier of the platform. Generated from source, name, version, vendor and format.")
+            .schema({ type:"string" })
+            .key(DbKeyType.PRIMARY),
+        (new NodeProperty("name"))
+            .type(DbDataType.STRING)
+            .descr("The name of the platform")
+            .schema({ type:"string" }),
+        (new NodeProperty("version"))
+            .descr("The version of the platform. It can be a textual version or a numeric version.")
+            .schema({ type:"string" })
+            .type(DbDataType.STRING)
+            .def(""),
+        (new NodeProperty("source"))
+            .descr("The source of the platform. It is where the platform has been downloaded to create the image.")
+            .schema({ type:"string" })
+            .type(DbDataType.STRING)
+            .def(""),
+        (new NodeProperty("vendor"))
+            .descr("The vendor of the platform, such as Google for Android or Apple for iOS.")
+            .schema({ type:"string" })
+            .type(DbDataType.STRING)
+            .def(""),
+        (new NodeProperty("model"))
+            .type(DbDataType.STRING)
+            .def([]),
+        (new NodeProperty("format")
+        ).type(DbDataType.BOOLEAN)
+            .def(true),
+        (new NodeProperty("path"))
+            .type(DbDataType.STRING)
+            .def([]),
+        (new NodeProperty("hash"))
+            .type(DbDataType.STRING)
+            .def([]),
         (new NodeProperty("size")).type(DbDataType.NUMERIC).def([]),
         (new NodeProperty("os")).type(DbDataType.STRING).def(null),
         (new NodeProperty("arch")).type(DbDataType.STRING).def(null),

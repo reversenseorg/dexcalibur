@@ -4,7 +4,6 @@ import * as Log from "../Logger.js";
 import {UserSession} from "../user/session/UserSession.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {SecurityZone} from "../security/SecurityZone.js";
-import {AUTH_WEB_API} from "./auth.web.api.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const USER_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -165,3 +164,83 @@ USER_WEB_API.addAsyncAuthenticatedRoute(
         }
     }
 );
+
+USER_WEB_API.addAsyncAuthenticatedRoute(
+    '/account/uid/:uuid/apikeys',
+    {
+        'get': async (req: DelegateRequest, res: DelegateResponse): Promise<void> => {
+            const $: WebServer = req.dxc.$;
+
+            try {
+                if (req.params.uuid == null || (typeof req.params.uuid !== 'string') || !UserAccount.VALIDATE._uid.test(req.params.uuid)) {
+                    throw new Error("Invalid UUID format");
+                }
+
+                const user = await $.context.getUserService().getAccount(req.user, req.params.uuid);
+
+                if (user != null) {
+                    $.sendSuccess(res, user.getApiKeys().map(k => k.toJsonObject(SecurityZone.PUBLIC)));
+                } else {
+                    $.sendError(res, "User account not found.");
+                }
+            } catch (err) {
+                Logger.error("[API][USER] Ac account cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "User account cannot be retrieved. Cause : " + err.message);
+            }
+        },
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<void> => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                if(req.params.uuid==null || (typeof req.params.uuid !== 'string') || !UserAccount.VALIDATE._uid.test(req.params.uuid)){
+                    throw new Error("Invalid UUID format");
+                }
+
+                const user = await $.context.getUserService().getAccount(req.user, req.params.uuid);
+
+                //ApiKey
+                if(user!=null){
+                    $.sendSuccess(res,  await $.context.getUserService().createApiKey(user, {
+                            name: req.body.opts.name,
+                            description: req.body.opts.description,
+                            lifetime: req.body.opts.lifetime,
+                            scope: req.body.opts.scope
+                        })
+                    );
+                }else{
+                    $.sendError(res, "User account not found.");
+                }
+            }catch(err){
+                Logger.error("[API][USER] Ac account cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "User account cannot be retrieved. Cause : " + err.message);
+            }
+        },
+    });
+
+USER_WEB_API.addAsyncAuthenticatedRoute(
+    '/account/uid/:uuid/apikey/:key',
+    {
+        'delete': async (req:DelegateRequest, res:DelegateResponse):Promise<void> => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                if(req.params.uuid==null || (typeof req.params.uuid !== 'string') || !UserAccount.VALIDATE._uid.test(req.params.uuid)){
+                    throw new Error("Invalid UUID format");
+                }
+
+                const user = await $.context.getUserService().getAccount(req.user, req.params.uuid);
+
+                //ApiKey
+                if(user!=null){
+                    $.sendSuccess(res,  await $.context.getUserService().dropApiKey(user, req.params.key));
+                }else{
+                    $.sendError(res, "User account not found.");
+                }
+            }catch(err){
+                Logger.error("[API][USER] Ac account cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "User account cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    }
+);
+

@@ -37,6 +37,7 @@ import {UserGroupUUID} from "./acl/common/UserGroup.js";
 import {AuthCode} from "./auth/AuthTypes.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {EmailSender} from "../core/email/EmailSender.js";
+import {ApiKey, ApiKeyOptions, ApiKeyUUID} from "./auth/ApiKey.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -961,5 +962,55 @@ export class UserService {
 
     async restoreSocketSessions():Promise<any>{
         return [];
+    }
+
+    async findUserByApikey(pUuid:ApiKeyUUID, pApiKey:string, pOptions = { allowExpired:false }):Promise<Nullable<UserAccount>> {
+
+        console.log(`[AUTH SERVICE] Find user by apikey : ${pApiKey}`);
+
+        const x:UserAccount[] = await this._coll.search({
+            filter:{ "_apikeys.uid": pUuid }
+        }, {raw:true});
+
+        console.log(x);
+
+        if(x==null || x.length==0){
+            throw UserServiceException.API_KEY_NOT_FOUND("-",pUuid);
+        }
+
+
+        let key:ApiKey;
+        for(let i=0; i<x.length; i++){
+            key = (x[i] as UserAccount).getApiKey(pUuid);
+            if(key.keyEquals(pApiKey)){
+                if(!key.isExpired()){
+                    return x[i];
+                }else{
+                    throw UserServiceException.API_KEY_EXPIRED(pUuid);
+                }
+            }
+        }
+
+        throw UserServiceException.API_KEY_INVALID(pUuid);
+    }
+
+
+    async createApiKey(pAccount: UserAccount, pOptions: ApiKeyOptions):Promise<{uuid:ApiKeyUUID, key:string}> {
+
+        const keys = ApiKey.generate(pAccount, pOptions);
+
+        pAccount.addApiKey(keys.apiKey);
+        await this._coll.asyncUpdateEntry(pAccount, {replace:false, $set:['_apikeys']});
+
+        return {
+            uuid: keys.apiKey.uid,
+            key: keys.clearKey.toString('ascii')
+        };
+    }
+
+    async dropApiKey(pAccount: UserAccount, pKeyUuid: ApiKeyUUID) {
+
+        pAccount.dropApiKey(pKeyUuid);
+        await this._coll.asyncUpdateEntry(pAccount, {replace:false, $set:['_apikeys']});
     }
 }

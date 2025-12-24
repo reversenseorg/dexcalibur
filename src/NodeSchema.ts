@@ -55,6 +55,7 @@ import ControlAssessment from "./audit/common/ControlAssessment.js";
 import ModelCatchStatement, {EBoundary} from "./ModelCatchStatement.js";
 import {Indicator} from "./audit/common/Indicator.js";
 import DataScope from "./DataScope.js";
+import {ApiKey} from "./user/auth/ApiKey.js";
 
 
 
@@ -207,6 +208,15 @@ UserAccount.TYPE.updateProperties([
     (new NodeProperty('_roles')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_groups')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_tokens')).type(DbDataType.STRING).def([]),
+    (new NodeProperty('_apikeys'))
+        .type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState) => {
+            return (x.p !=null ? x.p : []) ;
+        } )
+        .wakeUp( (x:NodePropertyState) => {
+            return (x.p!=null ? x.p.map( v => new ApiKey(v))  : [])
+        })
+        .def([]),
     (new NodeProperty('_type')).type(DbDataType.STRING).def(UserAccountType.LOCAL),
     (new NodeProperty('_membership')).type(DbDataType.BLOB).def({}),
     (new NodeProperty('_extra')).type(DbDataType.BLOB).def({}).addValidationRule(UserAccount.VALIDATE._extra as any),

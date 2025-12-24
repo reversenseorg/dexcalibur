@@ -6,8 +6,13 @@ import {SessionStore} from "./SessionStore.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
 import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "@dexcalibur/dxc-core-api";
-import {UserSession} from "./UserSession.js";
-import {MemoryStore} from "./MemoryStore.js";
+import {SessionEnvelopeOptions, UserSession} from "./UserSession.js";
+import {MemoryStore, SessionGenerateOptions} from "./MemoryStore.js";
+import {
+    DEFAULT_HEADER_API_KEY,
+    DEFAULT_HEADER_API_OID,
+    DEFAULT_HEADER_API_SID, DEFAULT_HEADER_API_UUID
+} from "../auth/passport/ApiKeyStrategy.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -194,7 +199,7 @@ export class SessionMiddleware {
      *
      */
     static generateSID():string {
-        return CryptoUtils.randomChunk(32).toString();
+        return  Buffer.from(CryptoUtils.randomChunk(32)).toString('hex'); // CryptoUtils.randomChunk(32).toString();
     }
 
 
@@ -394,10 +399,24 @@ export class SessionMiddleware {
                 return
             }
 
+
+            if(!vReq.dxcApiKey && vReq.headers[DEFAULT_HEADER_API_KEY]!=null){
+                vReq.dxcApiKey = vReq.headers[DEFAULT_HEADER_API_KEY];
+            }
+            if(!vReq.dxcApiOid && vReq.headers[DEFAULT_HEADER_API_OID]!=null){
+                vReq.dxcApiOid = vReq.headers[DEFAULT_HEADER_API_OID];
+            }
+            if(!vReq.dxcApiUuid && vReq.headers[DEFAULT_HEADER_API_UUID]!=null){
+                vReq.dxcApiUuid = vReq.headers[DEFAULT_HEADER_API_UUID];
+            }
+            if(!vReq.dxcApiSid && vReq.headers[DEFAULT_HEADER_API_SID]!=null){
+                vReq.dxcApiSid = vReq.headers[DEFAULT_HEADER_API_SID];
+            }
+
             // pathname mismatch
             //const originalPath = (new URL(vReq.url)).pathname || '/'
-            const originalPath = vReq._parsedUrl.pathname || '/'
-            if (originalPath.indexOf(cookieOptions.path || '/') !== 0) return next();
+            //const originalPath = vReq._parsedUrl.pathname || '/'
+            //if (originalPath.indexOf(cookieOptions.path || '/') !== 0) return next();
 
             // ensure a secret is available or bail
             if (!secret && !vReq.secret) {
@@ -418,7 +437,18 @@ export class SessionMiddleware {
             vReq.sessionStore = store;
 
             // get the session ID from the cookie
-            const cookieId = vReq.sessionID = SessionMiddleware.getCookie(vReq, name, secrets[0]);
+            let cookieId:Nullable<string> = null;
+
+            if(vReq.dxcApiSid==null){
+
+                const originalPath = vReq._parsedUrl.pathname || '/'
+                if (originalPath.indexOf(cookieOptions.path || '/') !== 0) return next();
+
+                cookieId = vReq.sessionID = SessionMiddleware.getCookie(vReq, name, secrets[0]);
+            }else{
+                // todo : validate format
+                vReq.sessionID = vReq.dxcApiSid;
+            }
 
             // Append set-cookie to header list in head of response
             SessionMiddleware.onHeaders(vRes, function(){
@@ -427,7 +457,14 @@ export class SessionMiddleware {
                     return;
                 }
 
-                if (!SessionMiddleware.shouldSetCookie(vReq,cookieId,pOptions)) {
+                if(vReq.dxcApiKey && vReq.dxcApiUuid){
+                    return;
+                }
+
+                if (!SessionMiddleware.shouldSetCookie(vReq,cookieId,pOptions) || vReq.session.cookie==null) {
+                    if(vReq.dxcApiSid==null && vReq.session!=null && touched){
+                        vRes.setHeader(DEFAULT_HEADER_API_SID,vReq.session.getUID());
+                    }
                     return;
                 }
 
@@ -571,13 +608,18 @@ export class SessionMiddleware {
             // generate a session if the browser doesn't send a sessionID
             if (!vReq.sessionID) {
                 Logger.debug('[SESSION MIDDLEWARE] no SID sent, generating session');
-                const sess = store.generate(vReq,{
-                    trustProxy: pOptions.trustProxy,
-                    cookie: pOptions.cookie,
-                });
 
-                originalId = vReq.sessionID;
-                originalHash = sess.hash();
+                let opts:SessionGenerateOptions = {
+                    trustProxy:pOptions.trustProxy,
+                    cookie: ((vReq.dxcApiKey && vReq.dxcApiUuid)? null : pOptions.cookie)
+                };
+
+                const sess = store.generate(vReq,opts);
+                vReq.sessionID = sess.getUID();
+
+                if(vReq.dxcApiKey && vReq.dxcApiUuid){
+                    vRes.setHeader(DEFAULT_HEADER_API_SID,vReq.sessionID);
+                }
 
                 sess.save((e,d)=>{
 
@@ -622,13 +664,16 @@ export class SessionMiddleware {
                     }
                     s.save((e,d)=>{
                        // todo : handle error,
+                        // console.log(e,d);
+                        console.log("After ave");
+                        next()
                     });
                 } catch (e) {
                     next(e)
                     return
                 }
 
-                next()
+                //next()
             });
         };
     }

@@ -4,6 +4,7 @@ import {A} from "@reversense/interruptor/src/syscalls/LinuxX64Syscalls.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {ApiKeyUUID} from "../user/auth/ApiKey.js";
 
 
 
@@ -30,7 +31,11 @@ export class UserServiceException extends MonitoredError {
         INVALID_TOKEN: ErrorCode.USER_SERVICE + 116,
         MISSING_MEMBERSHIP: ErrorCode.USER_SERVICE + 117,
         CANNOT_GRANT_TO_LOCAL_ADMIN: ErrorCode.USER_SERVICE + 118,
-        ACCOUNT_NOT_ELIGIBLE_PWDL: ErrorCode.USER_SERVICE + 119
+        ACCOUNT_NOT_ELIGIBLE_PWDL: ErrorCode.USER_SERVICE + 119,
+        API_KEY_ALREADY_EXISTS: ErrorCode.USER_SERVICE + 120,
+        API_KEY_NOT_FOUND: ErrorCode.USER_SERVICE + 121,
+        API_KEY_INVALID: ErrorCode.USER_SERVICE + 122,
+        API_KEY_EXPIRED: ErrorCode.USER_SERVICE + 123
     };
 
     static WRONG_DB_FORMAT = ()=>{ return new UserServiceException(" User DB format is invalid",UserServiceException.ERR.WRONG_DB_FORMAT) };
@@ -76,6 +81,34 @@ export class UserServiceException extends MonitoredError {
             {
                 user: pUUID,
                 cause: pCause
+            }) };
+
+    static API_KEY_ALREADY_EXISTS = (pUUID:UserAccountUUID, pCause:string)=>{
+        return new UserServiceException(`Cannot add a new api key to user account`,
+            UserServiceException.ERR.API_KEY_ALREADY_EXISTS,
+            {
+                user: pUUID,
+                cause: pCause
+            }) };
+
+    static API_KEY_NOT_FOUND = (pUUID:UserAccountUUID, pKeyUuid:ApiKeyUUID)=>{
+        return new UserServiceException(`Api key not found`,
+            UserServiceException.ERR.API_KEY_NOT_FOUND,
+            {
+                user: pUUID,
+                key: pKeyUuid
+            }) };
+    static API_KEY_EXPIRED = (pKeyUuid:ApiKeyUUID)=>{
+        return new UserServiceException(`Api key has expired`,
+            UserServiceException.ERR.API_KEY_EXPIRED,
+            {
+                key: pKeyUuid
+            }) };
+    static API_KEY_INVALID = (pKeyUuid:ApiKeyUUID)=>{
+        return new UserServiceException(`Api key is invalid`,
+            UserServiceException.ERR.API_KEY_INVALID,
+            {
+                key: pKeyUuid
             }) };
 
 

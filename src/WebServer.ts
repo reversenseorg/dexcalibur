@@ -46,7 +46,7 @@ import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api.js";
 import {TAG_MGT_WEB_API} from "./webapi/tag.web.api.js";
 import {WebApiWindowing} from "./webapi/internals/WebApiWindowing.js";
 import {PRIVACY_WEB_API} from "./webapi/privacy.web.api.js";
-import {DelegateRequest, DelegateResponse, ExtraMiddlewareOptions} from "./webapi/DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, ExtraMiddlewareOptions, McpDoc} from "./webapi/DelegateWebApi.js";
 import {AUDIT_WEB_API} from "./webapi/audit.web.api.js";
 import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
 import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
@@ -60,6 +60,11 @@ import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {MARKETPLACE_WEB_API} from "./webapi/mkplace.web.api.js";
 import {ValidationCapable} from "@dexcalibur/dexcalibur-orm";
+import {
+    DEFAULT_HEADER_API_KEY,
+    DEFAULT_HEADER_API_OID, DEFAULT_HEADER_API_SID,
+    DEFAULT_HEADER_API_UUID
+} from "./user/auth/passport/ApiKeyStrategy.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -195,6 +200,8 @@ export default class WebServer
 
     guiCfgs:WebGuiConfiguration[] = [];
 
+    mcpInfo:McpDoc[] = [];
+
     oidClient:Nullable<Client> = null;
 
     private _sso_enabled = false;
@@ -241,6 +248,24 @@ export default class WebServer
 
     get port():number {
         throw new Error("[WEB SERVER] Direct get of to 'port' property is deprecated and forbidden");
+    }
+
+    /**
+     * To update info about MCP routes
+     * @param {McpDoc[]} pRoutes
+     * @method
+     */
+    addMcpRoutes(pRoutes:McpDoc[]):void {
+        this.mcpInfo = this.mcpInfo.concat(pRoutes);
+    }
+
+     /**
+     * To retrieve the list of MCP routes from the web server.
+     * @returns {McpDoc[]}
+     * @method
+     */
+    getMcpRoutes():McpDoc[]{
+        return this.mcpInfo;
     }
 
     /**
@@ -1136,6 +1161,8 @@ export default class WebServer
     private _initDefaultRoute(){
         if(this.guiCfgs.length>0){
             this.resetDefaultRoute((vReq:any, vRes:any):any=> {
+
+                //if(vReq.baseUrl.indexOf("/api/")===0){}
                 vRes.set('Access-Control-Allow-Origin', '*');
                 //vRes.status(200).redirect("/"+this.guiCfgs[0].name+"/");
                 vRes.status(200).redirect('https://www.reversense.com/');
@@ -1243,6 +1270,7 @@ export default class WebServer
         this.app.use(dxcCorsMiddleware);
 
 
+
         /**
          * Gather cookies
          */
@@ -1256,7 +1284,7 @@ export default class WebServer
 
 
 
-            Logger.debug(`[WEBSERVER][MIDDLEWARE][dxcSessionMiddleware][path=${req.path}][ip=${req.ip}][sessID=${(req as any).sessionID!=null?'true':'false'}] Processing request`);
+            Logger.info(`[WEBSERVER][MIDDLEWARE][dxcSessionMiddleware][path=${req.path}][ip=${req.ip}][sessID=${(req as any).sessionID!=null?'true':'false'}] Processing request`);
 
             // AccessControlManager.BUILT_IN_DEFAULT_ROLE
             //((req as any).user as UserAccount).addRole(self.context.getAclManager().getRole(AccessControlManager.BUILT_IN_DEFAULT_ROLE));
@@ -1345,6 +1373,19 @@ export default class WebServer
         }
 
         function ensureApiLoggedIn(req, res, next) {
+
+            if(req.headers[DEFAULT_HEADER_API_KEY]!=null){
+                req.dxcApiKey = req.headers[DEFAULT_HEADER_API_KEY];
+            }
+            if(req.headers[DEFAULT_HEADER_API_OID]!=null){
+                req.dxcApiOid = req.headers[DEFAULT_HEADER_API_OID];
+            }
+            if(req.headers[DEFAULT_HEADER_API_UUID]!=null){
+                req.dxcApiUuid = req.headers[DEFAULT_HEADER_API_UUID];
+            }
+            if(req.headers[DEFAULT_HEADER_API_SID]!=null){
+                req.dxcApiSid = req.headers[DEFAULT_HEADER_API_SID];
+            }
 
             Logger.info(` [WEBSERVER][MIDDLEWARE][ensureApiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt `);
 

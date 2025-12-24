@@ -277,20 +277,22 @@ export class SessionStore /*extends expressSession.Store*/ {
 
     restoreSession(pReq:any, pExistingSess:UserSession):UserSession{
 
-        const expires = pExistingSess.cookie.expires
-        const originalMaxAge = pExistingSess.cookie.originalMaxAge
+        if(pExistingSess.cookie!=null){
+            const expires = pExistingSess.cookie.expires
+            const originalMaxAge = pExistingSess.cookie.originalMaxAge
 
-        //Logger.info(`[SESSION STORE][restoreSession] Restore session [existingSID=${pExistingSess.getUID()}]`);
+            //Logger.info(`[SESSION STORE][restoreSession] Restore session [existingSID=${pExistingSess.getUID()}]`);
 
-        pExistingSess.cookie = new Cookie(pExistingSess.cookie);
+            pExistingSess.cookie = new Cookie(pExistingSess.cookie);
 
-        if (typeof expires === 'string') {
-            // convert expires to a Date object
-            pExistingSess.cookie.expires = new Date(expires)
+            if (typeof expires === 'string') {
+                // convert expires to a Date object
+                pExistingSess.cookie.expires = new Date(expires)
+            }
+
+            // keep originalMaxAge intact
+            pExistingSess.cookie.originalMaxAge = originalMaxAge
         }
-
-        // keep originalMaxAge intact
-        pExistingSess.cookie.originalMaxAge = originalMaxAge
 
         if(pExistingSess.passport!=null){
             if(pExistingSess.passport.user!=null){
@@ -335,6 +337,13 @@ export class SessionStore /*extends expressSession.Store*/ {
     }
 
     regenerate(pRequest:any, pCallback:(vErr:any)=>any){
+
+        if(pRequest.dxcApiKey && pRequest.dxcApiUuid){
+            Logger.info("[SESSION STORE][generate] Skip API key-based request "+ pRequest.sessionID);
+            pCallback.apply(null,[null]);
+            return ;
+        }
+
         const oldSession = pRequest.session;
 
         if(oldSession==null){

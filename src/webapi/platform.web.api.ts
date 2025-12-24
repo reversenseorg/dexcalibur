@@ -1,4 +1,4 @@
-import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi, HTTP_VERB} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
@@ -8,11 +8,13 @@ import * as Log from "../Logger.js";
 import PlatformManager from "../platform/PlatformManager.js";
 import Platform from "../platform/Platform.js";
 import {PlatformManagerException} from "../errors/PlatformManagerException.js";
+import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import AssuranceReport from "../audit/common/AssuranceReport.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PLATFORM_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-PLATFORM_WEB_API.addPublicRoute(
+PLATFORM_WEB_API.addAsyncAuthenticatedRoute(
     '/list',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse)=>{
@@ -28,11 +30,24 @@ PLATFORM_WEB_API.addPublicRoute(
                 $.sendError(res, "[PLATFORM MGT] Platforms cannot be listed : "+err.message);
             }
         }
+    },{
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'platform-list',
+                uri: '/list',
+                summary: `To list all platforms available, remotely  or locally installed. `,
+                parameters: [],
+                responses: [{
+                    description: "Return two list. The list of **installed** platforms and the list of **remote** platforms available in store" ,
+                    schema: { type: 'object', properties: { installed: { type: 'object' },  remote: { type: 'object' }, }}
+                }]
+            }
+        }
     }
 )
 
 
-PLATFORM_WEB_API.addAsyncPublicRoute(
+PLATFORM_WEB_API.addAsyncAuthenticatedRoute(
     '/install',
     {
         'post': async (req:DelegateRequest, res:DelegateResponse)=>{
@@ -54,6 +69,24 @@ PLATFORM_WEB_API.addAsyncPublicRoute(
             }catch(err){
                 Logger.error("[API][PLATFORM MGT] Platforms cannot be installed : "+err.message+"\n\t"+err.stack);
                 $.sendError(res, "[PLATFORM MGT] Platforms cannot be installed : "+err.message);
+            }
+        }
+    },{
+        mcp: {
+            [HTTP_VERB.POST]: {
+                name:'platform-install-remote',
+                uri: '/install',
+                summary: `To install the remote platform identified by the specified UID 'uid' in body.`,
+                parameters: [{
+                    name: 'uid',
+                    required: true,
+                    description: Platform.TYPE.getPrimaryKey()._dscr,
+                    schema: Platform.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "Return the status of the installation process.",
+                    schema: { type: 'object', properties: { status: { type: 'boolean' }}}
+                }]
             }
         }
     }

@@ -29,7 +29,13 @@ export default class ModelPackage extends Savable implements INode, IPersistent
 {
 
     static TYPE:NodeType = (new NodeType( "package", NodeInternalType.PACKAGE, []))
-        .dataSource("MEM", "package");
+        .dataSource("MEM", "package")
+        .descr(`
+Represent a **package** node - such as Java package - in the universal representation and AST of the target application.          
+Package are stored into instance of ModelPackage class, and contains ModelClass object representing **class** node as well as another child package.
+Package can be provided by execution environment or application, and can be tagged using the property **tags**.  
+        `);
+
 
     __:NodeInternalType = NodeInternalType.PACKAGE;
 

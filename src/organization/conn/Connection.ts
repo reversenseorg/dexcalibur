@@ -2,7 +2,8 @@ import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {Auditable} from "../../Auditable.js";
 import {Secret, SecretUUID} from "../../core/secrets/Secret.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {DbDataType, DbKeyType, NodeProperty, NodeType, TagUUID, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {Credential} from "./Credential.js";
 
 
 export interface ConnectionProtocolType {
@@ -104,12 +105,24 @@ export class Connection extends Auditable   {
 
     __:NodeInternalType = NodeInternalType.CONNECTION;
 
+
+    static TYPE:NodeType = (new NodeType( "connection", NodeInternalType.CONNECTION, [
+        (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("name")).type(DbDataType.STRING),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+       // (new NodeProperty("credential")).single(Credential.TYPE).embed(),
+        (new NodeProperty("owner")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("fields")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("secrets")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
+    ]));
+
     uuid:ConnectionUUID;
     type: ConnectionProtocol;
     name: string;
     description:string;
     address: string;
-    tags:number[] = [];
+    tags:TagUUID[] = [];
     secrets:Record<string, SecretUUID> = {};
     fields:Record<string, string> = {};
 
