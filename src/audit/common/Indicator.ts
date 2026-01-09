@@ -69,7 +69,16 @@ export class Indicator implements INode {
         (new NodeProperty("enable")).type(DbDataType.BOOLEAN).def(true),
         (new NodeProperty("version")).type(DbDataType.BLOB).def({}),
         //(new NodeProperty("metric")).type(DbDataType.STRING).def({})
-    ]));
+    ])).descr(`
+An Indicator is a metric, optionally filed with data.
+
+Indicator can be used:
+- to build dashboards
+- to define KPI template attached to a control point or assurance model
+- to generate reports with data
+
+
+    `);
 
     uuid:IndicatorUUID = "";
     name:string = "";

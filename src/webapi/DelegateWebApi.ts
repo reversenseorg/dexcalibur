@@ -14,10 +14,12 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 import {IJSONSchema, IJSONSchemaDocument} from "@dexcalibur/dexcalibur-orm";
+import {AiException} from "../errors/AiException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export type HttpVerb = "get" | "post" | "delete" | "put" | "options" | any;
+export type HttpParamType = "body" | "query" | "params" | "header" | any;
 
 export interface McpDoc {
     verb?:HttpVerb;
@@ -26,9 +28,10 @@ export interface McpDoc {
     category?:string;
     session?:boolean;
     summary?:string;
-    parameters?:{name:string, description:string, required:boolean, schema?:IJSONSchema, schemaDoc?:IJSONSchemaDocument }[];
+    parameters?:{name:string, description:string, required:boolean, default?:any, schema?:IJSONSchema, schemaDoc?:IJSONSchemaDocument }[];
     responses?:{ errCode?:number, description:string, schema?:IJSONSchema, schemaDoc?:IJSONSchemaDocument}[];
     errors?:any
+    type?:HttpParamType
 }
 
 export enum HTTP_VERB {
@@ -367,7 +370,7 @@ export class DelegateWebApi
         if(pDocs.parameters!=null){
             pDocs.parameters.map((param)=>{
                 if(param.schemaDoc==null && param.schema==null){
-                    throw new Error("Missing schemaDoc or schema for parameter ["+param.name+`] of MCP tool [${pDocs.name}] at `+pDocs.uri);
+                    throw AiException.MCP_ROUTE_MISSING_PARAM_SCHEMA(param.name, pDocs.name, pDocs.uri);
                 }
             });
         }
@@ -375,7 +378,7 @@ export class DelegateWebApi
         if(pDocs.responses!=null){
             pDocs.responses.map((response, k)=>{
                 if(response.schemaDoc==null && response.schema==null){
-                    throw new Error("Missing schemaDoc or schema for response ["+k+`] of MCP tool [${pDocs.name}]`);
+                    throw AiException.MCP_ROUTE_MISSING_RESP_SCHEMA(k, pDocs.name);
                 }
             });
         }

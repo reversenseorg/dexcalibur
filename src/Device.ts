@@ -38,6 +38,9 @@ import {DeviceTemplateFactory} from "./device/template/DeviceTemplateFactory.js"
 import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import ScreenshotSession from "./platform/ScreenshotSession.js";
 import ScreenshotAgent from "./platform/ScreenshotAgent.js";
+import {UserAccount} from "./user/UserAccount.js";
+import AiHelper from "./core/ai/AiHelper.js";
+import {ElixirUtils} from "./elixir/ElixirUtils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -114,13 +117,37 @@ export class Device implements INode
             [
                 (new NodeProperty("uid"))
                     .type(DbDataType.STRING)
+                    .schema({ type:"string", format:"uuid" })
+                    .descr("UUID of the device")
                     .key(DbKeyType.PRIMARY),
-                (new NodeProperty("id")).type(DbDataType.STRING),
-                (new NodeProperty("type")).type(DbDataType.STRING).def(OperatingSystem.NONE),
-                (new NodeProperty("model")).type(DbDataType.STRING).def(""),
-                (new NodeProperty("product")).type(DbDataType.STRING).def(""),
+                (new NodeProperty("id"))
+                    .type(DbDataType.STRING)
+                    .schema({ type:"string" })
+                    .descr("Internal UID of the device. It is built by mixing several DeviceID with several data from qualifier array"),
+                (new NodeProperty("type"))
+                    .type(DbDataType.STRING)
+                    .schema({ type:"string" })
+                    .descr("Type of device")
+                    .def(OperatingSystem.NONE),
+                (new NodeProperty("model"))
+                    .type(DbDataType.STRING)
+                    .schema({ type:"string" })
+                    .descr("Name of device model")
+                    .def(""),
+                (new NodeProperty("product"))
+                    .type(DbDataType.STRING)
+                    .schema({ type:"string" })
+                    .descr("Product name of device")
+                    .def(""),
                 (new NodeProperty("platform"))
                     .type(DbDataType.BLOB)
+                    .schema({
+                        oneOf: [
+                            Platform.TYPE.getPrimaryKey().toJSONSchemaPart(),
+                            Platform.TYPE.toJSONSchemaPart()
+                        ]
+                    })
+                    .descr("Platform information of the device. It contains data about OS API, SDK, ... every data are common to several devices")
                     .sleep( (x:NodePropertyState)=>{
                         if(x.p != null && x.p.toJsonObject!=null){
                             return (x.p as Platform).toJsonObject();
@@ -151,14 +178,26 @@ export class Device implements INode
                             return null;
                         }
                     })
+                    .schema({ type:"object" })
+                    .descr("Profile of the device. It contains data about device characteristics, such as CPU architecture, OS version, system properties, IMEI, bluetooth, ...")
                     .type(DbDataType.BLOB).def(null),
-                (new NodeProperty("transportId")).type(DbDataType.STRING).def(null),
-                (new NodeProperty("usbQualifier")).type(DbDataType.STRING).def(null),
+                (new NodeProperty("transportId"))
+                    .type(DbDataType.STRING)
+                    .def(null),
+                (new NodeProperty("usbQualifier"))
+                    .type(DbDataType.STRING)
+                    .def(null),
                 (new NodeProperty("emulatorOpts")).type(DbDataType.BLOB).def({}),
-                (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("enrolled"))
+                    .type(DbDataType.BOOLEAN)
+                    .schema({ type:"boolean" })
+                    .descr("Flag  to indicate if the device is enrolled. A device is enrolled when it is ready to be instrumented or explored")
+                    .def(false),
                 (new NodeProperty("frida")).type(DbDataType.BLOB),
                 (new NodeProperty("uidfp")).type(DbDataType.BLOB).def({}),
                 (new NodeProperty("tpl")).type(DbDataType.BLOB)
+                    .schema({ type:"object" })
+                    .descr("Optional. Device template used to generate the device.")
                     .sleep( (x:NodePropertyState)=>{
                         if(x.p!=null){
                             return (x.p as DeviceTemplate).toJsonObject();
@@ -173,7 +212,10 @@ export class Device implements INode
                             return null;
                         }
                     }).def(null),
-                (new NodeProperty("syscalls")).type(DbDataType.BLOB)
+                (new NodeProperty("syscalls"))
+                    .type(DbDataType.BLOB)
+                    .schema(ModelSyscall.TYPE.toJSONSchemaPart(true))
+                    .descr("List of system calls supported by the device.")
                     .sleep( (x:NodePropertyState)=>{
                         const syscalls:any[] = [];
                         if(x.p!=null && Array.isArray(x.p)){
@@ -185,19 +227,34 @@ export class Device implements INode
                         return syscalls;
                     })
                     .wakeUp( (x:NodePropertyState)=>{
-                        const apps:AppPackage[] = [];
+                        const syscalls:ModelSyscall[] = [];
                         if(x.p!=null && Array.isArray(x.p)){
-                            x.p.map( app => {
-                                apps.push(new AppPackage(app));
+                            x.p.map( c => {
+                                syscalls.push(new ModelSyscall(c));
                             });
                         }
 
-                        return apps;
+                        return syscalls;
                     }),
-                (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
-                (new NodeProperty("os")).type(DbDataType.STRING).def(OperatingSystem.NONE),
-                (new NodeProperty("arch")).type(DbDataType.STRING).def(Architecture.AARCH64),
-                (new NodeProperty("apps")).type(DbDataType.BLOB)
+                (new NodeProperty("enrolled"))
+                    .type(DbDataType.BOOLEAN)
+                    .schema({ type:"boolean" })
+                    .descr("Boolean flag to indicate if the device is enrolled. A device is enrolled when it is ready to be instrumented or explored")
+                    .def(false),
+                (new NodeProperty("os"))
+                    .type(DbDataType.STRING)
+                    .schema({ type: "string", enum: Object.values(OperatingSystem) as OperatingSystem[] })
+                    .descr("Operating System")
+                    .def(OperatingSystem.NONE),
+                (new NodeProperty("arch"))
+                    .type(DbDataType.STRING)
+                    .schema({ type: "string", enum: Object.values(Architecture) as Architecture[] })
+                    .descr("Hardware architecture")
+                    .def(Architecture.AARCH64),
+                (new NodeProperty("apps"))
+                    .type(DbDataType.BLOB)
+                    .schema({ type: "array", items: AiHelper.getInstance().getJsonSchemaOf("AppPackage")  })
+                    .descr("List of application installed on the device")
                     .sleep( (x:NodePropertyState)=>{
                         const apps:any[] = [];
                         if(x.p!=null){
@@ -220,6 +277,8 @@ export class Device implements INode
                     }),
                 (new NodeProperty("bridges"))
                     .type(DbDataType.BLOB)
+                    .schema({ type: "array", items: { type:"object" }  })
+                    .descr("List of bridges allowed to communicate with the device")
                     .sleep( (x:NodePropertyState)=>{
                         const bridges:any = {};
                         if(x.p!=null){
@@ -247,16 +306,48 @@ export class Device implements INode
 
 
                 // volatile states
-                (new NodeProperty("authorized")).volatile().type(DbDataType.BOOLEAN).def(false),
-                (new NodeProperty("connected")).volatile().type(DbDataType.BOOLEAN).def(false),
-                (new NodeProperty("removed")).volatile().type(DbDataType.BOOLEAN).def(false),
-                (new NodeProperty("bridge")).volatile().type(DbDataType.STRING).def(null),
-                (new NodeProperty("selected")).volatile().type(DbDataType.STRING).def(null),
-                (new NodeProperty("isEmulated")).volatile().type(DbDataType.BOOLEAN).def(false),
-                (new NodeProperty("rooted")).type(DbDataType.BOOLEAN).def(false),
-                (new NodeProperty("offline")).volatile().type(DbDataType.BOOLEAN).def(true)
+                (new NodeProperty("authorized"))
+                    .volatile()
+                    .type(DbDataType.BOOLEAN)
+                    .schema({ type: "boolean"  })
+                    .descr("Boolean flag to indicate if the device authorize the host to communicate with it. Android deviceover ADB requires authorization prior to start to communicate with a computer.")
+                    .def(false),
+                (new NodeProperty("connected"))
+                    .volatile()
+                    .schema({ type: "boolean"  })
+                    .descr("Boolean flag to indicate if the device is connected and ready")
+                    .type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("removed"))
+                    .volatile()
+                    .type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("bridge"))
+                    .volatile()
+                    .type(DbDataType.STRING).def(null),
+                (new NodeProperty("selected"))
+                    .volatile()
+                    .type(DbDataType.STRING).def(null),
+                (new NodeProperty("isEmulated"))
+                    .volatile()
+                    .schema({ type: "boolean"  })
+                    .descr("Boolean flag to indicate if the device is emulated")
+                    .type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("rooted"))
+                    .schema({ type: "boolean"  })
+                    .descr("Boolean flag to indicate if the device is rooted. A device is rooted when it is running on a rooted Android device.")
+                    .type(DbDataType.BOOLEAN).def(false),
+                (new NodeProperty("offline"))
+                    .volatile()
+                    .schema({ type: "boolean"  })
+                    .descr("Boolean flag to indicate if the device is offline. A device is offline when it is not connected to the computer")
+                    .type(DbDataType.BOOLEAN).def(true)
             ]
-        ).dataSource("ENGINE_DB");
+        ).descr(`
+        A device represents a physical device or a virtual (emulated) device targeted by Reversense platform. 
+        A device can be a Virtual machine as well as a poor Unicorn script or a real device.
+        
+        The DeviceManager class is responsible to manage all devices. 
+        Offline devices are still kept in memory and can be used to contextualize analysis.
+        `).dataSource("ENGINE_DB");
         __:NodeInternalType = NodeInternalType.DEVICE;
 
 

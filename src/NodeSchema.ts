@@ -198,36 +198,7 @@ static FILE:DataSource = new DataSource("fs",{
 });*/
 
 UserAccount.TYPE.updateProperties([
-    (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-    (new NodeProperty('_time')).type(DbDataType.STRING),
-    (new NodeProperty('_username')).type(DbDataType.STRING).notnull().unique(),
-    (new NodeProperty('_password')).type(DbDataType.STRING).notnull(),
-    (new NodeProperty('_salt')).type(DbDataType.STRING).notnull(),
-    (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
-    (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
-    (new NodeProperty('_roles')).type(DbDataType.STRING).def([]),
-    (new NodeProperty('_groups')).type(DbDataType.STRING).def([]),
-    (new NodeProperty('_tokens')).type(DbDataType.STRING).def([]),
-    (new NodeProperty('_apikeys'))
-        .type(DbDataType.BLOB)
-        .sleep( (x:NodePropertyState) => {
-            return (x.p !=null ? x.p : []) ;
-        } )
-        .wakeUp( (x:NodePropertyState) => {
-            return (x.p!=null ? x.p.map( v => new ApiKey(v))  : [])
-        })
-        .def([]),
-    (new NodeProperty('_type')).type(DbDataType.STRING).def(UserAccountType.LOCAL),
-    (new NodeProperty('_membership')).type(DbDataType.BLOB).def({}),
-    (new NodeProperty('_extra')).type(DbDataType.BLOB).def({}).addValidationRule(UserAccount.VALIDATE._extra as any),
-    (new NodeProperty('_authorized_ips')).type(DbDataType.STRING).def([]),
-    (new NodeProperty('_person')).type(DbDataType.BLOB)
-        .sleep( (x:NodePropertyState) => {
-            return (x.p !=null ? x.p : null) ;
-        } )
-        .wakeUp( (x:NodePropertyState) => {
-            return (x.p!=null ? new Person(x.p)  : null)
-        }),
+
 ]).dataSource("ENGINE_DB").builder(UserAccount);
 
 UserSession.TYPE.updateProperties([

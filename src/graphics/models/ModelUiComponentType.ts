@@ -29,13 +29,24 @@ export default class ModelUiComponentType extends Savable
     static TYPE:NodeType = (new NodeType( "ui_cmp_type", NodeInternalType.UI_CMP_TYPE, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("version")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("orientation")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("version"))
+            .type(DbDataType.STRING).def(null),
+        (new NodeProperty("orientation"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string" })
+            .descr("Orientation of component : vertical, horizontal")
+            .def(null),
         (new NodeProperty("description")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("role")).single(ModelUiRole.TYPE).def(null),
-        (new NodeProperty("relatedRoles")).multiple(ModelUiRole.TYPE).def([]),
+        (new NodeProperty("role"))
+            .single(ModelUiRole.TYPE)
+            .def(null),
+        (new NodeProperty("relatedRoles"))
+            .multiple(ModelUiRole.TYPE)
+            .def([]),
         (new NodeProperty("fire")).multiple(ModelUiEventType.TYPE).def([]),
-    ])).dataSource("PROJECT_DB");
+    ]))
+        .descr(`Represent the type of an UI component such as Button, TextView, ImageView, etc.`)
+        .dataSource("PROJECT_DB");
 
     __:NodeInternalType = NodeInternalType.UI_CMP_TYPE;
 

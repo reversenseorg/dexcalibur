@@ -23,16 +23,56 @@ import {
 export default class ModelSyscall implements INode
 {
     static TYPE:NodeType = (new NodeType( "syscall", NodeInternalType.SYSCALL, [
-        (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("os")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("arch")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("sysnum")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("name")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("args")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("retType")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("errCodes")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]")
-    ])).dataSource("MEM", "syscalls");
+       /* (new NodeProperty("_uid"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string", format:"uuid" })
+            .descr("Boolean flag to indicate if the device is enrolled. A device is enrolled when it is ready to be instrumented or explored")
+            .key(DbKeyType.PRIMARY),*/
+        (new NodeProperty("os"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string", enum: Object.values(OperatingSystem) as OperatingSystem[] })
+            .descr("Operating system of this syscall")
+            .def(null),
+        (new NodeProperty("arch"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string", enum: Object.values(Architecture) as Architecture[] })
+            .descr("Architecture of this syscall")
+            .def(null),
+        (new NodeProperty("sysnum"))
+            .type(DbDataType.STRING)
+            .schema({ type:"number" })
+            .descr("Syscall number")
+            .def(null),
+        (new NodeProperty("name"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string" })
+            .descr("Human name of the syscall. Can be used to identify the syscall in the log. Can be null if not available.")
+            .def(null),
+        (new NodeProperty("args"))
+            .type(DbDataType.STRING)
+            .schema({ type:"array", items: { type:"object" } })
+            .descr("Properties for each argument of the syscall. Can be null if not available.")
+            .def(null),
+        (new NodeProperty("retType"))
+            .type(DbDataType.STRING)
+            .schema({ type:"object" })
+            .descr("Type of return")
+            .def(null),
+        (new NodeProperty("errCodes"))
+            .type(DbDataType.STRING)
+            .schema({ type:"array", items: { type:"object" } })
+            .descr("List of error codes")
+            .def(null),
+        (new NodeProperty("tags"))
+            .type(DbDataType.STRING)
+            .schema({ type:"array", items: { type:"number" } })
+            .descr("List of tags")
+            .serialize(DbSerialize.JSON).def("[]")
+    ])).descr(`
+    This model represents a system call independently of the operating system and kernel version.
+    Instance of ModelSyscall are manipulated by HookManager to generate hooks for the target application.
+    System calls are instrumented by Interruptor by patching interruptions at instruction-level
+    `).dataSource("MEM", "syscalls");
 
     __:NodeInternalType = NodeInternalType.SYSCALL;
 

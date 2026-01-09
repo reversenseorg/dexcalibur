@@ -19,7 +19,7 @@ import {randomUUID} from "crypto";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
 import {Connection, ConnectionUUID} from "./conn/Connection.js";
-import {DeviceUUID} from "../Device.js";
+import {Device, DeviceUUID} from "../Device.js";
 import {DeviceTemplate, DeviceTemplateUUID} from "../device/template/DeviceTemplate.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {Secret, SecretProtectionType, SecretType, SecretUUID} from "../core/secrets/Secret.js";
@@ -102,14 +102,48 @@ export class OrganizationUnit extends Auditable implements INode {
     }
 
     static TYPE:NodeType = (new NodeType( "organization_unit", NodeInternalType.ORG_UNIT, [
-        (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("name")).type(DbDataType.STRING),
-        (new NodeProperty("companyName")).type(DbDataType.STRING),
-        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("owner")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("settings")).type(DbDataType.BLOB).def(OrganizationUnit.DEFAULT_POLICY),
-        (new NodeProperty("members")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("devices")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("uuid"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string", format:"uuid" })
+            .descr("UUID of the organization unit")
+            .key(DbKeyType.PRIMARY),
+        (new NodeProperty("name"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string" })
+            .descr("Common name of the organization unit"),
+        (new NodeProperty("companyName"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string" })
+            .descr("The formal company name of the organization unit"),
+        (new NodeProperty("description"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string" })
+            .descr("a short description. May be empty")
+            .def(""),
+        (new NodeProperty("owner"))
+            .type(DbDataType.STRING)
+            .schema({ type:"string" })
+            .descr("The user account UUID of the owner")
+            .def(null),
+        (new NodeProperty("settings"))
+            .type(DbDataType.BLOB)
+            .schema({ type:"object" })
+            .descr(`Global settings for the organization. It includes :
+             - starredModels: list of **assurance models** to be starred by default.
+             - inputTTL: time to live for input data (in days). Default is 365 days.
+             - traceTTL: time to live for trace data (in days). Default is -1 (no limit).
+             - reportTTL: time to live for report data (in days). Default is -1 (no limit).`)
+            .def(OrganizationUnit.DEFAULT_POLICY),
+        (new NodeProperty("members"))
+            .type(DbDataType.STRING)
+            .schema({ type:"array", items:UserAccount.TYPE.getPrimaryKey().toJSONSchemaPart() })
+            .descr("The list of user account UUID who are members of the organization unit.")
+            .def([]),
+        (new NodeProperty("devices"))
+            .type(DbDataType.STRING)
+            .schema({ type:"array", items: Device.TYPE.getPrimaryKey().toJSONSchemaPart() })
+            .descr("The list of user account UUID who are members of the organization unit.")
+            .def([]),
         (new NodeProperty("businessPlan"))
             .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState) => {

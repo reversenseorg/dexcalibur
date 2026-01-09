@@ -749,7 +749,28 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
             }
         }
-    },DEFAULT_OPTIONS);
+    },{
+        //lazyProject: true,
+        //nodeAffinity: DexcaliburEngineMode.MASTER,
+        ...DEFAULT_OPTIONS,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-get-kpi-definition-by-model',
+                uri: '/kpis/{modelUUID}',
+                summary: `Return the definition and formulae for each indicators from assurance model specified by 'modelUUID' param.`,
+                parameters: [{
+                    name: 'modelUUID',
+                    required: true,
+                    description: AssuranceModel.TYPE.getPrimaryKey()._dscr,
+                    schema: AssuranceModel.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "A list of Indicator objects. Each Indicator contains definitions and template filled with values after a scan.",
+                    schemaDoc: AssuranceReport.TYPE.toJSONSchemaDoc()
+                }]
+            }
+        }
+    });
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/model/:modelID',
@@ -763,7 +784,12 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 //                const models = await am.getModelFor(req.project, req.params.modelID);
                 const models = await am.getModelByUID(req.user, req.params.modelID);
 
-                $.sendSuccess(res, models.toJsonObject());
+                let previewMode:boolean = false;
+                if(ValidationRule.newPinklistAssert(['0','1',"false","true"]).test(req.query.preview)){
+                    previewMode = (req.query.preview==='1'||req.query.preview==='true');
+                }
+
+                $.sendSuccess(res, (previewMode? models.asPreview(): models.toJsonObject()));
             }catch(err){
                 Logger.error("[API][AUDIT] Model cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
@@ -773,14 +799,20 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
         ...DEFAULT_OPTIONS,
         mcp: {
             [HTTP_VERB.GET]: {
-                name:'audit-get-assurance-model',
-                uri: '/model/{modelUID}',
-                summary: `Return an assurance model by its UUID.`,
+                name:'audit-get-assurance-model-by-uuid',
+                uri: '/model/{modelUID}?preview={preview}',
+                summary: `Return an assurance model by its UUID. An assurance model is often heavy, use 'preview=true' to reduce the size of the response.`,
                 parameters: [{
                     name: 'modelUID',
                     required: true,
                     description: AssuranceModel.TYPE.getPrimaryKey()._dscr,
                     schema: AssuranceModel.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'preview',
+                    required: false,
+                    description: "A boolean to say if the request return a preview or the full model. Default is 'false'.",
+                    default: "false",
+                    schema: { type:"boolean" }
                 }],
                 responses: [{
                     description: "The whole assurance_model node. An 'assurance_model' is a referential or a set of requirements validated by Reversense platform during a scan.",
@@ -879,7 +911,30 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
         }
     },{
         lazyProject: true,
-        nodeAffinity: DexcaliburEngineMode.MASTER
+        nodeAffinity: DexcaliburEngineMode.MASTER,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-list-assurance-models',
+                uri: '/models?preview={preview}&oid={organizationUUID}',
+                summary: `Return the list assurance model by its UUID. An assurance model is often heavy, always use 'preview=true' to reduce the size of the response.`,
+                parameters: [{
+                    name: 'organizationUUID',
+                    required: true,
+                    description: OrganizationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: OrganizationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'preview',
+                    required: true,
+                    description: "A boolean to say if the request return a list of preview or full models.",
+                    default: "true",
+                    schema: { type:"boolean" }
+                }],
+                responses: [{
+                    description: "The list of **assurance_model** node. An 'assurance_model' is a referential or a set of requirements validated by Reversense platform during a scan.",
+                    schema: AssuranceModel.TYPE.toJSONSchemaPart(true)
+                }]
+            }
+        }
     }
 );
 
@@ -1011,7 +1066,29 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        mcp: {
+            [HTTP_VERB.POST]: {
+                name:'audit-list-scan-orders',
+                uri: '/project/{projectUUID}/scan/list',
+                summary: `Return the list of **scan orders** for a project specified by its UUID using "projectUUID" parameter. A scan order is the order to scan a specific application versions versus on or several specific assurance model.`,
+                parameters: [{
+                    name: 'projectUUID',
+                    required: true,
+                    description: DexcaliburProject.TYPE.getPrimaryKey()._dscr,
+                    schema: DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: `
+                    The list of scan ordered for the specified project. 
+                    
+                    A scan order is :
+                    ${ScanOrder.TYPE.getDescr()}
+                    `,
+                    schemaDoc: AssuranceModel.TYPE.toJSONSchemaDoc()
+                }]
+            }
+        }
     }
 );
 

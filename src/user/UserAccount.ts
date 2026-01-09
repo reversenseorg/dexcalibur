@@ -4,7 +4,15 @@ import {AuthCode, AuthenticationException} from "./auth/AuthTypes.js";
 import {ProjectURI} from "../project/ProjectGlobalUID.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {IPersistent} from "../persist/orm/IPersistent.js";
-import {INode, NodeProperty, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {
+    DbDataType,
+    DbKeyType,
+    INode,
+    NodeProperty,
+    NodePropertyState,
+    NodeType,
+    SerializeOptions
+} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import Util from "../Utils.js";
 import {IStringIndex} from "../core/IStringIndex.js";
@@ -87,7 +95,42 @@ export class UserAccount implements IPersistent, INode {
     static TYPE:NodeType = new NodeType(
         'accounts',
         NodeInternalType.USER_ACCOUNT,
-        []
+        [
+            (new NodeProperty('_uid'))
+                .type(DbDataType.STRING)
+                .schema({ type:"string" })
+                .descr("The user account UUID")
+                .key(DbKeyType.PRIMARY),
+            (new NodeProperty('_time')).type(DbDataType.STRING),
+            (new NodeProperty('_username')).type(DbDataType.STRING).notnull().unique(),
+            (new NodeProperty('_password')).type(DbDataType.STRING).notnull(),
+            (new NodeProperty('_salt')).type(DbDataType.STRING).notnull(),
+            (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
+            (new NodeProperty('_roles')).type(DbDataType.STRING).def([]),
+            (new NodeProperty('_groups')).type(DbDataType.STRING).def([]),
+            (new NodeProperty('_tokens')).type(DbDataType.STRING).def([]),
+            (new NodeProperty('_apikeys'))
+                .type(DbDataType.BLOB)
+                .sleep( (x:NodePropertyState) => {
+                    return (x.p !=null ? x.p : []) ;
+                } )
+                .wakeUp( (x:NodePropertyState) => {
+                    return (x.p!=null ? x.p.map( v => new ApiKey(v))  : [])
+                })
+                .def([]),
+            (new NodeProperty('_type')).type(DbDataType.STRING).def(UserAccountType.LOCAL),
+            (new NodeProperty('_membership')).type(DbDataType.BLOB).def({}),
+            (new NodeProperty('_extra')).type(DbDataType.BLOB).def({}).addValidationRule(UserAccount.VALIDATE._extra as any),
+            (new NodeProperty('_authorized_ips')).type(DbDataType.STRING).def([]),
+            (new NodeProperty('_person')).type(DbDataType.BLOB)
+                .sleep( (x:NodePropertyState) => {
+                    return (x.p !=null ? x.p : null) ;
+                } )
+                .wakeUp( (x:NodePropertyState) => {
+                    return (x.p!=null ? new Person(x.p)  : null)
+                }),
+        ]
     );
     __:NodeInternalType = NodeInternalType.USER_ACCOUNT;
 

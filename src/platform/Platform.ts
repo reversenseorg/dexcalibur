@@ -104,7 +104,11 @@ export default class Platform
         (new NodeProperty("os")).type(DbDataType.STRING).def(null),
         (new NodeProperty("arch")).type(DbDataType.STRING).def(null),
         (new NodeProperty("official")).type(DbDataType.BOOLEAN).def(false),
-        (new NodeProperty("apiVersion")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("apiVersion"))
+            .type(DbDataType.STRING)
+            .descr("Version of API")
+            .schema({ type:"string" })
+            .def([]),
         (new NodeProperty("binaryPath")).type(DbDataType.STRING).def([]),
         (new NodeProperty("resource")).type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
