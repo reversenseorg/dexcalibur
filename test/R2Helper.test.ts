@@ -222,6 +222,42 @@ describe('Radare2 Helper', function() {
     });
 
 
+    describe('runCmd :: NativeHelperCmd.LIST_SEGMENTS', async function() {
+        this.timeout(1000000);
+        it('Segments are listed', async ()=> {
+            let BIN_SCOPE:DataScope;
+            let BIN_FILE:ModelFile;
+            let analyzer:RadareHelper;
+            let res:any;
+            let success:boolean = false;
+
+            BIN_SCOPE = (new DataScope("bin")).setPpts(DataScopePpts.PATH, _path_.join(TEST_WS,TEST_APP,'apk'));
+            BIN_FILE = new ModelFile({
+                path: _path_.join(Util.__dirname(import.meta.url),'bin','lib_arm64_obf.so'),
+                type: 'ELF',
+                name: 'lib_arm64_obf.so',
+                scope: BIN_SCOPE
+            });
+
+            analyzer = new RadareHelper( BIN_FILE, R2_TYPE.LOCAL);
+
+            try{
+                res = await analyzer.start([]);
+
+                expect(res).to.be.not.equal(null,"Radare2 instance not started");
+                if(res){
+                    const segs = await analyzer.runCmd([NativeHelperCmd.LIST_SEGMENTS]);
+                    expect(segs[0].data.length).to.equal(22,"Segments number is invalid");
+                }
+
+                success = true;
+                return "done";
+            }catch (e) {
+                expect(success).to.be.equal(true,"Exception raised");
+            }
+        });
+    });
+
 
     describe('runCmd :: NativeHelperCmd.DISASS', async function() {
         this.timeout(1000000);

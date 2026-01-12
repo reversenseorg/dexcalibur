@@ -1,7 +1,7 @@
 import {R2CmdResult, R2Pipe} from './external/R2Pipe.js';
 
 import * as Log from './Logger.js';
-import ModelExecutableSection from "./ModelExecutableSection.js";
+import ModelExecutableSection, {SectionType} from "./ModelExecutableSection.js";
 import {ModelFunction} from "./ModelFunction.js";
 import ModelFile from "./ModelFile.js";
 import {ModelNativeRef} from "./ModelNativeRef.js";
@@ -149,6 +149,7 @@ export default class RadareHelper implements INativeHelper
 
         pOut.map( vSec => {
             secs.push(new ModelExecutableSection({
+                type: SectionType.SECTION,
                 name: (vSec.name=="")? '[base]' : vSec.name,
                 perm: vSec.perm,
                 memsz: vSec.vsize,
@@ -161,6 +162,37 @@ export default class RadareHelper implements INativeHelper
         return secs;
     }
 
+    /**
+     * To instanciante object representing file section from r2 json output
+     *
+     * @param {any} pOut A poor JSON object containing sections from Radare2
+     * @return {ModelExecutableSection[]} An array of execautable sections
+     * @method
+     * @static
+     * @since 1.0.0
+     */
+    async parseSegments(pOut:any):Promise<ModelExecutableSection[]> {
+        let secs:ModelExecutableSection[] = [];
+
+        if(pOut==null || pOut.length==0) return secs;
+
+        pOut.map( vSec => {
+            secs.push(new ModelExecutableSection({
+                type: SectionType.SEGMENT,
+                name: (vSec.name=="")? '[base]' : vSec.name,
+                perm: vSec.perm,
+                memsz: vSec.vsize,
+                sz: vSec.size,
+                paddr: vSec.paddr,
+                vaddr: vSec.vaddr,
+                flags: parseInt(vSec.flags,10)
+            }));
+        });
+
+        return secs;
+    }
+
+    // [{"name":"PHDR","size":560,"vsize":560,"perm":"-r--","flags":0,"paddr":64,"vaddr":64}
 
 
     /**
@@ -321,6 +353,29 @@ export default class RadareHelper implements INativeHelper
 
                         if(pOptions.update){
                             this.target.setProgramSection(data.data);
+                            //this.target.tagAs('$r');
+                        }
+                    }else{
+                        res.push(null);
+                    }
+
+
+                    if(data){
+                        k++;
+                    }
+                    break;
+                case NativeHelperCmd.LIST_SEGMENTS:
+                    data = await this._p.runCmd("iSSj");
+
+                    if(data.success){
+                        this._h.sections = true;
+
+                        // todo : parse segments + add
+                        data.data = await this.parseSegments(data.data);
+                        res.push(data);
+
+                        if(pOptions.update){
+                            this.target.setSegments(data.data);
                             //this.target.tagAs('$r');
                         }
                     }else{
@@ -674,6 +729,16 @@ export default class RadareHelper implements INativeHelper
 
     async listSections():Promise<ModelExecutableSection[]> {
         const res = await this.runCmd([NativeHelperCmd.LIST_SECTIONS]);
+
+        if(res.length==0 || !res[0].success){
+            return [];
+        }else{
+            return res[0].data as ModelExecutableSection[];
+        }
+    }
+
+    async listSegments():Promise<ModelExecutableSection[]> {
+        const res = await this.runCmd([NativeHelperCmd.LIST_SEGMENTS]);
 
         if(res.length==0 || !res[0].success){
             return [];

@@ -892,10 +892,16 @@ export default class NativeAnalyzer {
                 //pFile.addTag(this.context.getTagManager().getTag("analyzed.native_func"))
                 //pFile.addTag(this.context.getTagManager().getTag("analyzed.sections"))
 
+                // discover sections
+                const segs = await helper.listSegments();
+
+                Logger.info("[NATIVE ANALYZER] "+segs.length+` segments have been successfully analyzed in : ${pFile.getRelativePath()}`);
+                pFile.setSegments(segs);
+
                 await this.markAsProcessed(pFile);
 
                 // save file
-                await this._pdb.save(pFile, ModelFile.TYPE.getType(), ['__p','sections']);
+                await this._pdb.save(pFile, ModelFile.TYPE.getType(), ['__p','sections','segments']);
             }
 
             if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){

@@ -28,6 +28,7 @@ import {Metadata, MetadataType} from "./audit/common/Metadata.js";
 import {MetadataTopic} from "./audit/common/ControlAssessment.js";
 import ModelCpuInstruction from "./ModelCpuInstruction.js";
 import ModelSyscall from "./ModelSyscall.js";
+import AiHelper from "./core/ai/AiHelper.js";
 
 
 
@@ -126,24 +127,55 @@ export default class ModelFile implements INode,IPersistent {
         "files",
         NodeInternalType.FILE,
         [
-            (new NodeProperty("_r")).type(DbDataType.STRING), //.key(DbKeyType.COMPOSITE,1), // path relative to scope root
-            (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY).addValidationRule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_]+:[a-f0-9]{32}$/)), //.key(DbKeyType.PRIMARY),
-            (new NodeProperty("name")).type(DbDataType.STRING).def(null),
-            (new NodeProperty("type")).type(DbDataType.STRING).def(null),
-            (new NodeProperty("size")).type(DbDataType.INTEGER).def(-1),
-            (new NodeProperty("entropy")).type(DbDataType.INTEGER).def(-1),
-            (new NodeProperty("path")).type(DbDataType.STRING).def(null),
-            (new NodeProperty("location")).type(DbDataType.STRING).def(null),
-            (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
-            (new NodeProperty("meta")).type(DbDataType.STRING).def([]),
-            (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
-            (new NodeProperty("data")).type(DbDataType.STRING).def({}),
-            (new NodeProperty("scope")).single(DataScope.TYPE)/*.key(DbKeyType.COMPOSITE,0)*/.def("PKG"),
+            (new NodeProperty("_r"))
+                .type(DbDataType.STRING), //.key(DbKeyType.COMPOSITE,1), // path relative to scope root
+            (new NodeProperty("_uid"))
+                .type(DbDataType.STRING)
+                .descr("The unique identifier of the file in the universal representation")
+                .schema({ type:"string"})
+                .key(DbKeyType.PRIMARY)
+                .addValidationRule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_]+:[a-f0-9]{32}$/)), //.key(DbKeyType.PRIMARY),
+            (new NodeProperty("name"))
+                .type(DbDataType.STRING)
+                .def(null),
+            (new NodeProperty("type"))
+                .type(DbDataType.STRING)
+                .descr("The type of the file. Can be a MIME type or a file extension")
+                .schema({ type:"string"})
+                .def(null),
+            (new NodeProperty("size"))
+                .type(DbDataType.INTEGER)
+                .descr("Size of the file")
+                .schema({ type:"string"})
+                .def(-1),
+            (new NodeProperty("entropy"))
+                .type(DbDataType.INTEGER)
+                .def(-1),
+            (new NodeProperty("path"))
+                .type(DbDataType.STRING)
+                .descr("Path of the file relatively to the scope root.")
+                .schema({ type:"string"})
+                .def(null),
+            (new NodeProperty("location"))
+                .type(DbDataType.STRING)
+                .def(null),
+            (new NodeProperty("tags"))
+                .type(DbDataType.STRING).def([]),
+            (new NodeProperty("meta"))
+                .type(DbDataType.STRING).def([]),
+            (new NodeProperty("_d"))
+                .type(DbDataType.STRING).def('f'),
+            (new NodeProperty("data"))
+                .type(DbDataType.STRING).def({}),
+            (new NodeProperty("scope"))
+                .single(DataScope.TYPE)/*.key(DbKeyType.COMPOSITE,0)*/.def("PKG"),
 
 
             (new NodeProperty("sections"))
                 .type(DbDataType.STRING)
                 .def([])
+                .descr("List of sections includes in the file. Sections are data ranges containing data of the same format such as ELF sections, DEX sections, ...")
+                .schema({ type:"array", items: AiHelper.getInstance().getJsonSchemaOf("ModelExecutableSection") })
                 .sleep( (x:NodePropertyState)=>{
                     if(x.p==null) return null;
 
@@ -164,6 +196,30 @@ export default class ModelFile implements INode,IPersistent {
                     return sect;
 
                  }),//.multiple(ModelFileSection.TYPE).type(DbDataType.STRING),
+            (new NodeProperty("segments"))
+                .type(DbDataType.STRING)
+                .descr("List of executable segments. Such segments are often mapped in the memory of the process running this file.")
+                .schema({ type:"array", items: AiHelper.getInstance().getJsonSchemaOf("ModelExecutableSection") })
+                .def([])
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return null;
+
+                    const sect:any[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        sect.push(x.p[i].toJsonObject());
+                    }
+                    return sect;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p==null) return [];
+
+                    const sect:ModelExecutableSection[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        sect.push(new ModelExecutableSection(x.p[i]));
+                    }
+                    return sect;
+
+                }),
             (new NodeProperty("chunks"))
                 .type(DbDataType.STRING)
                 .def([])
@@ -244,7 +300,9 @@ export default class ModelFile implements INode,IPersistent {
                     }
                 }), //.serialize(DbSerialize.JSON),
             (new NodeProperty("__t")).type(DbDataType.STRING).def(null), //.serialize(DbSerialize.JSON),
-            (new NodeProperty("f_list")).type(DbDataType.STRING).def(null)
+            (new NodeProperty("f_list"))
+                .type(DbDataType.STRING)
+                .def(null)
     ]);
 
 
@@ -292,6 +350,7 @@ export default class ModelFile implements INode,IPersistent {
 
     chunks:ModelFileSection[] = [];
     sections: ModelExecutableSection[] = [];
+    segments: ModelExecutableSection[] = [];
 
     f_list: ModelFunctionList = {};
 
@@ -623,6 +682,11 @@ export default class ModelFile implements INode,IPersistent {
     setProgramSection(pSection: ModelExecutableSection[]): number {
         this.sections = pSection;
         return this.sections.length;
+    }
+
+    setSegments(pSection: ModelExecutableSection[]): number {
+        this.segments = pSection;
+        return this.segments.length;
     }
 
     hasFuncs(): boolean {
