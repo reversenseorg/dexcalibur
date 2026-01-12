@@ -3,7 +3,7 @@ import * as _fs_ from "fs";
 import * as _path_ from "path";
 import * as _stream_ from 'stream';
 import * as _co_ from 'co';
-import * as _xz_ from "xz";
+import * as _xz_ from "xz-decompress";
 import {promisify} from 'util';
 import * as Frida from 'frida';
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
@@ -22,6 +22,7 @@ import {Architecture} from "./Architecture.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {SemVerData, SemVerHelper} from "./util/semver/SemverHelper.js";
 import Downloader from "./Downloader.js";
+import {Readable} from "stream";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -568,6 +569,7 @@ export default class FridaHelper extends External.ExternalHelper
         return flag;
     }
 
+
     /**
      * To download and push Frida server binary into the device
      * 
@@ -630,10 +632,12 @@ export default class FridaHelper extends External.ExternalHelper
 
         Logger.info('[FRIDA HELPER] Extracting server from archive ...');
 
+        console.log(_xz_);
         // un-xz
         await pipeline(
-            _fs_.createReadStream( xzpath),
-            new _xz_.Decompressor(),
+            new (_xz_ as any).default.XzReadableStream(
+                Readable.toWeb(_fs_.createReadStream( xzpath))
+            ),
             _fs_.createWriteStream( path, {
                 flags: 'w+',
                 mode: 0o777,

@@ -48,7 +48,7 @@
     "typescript": "^5.0.2",
     "websocket": "^1.0.32",
     "xml2js": "^0.4.19",
-    "xz": "^2.0.2"
+    "xz-decompress": "^0.2.3"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
