@@ -1,4 +1,4 @@
-import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi, HTTP_VERB} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
@@ -499,6 +499,24 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     "List of connections settings cannot be retrieved.",
                     err,{cause:err.message});
 
+            }
+        }
+    },{
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'organization-list-connections',
+                uri: '/ou/org/{organizationUUID}/conn/list',
+                summary: `To list all connections specified by its UUID **connectionUUID**.`,
+                parameters: [{
+                    name: 'organizationUUID',
+                    required: true,
+                    description: OrganizationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: OrganizationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "Return the list of connections available." ,
+                    schema:  Connection.TYPE.toJSONSchemaPart(true)
+                }]
             }
         }
     }
@@ -1503,6 +1521,39 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     ORG_WEB_API.name,
                     "Cannot download application from store. Please verify the package ID or contact the support.",
                     err);
+            }
+        }
+    },{
+        mcp: {
+            [HTTP_VERB.POST]: {
+                name:'organization-store-download-app',
+                uri: '/ou/org/{organizationUUID}/store/{connectionUUID}/dl',
+                summary: `To download an application identified by its **package identifier** from a remote store using the connection specified by its UUID **connectionUUID**. `,
+                parameters: [{
+                    name: 'organizationUUID',
+                    required: true,
+                    description: OrganizationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: OrganizationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'connectionUUID',
+                    required: true,
+                    description: Connection.TYPE.getPrimaryKey()._dscr,
+                    schema: Connection.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'pkg',
+                    required: true,
+                    description: "The package identifier of the application to download in the store",
+                    schema: { type: 'string' }
+                },{
+                    name: 'cid',
+                    required: true,
+                    description: Connection.TYPE.getPrimaryKey()._dscr,
+                    schema: Connection.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "Download the application from the store using the specified connection." ,
+                    schema: { type: 'array', items: { uid: { type: 'string' },  purpose: { type: 'string' } }}
+                }]
             }
         }
     }

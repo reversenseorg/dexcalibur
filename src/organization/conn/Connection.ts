@@ -107,15 +107,56 @@ export class Connection extends Auditable   {
 
 
     static TYPE:NodeType = (new NodeType( "connection", NodeInternalType.CONNECTION, [
-        (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("name")).type(DbDataType.STRING),
-        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("uuid"))
+            .type(DbDataType.STRING)
+            .descr("The UUID of the connection")
+            .schema({ type: "string", format: "uuid" })
+            .key(DbKeyType.PRIMARY),
+        (new NodeProperty("name"))
+            .descr("The human-ready name of the connection")
+            .schema({ type: "string" })
+            .type(DbDataType.STRING),
+        (new NodeProperty("address"))
+            .descr("The URI of the connection. It can be a simple string, or an URL.")
+            .schema({ type: "string" })
+            .type(DbDataType.STRING),
+        (new NodeProperty("type"))
+            .descr("The type of the protocol used by this connection. It can be HTTP, FTP, SSH, etc ...")
+            .schema({ type: "string", enum: Object.values(ConnectionProtocol) as ConnectionProtocol[] })
+            .type(DbDataType.STRING),
+        (new NodeProperty("description"))
+            .descr("A description of the purpose of this connection")
+            .schema({ type: "string" })
+            .type(DbDataType.STRING)
+            .def(""),
        // (new NodeProperty("credential")).single(Credential.TYPE).embed(),
-        (new NodeProperty("owner")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("fields")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("secrets")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
-    ]));
+        (new NodeProperty("owner"))
+            .type(DbDataType.STRING)
+            .def(null),
+        (new NodeProperty("fields"))
+            .type(DbDataType.STRING)
+            .descr("A map of parameters used by this connection. The key is the name of the fields, and the value is the value of the field.")
+            .schema({ type: "object", patternProperties: { "^.+$": { type: "string" }} })
+            .def(null),
+        (new NodeProperty("secrets"))
+            .type(DbDataType.STRING)
+            .descr("A map of secrets used by this connection. The key is the name of the secret, and the value is the UUID of the secret.")
+            .schema({ type: "object", patternProperties: { "^.+$": { type: "string", format: "uuid" }} })
+            .def(null),
+        (new NodeProperty("tags"))
+            .type(DbDataType.STRING)
+            .descr("List of tags")
+            .schema({ type: "string", format: "uuid" })
+            .def(null),
+    ])).descr(`
+    A connection is a generic representation of a way to connect to a remote service and pull resources. 
+    It can be a generic protocol such remote HTTP server, a remote FTP server, a remote SSH server, etc ... 
+    as well as a specific resources using proprietary protocols such as Google PlayStore, APKPure, F-Droid, Huawei App Gallery, etc ...
+    
+    Any action performed on a remote resource will be performed using a connection. 
+    `);
+
+
 
     uuid:ConnectionUUID;
     type: ConnectionProtocol;
@@ -228,3 +269,4 @@ export class Connection extends Auditable   {
         return this.secrets[pName];
     }
 }
+Connection.TYPE.builder(Connection);

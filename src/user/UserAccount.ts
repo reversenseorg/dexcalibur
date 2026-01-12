@@ -101,17 +101,51 @@ export class UserAccount implements IPersistent, INode {
                 .schema({ type:"string" })
                 .descr("The user account UUID")
                 .key(DbKeyType.PRIMARY),
-            (new NodeProperty('_time')).type(DbDataType.STRING),
-            (new NodeProperty('_username')).type(DbDataType.STRING).notnull().unique(),
-            (new NodeProperty('_password')).type(DbDataType.STRING).notnull(),
-            (new NodeProperty('_salt')).type(DbDataType.STRING).notnull(),
-            (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
-            (new NodeProperty('_roles')).type(DbDataType.STRING).def([]),
-            (new NodeProperty('_groups')).type(DbDataType.STRING).def([]),
-            (new NodeProperty('_tokens')).type(DbDataType.STRING).def([]),
+            (new NodeProperty('_time'))
+                .type(DbDataType.STRING)
+                .schema({ type:"string" })
+                .descr("Creation timestamp"),
+            (new NodeProperty('_username'))
+                .type(DbDataType.STRING)
+                .schema({ type:"string" })
+                .descr("The username of the user account. It must be unique, in some case it can be the email address")
+                .notnull()
+                .unique(),
+            (new NodeProperty('_password'))
+                .type(DbDataType.STRING)
+                .schema({ type:"string" })
+                .descr("The hashed password of the user account. It is generated from the username and the salt.")
+                .notnull(),
+            (new NodeProperty('_salt'))
+                .type(DbDataType.STRING)
+                .schema({ type:"string" })
+                .descr("Salt used to generate the password.")
+                .notnull(),
+            (new NodeProperty('_locked'))
+                .type(DbDataType.BOOLEAN)
+                .schema({ type:"boolean" })
+                .descr("Flag to indicate if the account is locked.")
+                .def(false),
+            (new NodeProperty('_padding'))
+                .type(DbDataType.STRING)
+                .schema({ type:"string" })
+                .descr("Padding used to generate the password hash.")
+                .notnull(),
+            (new NodeProperty('_roles'))
+                .type(DbDataType.STRING)
+                .schema({ type:"string" })
+                .descr("Padding used to generate the password hash.")
+                .def([]),
+            (new NodeProperty('_groups'))
+                .type(DbDataType.STRING)
+                .def([]),
+            (new NodeProperty('_tokens'))
+                .type(DbDataType.STRING)
+                .def([]),
             (new NodeProperty('_apikeys'))
                 .type(DbDataType.BLOB)
+                .schema({ type:"boolean" })
+                .descr("List of API keys associated to the user account. They are not exported.")
                 .sleep( (x:NodePropertyState) => {
                     return (x.p !=null ? x.p : []) ;
                 } )
@@ -119,10 +153,20 @@ export class UserAccount implements IPersistent, INode {
                     return (x.p!=null ? x.p.map( v => new ApiKey(v))  : [])
                 })
                 .def([]),
-            (new NodeProperty('_type')).type(DbDataType.STRING).def(UserAccountType.LOCAL),
-            (new NodeProperty('_membership')).type(DbDataType.BLOB).def({}),
+            (new NodeProperty('_type'))
+                .type(DbDataType.STRING)
+                .schema({ type:"string", enum:Object.values(UserAccountType) })
+                .descr("Type of the user account. Can be 'local' or 'federated'. Default is 'local'.")
+                .def(UserAccountType.LOCAL),
+            (new NodeProperty('_membership'))
+                .type(DbDataType.BLOB)
+                .schema({ type:"object"  })
+                .descr("List of memberships of the user account. For each membership, the organization unit is the key, and the value is the membership object.")
+                .def({}),
             (new NodeProperty('_extra')).type(DbDataType.BLOB).def({}).addValidationRule(UserAccount.VALIDATE._extra as any),
-            (new NodeProperty('_authorized_ips')).type(DbDataType.STRING).def([]),
+            (new NodeProperty('_authorized_ips'))
+                .type(DbDataType.STRING)
+                .def([]),
             (new NodeProperty('_person')).type(DbDataType.BLOB)
                 .sleep( (x:NodePropertyState) => {
                     return (x.p !=null ? x.p : null) ;

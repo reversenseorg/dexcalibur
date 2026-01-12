@@ -1048,19 +1048,54 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
         mcp: {
             [HTTP_VERB.GET]: {
                 name:'projmgt-new-project-upload-flow',
-                uri: '/open?uid={projectUUID}&purpose={purpose}',
+                uri: '/new/{applicationUUID}/flow/upload',
                 summary: `To create a new project from from uploaded file or app downloaded from store`,
                 parameters: [{
-                    name: 'projectUUID',
+                    name: 'applicationUUID',
                     required: true,
-                    description: DexcaliburProject.TYPE.getPrimaryKey()._dscr,
-                    schema: DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart()
+                    description: ApplicationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
                 },{
-                    name: 'purpose',
+                    name: 'name',
+                    required: true,
+                    description: "The list of uploaded files to use as inputs for the project.",
+                    schema: { type:"array", items: {type:"string" }}
+                },{
+                    name: 'dev',
+                    required: true,
+                    description: "The device UUID to use for the project.",
+                    schema: Device.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'targetOS',
+                    required: true,
+                    description: "The target operating system for the project.",
+                    schema: DexcaliburProject.TYPE.getProperty("os").toJSONSchemaPart()
+                },{
+                    name: 'platform',
+                    required: true,
+                    description: "The UID of the platform to use",
+                    schema: Platform.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'cfg',
                     required: false,
-                    description: AssuranceModel.TYPE.getPrimaryKey()._dscr,
-                    schema: { type:"string", enum: Object.values(NodePurpose) as NodePurpose[] }
-                }],
+                    description: "Settings to use for the project analyzer.",
+                    schema: {type: "object" }
+                },{
+                    name: 'inputs',
+                    required: false,
+                    description: "The list of uploaded files to use as inputs for the project.",
+                    schema: {type:"array", items: { type:"object", properties: {
+                        uid: { type:"string" },
+                        purpose: { type:"string" }
+                    }}}
+                }
+                /*
+                inputs
+                analyzerOpts: pReq.body['cfg'],
+                uploadUID: [pReq.body['file'] as string],
+                inputTpls: checkedTpl
+                 */
+                ],
                 responses: [{
                     description: "The status of the project opening operation." ,
                     schema: {

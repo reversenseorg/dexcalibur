@@ -80,7 +80,9 @@ export class ScanOrder implements INode {
         "scans",
         NodeInternalType.SCAN_ORDER,
         [
-            (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("_id"))
+                .type(DbDataType.STRING)
+                .key(DbKeyType.PRIMARY),
             (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("slaveUID")).type(DbDataType.STRING),
             (new NodeProperty("webhook")).type(DbDataType.STRING),
