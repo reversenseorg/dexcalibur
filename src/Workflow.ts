@@ -16,7 +16,7 @@ import {
     ValidationRule
 } from "@dexcalibur/dexcalibur-orm";
 import {Subject, Subscription} from "rxjs";
-import {DexcaliburProjectUUID} from "./DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "./DexcaliburProject.js";
 import {EngineNodeUUID} from "./core/EngineNode.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -71,24 +71,61 @@ export class Workflow extends Auditable implements INode{
         (new NodeProperty("_uid"))
             .type(DbDataType.STRING)
             .key(DbKeyType.PRIMARY)
+            .descr("UUID of the workflow")
+            .schema({ type:"string", format:"uuid" })
             .addValidationRule(ValidationRule.uuid()),
-
-        (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("tags"))
+            .type(DbDataType.STRING)
+            .def([]),
         // cdx
-        (new NodeProperty("msgs")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("activeStep")).type(DbDataType.NUMERIC).def(0),
-        (new NodeProperty("node")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("user")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("project")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("purpose")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("started")).type(DbDataType.NUMERIC).def(0),
-        (new NodeProperty("stoped")).type(DbDataType.NUMERIC).def(-1),
+        (new NodeProperty("msgs"))
+            .type(DbDataType.STRING)
+            .descr("A list of status message issued during the workflow execution")
+            .schema({ type:"number" })
+            .def([]),
+        (new NodeProperty("activeStep"))
+            .type(DbDataType.NUMERIC)
+            .descr("The current step of the workflow")
+            .schema({ type:"number" })
+            .def(0),
+        (new NodeProperty("node"))
+            .type(DbDataType.STRING)
+            .descr("EngineNode running the workflow")
+            .schema({ type:"string", format:"uuid" })
+            .def(null),
+        (new NodeProperty("user"))
+            .type(DbDataType.STRING)
+            .descr("User account owning the workflow")
+            .schema(UserAccount.TYPE.getPrimaryKey().toJSONSchemaPart())
+            .def(null),
+        (new NodeProperty("project"))
+            .type(DbDataType.STRING)
+            .descr("Project associated to the workflow")
+            .schema(DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart())
+            .def(null),
+        (new NodeProperty("purpose"))
+            .type(DbDataType.STRING)
+            .descr("Purpose of the workflow")
+            .schema({ type:"string" })
+            .def(""),
+        (new NodeProperty("started"))
+            .type(DbDataType.NUMERIC)
+            .descr("Timestamp of the starting of the workflow")
+            .schema({ type:"number" })
+            .def(0),
+        (new NodeProperty("stoped"))
+            .type(DbDataType.NUMERIC)
+            .descr("Timestamp of the last stop of the workflow")
+            .schema({ type:"number" })
+            .def(-1),
 
         (new NodeProperty("_d")).type(DbDataType.NUMERIC).def(0),
         (new NodeProperty("_t")).type(DbDataType.NUMERIC).def(0),
         (new NodeProperty("_m")).type(DbDataType.STRING).def(""),
         (new NodeProperty("_b")).type(DbDataType.NUMERIC).def(0),
-    ])).dataSource("ENGINE_DB");
+    ]))
+        .descr(`Represent a workflow attached to a subject.`)
+        .dataSource("ENGINE_DB");
 
     __ = NodeInternalType.WORKFLOW;
 

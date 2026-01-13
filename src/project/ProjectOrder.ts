@@ -14,8 +14,8 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
-import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {ApplicationUnit, ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {EngineNodeUUID} from "../core/EngineNode.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {SecurityZone} from "../security/SecurityZone.js";
@@ -90,15 +90,38 @@ export class ProjectOrder implements INode {
         "project_order",
         NodeInternalType.PROJECT_ORDER,
         [
-            (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new NodeProperty("slaveUID")).type(DbDataType.STRING),
-            (new NodeProperty("webhook")).type(DbDataType.STRING),
-            (new NodeProperty("settings")).type(DbDataType.STRING),
-
-            (new NodeProperty("orgUnit")).type(DbDataType.STRING),
-            (new NodeProperty("appUnit")).type(DbDataType.STRING),
-            (new NodeProperty("owner")).type(DbDataType.STRING),
+            (new NodeProperty("_id"))
+                .type(DbDataType.STRING)
+                .descr("Internal MongoDB UID. ! important")
+                .schema({ type:"string" })
+                .key(DbKeyType.PRIMARY),
+            (new NodeProperty("uuid"))
+                .type(DbDataType.STRING)
+                .descr("Project order UUID")
+                .schema({ type:"string", format:"uuid" })
+                .key(DbKeyType.PRIMARY),
+            (new NodeProperty("slaveUID"))
+                .type(DbDataType.STRING)
+                .descr("UUID of the EngineNode instance running the scan or the poroject")
+                .schema({ type:"string", format:"uuid" }),
+            (new NodeProperty("webhook"))
+                .type(DbDataType.STRING)
+                .descr("URI of the webhook to notify scan progression. Can be null if no webhook is required.")
+                .schema({ type:"string" }),
+            (new NodeProperty("settings"))
+                .type(DbDataType.STRING)
+                .descr("Project order settings")
+                .schema({ type:"object" }),
+            (new NodeProperty("orgUnit"))
+                .type(DbDataType.STRING)
+                .descr("UUID of the organization unit owning the project.")
+                .schema(OrganizationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()),
+            (new NodeProperty("appUnit"))
+                .type(DbDataType.STRING)
+                .descr("UUID of the appliction unit owning the project.")
+                .schema(ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()),
+            (new NodeProperty("owner"))
+                .type(DbDataType.STRING),
 
             (new NodeProperty("signatures")).type(DbDataType.STRING),
 
@@ -107,7 +130,11 @@ export class ProjectOrder implements INode {
             (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
             (new NodeProperty("state")).type(DbDataType.STRING).def(ProjectState.NONE),
             (new NodeProperty("stateDates")).type(DbDataType.STRING).def({ }),
-            (new NodeProperty("wf")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("wf"))
+                .type(DbDataType.STRING)
+                .descr("UUID of the workflow to follow")
+                .schema(Workflow.TYPE.getPrimaryKey().toJSONSchemaPart())
+                .def(null),
             (new NodeProperty("inputs"))
                 .type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState)=>{
@@ -133,7 +160,7 @@ export class ProjectOrder implements INode {
                     }
                 })
                 .def([])
-        ]);
+        ]).descr(`Represent an order to load/analyse a package (create a new project) with a specified configuration.`);
 
     __:NodeInternalType = NodeInternalType.PROJECT_ORDER;
 
