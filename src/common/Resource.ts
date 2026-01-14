@@ -4,6 +4,7 @@ import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CryptoUtils} from "../CryptoUtils.js";
 import Util from "../Utils.js";
 import {MarketplaceException} from "../marketplace/MarketplaceException.js";
+import AiHelper from "../core/ai/AiHelper.js";
 
 export interface ResourceCheckums {
     md5:string;
@@ -33,6 +34,26 @@ export interface ResourceOptions {
  * @class
  */
 export class Resource {
+
+    static MCP_Info = AiHelper.getInstance().registerExtraComponent({
+        name: "resources related to a Reversense product release",
+        fqcn: "Resource",
+        descr: "Represents a specific resource frmn a release of a Reversense product",
+        properties:[
+            { name:"type", schema:{ type:"number" }, descr:"Type of the resource"},
+            { name:"filename", schema:{ type:"string"}, descr:"Name of the file"},
+            { name:"checksum", schema:{ type:"object", properties: {
+                md5: { type:"string"},
+                sha256: { type:"string"}
+             }}, descr:"Checksum of the resource"},
+            { name:"dates", schema:{ type:"object", properties: {
+                create: { type:"number"},
+                modified: { type:"number"},
+                dropped: { type:"number"}
+            }}, descr:"Anay data about the release"},
+            { name:"signature", schema:{ type:"object"}, descr:"Cryptographic signature of the release"},
+        ]
+    })
 
     private _type:NodeInternalType;
 

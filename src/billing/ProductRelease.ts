@@ -1,5 +1,7 @@
 import {Resource} from "../common/Resource.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import AiHelper from "../core/ai/AiHelper.js";
+import {SectionType} from "../ModelExecutableSection.js";
 
 export interface ProductReleaseOptions extends Record<string,any>
 {
@@ -17,6 +19,18 @@ export interface ProductReleaseOptions extends Record<string,any>
  */
 export class ProductRelease
 {
+    static MCP_Info = AiHelper.getInstance().registerExtraComponent({
+        name: "release of a Reversense product",
+        fqcn: "ProductRelease",
+        descr: "Represents a specific release of a Reversense product",
+        properties:[
+            { name:"version", schema:{ type:"string" }, descr:"Version of the release in semver format. Example: 1.0.0-alpha.1"},
+            { name:"description", schema:{ type:"string"}, descr:"description of the product release"},
+            { name:"changelog", schema:{ type:"string"}, descr:"Changes"},
+            { name:"resource", schema:AiHelper.getInstance().getJsonSchemaOf("Resource"), descr:"Linekd resources"},
+            { name:"release", schema:{ type:"object"}, descr:"Anay data about the release"},
+        ]
+    })
     /**
      * Version of the realeasein semver format
      * @type {string}

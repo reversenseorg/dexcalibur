@@ -12,6 +12,7 @@ import {ProductRelease} from "./ProductRelease.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {CryptoUtils} from "../CryptoUtils.js";
+import AiHelper from "../core/ai/AiHelper.js";
 
 
 
@@ -46,15 +47,49 @@ export class ReversenseProduct implements INode
     static TYPE:NodeType = (new NodeType( "products", NodeInternalType.REVERSENSE_PRODUCT, [
         (new NodeProperty("code"))
             .type(DbDataType.STRING)
+            .descr("The UID of the product")
+            .schema({ type: "string", pattern: "^[a-zA-Z0-9_\\.]+$"  })
             .rule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_\\.]+$/))
             .key(DbKeyType.PRIMARY),
-        (new NodeProperty("name")).type(DbDataType.STRING),
-        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("type")).type(DbDataType.NUMERIC).def(-1),
-        (new NodeProperty("author")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("version")).type(DbDataType.STRING).def("1.0.0"),
-        (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
-        (new NodeProperty("releases")).type(DbDataType.BLOB)
+        (new NodeProperty("name"))
+            .descr("The name of the business product")
+            .schema({ type: "string", minLength: 3 })
+            .type(DbDataType.STRING),
+        (new NodeProperty("description"))
+            .descr("Description of the business product")
+            .schema({ type: "string" })
+            .type(DbDataType.STRING).def(""),
+        (new NodeProperty("type"))
+            .descr("The type of the product")
+            .schema({ type: "string", minLength: 3 })
+            .type(DbDataType.NUMERIC)
+            .def(-1),
+        (new NodeProperty("author"))
+            .descr("Information about the author of the product")
+            .schema({ type: "object", properties: {
+                name: { type: "string" },
+                contact: { type: "string" },
+                official: { type: "boolean" }
+            }})
+            .type(DbDataType.STRING)
+            .def(null),
+        (new NodeProperty("version"))
+            .descr("The version of the product")
+            .schema({ type: "string" })
+            .type(DbDataType.STRING)
+            .def("1.0.0"),
+        (new NodeProperty("price"))
+            .descr("price")
+            .schema({ type: "number" })
+            .type(DbDataType.NUMERIC)
+            .def(-1),
+        (new NodeProperty("tags"))
+            .type(DbDataType.BLOB)
+            .def([]),
+        (new NodeProperty("releases"))
+            .descr("All releases of the product")
+            .schema({ type:"array", items: AiHelper.getInstance().getJsonSchemaOf("ProductRelease") })
+            .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
                 if(x.p!=null && x.p.length>0){
 
@@ -80,7 +115,10 @@ export class ReversenseProduct implements INode
                 }
             })
             .def(null)
-    ]));
+    ])).descr(`
+    Represents a Reversense product such as a scanner or a referential. Any product sold by Reversense and available on the platform existis as a ReversenseProduct.
+    A ReversenseProduct is a business product from sales point of view. A product must be licensed to be used by the final user.
+    `);
 
     type?:NodeInternalType;
 

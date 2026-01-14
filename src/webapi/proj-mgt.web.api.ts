@@ -25,6 +25,10 @@ import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 import AssuranceReport from "../audit/common/AssuranceReport.js";
+import {FileAnalysisType, NativeAnalysisMode} from "../AnalyzerConfiguration.js";
+import ts from "typescript";
+import Project = ts.server.Project;
+import {ProjectOrder} from "../project/ProjectOrder.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -1046,10 +1050,14 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
         }
     },{
         mcp: {
-            [HTTP_VERB.GET]: {
+            [HTTP_VERB.POST]: {
                 name:'projmgt-new-project-upload-flow',
                 uri: '/new/{applicationUUID}/flow/upload',
-                summary: `To create a new project from from uploaded file or app downloaded from store`,
+                summary: `To create a new project from from uploaded file or app downloaded from store. 
+                Prior to create the project, the user must ensure that the application unit exists for the specified package. 
+                
+                It is performed by calling "organization-application-wizard-appcheck" tool with package identifier, OS and organization UUID.
+                Once the project is craeted successfully, the user can must verify if a license is activated for application unit and expected purpose by calling the tool "".`,
                 parameters: [{
                     name: 'applicationUUID',
                     required: true,
@@ -1058,8 +1066,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 },{
                     name: 'name',
                     required: true,
-                    description: "The list of uploaded files to use as inputs for the project.",
-                    schema: { type:"array", items: {type:"string" }}
+                    description: "The name of the project.",
+                    schema: { type:"string" }
                 },{
                     name: 'dev',
                     required: true,
@@ -1078,8 +1086,26 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 },{
                     name: 'cfg',
                     required: false,
-                    description: "Settings to use for the project analyzer.",
-                    schema: {type: "object" }
+                    description:`Settings to use for the project analyzer.  Several optional properties are supported. Following properties are common:
+                    - **fa_mode**: File analysis mode can be 'deep', 'magic', 'smart'.
+                    - **na_mode**: Native analysis mode can be 'auto' or 'manual'.
+                    
+                    Additional properties are available for each target operating system.
+                    For Android:
+                    - **msa_auto**: Boolean to enable/disable the merging of multiple "split" APKs into a single APK.
+                    - **ssa_auto**: Boolean to enable/disable the search of multiple "split" APKs into a device.
+                    
+                    `,
+                    schema: {
+                        type: "object",
+                        properties: {
+                            fa_mode: { type:"string", enum: Object.values(FileAnalysisType) },
+                            na_mode: { type:"string", enum: Object.values(NativeAnalysisMode) },
+                            msa_auto: { type:"boolean" },
+                            ssa_auto: { type:"boolean" },
+                        },
+                        required: []
+                    }
                 },{
                     name: 'inputs',
                     required: false,
@@ -1230,6 +1256,24 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     pRes, PROJECT_MGT_WEB_API.name,
                     "failed to execute project order",
                     err, {cause: err.message});
+            }
+        }
+    },{
+        mcp: {
+            [HTTP_VERB.POST]: {
+                name:'projmgt-start-project-order',
+                uri: '/order/{projectUUID}/start',
+                summary: `To start a new project from a project order.`,
+                parameters: [{
+                    name: 'projectUUID',
+                    required: true,
+                    description: ProjectOrder.TYPE.getPrimaryKey()._dscr,
+                    schema: ProjectOrder.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "The project object after execution." ,
+                    schema: DexcaliburProject.TYPE.toJSONSchemaPart()
+                }]
             }
         }
     }

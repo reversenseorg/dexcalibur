@@ -21,6 +21,8 @@ import {DataSegment} from "../audit/common/Indicator.js";
 import {UploadedResource, UploadedResourceUUID} from "../common/UploadedResource.js";
 import {ProjectInput} from "../analyzer/ProjectInput.js";
 import {Buffer} from "buffer";
+import {ProjectOrder} from "../project/ProjectOrder.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi("ORG");
@@ -1617,6 +1619,51 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot attach the device to the organization.", err);
             }
         }
+    }, {
+        mcp: {
+            [HTTP_VERB.POST]: {
+                name: 'organization-application-wizard-appcheck',
+                uri: '/ou/org/{organizationUUID}/wizard/appcheck',
+                summary: `To start a new project from a project order.`,
+                parameters: [{
+                    name: 'organizationUUID',
+                    required: true,
+                    description: OrganizationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: OrganizationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'os',
+                    required: true,
+                    description: "Target operating system",
+                    schema: ApplicationUnit.TYPE.getProperty("os").toJSONSchemaPart()
+                },{
+                    name: 'inputs',
+                    required: true,
+                    description: "The list of uploaded files to use as inputs for the project.",
+                    schema: {
+                        type:"array",
+                        items: { type:"object", properties: {
+                            uid: { type:"string" },
+                            purpose: { type:"string" }
+                        }}}
+                },{
+                    name: 'aid',
+                    required: true,
+                    description: ApplicationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "The project object after execution.",
+                    schema: {
+                        type:"object",
+                        properties: {
+                            "new": { type:"boolean" },
+                            lic: { type:"object" },
+                            aid: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart(),
+                        }
+                    }
+                }]
+            }
+        }
     }
 );
 
@@ -1694,6 +1741,8 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot update the list of members of user group", err);
             }
         }
+    },{
+
     }
 );
 
