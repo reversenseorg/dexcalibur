@@ -1054,7 +1054,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 name:'projmgt-new-project-upload-flow',
                 uri: '/new/{applicationUUID}/flow/upload',
                 summary: `To create a new project from from uploaded file or app downloaded from store. 
-                Prior to create the project, the user must ensure that the application unit exists for the specified package. 
+                Prior to create the project, the user must ensure that the application unit exists for the specified package and is the license is valid. 
                 
                 It is performed by calling "organization-application-wizard-appcheck" tool with package identifier, OS and organization UUID.
                 Once the project is craeted successfully, the user can must verify if a license is activated for application unit and expected purpose by calling the tool "".`,

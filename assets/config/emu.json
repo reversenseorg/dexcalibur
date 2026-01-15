@@ -1,0 +1,160 @@
+{
+  "reg": [
+    {
+      "name": "arg1",
+      "kind": "reg",
+      "type": "int64_t",
+      "ref": "x0"
+    },
+    {
+      "name": "arg2",
+      "kind": "reg",
+      "type": "uint32_t",
+      "ref": "x1"
+    },
+    {
+      "name": "arg3",
+      "kind": "reg",
+      "type": "int64_t",
+      "ref": "x2"
+    }
+  ],
+  "sp": [
+    {
+      "name": "arg_70h",
+      "kind": "arg",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 224
+      }
+    },
+    {
+      "name": "var_0h",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 0
+      }
+    },
+    {
+      "name": "var_0h_2",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 8
+      }
+    },
+    {
+      "name": "var_10h",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 16
+      }
+    },
+    {
+      "name": "var_10h_2",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 24
+      }
+    },
+    {
+      "name": "var_20h",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 32
+      }
+    },
+    {
+      "name": "var_20h_2",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 40
+      }
+    },
+    {
+      "name": "var_30h",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 48
+      }
+    },
+    {
+      "name": "var_30h_2",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 56
+      }
+    },
+    {
+      "name": "var_40h",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 64
+      }
+    },
+    {
+      "name": "var_40h_2",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 72
+      }
+    },
+    {
+      "name": "var_50h",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 80
+      }
+    },
+    {
+      "name": "var_50h_2",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 88
+      }
+    },
+    {
+      "name": "var_60h",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 96
+      }
+    },
+    {
+      "name": "var_60h_2",
+      "kind": "var",
+      "type": "int64_t",
+      "ref": {
+        "base": "sp",
+        "offset": 104
+      }
+    }
+  ],
+  "bp": []
+}

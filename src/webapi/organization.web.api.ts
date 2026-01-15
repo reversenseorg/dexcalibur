@@ -82,6 +82,40 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     err,{cause:err.message});
             }
         }
+    },{
+        mcp: {
+            [HTTP_VERB.POST]: {
+                name:'organization-create',
+                uri: '/ou/create',
+                summary: `To create a new organization unit. 
+                
+                An organization unit own everything related to a company, apps or teams excepted user accounts.
+                Prior to analyze an application, create a project or connections, you must have a valid organization unit.
+    
+                Each organization has one or more authentication modules, policies, sales plan, and more.
+                `,
+                parameters: [{
+                    name: 'name',
+                    required: true,
+                    description: OrganizationUnit.TYPE.getProperty("name")._dscr,
+                    schema: OrganizationUnit.TYPE.getProperty("name").toJSONSchemaPart()
+                },{
+                    name: 'companyName',
+                    required: true,
+                    description: OrganizationUnit.TYPE.getProperty("companyName")._dscr,
+                    schema: OrganizationUnit.TYPE.getProperty("companyName").toJSONSchemaPart()
+                },{
+                    name: 'description',
+                    required: true,
+                    description: OrganizationUnit.TYPE.getProperty("description")._dscr,
+                    schema: OrganizationUnit.TYPE.getProperty("description").toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "Return the newly created organization unit." ,
+                    schema: OrganizationUnit.TYPE.toJSONSchemaPart()
+                }]
+            }
+        }
     }
 );
 
@@ -216,6 +250,24 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     "List of application units cannot be retrieved.",
                     err,{cause:err.message});
 
+            }
+        }
+    },{
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'organization-list-applications',
+                uri: '/ou/org/{organizationUUID}/au/list',
+                summary: `To list all application units owned by the organization specified by UUID **organizationUUID**.`,
+                parameters: [{
+                    name: 'organizationUUID',
+                    required: true,
+                    description: OrganizationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: OrganizationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "Return the list of application units available." ,
+                    schema: ApplicationUnit.TYPE.toJSONSchemaPart(true)
+                }]
             }
         }
     }
@@ -1590,24 +1642,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                     };
                 }
 
-                if(ApplicationUnit.VALIDATE.uuid.test(pReq.body.aid)){
-                    options.aid = pReq.body.aid;
-                }
 
-                /*let safeUIDs:UploadedResourceUUID[] = [];
-                if(ValidationRule.asArrayOf([UploadedResource.VALIDATE.uuid]).test(pReq.body.inputs)){
-                    safeUIDs = pReq.body.inputs as UploadedResourceUUID[];
-                }
-
-                let safeOS = OperatingSystem.NONE;
-                if(ValidationRule.os().test(pReq.body.os)){
-                    safeOS = pReq.body.os;
-                }
-
-                let safeAid:Nullable<ApplicationUnitUUID> = null;
-                if(ApplicationUnit.VALIDATE.uuid.test(pReq.body.aid)){
-                    safeAid = pReq.body.aid;
-                }*/
 
                 $.sendSuccess(
                     pRes, await $.context.getOrgManager().wizardAppCheck(
@@ -1624,7 +1659,11 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
             [HTTP_VERB.POST]: {
                 name: 'organization-application-wizard-appcheck',
                 uri: '/ou/org/{organizationUUID}/wizard/appcheck',
-                summary: `To start a new project from a project order.`,
+                summary: `To verify if a package identified by its **package identifier** can be attached 
+                to an existing application unit in the organization, or if a new application unit must be created.
+                If a new application unit must be created, a new license or subscription will be created 
+                else the license is verified.
+                `,
                 parameters: [{
                     name: 'organizationUUID',
                     required: true,
@@ -1645,11 +1684,6 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                             uid: { type:"string" },
                             purpose: { type:"string" }
                         }}}
-                },{
-                    name: 'aid',
-                    required: true,
-                    description: ApplicationUnit.TYPE.getPrimaryKey()._dscr,
-                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
                 }],
                 responses: [{
                     description: "The project object after execution.",
