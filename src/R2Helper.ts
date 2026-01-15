@@ -213,7 +213,7 @@ export default class RadareHelper implements INativeHelper
 
                 let f:ModelFunction = new ModelFunction({
                     name: vFn.name,
-                    addr: vFn.addr,
+                    addr: (vFn.addr!=null)? vFn.addr : vFn.offset,
                     sz: vFn.size,
                     nbbs: vFn.nbbs,
                     edges: vFn.edges,
