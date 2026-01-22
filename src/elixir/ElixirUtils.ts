@@ -20,4 +20,25 @@ export class ElixirUtils {
             nodes
         ];
     }
+
+    static exportNodeInfo(pType: number, pZone:SecurityZone) {
+        const node = Object.values(NodeType.ALL).find( (v:NodeType)=>{
+            return (v.getType() === pType);
+        });
+
+        if(node == null) throw new Error("Invalid node type");
+
+        let ppts:any[] = []
+        node.getProperties().map( (v:NodeProperty)=>{
+            const o:any = {
+                name: v.getName(),
+                schema: v.toJSONSchemaPart()
+            };
+
+            if(v.isNode()) o.node = v.getNodeType().getType();
+            ppts.push(o);
+        });
+
+        return ppts;
+    }
 }

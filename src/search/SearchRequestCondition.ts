@@ -39,6 +39,51 @@ export class SearchRequestCondition implements IStringIndex<any>{
 
   private _re:RegExp|null = null;
 
+  static getJsonSchema():any {
+      return {
+          type: 'object',
+          description: `A condition to search nodes in a Dexcalibur project.
+           A node is identified when the condition is verified. Conditions `,
+          properties: {
+              depth: {
+                  type: 'integer',
+                  default: 3 },
+              tag: {
+                  type: 'object',
+                  description: "The tag to search. Can be a simple tag or a path to a nested tag. Example: '@hash.md5'",
+                  default: null },
+              tagKey: {
+                  type: 'string',
+                  description: "A regexp or a wildcard string to select several tags. Can be a simple tag key or a path to a nested tag. Example: '@hash.*', '@/.+http.*/' ",
+                  default: null },
+              pattern: {
+                  type: 'string',
+                  description: "The pattern to search. Can be a simple string or a regular expression. Example: 'explorer' or '/^explorer$/'",
+                  default: null },
+              field: {
+                  type: 'string',
+                  description: "The field name to search. Can be a simple field name or a path to a nested field. Example: 'process.name'",
+                  default: null },
+              raw: {
+                  type: 'string',
+                  description: "The original value of the condition. Can be used to restore the condition object from the simple string",
+                  default: null },
+              regexp: {
+                  type: 'boolean',
+                  description: "If TRUE, pattern is a regular expression. Otherwise, pattern is a string.",
+                  default: false },
+              error: {
+                  type: 'object',
+                  description: "A list of errors occured during the parsing of the condition. Can be used to restore the condition object from the simple string. Example: { msg: 'Invalid field name' }",
+                  default: null },
+              opts: {
+                  type: 'object',
+                  description: "Additional options for the condition, as negate. Example: { not: true }",
+                  default: null }
+          }
+      }
+  }
+
   constructor(pConfig:any) {
     for(let i in pConfig){
       if(this.hasOwnProperty(i)){

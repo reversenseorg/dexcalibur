@@ -508,8 +508,8 @@ ModelClass.TYPE.updateProperties([
             (new NodeProperty("enclosingClass")).single(ModelClass.TYPE),
 
             (new NodeProperty("annotations")).volatile(),
-            (new NodeProperty("methods")).volatile().multiple(ModelMethod.TYPE),
-            (new NodeProperty("fields")).volatile().multiple(ModelField.TYPE),
+            (new NodeProperty("methods")).volatile().multiple(ModelMethod.TYPE,"enclosingClass"),
+            (new NodeProperty("fields")).volatile().multiple(ModelField.TYPE,"enclosingClass"),
             (new NodeProperty("inherit")).volatile().multiple(ModelMethod.TYPE),
             (new NodeProperty("_methCount")).type(DbDataType.INTEGER),
             (new NodeProperty("_fieldCount")).type(DbDataType.INTEGER),

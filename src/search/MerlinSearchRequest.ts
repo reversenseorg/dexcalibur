@@ -1272,7 +1272,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
    * @method
    * @async
    */
-  async executePDB(pProject:DexcaliburProject):Promise<FinderResult> {
+  async executePDB(pProject:DexcaliburProject, pOptions:any = null):Promise<FinderResult> {
 
     let coll:IDbCollection|IDbIndex;
 
@@ -1306,7 +1306,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       throw new Error("Search not implemented");
     }else{
       Logger.debug("MERLIN SEARCH REQUEST > EXECUTE ON PDB > SEARCH ");
-      resultIndex = await (db.getMerlinBE().search(this, resultIndex));
+      resultIndex = await (db.getMerlinBE().search(this, resultIndex, pOptions));
 
       //res = await (coll as MongodbDbCollection).search(this, { merlinRequest: true });
       //res.map(x => resultIndex.addEntry(x));

@@ -26,6 +26,9 @@ interface InternalJoinStep {
     }
 }
 
+export interface MongodbBackendSearchOptions {
+    nolink?:boolean;
+}
 /**
  * Represent an unique backend to process Merlin request in index and collection
  * @class
@@ -50,7 +53,9 @@ export class MongoDbMerlinBackend {
      * @param {Operation[]} pOperations
      * @private
      */
-    private async _executeSearchOrFilter(pOperations: Operation[], pType:string|NodeType): Promise<INode[]> {
+    private async _executeSearchOrFilter(pOperations: Operation[],
+                                         pType:string|NodeType,
+                                         pOptions:MongodbBackendSearchOptions): Promise<INode[]> {
 
         let type:NodeType;
         if(typeof pType==="string"){
@@ -184,20 +189,37 @@ export class MongoDbMerlinBackend {
                     coll = this._db.getCollectionOf(currType.getType()) as MongodbDbCollection;
                     results = await coll.search({
                         filter: filters
-                    },{ raw:true });
+                    },{ raw:true, nolink:pOptions.nolink });
 
 
                     //
                     if(joins.length>0){
+                        let fkn:string = null;
                         while((join = joins.pop())!=null){
-                            coll = this._db.getCollectionOf(join.on.type.getType()) as MongodbDbCollection;
-                            results = await coll.search({
-                                filter: {
-                                    [join.on.ppt.getName()]:  {
-                                        $in: results.map(x => x.getUID())
+
+                            fkn = join.on.ppt.getTargetFKName();
+                            if(join.on.ppt.isMultiple() && fkn!=null){
+
+
+                                coll = this._db.getCollectionOf(join.on.type.getType()) as MongodbDbCollection;
+                                results = await coll.search({
+                                    filter: {
+                                        [join.on.type.getPrimaryKey().getName() ]:  {
+                                            $in: results.map(x =>  x[fkn] )
+                                        }
                                     }
-                                }
-                            },{ raw:true });
+                                },{ raw:true, nolink:pOptions.nolink });
+                            }else{
+                                coll = this._db.getCollectionOf(join.on.type.getType()) as MongodbDbCollection;
+                                results = await coll.search({
+                                    filter: {
+                                        [ join.on.ppt._r!=null ? join.on.ppt._r+'._uid' : join.on.ppt.getName()]:  {
+                                            $in: results.map(x => x.getUID())
+                                        }
+                                    }
+                                },{ raw:true, nolink:pOptions.nolink });
+                            }
+
                         }
                     }
 
@@ -247,7 +269,7 @@ export class MongoDbMerlinBackend {
      * @param pResult
      * @private
      */
-    private async  _search(pRequest: MerlinSearchRequest, pResult: IDbIndex): Promise<any> {
+    private async  _search(pRequest: MerlinSearchRequest, pResult: IDbIndex, pOptions:MongodbBackendSearchOptions = { nolink:false }): Promise<any> {
 
         const result: any = {
             request: null,
@@ -320,7 +342,7 @@ export class MongoDbMerlinBackend {
                     phaseRes[i] = phaseRes[i].slice(0, (phases[i][0].args as WindowingOperationArgs ).limit);
                     break;
                 default:
-                    phaseRes[i] = await this._executeSearchOrFilter(phases[i], pRequest.getNode());
+                    phaseRes[i] = await this._executeSearchOrFilter(phases[i], pRequest.getNode(), pOptions);
                     /*
                     tmpRes = {};
 
@@ -357,14 +379,17 @@ export class MongoDbMerlinBackend {
      *
      * @param pRequest
      * @param pResult
+     * @param pOptions
      */
-    async search(pRequest: MerlinSearchRequest, pResult: IDbIndex): Promise<IDbIndex> {
+    async search(pRequest: MerlinSearchRequest, pResult: IDbIndex, pOptions?:MongodbBackendSearchOptions): Promise<IDbIndex> {
 
         // search is line in cache satisfies the request
         let result: any[] = [];
         let continueSearch = true;
+        let opts:MongodbBackendSearchOptions = (pOptions!=null ? pOptions :  { nolink: false } );
 
-        const res = await this._search(pRequest, pResult);
+
+        const res = await this._search(pRequest, pResult, opts);
         if (res.results.length > 0) {
             result = res.results;
         }

@@ -56,7 +56,9 @@ export default class ModelCall implements INode
             })
             .def(null), //.single(ModelInstruction.TYPE),
 
-        (new NodeProperty("caller")).volatile().single(ModelMethod.TYPE),
+        (new NodeProperty("caller"))
+            .volatile()
+            .single(ModelMethod.TYPE, "_caller"),
         (new NodeProperty("_caller"))
             .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
@@ -78,8 +80,8 @@ export default class ModelCall implements INode
             })
             .def(null), //.single(ModelMethod.TYPE),
         (new NodeProperty("calleed"))
-            .volatile()
-            .single(ModelMethod.TYPE),
+            //.volatile()
+            .single(ModelMethod.TYPE,"_called"),
         (new NodeProperty("_called"))
             .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
@@ -101,9 +103,12 @@ export default class ModelCall implements INode
             })
             .def(null), //.volatile().single(ModelMethod.TYPE),
 
-        (new NodeProperty("line")).type(DbDataType.INTEGER).def(-1),
-        (new NodeProperty("object")).volatile().type(DbDataType.BLOB),
-        (new NodeProperty("subject")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("line"))
+            .type(DbDataType.INTEGER).def(-1),
+        (new NodeProperty("object"))
+            .volatile().type(DbDataType.BLOB),
+        (new NodeProperty("subject"))
+            .volatile().type(DbDataType.BLOB),
     ])).dataSource("PROJECT_DB", "call");
 
     __:NodeInternalType = NodeInternalType.CALL;
