@@ -1441,4 +1441,19 @@ export class AuthenticationService {
         })
 
     }
+
+    readApiKeyHeaders(pReq:any):Record<string,string> {
+        const o:any = {};
+
+        if(pReq.headers[DEFAULT_HEADER_API_KEY]!=null)
+            o[DEFAULT_HEADER_API_KEY] = pReq.headers[DEFAULT_HEADER_API_KEY];
+        if(pReq.headers[DEFAULT_HEADER_API_OID]!=null)
+            o[DEFAULT_HEADER_API_OID] = pReq.headers[DEFAULT_HEADER_API_OID];
+        if(pReq.headers[DEFAULT_HEADER_API_UUID]!=null)
+            o[DEFAULT_HEADER_API_UUID] = pReq.headers[DEFAULT_HEADER_API_UUID];
+        if(pReq.headers[DEFAULT_HEADER_API_SID]!=null)
+            o[DEFAULT_HEADER_API_SID] = pReq.headers[DEFAULT_HEADER_API_SID];
+
+        return o;
+    }
 }

@@ -1163,7 +1163,7 @@ export default class WebServer
             this.resetDefaultRoute((vReq:any, vRes:any):any=> {
 
                 //if(vReq.baseUrl.indexOf("/api/")===0){}
-                vRes.set('Access-Control-Allow-Origin', '*');
+                //vRes.set('Access-Control-Allow-Origin', '*');
                 //vRes.status(200).redirect("/"+this.guiCfgs[0].name+"/");
                 vRes.status(200).redirect('https://www.reversense.com/');
             })

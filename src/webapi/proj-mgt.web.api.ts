@@ -7,7 +7,7 @@ import {UserSession} from "../user/session/UserSession.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {UserAccount} from "../user/UserAccount.js";
 import Platform from "../platform/Platform.js";
-import {Workflow, WorkflowUUID} from "../Workflow.js";
+import {Workflow} from "../Workflow.js";
 import StatusMessage from "../StatusMessage.js";
 import PlatformManager from "../platform/PlatformManager.js";
 import Downloader from "../Downloader.js";
@@ -22,13 +22,10 @@ import {EngineNode, NodePurpose} from "../core/EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import {NodeState} from "../core/EngineNodeManager.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
-import AssuranceModel from "../audit/common/AssuranceModel.js";
-import AssuranceReport from "../audit/common/AssuranceReport.js";
 import {FileAnalysisType, NativeAnalysisMode} from "../AnalyzerConfiguration.js";
 import ts from "typescript";
-import Project = ts.server.Project;
 import {ProjectOrder} from "../project/ProjectOrder.js";
+import {AuthModuleType} from "../user/auth/AuthModule.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -491,13 +488,18 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 // TODO check is user is authorized to access project
                 const prj = await $.context.getProjectManager().getProject(req.user, unsafeUUID);
 
+                console.log($.context.getUserService().getAuthenticationService().readApiKeyHeaders(req));
+
+
+
                 if($.context.isStandaloneMode()){
                     const selfNode = await $.context.getProjectManager().open(
                         req.user,
                         unsafeUUID,
                         (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY),
                         {
-                            cookie: req.cookies
+                            cookie: req.cookies,
+                            headers: $.context.getUserService().getAuthenticationService().readApiKeyHeaders(req)
                         }
                     );
 
@@ -534,7 +536,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     unsafeUUID,
                     (req.query.purpose!=null ? req.query.purpose as NodePurpose : NodePurpose.ANY),
                     {
-                        cookie: req.cookies
+                        cookie: req.cookies,
+                        headers: $.context.getUserService().getAuthenticationService().readApiKeyHeaders(req)
                     },
                     (pNodeBefore)=>{
                        /*
@@ -646,16 +649,28 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 parameters: [{
                     name: 'projectUUID',
                     required: true,
-                    description: DexcaliburProject.TYPE.getPrimaryKey()._dscr,
+                    description: "Required, it is the UUID of the project. "+DexcaliburProject.TYPE.getPrimaryKey()._dscr,
                     schema: DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart()
                 },{
                     name: 'purpose',
                     required: false,
-                    description: AssuranceModel.TYPE.getPrimaryKey()._dscr,
+                    description: `The purpose of the opening operation. Project can be opened automatically in order 
+                    to be scanned, or manually by a user to explore or execute the application or binary files from the project.
+                    
+                    A project contains any data about the architecture or structure of the application or binary reverse engineered by Reversense platform.
+                    To execute search inside application binary code or to execute hook, the projet must be opened.
+                    
+                    Possible values are : ${Object.values(NodePurpose).join(',')}.`,
                     schema: { type:"string", enum: Object.values(NodePurpose) as NodePurpose[] }
                 }],
                 responses: [{
-                    description: "The status of the project opening operation." ,
+                    description:`Returns the status of the project opening operation with various options.
+                    Response have following properties :
+                    - **ready** : TRUE if the project has been opened successfully, false otherwise.
+                    - **node** : the UUID of the engine node used to open the project.
+                    - **wf** : the UUID of the workflow used to open the project. Workflow is null if the project has been opened successfully.
+                    - **createErr** : true if an error occurred during the project opening process, false otherwise.
+                    - **msg** : Optional, a message describing the error.`,
                     schema: {
                         type: 'object',
                         properties: {

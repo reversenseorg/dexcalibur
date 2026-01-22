@@ -108,6 +108,9 @@ export class ApikeyAuthModule extends AuthModule {
         this.authorizedCIDR.push(pCIDR);
     }
 
+    readHeader(pReq:any):string {
+        return pReq.headers['x-api-key'];
+    }
 
     async testConnection(pAuthSettings:AuthenticationSettings):Promise<boolean> {
         return true;

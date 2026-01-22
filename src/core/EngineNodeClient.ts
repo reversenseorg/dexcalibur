@@ -58,7 +58,7 @@ export class EngineNodeClient extends HttpClient {
             // Logger.info("[ENGINE NODE][HEALTH] Request node healthcheck : "+this.baseURL+"api/health/ready");
             const response = await this.perform("api/health/ready", {
                 timeout: {
-                    request: 10000
+                    response:  (process.env.DXC_HC_TIMEOUT ? parseInt(process.env.DXC_HC_TIMEOUT,10) : 100000) // 100 s
                 }
             });
             return (response.body==='OK');

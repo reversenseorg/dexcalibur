@@ -189,6 +189,12 @@ export interface EngineNodeOptions {
 }
 
 
+interface NodeOpenProjectOptions {
+    owner?:UserAccountUUID;
+    cookie?: Record<string, string>;
+    headers?: Record<string, string>;
+}
+
 /**
  * Represent a running instance of DexcaliburEngine.
  *
@@ -537,7 +543,6 @@ export class EngineNode implements INode {
                         this.execOperation2(vOrder)
                             .then((vRes:EngineNode)=>{
                                 Logger.success(`[ENGINE NODE][${this.UUID}][2] Operation execution done : `);
-                                //console.log(vRes,vOrder);
                                 this.opeTerminated.push(vOrder);
 
                                 if(vRes!=null){
@@ -777,7 +782,7 @@ export class EngineNode implements INode {
      *
      * @async
      */
-    async open(pExtraOpts:any):Promise<any> {
+    async open(pExtraOpts:NodeOpenProjectOptions):Promise<any> {
 
         if([NodeState.IDLE,NodeState.REGISTERED].indexOf(this.state)==-1){
             throw EngineNodeException.CANNOT_START_NODE(this.UUID, 'Invalid state of the node : '+this.state);
@@ -786,7 +791,7 @@ export class EngineNode implements INode {
         Logger.info("[ENGINE NODE] [OPEN] uri : "+this.getHost()+"/api/workspace/open_slave?");
 
 
-        let cookie="";
+        let cookie="", headers:Record<string,string> = {};
         if(pExtraOpts.cookie !=null){
             for(let k in pExtraOpts.cookie){
                 cookie += `${k}=${Util.encodeURI(pExtraOpts.cookie[k])};`
@@ -795,15 +800,19 @@ export class EngineNode implements INode {
         if(cookie.length>0){
             cookie = cookie.slice(0,-1);
         }
+        headers['Cookie'] = cookie;
+        if(pExtraOpts.headers!=null){
+            for(let k in pExtraOpts.headers){
+                headers[k] = pExtraOpts.headers[k];
+            }
+         }
 
         const data = await GOT(
             this.getHost()+"/api/workspace/open_slave?",{
                 searchParams: {
                     uid: this._projectUID
                 },
-                headers: {
-                    'Cookie':cookie
-                }
+                headers: headers
             }
         );
 
@@ -849,7 +858,7 @@ export class EngineNode implements INode {
             if(pOrder.type===OperationType.OPEN_PROJ){
 
                 Logger.info("[ENGINE NODE] [EXEC OPE 2] Open an existing project");
-                return await (this.open(prjOrder.getOption('extra')));
+                return await (this.open(prjOrder.getOption('extra') as NodeOpenProjectOptions));
             }else{
 
                 Logger.info("[ENGINE NODE] [EXEC OPE 2] Start a new project");
@@ -1102,7 +1111,6 @@ export class EngineNode implements INode {
                     }
                 ).then((vRes)=>{
                     Logger.info("Project ordered successfully");
-                    console.log(vRes.body);
                     const r = JSON.parse(vRes.body);
                     if(r.success==true){
                         this.setPurpose(NodePurpose.ANY);

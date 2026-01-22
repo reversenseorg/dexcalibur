@@ -920,10 +920,14 @@ export class ProjectManager {
                 }
             });
 
-            openOrder.addOption('extra',{
-                owner: pUser.getUID(),
-                cookie: pExtraOpts.cookie
-            });
+            const openOpts = {
+                owner: pUser.getUID()
+            };
+
+            if(pExtraOpts.cookie!=null){ openOpts['cookie'] = pExtraOpts.cookie; }
+            if(pExtraOpts.headers!=null){ openOpts['headers'] = pExtraOpts.headers; }
+
+            openOrder.addOption('extra',openOpts);
 
             // save order
             openOrder = await this.saveProjectOrder(openOrder);
