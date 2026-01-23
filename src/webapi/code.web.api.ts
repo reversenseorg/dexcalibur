@@ -1117,8 +1117,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
                 const data = await request.executePDB(req.project, { nolink:true });
 
-                console.log(data);
-
                 const json = data.getData().map(x => {
                     if(x!=null){
                         return x.toJsonObject();
@@ -1126,8 +1124,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                         return null;
                     }
                 })
-
-                console.log(json);
 
                 $.sendSuccess( res,json );
 
