@@ -8,7 +8,7 @@ import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelCall from "./ModelCall.js";
 import {ModelLocation} from "./ModelLocation.js";
-import {NodeType, INode, DataSourceHelper, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
@@ -468,7 +468,11 @@ Methods are found by parsing native code or bytecode from targeted application e
                         obj.ret = this.ret.toJsonObject();
                         break;
                     case "enclosingClass":
-                        obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
+                        if(typeof this.enclosingClass == "string"){
+                            obj.enclosingClass = this.enclosingClass;
+                        }else if(this.enclosingClass != null && this.enclosingClass.__==NodeInternalType.CLASS){
+                            obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
+                        }
                         break;
                     case "_":
                         if(this._.loc != null){
