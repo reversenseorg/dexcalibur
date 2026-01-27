@@ -11,7 +11,7 @@ import {
     DbKeyType,
     NodeProperty,
     NodePropertyState,
-    NodeType,
+    NodeType, NodeUtils,
     Tag,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
@@ -217,10 +217,18 @@ export default class ModelCall implements INode
                 obj.tags = this.tags;
             }
             else if(i == "caller" && this.caller != null){
-                obj.caller = this.caller.getUID();
+                if(NodeUtils.isNodeRef(this.caller) || this.caller==null || typeof this.caller == 'string' ){
+                    obj.caller = this.caller;
+                }else if(this.caller.hasOwnProperty("getUID")){
+                    obj.caller = this.caller.getUID();
+                }
             }
             else if(i == "calleed" && this.calleed != null){
-                obj.callee = this.calleed.getUID();
+                if(NodeUtils.isNodeRef(this.calleed) || this.calleed==null || typeof this.calleed == 'string' ){
+                    obj.callee = this.calleed;
+                }else if(this.calleed.hasOwnProperty("getUID")){
+                    obj.callee = this.calleed.getUID();
+                }
             }
             else if(i == "instr"){
                 obj.instr = this.instr.exportType();
