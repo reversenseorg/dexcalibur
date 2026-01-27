@@ -1467,10 +1467,16 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 // it must be downloaded first into project workspace
                 let inputPath = this.getWorkspace().getValidInputPath(pInput);
                 if (pInput.location == ProjectInputLocation.DB_UPL) {
+
+                    // save upload UID
+                    copy.setUploadUID(pInput.getPath());
+                    pInput.setUploadUID(pInput.getPath());
+
                     await this.getContext()
                         .getEngineDB()
                         .getFileManager()
-                        .readFileTo('uploads', pInput.getPath(), inputPath)
+                        .readFileTo('uploads', copy.getUploadUID() /*pInput.getPath()*/, inputPath);
+
                 } else if (pInput.location == ProjectInputLocation.DEVICE) {
                     let inputPredecessor = new ProjectInput(pInput);
                     inputPredecessor.location = ProjectInputLocation.DEVICE;
@@ -1480,18 +1486,23 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                     // copy it to the local workspace input directory
                     _fs_.copyFileSync(tmpFilePath, inputPath);
                 }
+
                 // update and save project input
                 pInput.setPath(inputPath);
+                //pInput.setWsPath(inputPath);
                 pInput.location = ProjectInputLocation.LOCAL;
             }
 
             copy.setPath(_path_.join(_path_.sep+ProjectWorkspace.BASE_PATH.IN, _path_.basename(pInput.getPath())));
+
+            let wsPath = _path_.join(_path_.sep+ProjectWorkspace.BASE_PATH.IN, _path_.basename(pInput.getPath()));
 
             if (pInput.location == ProjectInputLocation.LOCAL) {
 
                 // import file into project DB
                 await this.pdb.getFileManager().writeFile('ws', pInput.getPath(), copy.getPath(), {
                     input: copy.getPath(),
+                    upload: copy.getUploadUID(),
                     type: ProjectWorkspace.BASE_PATH.IN
                 });
 
@@ -1513,7 +1524,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 const inputPath = this.getWorkspace().getValidInputPath(pInput);
 
                 this.getProjectDB().getFileManager()
-                    .readFileTo('ws', copy.getPath(), inputPath);
+                    .readFileTo('ws', copy.getUploadUID(), inputPath);
 
                 //_fs_.copyFileSync(pInput.data, inputPath);
                 // update and save project input
@@ -1528,10 +1539,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
 
         await this.packageAnalyzer.attachInput(pInput);
-
-        if(pInput.purpose==ProjectInputPurpose.MAIN){
-
-        }
 
         // save changes
         await this.getContext().getEngineDB().saveProject(this, ['inputs']);

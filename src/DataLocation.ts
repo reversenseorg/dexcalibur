@@ -2,10 +2,10 @@
 import {AbstractHook} from "./hook/AbstractHook.js";
 import HookTemplateFragment from "./hook/HookTemplateFragment.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {INode} from "./INode.js";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {INode, INodeRef} from "./INode.js";
 import ModelFile from "./ModelFile.js";
-import {IJsonSerializable, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {IJsonSerializable, NodeUtils, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 export enum DataLocationType {
     FILE,
@@ -18,36 +18,40 @@ export enum DataLocationType {
     JTAG
 }
 
-export interface DataLocationFileSource {
-    file?:ModelFile;
+export interface DataLocationNodeRef {
+    ref?: INodeRef
+}
+export interface DataLocationFileSource extends DataLocationNodeRef {
+    file?:ModelFile|INodeRef;
     fileUID?:any;
+
     offset:number;
 }
 
-export interface DataLocationFsSource {
+export interface DataLocationFsSource  extends DataLocationNodeRef {
     path:string;
     offset:number;
 }
 
 
-export interface DataLocationBytecodeSource {
+export interface DataLocationBytecodeSource  extends DataLocationNodeRef {
     nodeType:NodeInternalType;
     node:INode;
     bbOffset:number;
     insOffset:number;
 }
 
-export interface DataLocationHookSource {
+export interface DataLocationHookSource  extends DataLocationNodeRef {
     hook:AbstractHook;
     frag:HookTemplateFragment;
 }
 
-export interface DataLocationMemorySource {
+export interface DataLocationMemorySource  extends DataLocationNodeRef {
     range:any;
     offset:number;
 }
 
-export interface DataLocationCommSource {
+export interface DataLocationCommSource  extends DataLocationNodeRef {
     protocol:any;
     request:number;
     time?:number;
@@ -72,6 +76,19 @@ export class DataLocation implements IJsonSerializable {
             for(const i in pConfig)
                 this[i] = pConfig[i];
     }
+
+    static fromFile(pFile:Nullable<ModelFile>, pOffset:number):DataLocation{
+        return new DataLocation({
+            type: DataLocationType.FILE,
+            source: {
+                res: (pFile ? NodeUtils.asNodeRef(pFile) : null),
+                file: pFile,
+                offset: pOffset
+            }
+        });
+    }
+
+
 
     getUID():string{
         if(this._uid == null){
@@ -98,14 +115,19 @@ export class DataLocation implements IJsonSerializable {
         if(this.source !=null){
             switch (this.type){
                 case DataLocationType.FILE:
+                    const s = (this.source as DataLocationFileSource);
                     o.source = {
-                        offset: (this.source as DataLocationFileSource).offset,
-                        fileUID: null
+                        offset: s.offset,
+                        ref: s.ref
                     };
-                    if((this.source as DataLocationFileSource).file!=null){
-                        o.source.fileUID = (this.source as DataLocationFileSource).file.getUID();
-                    }else{
-                        o.source.fileUID = (this.source as DataLocationFileSource).fileUID;
+
+                    if(s.file!=null && s.ref==null){
+                        if(!NodeUtils.isNodeRef(s.file)){
+                            o.source.ref = {
+                                __: ModelFile.TYPE.getType(),
+                                _uid: (s.file as ModelFile).getUID()
+                            }
+                        }
                     }
                     break;
                 case DataLocationType.HOOK:
@@ -115,12 +137,22 @@ export class DataLocation implements IJsonSerializable {
                     }
                     break;
                 case DataLocationType.BYTECODE:
-                    o.source = {
-                        nodeType:(this.source as DataLocationBytecodeSource).nodeType,
-                        node:(this.source as DataLocationBytecodeSource).node.getUID(),
-                        bbOffset:(this.source as DataLocationBytecodeSource).bbOffset,
-                        insOffset:(this.source as DataLocationBytecodeSource).insOffset
+                    if((this.source as DataLocationBytecodeSource).ref!=null){
+                        o.source = {
+                            ref:(this.source as DataLocationBytecodeSource).ref,
+                            bbOffset:(this.source as DataLocationBytecodeSource).bbOffset,
+                            insOffset:(this.source as DataLocationBytecodeSource).insOffset
+                        }
+                    }else{
+                        o.source = {
+                            // todo : deprecated : retrrocompatibility
+                            nodeType:(this.source as DataLocationBytecodeSource).nodeType,
+                            node:(this.source as DataLocationBytecodeSource).node.getUID(),
+                            bbOffset:(this.source as DataLocationBytecodeSource).bbOffset,
+                            insOffset:(this.source as DataLocationBytecodeSource).insOffset
+                        }
                     }
+
                     break;
                 default:
                     o.source = this.source;

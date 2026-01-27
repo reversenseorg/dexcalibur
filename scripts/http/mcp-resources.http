@@ -1,0 +1,13 @@
+GET http://127.0.0.1:8080/api/settings/resources
+Accept: application/json
+User-Agent: IntelliJ HTTP Client/WebStorm 2025.2.3
+Accept-Encoding: br, deflate, gzip, x-gzip
+Cookie: connect.sid=s%3Af1697a23042a03dbf761b2e586fb18169b7cb7b0b89e8c1e278d47fe575adf9e.UMmZV2Jc57l1VKMWIJenjspSHLNgZymf1KQaBFOUOyU; connect.sid=s%3A5af16a2f4d6a54952e88b3d328eb059950415e9a91b1d987a4c1d6b80c103936.NT6YP9E8mUhTKz2tg0a050MZKfvfybpNEHv%2FsGjebNg
+
+###
+
+GET http://127.0.0.1:8080/api/account/apikeys
+Accept: application/json
+User-Agent: IntelliJ HTTP Client/WebStorm 2025.2.3
+Accept-Encoding: br, deflate, gzip, x-gzip
+Cookie: connect.sid=s%3Af1697a23042a03dbf761b2e586fb18169b7cb7b0b89e8c1e278d47fe575adf9e.UMmZV2Jc57l1VKMWIJenjspSHLNgZymf1KQaBFOUOyU; connect.sid=s%3A5af16a2f4d6a54952e88b3d328eb059950415e9a91b1d987a4c1d6b80c103936.NT6YP9E8mUhTKz2tg0a050MZKfvfybpNEHv%2FsGjebNg

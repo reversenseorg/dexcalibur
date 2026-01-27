@@ -576,10 +576,16 @@ export class MerlinSearchRequest implements MerlinPrimitive{
               }else{
                 // ignored because NULL value is not yet supported
               }
-            }else{
-              src = MerlinSearchRequest.parseConditionString(a, null, false);
-              src.field = (pPath.length>0? pPath+".":"")+ppt;
-              local.push(src);
+            }else if(typeof a==="string"){
+                src = MerlinSearchRequest.parseConditionString(a, null, false);
+                src.field = (pPath.length>0? pPath+".":"")+ppt;
+                local.push(src);
+            }else {
+                src = new SearchRequestCondition({
+                    field: (pPath.length>0? pPath+".":"")+ppt,
+                    pattern: a
+                });
+                local.push(src);
             }
         }
 
@@ -1497,21 +1503,32 @@ export class MerlinSearchRequest implements MerlinPrimitive{
    */
   static getByRef(pRef:INodeRef, pSearchContext:Nullable<MerlinSearchAPI<any>> = null):MerlinSearchRequest {
     const nt = NodeType.getByID(pRef.__);
-    const req = new MerlinSearchRequest(
+
+      const req = MerlinSearchRequest.fromJsonObject(pSearchContext, {
+          _oper:[{
+              type:OperationType.SEARCH,
+              args:{
+                  pattern:[{
+                      field: nt.getPrimaryKey().getName(),
+                      pattern: pRef._uid,
+                      regexp: false
+                  }]}
+          }],
+          _type: pRef.__
+      });
+
+    /*const req = new MerlinSearchRequest(
         pSearchContext,
         nt, [{
           type:OperationType.SEARCH,
           args:{
-            pattern: MerlinSearchRequest.parseObjectCondition({
+            pattern:   MerlinSearchRequest.parseObjectCondition({
               [nt.getPrimaryKey().getName()]: pRef._uid
             },{ not:false })
-                /*`${nt.getPrimaryKey().getName()}:${pRef._uid}`, {
-                  not: false,
-                  strict: true
-                })]*/
+
           }
         }]
-    );
+    );*/
 
     // if DexcaliburProject is available then tags are resolved in operations
     // to create ready-to-use request

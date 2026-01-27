@@ -1502,8 +1502,11 @@ export default class AdbWrapper implements IBridge
             .map(x => {
                 let p = x.data as string;
                 if( p.endsWith('bin')){
+
+                    // TODO: download from DB into temp file suffixed with .apk and install it
                     p = DexcaliburEngine.getInstance().getWorkspace()
                         .createTempFile('apk_install',false)+'.apk';
+
                     tmp.push(p);
                     _fs_.copyFileSync(x.data, p);
                 }

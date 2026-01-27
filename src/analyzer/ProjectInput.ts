@@ -2,6 +2,7 @@ import {Nullable} from "../core/IStringIndex.js";
 import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {JsonObject} from "../Utils.js";
+import {UploadedResourceUUID} from "../common/UploadedResource.js";
 
 export interface DownloadedProjectInput {
     path:string;
@@ -49,6 +50,7 @@ export interface ProjectInputOptions {
     purpose?: ProjectInputPurpose,
     originalName?: string,
     path?:string;
+    upl?:UploadedResourceUUID;
 }
 
 export class ProjectInputViewer {
@@ -80,6 +82,7 @@ export class ProjectInput implements IProjectInput{
     originalName: Nullable<string> = null;
     path: string
     predecessor: Nullable<ProjectInput>;
+    upl:UploadedResourceUUID = null;
 
     constructor(pOptions:ProjectInputOptions = {}) {
         if(pOptions!=null){
@@ -117,6 +120,22 @@ export class ProjectInput implements IProjectInput{
         this.data = pPath;
     }
 
+    setWsPath(pPath:string):void {
+        this.path = pPath;
+    }
+
+    getWsPath():string {
+        return this.path;
+    }
+
+    setUploadUID(pUID:string):void {
+        this.upl = pUID;
+    }
+
+    getUploadUID():Nullable<string> {
+        return this.upl;
+    }
+
     getPredecessor():Nullable<ProjectInput> {
         return this.predecessor;
     }
@@ -124,6 +143,7 @@ export class ProjectInput implements IProjectInput{
     setPredecessor(pPredecessor:Nullable<ProjectInput>):void {
         this.predecessor = pPredecessor;
     }
+
 
     /**
      * To perform comparison of type and checksum
@@ -141,8 +161,11 @@ export class ProjectInput implements IProjectInput{
             location: (pZone==SecurityZone.PRIVATE ? this.location : ""),
             type: this.type,
             purpose: this.purpose,
-            originalName: this.originalName
-        }
+            originalName: this.originalName,
+            path: (pZone==SecurityZone.PUBLIC ? null : this.path),
+            upl: this.upl
+        };
+
         if (this.extractOpts != null) {
             o.extractOpts = this.extractOpts as unknown as JsonObject;
         }

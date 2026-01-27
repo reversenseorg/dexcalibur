@@ -805,7 +805,7 @@ export class ProjectDatabase implements IFileDatabase {
                                 batch = result.slice(k*100,(k+1)*100);
                                 await coll.updateMany(batch, {
                                     upsert:true,
-                                    $set:['src','tags']
+                                    $set:['src','tags','value']
                                 });
                             }catch (e1){
                                 // retry with atomic update
@@ -905,14 +905,55 @@ export class ProjectDatabase implements IFileDatabase {
         return { updated:ctrUp, inserted:ctrIn, untouched: (this._strCacheSz-ctrUp-ctrIn)  };
     }
 
+    /**
+     *
+     */
     async saveStrings():Promise<void> {
 
         let i:number = 0;
         let all:ModelStringValue[] = [];
+
         try{
-            /*await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).updateMany(
-                Object.values(this._strCache), { replace:true, upsert:true, $set:['_uid','src','tags','value']}
-            );*/
+            const result:ModelStringValue[] = Object.values(this._strCache);
+            const coll =await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection);
+
+            let batch:ModelStringValue[];
+
+            for(let k=0, len=result.length;k< Math.floor(len/100)+1;k++) {
+                try {
+                    batch = result.slice(k * 100, (k + 1) * 100);
+                    await coll.updateMany(batch, {
+                        upsert: true,
+                        $set: ['src', 'tags', 'value']
+                    });
+                } catch (e1) {
+                    // retry with atomic update
+                    if (e1.errorResponse != null && e1.errorResponse.code == 11000) {
+                        Logger.warn("[PROJECT DB][save strings] Failed to update strings batch ");
+                        console.log(e1.errorResponse);
+                        console.log(e1.errorResponse.writeErrors);
+                        /*await coll.asyncUpdateEntry(e1.errorResponse.op, {});
+
+
+                        await coll.updateMany(batch, {
+                            upsert:true,
+                            atomic:true
+                        });*/
+                    } else {
+                        throw e1;
+                    }
+                }
+            }
+        }catch (e){
+            Logger.error(`[PROJECT DB][save strings]  Strings "${all[i].value}"(uid=${all[i]._uid}) (${i}) cannot be saved : `+e.message+"\n"+e.stack);
+            console.log(all[i]);
+        }
+
+        /*
+        try{
+            //await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).updateMany(
+            //    Object.values(this._strCache), { replace:true, upsert:true, $set:['_uid','src','tags','value']}
+            //);
 
             //await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).addMany( Object.values(this._strCache));
 
@@ -924,7 +965,7 @@ export class ProjectDatabase implements IFileDatabase {
         }catch (e){
             Logger.error(`[PROJECT DB] Strings "${all[i].value}"(uid=${all[i]._uid}) (${i}) cannot be saved : `+e.message+"\n"+e.stack);
             console.log(all[i]);
-        }
+        }*/
 
 
         return ;

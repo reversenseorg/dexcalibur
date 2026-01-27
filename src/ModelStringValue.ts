@@ -74,7 +74,9 @@ export default class ModelStringValue extends Savable implements INode
             .volatile()
             .type(DbDataType.STRING)
             .def(null),
-        (new NodeProperty("value")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("value"))
+            .type(DbDataType.STRING)
+            .def(null),
         (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
         (new NodeProperty("instance")).volatile().type(DbDataType.STRING).def([])
     ])).dataSource("PROJECT_DB","strings"); //, "strings");
@@ -82,12 +84,12 @@ export default class ModelStringValue extends Savable implements INode
     __:NodeInternalType = NodeInternalType.STRING;
 
     // SRC_NODE_TYPE : SRC_UUID : STR_TYPE : UID
-    _uid:string = "";
+    _uid:Nullable<string> = null;
 
     src:(IStringCtxRef|any)[] = [];
 
     //instr:any = null;
-    _value:string = null;
+    value:string = null;
 
     instance:ModelInstance[] = [];
     tags:number[] = [];
@@ -99,7 +101,9 @@ export default class ModelStringValue extends Savable implements INode
             for(let i in pConfig)
                 this[i] = pConfig[i];
 
-
+        if(this._uid==null && this.value!=null){
+            this.setValue(this.value);
+        }
     }
 
 
@@ -155,6 +159,16 @@ export default class ModelStringValue extends Savable implements INode
         return (pValue!=null && NodeUtils.isNode(pValue) && pValue.__===NodeInternalType.STRING);
     }
 
+    setValue(pValue:string):void{
+        this._uid = ModelStringValue.hashcode(pValue);
+        this.value = pValue;
+    }
+
+    getValue():string {
+        return this.value;
+    }
+
+    /*
     set value(pValue:string) {
         this._uid = ModelStringValue.hashcode(pValue);
         this._value = pValue;
@@ -210,6 +224,9 @@ export default class ModelStringValue extends Savable implements INode
     }
 
     getUID():string {
+        if(this._uid===""){
+            throw new Error("Invalid ModelStringValue UID");
+        }
         if(this._uid==null){
             this._uid = ModelStringValue.hashcode(this.value); //  Util.sha1_buffer(this.value);
         }
@@ -226,6 +243,7 @@ export default class ModelStringValue extends Savable implements INode
     }
 
     updateSource(pStr:ModelStringValue):void {
+
         pStr.src.map( x => {
             let u:any;
 
@@ -250,8 +268,16 @@ export default class ModelStringValue extends Savable implements INode
         })
     }
 
+    /**
+     * This method is used to add the instruction from a method where
+     * the string is assigned to a variable.
+     *
+     * @param {ModelMethod} pMethod
+     * @param {ModelInstruction} pInstruct
+     */
     setInstrSource(pMethod: ModelMethod, pInstruct: ModelInstruction) {
-        const r = NodeUtils.asNodeRef(pMethod)
+        const r = NodeUtils.asNodeRef(pMethod);
+
         this.src.push({
             __: r.__,
             _uid: r._uid,

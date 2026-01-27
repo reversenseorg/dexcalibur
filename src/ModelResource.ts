@@ -15,6 +15,7 @@ import {DataLocation, DataLocationFileSource, DataLocationType} from "./DataLoca
 import ModelFile from "./ModelFile.js";
 import {Nullable} from "./core/IStringIndex.js";
 import ModelStringValue from "./ModelStringValue.js";
+import {INodeRef} from "./INode.js";
 
 export interface ResourceOpts {
     _uid?:string;
@@ -39,22 +40,23 @@ export default class ModelResource<T> extends Savable
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("location"))
             .type(DbDataType.BLOB)
-            /*.sleep( (x:NodePropertyState)=>{
-                return NodeUtils.serialize(x.p);
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p==null) return null;
+                return (x.p as DataLocation).toJsonObject(); // .serialize(x.p);
             })
             .wakeUp( (x:NodePropertyState)=>{
                 if(x.p==null)
                     return null;
 
-                const dl = new DataLocation(x.p);
+                /*const dl = new DataLocation(x.p);
                 switch (dl.type){
                     case DataLocationType.FILE:
                         (dl.source as any).file = (x.ctx as DexcaliburProject).find.get.files((dl.source as DataLocationFileSource).fileUID);
                         break;
-                }
+                }*/
 
-                return dl;
-            })*/
+                return new DataLocation(x.p);
+            })
             .def(null),//.serialize(DbSerialize.JSON),
         (new NodeProperty("name")).type(DbDataType.STRING),
         (new NodeProperty("value"))
@@ -161,18 +163,7 @@ export default class ModelResource<T> extends Savable
      * @param pLength
      */
     setFileLocation( pFile:ModelFile, pOffset:any = null, pLength:any = null):void {
-        this.location = new DataLocation({
-            type: DataLocationType.FILE,
-            source: {
-                file: pFile,
-                fileUID: pFile.getUID(),
-                offset: 0
-                /*nodeType: NodeInternalType.FILE,
-                node: pFile,
-                offset: pOffset,
-                length: pLength*/
-            }
-        });
+        this.location = DataLocation.fromFile(pFile, pOffset);
     }
 
     /**
@@ -236,33 +227,42 @@ export default class ModelResource<T> extends Savable
     }
 
     toJsonObject(pOption?: SerializeOptions): any {
-        const o:any = {};
+        const o:any = {
+            value: null,
+            __: this.__,
+            _uid: this._uid,
+            name: this.name,
+            ppts: this.ppts,
+            tags: this.tags,
+            location: null
+        };
 
-        o.__ = this.__;
-        o._uid = this._uid;
         if(this.location != null){
             o.location = this.location.toJsonObject();
-        }else{
-            o.location = null;
         }
 
-        if(Array.isArray(this.value) || NodeUtils.isNode(this.value)){
-            o.value = NodeUtils.serialize(this.value as unknown as (INode | INode[]));
-        }else{
-            o.value = (this.value as any).toJsonObject!=null ? (this.value as any).toJsonObject() : this.value;
+        if(this.value!=null){
+            if(Array.isArray(this.value) || NodeUtils.isNode(this.value)){
+                o.value = NodeUtils.serialize(this.value as unknown as (INode | INode[]));
+            }else{
+                o.value = (this.value as any).toJsonObject!=null ? (this.value as any).toJsonObject() : this.value;
+            }
         }
 
 
-        o.name = this.name;
-        o.ppts = this.ppts;
-        o.tags = this.tags;
 
         return o;
     }
 
-    getFile():Nullable<ModelFile> {
+    getFile():Nullable<ModelFile|INodeRef> {
         if(this.location!=null && this.location.type==DataLocationType.FILE){
-            return (this.location.source as DataLocationFileSource).file;
+            const l = (this.location.source as DataLocationFileSource);
+            if(l.file!=null)
+                return l.file;
+            else if(l.ref!=null)
+                return l.ref;
+            else
+                return null;
         }else{
             return null;
         }

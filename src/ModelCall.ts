@@ -57,7 +57,6 @@ export default class ModelCall implements INode
             .def(null), //.single(ModelInstruction.TYPE),
 
         (new NodeProperty("caller"))
-            .volatile()
             .single(ModelMethod.TYPE, "_caller"),
         (new NodeProperty("_caller"))
             .type(DbDataType.BLOB)
@@ -80,7 +79,6 @@ export default class ModelCall implements INode
             })
             .def(null), //.single(ModelMethod.TYPE),
         (new NodeProperty("calleed"))
-            //.volatile()
             .single(ModelMethod.TYPE,"_called"),
         (new NodeProperty("_called"))
             .type(DbDataType.BLOB)

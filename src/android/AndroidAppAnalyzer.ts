@@ -32,9 +32,11 @@ import {AnalyzerException} from "../errors/AnalyzerException.js";
 import {AppIcon} from "../AppIcon.js";
 import ModelFile from "../ModelFile.js";
 import {DataLocationFileSource} from "../DataLocation.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
 import DataScope from "../DataScope.js";
+import {INodeRef} from "../INode.js";
+import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -205,17 +207,6 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 				// extract files & strings
 				res.map((v:ModelResource<any>) => {
-
-					try{
-						const f = (v.location.source as DataLocationFileSource).file;
-						/*if(f != null){
-							f.setScope(pkgScope);
-							files.push(f);
-						}*/
-					}catch(er){
-						Logger.error(er.message,er.stack);
-						// todo : log it to external log service or file
-					}
 
 					try{
 						//const strs=v.getStringNodes();
@@ -608,6 +599,9 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return (state[pResType]!=null) && (state[pResType]>0);
 	}
 
+    /**
+     * Deprecated ?
+     */
 	async parseResources(pFolderPath:string, pDataScope:Nullable<DataScope> = null):Promise<void> {
 		// read folders in pFolderPath
 		const folders = _fs_.readdirSync(pFolderPath);
@@ -713,14 +707,38 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 
 		// browse resMap to gather file
-		let file:ModelFile, filemap:any;
+		let file:ModelFile, srcFile:Nullable<ModelFile|INodeRef>, filemap:any;
 		for(let k in resMap){
 			if(k=='values'){
 				for(let l in resMap[k]){
 					for(let m in resMap[k][l]){
 						res = (resMap[k][l][m] as ModelResource<any>);
-						file = res.getFile();
-						if(file!=null && files[file.getUID()]==null) files[file.getUID()] = file;
+                        srcFile = res.getFile();
+
+                        if(srcFile!=null){
+                            if( NodeUtils.isNodeRef(srcFile)){
+                                // read from db
+                                const result = (await (MerlinSearchRequest.getByRef(srcFile, this.context.getMerlinEngine()))
+                                    .executePDB(this.context));
+
+                                if(result.count()>0)
+                                    file = result.get(0);
+                                else{
+                                    console.error("AndroidAppAnalyzer : NodeRef not found in DB : ", srcFile);
+                                    continue;
+                                }
+
+                                //file = await this.context.get(); // oldersNode, NodeInternalType.FILE);
+                                //if(files[file.getUID()]==null) files[file.getUID()] = file;
+
+                            }else{
+                                file = srcFile as ModelFile;
+                            }
+
+                            if(files[file.getUID()]==null) files[file.getUID()] = file;
+                        }
+
+
 
 
 
@@ -740,8 +758,30 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			}else{
 				for(let l in resMap[k]){
 					res = (resMap[k][l] as ModelResource<any>);
-					file = res.getFile();
-					if(file!=null && files[file.getUID()]==null) files[file.getUID()] = file;
+					srcFile = res.getFile();
+
+                    if(srcFile!=null){
+                        if(NodeUtils.isNodeRef(srcFile)){
+                            // read from db
+                            const result = (await (MerlinSearchRequest.getByRef(srcFile, this.context.getMerlinEngine()))
+                                .executePDB(this.context));
+
+                            if(result.count()>0)
+                                file = result.get(0);
+                            else{
+                                console.error("AndroidAppAnalyzer 2 : NodeRef not found in DB : ", srcFile);
+                                continue;
+                            }
+
+                            //file = await this.context.get(); // oldersNode, NodeInternalType.FILE);
+                            //if(files[file.getUID()]==null) files[file.getUID()] = file;
+
+                        }else{
+                            file = srcFile as ModelFile;
+                        }
+
+                        if(files[file.getUID()]==null) files[file.getUID()] = file;
+                    }
 
 
 					filemap = res.getProperty('variant') as Record<string, ModelResource<any>>;

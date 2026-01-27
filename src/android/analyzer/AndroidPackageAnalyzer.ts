@@ -672,16 +672,22 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         switch (pPurpose){
             case InputSetPurpose.INSTALL:
 
-                const base = this.getBaseApkFromState()
-                const extra = this.getExtraApkFromState()
+                let hasMain = false;
+                this._project.inputs.map(x =>{
+                    if(x.purpose==ProjectInputPurpose.MAIN){
+                        hasMain = true;
+                        inputs.push(x);
+                    }
+                    else if(x.purpose==ProjectInputPurpose.EXTRA){
+                        inputs.push(x);
+                    }
+                });
 
-                if(base==null){
+                //const base = this.getBaseApkFromState()
+                //const extra = this.getExtraApkFromState()
+
+                if(!hasMain){
                     throw PackageAnalyzerException.MAIN_INPUT_NOT_FOUND();
-                }
-                inputs.push(base);
-
-                if(extra.length>-1){
-                    inputs = inputs.concat(extra);
                 }
                 break;
         }

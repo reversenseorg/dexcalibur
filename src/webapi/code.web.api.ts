@@ -12,12 +12,12 @@ import ModelPackage from "../ModelPackage.js";
 import * as VM from "vm";
 import {FinderResult} from "../search/FinderResult.js";
 import DataScope from "../DataScope.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import AndroidAppAnalyzer from "../android/AndroidAppAnalyzer.js";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer.js";
 import {AndroidAnalyzerException} from "../errors/android/AndroidAnalyzerException.js";
 import {SecurityZone} from "../security/SecurityZone.js";
-import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {MerlinSearchRequest, OperationType} from "../search/MerlinSearchRequest.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 import {NodeType, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import ModelCall from "../ModelCall.js";
@@ -331,11 +331,25 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                     project = (await $.context.getProjectManager().preloadForDirect(req.user, puid));
                 }
 
+                let result:Nullable<FinderResult> = null;
+
+                switch (req.query.dir){
+                    case "from":
+                        result = await project.getMerlinEngine()
+                            .call({ _caller: { _uid: nodeUID, __: parseInt(nodeType,10) } })
+                            .executePDB(project);
+                        break;
+                    case "to":
+                        result = await project.getMerlinEngine()
+                            .call({ _called: { _uid: nodeUID, __: parseInt(nodeType,10) } })
+                            .executePDB(project);
+                        break;
+                }
                 // TODO
-                const result = (await (MerlinSearchRequest.getByRef({
+                /*const result = (await (MerlinSearchRequest.getByRef({
                     __:parseInt(nodeType,10),
                     _uid:nodeUID
-                },project.getMerlinEngine() )).executePDB(project));
+                },project.getMerlinEngine() )).executePDB(project));*/
 
 
                 if(result==null || result.count()==0){
@@ -343,6 +357,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 // ========== LOGIC
+                /*
                 const type:string = req.query.dir as string;
                 const root = result.get(0);
 
@@ -388,9 +403,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                                 tags: r2.getTags()
                             };
 
-                            /*(r2 as ModelMethod).getTags().map( t => {
-                                tmp.tags.push(t.getUUID());
-                            });*/
 
                             // args signatures
                             tmp.p = [];
@@ -419,16 +431,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
                         //project.merlin.call("calleed")
 
-                        /*xrefs = await (MerlinSearchRequest.fromCondition(
-                            project.merlin, ModelCall.TYPE,
-                            {
-                                "_called.__": ModelMethod.TYPE.getType(),
-                                "_called._uid": root.getUID()
-                            }, {
-                                strict: true,
-                                not: false
-                            }
-                        )).executePDB(project);*/
+
 
                         //refs = root.getCallers();
                         //console.log(refs);
@@ -454,10 +457,6 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                                 tags: r2.getTags()
                             };
 
-                            /*(r2 as ModelMethod).getTags().map( t => {
-                                tmp.tags.push(t.getUUID());
-                            });*/
-
                             // args signatures
                             tmp.p = [];
                             if (r2.hasArgs())
@@ -470,10 +469,10 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                     default:
                         throw  new Error("Invalid Xref type")
                         break;
-                }
+                }*/
 
                 // RESPONSE
-                $.sendSuccess( res, data);
+                $.sendSuccess( res, result ? result.toJsonObject({include:[]}) : []);
             }catch(err){
                 Logger.error("[API][CODE] Xref cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Xref cannot be retrieved. Cause : " + err.message);

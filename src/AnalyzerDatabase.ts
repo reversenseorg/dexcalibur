@@ -228,7 +228,9 @@ export default class AnalyzerDatabase
      */
     newStringValue( pData:any):ModelStringValue {
         const s = new ModelStringValue(pData);
+
         this.strings.insert(s, false);
+
         return s;
     }
 
@@ -242,56 +244,5 @@ export default class AnalyzerDatabase
         }
 
         return this.binarySearch(pSortedArr.slice((eq>-1 ? 0:h),(eq>-1 ? h:0)),pHash);
-    }
-
-    /**
-     * Perform binary search over sorted array
-     *
-     * @param pSortedStrings
-     */
-    addManyStrings(pSortedStrings:ModelStringValue[]):any {
-
-        let i=0;
-        let eq:number;
-
-        //const str = Object.fromEntries(pSortedStrings.map(x => [x.getUID(),x]));
-
-        /*
-        const hash = ModelStringValue.hashcode(pRawStr);
-
-        let strs:ModelStringValue[] = this.strings.getAsList();
-        // sort db
-        strs = strs.sort((a,b)=> a.getUID().localeCompare(b.getUID()));
-
-        while(i<pSortedStrings.length){
-            eq=pSortedStrings[i].getUID().localeCompare(hash);
-
-            if()<0
-
-            if(i<pStrings.length){
-
-            }
-        }
-
-        if(pStrings[i]!=null){
-            if(eq===0){
-                // location / src
-                return NodeUtils.asNodeRef(pStrings[i]);
-            }else{
-                // missing string
-                // insert data without break sort
-                // const end = pStrings.slice(i);
-                // shift values
-                for(let len=pStrings.length-1; len>=i; len--){
-                    pStrings[len+1] = pStrings[len];
-                }
-                // insert strings
-                pStrings[i] = new ModelStringValue({ value: pRawStr });
-                return NodeUtils.asNodeRef(pStrings[i]);
-            }
-        }else{
-            pStrings[i] = new ModelStringValue({ value: pRawStr });
-            return NodeUtils.asNodeRef(pStrings[i]);
-        }*/
     }
 }

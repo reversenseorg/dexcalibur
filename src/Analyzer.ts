@@ -890,7 +890,7 @@ export default class Analyzer
                     s.setInstrSource(pMethod, instruct);
 
 
-                    if(s.value != 'Stub!'){
+                    if(s.getValue() != 'Stub!'){
                         data.strings.insert(s, false);
                         this.getContext().getBus().send(new BusEvent<ModelStringValue>({
                             type: "model.string.new",
@@ -1742,15 +1742,9 @@ export default class Analyzer
                     }
                 }
                 if((vObj as ModelResource<any>).location==null
-                    || ((vObj as ModelResource<any>).location.source as any).fileUID==null){
+                    || ((vObj as ModelResource<any>).location.source as any).file==null){
 
-                    (vObj as ModelResource<any>).location = new DataLocation({
-                        type: DataLocationType.FILE,
-                        source: {
-                            fileUID: vFile.getUID(),
-                            offset: -1
-                        }
-                    });
+                    (vObj as ModelResource<any>).location = DataLocation.fromFile(vFile,-1);
                 }
                 // TODO : save location is needed
                 this.tempDB.resources.addEntry( (vObj as ModelResource<any>).getUID(), vObj); // cls.fqcn
@@ -2381,6 +2375,11 @@ export default class Analyzer
         return false;
     }
 
+    /**
+     * To update the temporary analyzer DB with a set of strings.
+     *
+     * @param pStrings
+     */
     updateStringsDB(pStrings: ModelStringValue[]):void {
         const all:ModelStringValue[] = this.tempDB.strings.getAsList();
         pStrings.map( vStr => {

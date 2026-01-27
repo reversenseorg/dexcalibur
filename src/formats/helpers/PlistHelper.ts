@@ -55,13 +55,13 @@ export class PlistHelper {
             throw DataFormatManagerException.NOT_PARSABLE('plist');
         }
 
-        pres.ok.location = new DataLocation({
+        pres.ok.location = DataLocation.fromFile(null, pOffset) /*new DataLocation({
             type: DataLocationType.FILE,
             source: {
                 fileUID: null,
                 offset: pOffset
             }
-        });
+        });*/
 
         return pres.ok;
     }
