@@ -13,6 +13,7 @@ import Util from "../Utils.js";
 import {ScriptBuilderOptions, ScriptWriterOptions, TargetLanguage} from "./common.js";
 import {IStringIndex} from "@dexcalibur/dexcalibur-orm";
 import HookPrologue from "../HookPrologue.js";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -285,11 +286,18 @@ DXC.HOOK["${pLibraryName}"] = {
      * @private
      */
     private _appendInternals( pScript:string, pOptions:any = null):string {
+
         if(this.isTS()){
+            if(this._hm.context.os===OperatingSystem.ANDROID){
+                pScript += "\nimport Java from 'frida-java-bridge';";
+            }
             pScript += "\nimport * as _dxc_ from './lib/index.android.arm64.js'; const DXC = _dxc_.newDxcAgent(";
             if(pOptions != null) pScript += "\n"+JSON.stringify(pOptions);
             pScript += ");\n";
         }else{
+            if(this._hm.context.os===OperatingSystem.ANDROID){
+                pScript += "\nvar Java = require('frida-java-bridge');";
+            }
             pScript += "\nvar DXC = require('./lib/dxc-agent.android.arm64.min.js').newDxcAgent(";
             if(pOptions != null) pScript += "\n"+JSON.stringify(pOptions);
             pScript += ");\n";

@@ -1159,3 +1159,67 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+
+
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
+    '/events/:sessid/msg',
+    {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                project = req.dxc.project;
+
+                // 2 cases :
+                // - get message by targeted node
+                // - get message by session
+                // - both
+
+                // gather sessions
+                let session:HookSession;
+                if( req.params.hasOwnProperty('sessid') != null){
+                    if(req.params.sessid == 'last'){
+                        session = project.hook.lastSession();
+                    }else{
+                        session = await project.hook.getSession(req.params.sessid  as string);
+                    }
+                }else{
+                    throw HookManagerException.HOOK_SESSION_NOT_FOUND();
+                }
+
+
+                // filter
+                /*interface RuntimeEventFilter {
+                    fragUID?:string;
+                    hookUID?:string;
+                    tagUUIDs?:number[];
+                    tagNames?:string[];
+                }*/
+
+                const filters:any = {}
+                if(req.query.fragUID) filters.fragUID = req.query.fragUID;
+                if(req.query.hookUID) filters.hookUID = req.query.hookUID;
+                if(req.query.tagUUIDs) filters.tagUUIDs = JSON.parse(Util.b64_decode(req.query.tagUUIDs as string));
+                if(req.query.tagNames) filters.tagNames = JSON.parse(Util.b64_decode(req.query.tagNames as string));
+
+
+                // gather messages  with windowing
+                const startAt = parseInt(req.query.startAt as string);
+                const size = parseInt(req.query.size as string);
+                let  vEvt:RuntimeEvent<any>[] = session.getMessages(startAt,size).map(e => e.toJsonObject());
+
+
+                $.sendSuccess(res, vEvt);
+
+            }catch(err){
+                Logger.error("[API][HOOK] Hook messages cannot be retrieved from session. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Hook messages cannot be retrieved from session. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+

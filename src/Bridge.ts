@@ -7,6 +7,7 @@ import {PrivilegedExecutionStrategy} from "./PrivilegedExecutionStrategy.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
 import Screenshot from "./platform/Screenshot.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 export interface DeviceProfilingOptions {
     tmp?: string;
@@ -119,7 +120,7 @@ export interface IBridge
 
     installApp(pAppPath: string[], pOptions: BridgeInstallOptions): Promise<boolean>;
 
-    installProject(pInputs: ProjectInput[], pOptions: BridgeInstallOptions): Promise<boolean>;
+    installProject(pProject:DexcaliburProject, pInputs: ProjectInput[], pOptions: BridgeInstallOptions): Promise<boolean>;
 
     prepareInstallOptions(pOptions:any):BridgeInstallOptions;
 

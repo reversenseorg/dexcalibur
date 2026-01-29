@@ -779,12 +779,13 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                     //project.getPac
                     //success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
                     success =  await dev.installProject(
+                        project,
                         project.getPackageAnalyzer()
                             .getInputsFor(InputSetPurpose.INSTALL),
                     installOpts);
                 }else{
                     if(project.hasMultipleInputs()){
-                        success =  await dev.installProject(project.inputs, installOpts);
+                        success =  await dev.installProject(project, project.inputs, installOpts);
                     }else{
                         success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
                     }

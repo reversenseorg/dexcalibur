@@ -9,8 +9,8 @@ import {spawnSync} from "child_process";
 import * as VM from "vm";
 import * as FridaCompile from "@dexcalibur/dexcalibur-frida-compile";
 import * as TS_OriginalFridaCompile from "@dexcalibur/dxc-frida-compile";
-import ts  from "@dexcalibur/dxc-frida-compile/ext/typescript.js";
-import { performance } from "perf_hooks";
+import ts from "@dexcalibur/dxc-frida-compile/ext/typescript.js";
+import {performance} from "perf_hooks";
 import * as Frida from "frida";
 
 import {TargetLanguage} from "./common.js";
@@ -18,6 +18,7 @@ import {Nullable} from "../core/IStringIndex.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import {getNodeSystem} from "./ext/System.js";
 import chalk from "chalk";
+import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -54,6 +55,7 @@ export interface ScriptCompilerOutput {
 interface HookRequirements {
     interruptor:boolean;
     fridaCompile:boolean;
+    fridaJava:boolean;
 }
 
 const DIR_NAME = {
@@ -256,7 +258,10 @@ export default class HookWorkspace {
 
         const status = this._checkRequirements();
 
-        return ready && status.fridaCompile && status.interruptor;
+        return ready
+            && status.fridaCompile
+            && status.interruptor
+            && (this._ws.project.os==OperatingSystem.ANDROID ? status.fridaJava : true);
     }
 
     getTsConfig():any {
@@ -295,13 +300,14 @@ export default class HookWorkspace {
 
     }
 
-    async createPackageJson(pFolder:string):Promise<void> {
+    private async _createPackageJson(pFolder:string):Promise<void> {
 
         const pkgFile = _path_.join(pFolder,'package.json');
 
         if(_fs_.existsSync(pkgFile)){
             _fs_.unlinkSync(pkgFile);
         }
+
         _fs_.writeFileSync(
             pkgFile,
             JSON.stringify({
@@ -322,6 +328,26 @@ export default class HookWorkspace {
         );
         return;
     }
+
+    private async _installJavaBridgeOffline(pVersion:string):Promise<void>{
+        // update packages.json
+        // update packages-locks.json
+        // update node_modules
+    }
+
+    async installJavaBridge(pOffline:boolean=false):Promise<void>{
+        if(pOffline){
+            //await this._installJavaBridgeOffline("7.0.3");
+            throw new Error("Offline install of Java Bridge not yet supported");
+        }else{
+            await Util.execSync("cd "+this._base+" && npm install frida-java-bridge@7.0.3");
+        }
+    }
+
+    async isJavaBridgeInstalled(){
+
+    }
+
     /**
      * To initialize the frida workspace
      *
@@ -356,19 +382,24 @@ export default class HookWorkspace {
         }
 
         // create package.json
-        await this.createPackageJson(this._base);
+        if(!_fs_.existsSync(_path_.join(this._base, 'package.json'))){
+            await this._createPackageJson(this._base);
+        }
 
         // create tsconfig file
-        _fs_.writeFileSync(
-            _path_.join(this._base, 'tsconfig.json'),
-             JSON.stringify(this.getTsConfig())
-        );
+        if(!_fs_.existsSync(_path_.join(this._base, 'tsconfig.json'))){
+            _fs_.writeFileSync(
+                _path_.join(this._base, 'tsconfig.json'),
+                JSON.stringify(this.getTsConfig())
+            );
+        }
 
         const isInstalled = this._checkRequirements();
 
         // install requirements
         if(!isInstalled.interruptor) await this.installInterruptor();
         if(!isInstalled.fridaCompile) await this.installFridaCompile();
+        if(this._ws.project.os==OperatingSystem.ANDROID && !isInstalled.fridaCompile) await this.installJavaBridge();
 
         // copy prebuilt-libs : interruptor, agent, ...
         await this.updateHookLibs();
@@ -379,8 +410,10 @@ export default class HookWorkspace {
     private _checkRequirements():HookRequirements{
         const reqs:HookRequirements = {
             interruptor: false,
-            fridaCompile: false
+            fridaCompile: false,
+            fridaJava: false
         };
+
         const pkgFile = _path_.join(this._base,'package-lock.json');
 
         if(!_fs_.existsSync(pkgFile)) {
@@ -392,6 +425,7 @@ export default class HookWorkspace {
             if(ctn!=null && ctn.packages !=null){
                 reqs.interruptor = (ctn.packages['node_modules/@reversense/interruptor']!=null);
                 reqs.fridaCompile = (ctn.packages['node_modules/frida-compile']!=null);
+                reqs.fridaJava = (ctn.packages['node_modules/frida-java-bridge']!=null);
             }
 
         }catch(err){
@@ -467,6 +501,11 @@ export default class HookWorkspace {
 
         if(doUpdate){
            await  this._copyHookFile();
+        }
+
+        // Install java bridge in hook workspace
+        if(this._ws.project.os===OperatingSystem.ANDROID){
+            await this.installJavaBridge(false);
         }
     }
 

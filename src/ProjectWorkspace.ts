@@ -87,6 +87,8 @@ export default class ProjectWorkspace
             'bin',
             _path_.join(this.path, 'app.bin')
         );
+
+        this.project = pProject;
     }
     
     /**
@@ -247,7 +249,7 @@ export default class ProjectWorkspace
             _ws:this
         });
 
-        if (this.hookWS.isReady() || DexcaliburEngine.getInstance().isUpdateMode()) {
+        if(!this.hookWS.isReady() || DexcaliburEngine.getInstance().isUpdateMode()) {
             await this.hookWS.init();
         }
 

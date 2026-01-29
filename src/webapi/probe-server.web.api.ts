@@ -45,6 +45,7 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
                     device = DeviceManager.getInstance().getDevice(req.body['dev']);
                 }else{
                     project = req.project; //dxc.project;
+                    // todo : remove default device
                     if(project!=null){
                         device = project.getDevice();
                     }else{
@@ -132,13 +133,10 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
 
             try {
                 // ========== SECURITY CHECKS
+                project = req.dxc.project;
 
 
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
+
 
                 if(project == null || !project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();

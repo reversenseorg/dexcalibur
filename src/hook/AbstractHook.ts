@@ -506,6 +506,29 @@ export abstract class AbstractHook {
         return this._enabled;
     }
 
+    /**
+     * To get the location of a fragment by its UID
+     *
+     * @param {string} pFragmentUID Fragment UID
+     * @return {number} -1 if the fragment is before, 1 if after, 0 if replace
+     * @method
+     * @since 1.12.7
+     */
+    getLocationOf( pFragmentUID:string):number {
+        if(this.getBefore().find(f => f.getUID()===pFragmentUID)!=null){
+            return -1;
+        }
+        else if(this.getAfter().find(f => f.getUID()===pFragmentUID)!=null){
+            return 1;
+        }
+        else if(this.getReplace().find(f => f.getUID()===pFragmentUID)!=null){
+            return 0;
+        }
+        else{
+            return null;
+        }
+    }
+
     isTargetNodeType( pNodeType:NodeInternalType){
         return (this._t === pNodeType);
     }

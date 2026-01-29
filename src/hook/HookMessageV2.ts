@@ -46,6 +46,8 @@ export default class HookMessageV2
 
     session:any = null;
 
+    when?:number = null;
+
 
     /**
      * To represent a message sent by a hook from the device to the desktop

@@ -27,11 +27,12 @@ import {IProfile} from "./device/profile/IProfile.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
-import {ProjectInput, ProjectInputType} from "./analyzer/ProjectInput.js";
+import {ProjectInput, ProjectInputPurpose, ProjectInputType} from "./analyzer/ProjectInput.js";
 import {Architecture} from "./Architecture.js";
 import Screenshot from "./platform/Screenshot.js";
 import {ImageFormat} from "./platform/ImageFormat.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -1474,7 +1475,7 @@ export default class AdbWrapper implements IBridge
      * @async
      * @since 1.0.0
      */
-    async installProject( pPath:ProjectInput[], pOptions:AndroidPackageInstallOptions):Promise<boolean> {
+    async installProject( pProject:DexcaliburProject,  pPath:ProjectInput[], pOptions:AndroidPackageInstallOptions):Promise<boolean> {
         let cmd:string, success:boolean;
 
         if(pPath.length==0){
@@ -1500,6 +1501,16 @@ export default class AdbWrapper implements IBridge
                 && (typeof x.data==='string' && (x.data.endsWith('apk') || x.data.endsWith('bin')))
             )
             .map(x => {
+
+
+                const outputPath = DexcaliburEngine.getInstance().getWorkspace()
+                    .createTempFile('apk_install_',false)+'.'+(x.purpose===ProjectInputPurpose.MAIN?'base':'extra')+'.apk';
+
+                pProject.getProjectDB().getFileManager()
+                    .readFileTo('ws', x.getPath(), outputPath);
+
+                return outputPath;
+                /*
                 let p = x.data as string;
                 if( p.endsWith('bin')){
 
@@ -1510,7 +1521,7 @@ export default class AdbWrapper implements IBridge
                     tmp.push(p);
                     _fs_.copyFileSync(x.data, p);
                 }
-                return p;
+                return p;*/
             }));
 
         inputs = inputs.sort((a,b)=>{
@@ -1537,8 +1548,8 @@ export default class AdbWrapper implements IBridge
         console.log(out)
 
         // free temporary files
-        if(tmp.length>0){
-            tmp.map(x => {
+        if(inputs.length>0){
+            inputs.map(x => {
                 _fs_.rm(x, ()=>{});
             });
         }

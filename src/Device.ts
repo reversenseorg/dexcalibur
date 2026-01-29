@@ -41,6 +41,7 @@ import ScreenshotAgent from "./platform/ScreenshotAgent.js";
 import {UserAccount} from "./user/UserAccount.js";
 import AiHelper from "./core/ai/AiHelper.js";
 import {ElixirUtils} from "./elixir/ElixirUtils.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1431,7 +1432,7 @@ export class Device implements INode
      * @param pAppPath
      * @param pOptions
      */
-    async installProject( pInputs:ProjectInput[], pOptions:any):Promise<boolean> {
+    async installProject( pProject:DexcaliburProject, pInputs:ProjectInput[], pOptions:any):Promise<boolean> {
         if(!this.isConnected()) {
             throw DeviceManagerException.DEVICE_NOT_CONNECTED(this.uid);
         }
@@ -1439,7 +1440,7 @@ export class Device implements INode
             throw DeviceManagerException.DEVICE_NOT_ENROLLED(this.uid);
         }
 
-        return this.bridge.installProject(pInputs, pOptions);
+        return this.bridge.installProject( pProject, pInputs, pOptions);
     }
 
 

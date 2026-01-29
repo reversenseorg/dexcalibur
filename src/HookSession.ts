@@ -38,6 +38,7 @@ import {UserAccountUUID} from "./user/UserAccount.js";
 import {Device} from "./Device.js";
 import DeviceEventCollector from "./platform/DeviceEventCollector.js";
 import InputEvent from "./platform/InputEvent.js";
+import Hook from "./Hook.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -376,6 +377,7 @@ export default class HookSession extends WebsocketSession implements INode
         if(hm.hook && pRawMsg.fid!=null){
             hm.fid = pRawMsg.fid;
             hm.frag = hm.hook.getFragment(pRawMsg.fid);
+            hm.when = hm.hook.getLocationOf(pRawMsg.fid);
             ev.addTag(this.evTags.HOOK);
 
             // now, event type and auto emit can be retrieved for each fragments
@@ -409,7 +411,7 @@ export default class HookSession extends WebsocketSession implements INode
         // hm.action = msg.payload.action;
 
         // 'When' is the fragment location before/after/replace
-        // hm.when = (msg.after)? 1 : 0;
+        //hm.when = (msg.after)? 1 : 0;
 
 
         // 'payload.tags' is updated host-side  by Inspectors

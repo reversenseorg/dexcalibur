@@ -222,7 +222,13 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
             o.data = null;
         }
         o.rt_type = this.rt_type;
-        o.node = this.node;
+
+        o.node = [];
+        this.node.map(t => {
+           if(t!=null && t.getUID()!=null){
+               o.node.push(NodeUtils.asNodeRef(t))
+           }
+        });
         o.tags = this.tags;
 
         //if(this.tags != null && this.tags.length > 0)
