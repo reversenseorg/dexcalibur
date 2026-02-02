@@ -67,7 +67,7 @@ export class UserPreferences implements INode {
         if(this.prefs==null) this.prefs = {};
         if(this.prefs[pProj]==null) this.prefs[pProj] = { };
 
-        if(NodeUtils.validateProperty(Device.TYPE.getPrimaryKey(), pDevice)){
+        if(Device.TYPE.getPrimaryKey().checkSchema(pDevice)){
             this.prefs[pProj].dev = pDevice;
         }else{
             throw UserServiceException.PREF_VALUE_INVALID();
