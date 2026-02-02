@@ -1,9 +1,12 @@
-import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi, HTTP_VERB} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import {UserSession} from "../user/session/UserSession.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {SecurityZone} from "../security/SecurityZone.js";
+import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import AssuranceReport from "../audit/common/AssuranceReport.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const USER_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -25,6 +28,89 @@ USER_WEB_API.addAsyncAuthenticatedRoute(
             }catch(err){
                 Logger.error("[API][USER] Ac account cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "User account cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+USER_WEB_API.addAsyncAuthenticatedRoute(
+    '/account/prefs',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                if((req as any).user!=null){
+                    const prefs = await $.context.getUserService().getUserPrefs(req.user)
+                    $.sendSuccess(res, prefs !=null ? prefs.toJsonObject() : null );
+                }else{
+                    $.sendError(res, "User preferences not found.");
+                }
+            }catch(err){
+                Logger.error("[API][USER] User preferences not found. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "User preferences not found.");
+            }
+        },
+        'put': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                if((req as any).user!=null){
+
+                    const prefs = await $.context.getUserService()
+                        .addUserPrefs(req.user, req.body.project, req.body.type, req.body.value);
+
+                    $.sendSuccess(res, prefs !=null ? prefs.toJsonObject() : null );
+                }else{
+                    $.sendError(res, "User preferences not found.");
+                }
+            }catch(err){
+                Logger.error("[API][USER] User preferences not found. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "User preferences not found.");
+            }
+        }
+    },{
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'user-get-preferences',
+                uri: '/account/prefs',
+                summary: `Return the preferences of the current user. `,
+                parameters: [{
+                    name: 'applicationUUID',
+                    required: true,
+                    description: ApplicationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "The latest Assurance Report (an assurance_report object) for the specified application unit. It is a scan report",
+                    schemaDoc: AssuranceReport.TYPE.toJSONSchemaDoc()
+                }]
+            },
+            [HTTP_VERB.PUT]: {
+                name:'user-set-preference',
+                uri: '/account/prefs',
+                summary: `Set a preference for the specified project and the current user. `,
+                parameters: [{
+                    name: 'value',
+                    required: true,
+                    description: "The value of the preference",
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'type',
+                    required: true,
+                    description: "The name of the preference to set",
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'project',
+                    required: true,
+                    description: DexcaliburProject.TYPE.getPrimaryKey()._dscr,
+                    schema: DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "The latest Assurance Report (an assurance_report object) for the specified application unit. It is a scan report",
+                    schemaDoc: AssuranceReport.TYPE.toJSONSchemaDoc()
+                }]
             }
         }
     }

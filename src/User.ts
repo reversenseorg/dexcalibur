@@ -23,6 +23,9 @@ export interface HookSessionMap {
     [localid:string] : HookSession;
 }
 
+/**
+ * @deprecated
+ */
 export class User {
 
     private uid:string ='x-x-x-x';

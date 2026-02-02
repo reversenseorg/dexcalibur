@@ -38,6 +38,10 @@ import {AuthCode} from "./auth/AuthTypes.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {EmailSender} from "../core/email/EmailSender.js";
 import {ApiKey, ApiKeyOptions, ApiKeyUUID} from "./auth/ApiKey.js";
+import {UserPreferences} from "./UserPreferences.js";
+import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
+import {ProjectAccessControl} from "./acl/rbac/ProjectAccessContol.js";
+import {GlobalAccessControl} from "./acl/rbac/GlobalAccessContol.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1012,5 +1016,50 @@ export class UserService {
 
         pAccount.dropApiKey(pKeyUuid);
         await this._coll.asyncUpdateEntry(pAccount, {replace:false, $set:['_apikeys']});
+    }
+
+    async getUserPrefs(pAccount: UserAccount):Promise<UserPreferences> {
+
+        let prefs = await  (this._ctx.getEngineDB()
+            .getCollectionOf(UserPreferences.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry({ user: pAccount.getUID() });
+
+        if(prefs==null){
+            prefs = new UserPreferences({
+                uuid: await this._ctx.getEngineDB().generateFreeUuid(
+                    UserPreferences.TYPE.getType(),
+                    UserPreferences.TYPE.getPrimaryKey().getName()),
+                user: pAccount.getUID()
+            });
+
+            prefs = await (this._ctx.getEngineDB()
+                .getCollectionOf(UserPreferences.TYPE.getType()) as MongodbDbCollection)
+                .asyncAddEntry({ uuid: prefs.getUID() }, prefs);
+
+        }
+
+        return prefs;
+    }
+
+    async addUserPrefs(pAccount: UserAccount, pProject:DexcaliburProjectUUID, pType:string, pValue:any):Promise<Nullable<UserPreferences>> {
+
+        const prefs = await  this.getUserPrefs(pAccount);
+
+        switch (pType) {
+            case "dev":
+                prefs.addPreferredDevice(pProject, pValue);
+                break;
+            default:
+                throw UserServiceException.PREF_NOT_SUPPORTED();
+        }
+
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(UserPreferences.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(prefs, {replace:false, $set:['_prefs']})){
+
+            return prefs;
+        }else{
+            return null;
+        }
     }
 }

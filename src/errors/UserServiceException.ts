@@ -35,7 +35,9 @@ export class UserServiceException extends MonitoredError {
         API_KEY_ALREADY_EXISTS: ErrorCode.USER_SERVICE + 120,
         API_KEY_NOT_FOUND: ErrorCode.USER_SERVICE + 121,
         API_KEY_INVALID: ErrorCode.USER_SERVICE + 122,
-        API_KEY_EXPIRED: ErrorCode.USER_SERVICE + 123
+        API_KEY_EXPIRED: ErrorCode.USER_SERVICE + 123,
+        PREF_NOT_SUPPORTED: ErrorCode.USER_SERVICE + 124,
+        PREF_VALUE_INVALID: ErrorCode.USER_SERVICE + 125
     };
 
     static WRONG_DB_FORMAT = ()=>{ return new UserServiceException(" User DB format is invalid",UserServiceException.ERR.WRONG_DB_FORMAT) };
@@ -110,6 +112,12 @@ export class UserServiceException extends MonitoredError {
             {
                 key: pKeyUuid
             }) };
+    static PREF_NOT_SUPPORTED = ()=>{
+        return new UserServiceException(`Preference type not supported`,
+            UserServiceException.ERR.PREF_NOT_SUPPORTED) };
+    static PREF_VALUE_INVALID = ()=>{
+        return new UserServiceException(`Preference value is invalid`,
+            UserServiceException.ERR.PREF_VALUE_INVALID) };
 
 
 
