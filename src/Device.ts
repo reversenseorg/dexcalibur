@@ -574,6 +574,19 @@ export class Device implements INode
     }
 
     getDefaultBridge():IBridge{
+        if(this.bridge == null){
+            // try to get default bridge from bridges list
+            for(const i in this.bridges){
+                if(this.bridges[i].isConnected()){
+                    this.bridge = this.bridges[i];
+                    break;
+                }
+            }
+
+            if(this.bridge == null){
+                throw DeviceManagerException.BRIDGE_NOT_FOUND(this.getUID(), "default");
+            }
+        }
         return this.bridge;
     }
     

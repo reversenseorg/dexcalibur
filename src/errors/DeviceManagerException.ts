@@ -17,6 +17,10 @@ export class DeviceManagerException extends MonitoredError {
     static CANNOT_LIST_TPL = (pOUID:OrganizationUnitUUID="N/A")=>{ return new DeviceManagerException("List of device templates  from org [uid="+pOUID+"] cannot be retrieved", ErrorCode.DEVICE_MANAGER + 8) };
     static CANNOT_START_PHY_DEV = (pDUID:DeviceUUID="N/A")=>{ return new DeviceManagerException("Cannot start physical device [uuid="+pDUID+"] ", ErrorCode.DEVICE_MANAGER + 9) };
     static CANNOT_FIND_INSTANCE = (pDUID:DeviceUUID="N/A")=>{ return new DeviceManagerException("Cannot find instance for device [uuid="+pDUID+"] ", ErrorCode.DEVICE_MANAGER + 10) };
+    static BRIDGE_NOT_FOUND = (pDUID:DeviceUUID="N/A", pBridge:string)=>{
+        return new DeviceManagerException("Bridge not found",
+            ErrorCode.DEVICE_MANAGER + 11, {bridge: pBridge, dev: pDUID }) };
+
 
 
 
