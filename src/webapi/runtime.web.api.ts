@@ -1,0 +1,87 @@
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
+import {Device} from "../Device.js";
+import WebServer from "../WebServer.js";
+import * as Log from "../Logger.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import HookSession, {RuntimeEventFilter} from "../HookSession.js";
+import FridaHelper from "../FridaHelper.js";
+import Hook from "../Hook.js";
+import Util from "../Utils.js";
+import {HookManager, HookSetList} from "../hook/HookManager.js";
+import ModelMethod from "../ModelMethod.js";
+import {ModelFunction} from "../ModelFunction.js";
+import ModelFile from "../ModelFile.js";
+import {AbstractHook} from "../hook/AbstractHook.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
+import KeyPoint from "../hook/KeyPoint.js";
+import HookStrategy from "../hook/HookStrategy.js";
+import {RuntimeEvent, RuntimeEventType} from "../hook/RuntimeEvent.js";
+import {InspectorFactoryException} from "../errors/InspectorFactoryException.js";
+import {HookManagerException} from "../errors/HookManagerException.js";
+import {WebApiWindowing} from "./internals/WebApiWindowing.js";
+import {TargetLanguage} from "../hook/common.js";
+import {ScriptCompilerOutput} from "../hook/HookWorkspace.js";
+
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
+export const RUNTIME_WEB_API: DelegateWebApi = new DelegateWebApi();
+
+
+
+RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
+    '/session/:sessid/stats',
+    {
+        'post': async  (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                project = req.dxc.project;
+
+                // get hook instance by ID
+                const session:HookSession = project.hook.lastSession();
+
+                if (session.fridaScript == null) {
+                    $.sendError(res, "Invalid frida script");
+                }else{
+                    const a:any = await session.fridaScript.unload();
+                    $.sendSuccess(res,  a);
+                }
+
+            }catch(err){
+                Logger.error("[API][HOOK] Hooked application cannot be detached. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Hooked application cannot be detached. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
+    '/sessions/stats',
+    {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                project = req.dxc.project;
+
+                // get hook instance by ID
+                const sessions:HookSession[] = await project.rtmgr.getSessionsStats(req.user);
+                $.sendSuccess(res,  sessions.map(s=>s.toJsonObject()));
+            }catch(err){
+                Logger.error("[API][HOOK] Hooked application cannot be detached. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Hooked application cannot be detached. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+

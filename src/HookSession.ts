@@ -88,8 +88,11 @@ export default class HookSession extends WebsocketSession implements INode
     static TYPE:NodeType = new NodeType( "hook_session", NodeInternalType.HOOK_SESSION,
         [
             (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new NodeProperty("message")).multiple(RuntimeEvent.TYPE).def("[]"),
-            (new NodeProperty("owner")).type(DbDataType.STRING).def(null), // owner UUID
+            (new NodeProperty("message"))
+                .multiple(RuntimeEvent.TYPE)
+                .def("[]"),
+            (new NodeProperty("owner"))
+                .type(DbDataType.STRING).def(null), // owner UUID
             (new NodeProperty("hookManager")).volatile(),
             (new NodeProperty("sets_matches")).volatile().def(null),
             (new NodeProperty("time")).type(DbDataType.NUMERIC).def(-1),
@@ -631,5 +634,8 @@ export default class HookSession extends WebsocketSession implements INode
         });
     }
 
+    setOwner(pOwner:UserAccountUUID):void{
+        this.owner = pOwner;
+    }
 }
 HookSession.TYPE.builder(HookSession);

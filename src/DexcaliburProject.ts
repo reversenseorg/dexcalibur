@@ -101,6 +101,7 @@ import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
 import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection.js";
 import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
 import {AndroidTypes} from "./android/AndroidTypes.js";
+import {RuntimeManager} from "./runtime/RuntimeManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -375,6 +376,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     analyze:Analyzer = null;
 
 
+
     // dex helper
     dexHelper:DexHelper = null;
 
@@ -383,6 +385,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
     // hook, deprecated here ?
     hook:HookManager = null;
+
+    rtmgr:RuntimeManager = null;
 
     /**
      * @field
@@ -691,6 +695,10 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
     getHookManager():HookManager {
         return this.hook;
+    }
+
+    getRuntimeManager():RuntimeManager {
+        return this.rtmgr;
     }
 
     /**
@@ -1211,10 +1219,12 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         // create hooks manager & co
         this.hook = new HookManager(this, this.nofrida);
         await  this.hook.initBuiltInHookSets();
-        // move HookManager loading to "after app analysis"
+        // move HookManager loading to "after app analysis
 
         // load hook DB
         this.scriptManager = new ScriptManager(this);
+
+        this.rtmgr = new RuntimeManager(this);
 
         // plugins
         // before this step this.inspectors should be empty

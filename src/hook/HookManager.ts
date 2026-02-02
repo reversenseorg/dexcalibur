@@ -5,7 +5,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import HookPrologue from "../HookPrologue.js";
 import HookSet from "../HookSet.js";
 import Hook from "../Hook.js";
-import {Device} from "../Device.js";
+import {Device, DeviceUUID} from "../Device.js";
 import Util from "../Utils.js";
 import ModelMethod from "../ModelMethod.js";
 import * as Log from '../Logger.js';
@@ -18,7 +18,7 @@ import KeyPointManager from "./KeyPointManager.js";
 import KeyPoint, {KeyPointRole} from "./KeyPoint.js";
 import JavaMethodHook from "./JavaMethodHook.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {AbstractHook} from "./AbstractHook.js";
 import {HookBuilder} from "./builders/HookBuider.js";
 import {HookDbApi} from "./HookDbApi.js";
@@ -639,47 +639,6 @@ export class HookManager
         await this.db.createHookSession(sess);
         return sess;
     }
-
-
-
-    /**
-     * To start hooking by spawning the target application
-     *  
-     * @param {String} pHookScript Hook script
-     * @param {String} pAppName Application UID
-     * @method
-     */
-    async startBySpawn(pAppName:string, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
-        return await this.start(pSession, pHookScript, FRIDA_MODE.SPAWN, pAppName);
-    }
-
-    /**
-     * 
-     * @param {*} pAppName 
-     * @param {*} pHookScript 
-     */
-    async startByAttachToGadget(pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
-        return await this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_GADGET, "Gadget");
-    }
-
-    /**
-     * 
-     * @param {*} pPID 
-     * @param {*} pHookScript 
-     */
-    async startByAttachTo(pPID:string=null, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
-        return await this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_PID, pPID);
-    }
-
-    /**
-     * 
-     * @param {*} pAppName 
-     * @param {*} pHookScript 
-     */
-    async startByAttachToApp(pAppName:string, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
-        return await this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_APP, pAppName);
-    }
-
 
     /**
      * To start hooking by spawning the target application

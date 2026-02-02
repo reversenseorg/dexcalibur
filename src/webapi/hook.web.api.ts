@@ -624,11 +624,20 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
     {
         'post': async  (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
-            let project:DexcaliburProject = null;
 
             try{
-                project = req.dxc.project;
+                const session = await req.project.getRuntimeManager().startHookSession(
+                    req.user,
+                    req.body.type,
+                    (req.body.dev != null ? req.body.dev : null),
+                    {
+                        script: (req.body.script != null ? req.body.script : null),
+                        app: (req.body.app != null ? req.body.app : null),
+                        pid: (req.body.pid != null ? req.body.pid : null),
+                    }
+                )
 
+                /*
                 let sess:HookSession = await req.project.getHookManager().newSession();
 
                 switch(req.body.type){
@@ -658,14 +667,14 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                         break;
                     default:
                         throw new Error('Invalid start type');
-                }
+                }*/
 
-                $.sendSuccess(res, {sessid: sess.getSessionID(), enable: true });
+                $.sendSuccess(res, {sessid: session.getSessionID(), enable: true });
 
 
             }catch(err){
-                Logger.error("[API][HOOK] Hooking cannot be started. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, " Hooking cannot be started. Cause : " + err.message);
+                Logger.error("[API][HOOK] Hooking session cannot be started. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Hooking session cannot be started. Cause : " + err.message);
             }
         }
     }
