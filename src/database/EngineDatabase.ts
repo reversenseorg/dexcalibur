@@ -41,6 +41,7 @@ import {Workflow, WorkflowUUID} from "../Workflow.js";
 import DatabaseSettings = Settings.DatabaseSettings;
 import {Connection} from "../organization/conn/Connection.js";
 import {Credential} from "../organization/conn/Credential.js";
+import {UserPreferences} from "../user/UserPreferences.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -158,7 +159,8 @@ export class EngineDatabase implements IFileDatabase {
         AssuranceReport.TYPE,
         ScanOrder.TYPE,
         ReversenseProduct.TYPE,
-        Workflow.TYPE
+        Workflow.TYPE,
+        UserPreferences.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
