@@ -124,7 +124,9 @@ export function SEND_SUCCESS_RESPONSE( pRes:ExpressResponse, pData:any, pOptions
 
     pRes.status(
         (pOptions!=null &&  pOptions.hasOwnProperty('httpCode'))? pOptions.httpCode : HTTP_CODE_SUCCESS
-    ).send(JSON.stringify(data));
+    ).send(
+        (pOptions!=null &&  pOptions.hasOwnProperty('raw') && pOptions.raw===true)? pData : JSON.stringify(data)
+    );
 }
 
 /**
@@ -1165,7 +1167,9 @@ export default class WebServer
                 //if(vReq.baseUrl.indexOf("/api/")===0){}
                 //vRes.set('Access-Control-Allow-Origin', '*');
                 //vRes.status(200).redirect("/"+this.guiCfgs[0].name+"/");
-                vRes.status(200).redirect('https://www.reversense.com/');
+                if(vReq.path.indexOf("/api/health/ready")==-1){
+                    vRes.status(200).redirect('https://www.reversense.com/');
+                }
             })
         }else{
             this.resetDefaultRoute((vReq:any, vRes:any):any=> {

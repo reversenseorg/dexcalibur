@@ -1,5 +1,5 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import WebServer from "../WebServer.js";
+import WebServer, {HTTP_CODE_SUCCESS} from "../WebServer.js";
 import * as Log from "../Logger.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -53,16 +53,15 @@ HEALTH_WEB_API.addAsyncPublicRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-
-
                 if(await $.context.getOrgManager().listOrganizations($.context.getInternalAcc())){
-                    res.sendStatus(200);
+                    $.sendSuccess(res, 'OK', {raw:true});
                 }else{
-                    res.sendStatus(404);
+                    $.sendSuccess(res, 'NOK', {raw:true});
                 }
             }catch(err){
                 console.log(" Health check failed. Server is not ready.", err);
-                res.sendStatus(500)
+                //res.sendStatus(500)
+                $.sendSuccess(res, 'NOK', {raw:true});
             }
         }
     },{
