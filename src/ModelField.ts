@@ -225,7 +225,7 @@ export default  class ModelField extends Savable implements IPersistent
         return this.enclosingClass;
     }
 
-    toJsonObject(pOptions:SerializeOptions):any{
+    toJsonObject(pOptions:SerializeOptions = null):any{
         let obj:any = new Object();
         /*if(fields.length>0){
             for(let i in fields){
@@ -237,10 +237,10 @@ export default  class ModelField extends Savable implements IPersistent
             }
         }else{*/
         for(let i in this){
-
-            if(pOptions.exclude!=null  && pOptions.exclude[i]===true) continue;
-            if(pOptions.include!=null  && pOptions.include.indexOf(i)==-1) continue;
-            //if((exclude instanceof Array) && exclude.indexOf(i)>-1) continue;
+            if(pOptions!=null){
+                if(pOptions.exclude!=null  && pOptions.exclude[i]===true) continue;
+                if(pOptions.include!=null  && pOptions.include.indexOf(i)==-1) continue;
+            }
 
             switch(i){
                 case "_getters":

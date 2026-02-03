@@ -60,6 +60,8 @@ import {ModelFunction} from "../ModelFunction.js";
 import {MongoDbMerlinBackend} from "./MongoDbMerlinBackend.js";
 import ModelCall from "../ModelCall.js";
 import {ModelPermission} from "../android/ModelPermission.js";
+import {randomUUID} from "crypto";
+import {RuntimeSession} from "../runtime/RuntimeSession.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -133,6 +135,7 @@ export class ProjectDatabase implements IFileDatabase {
         JavaMethodHook.TYPE,
         NativeFunctionHook.TYPE,
         RuntimeEvent.TYPE,
+        RuntimeSession.TYPE,
         InspectorFactory.TYPE,
         Inspector.TYPE,
         BookmarkType.TYPE,
@@ -1102,5 +1105,51 @@ export class ProjectDatabase implements IFileDatabase {
 
         return pNode;
 
+    }
+
+    private _isSupported(pType:NodeInternalType):boolean {
+        for(let i=0; i<this._supportedType.length; i++){
+            if(this._supportedType[i].getType()===pType){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * To check if the UUID in `pUUID` is free for the collection of object of type `pType` in Engine DB
+     *
+     * @param pType
+     * @param pUUID
+     * @param pPpt
+     */
+    async isUuidFree(pType:NodeInternalType, pUUID:string, pPpt:string = 'uuid'):Promise<boolean> {
+
+        if(!this._isSupported(pType)){
+            throw EngineDatabaseException.CANNOT_CHECK_UUID();
+        }
+
+        const res = await (this.getCollectionOf(pType) as MongodbDbCollection)
+            .asyncGetEntry({ [pPpt]:pUUID });
+
+        return (res == null);
+    }
+
+
+    /**
+     * To generate a free UUID for a type of node
+     *
+     * @param {NodeInternalType} pType The type of node
+     * @param {string} pPpt The name of the property holding the UUID
+     * @method
+     * @async
+     */
+    async generateFreeUuid(pType:NodeInternalType, pPpt:string = 'uuid'):Promise<string> {
+        let uuid:string;
+        do {
+            uuid = randomUUID();
+        }while((await this.isUuidFree(pType,uuid,pPpt))==false);
+
+        return uuid;
     }
 }

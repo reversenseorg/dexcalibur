@@ -6,9 +6,14 @@ import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessCont
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 import HookSession from "../HookSession.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
-import {DeviceUUID} from "../Device.js";
+import {Device, DeviceUUID} from "../Device.js";
 import * as Log from "../Logger.js";
 import {RuntimeManagerException} from "../errors/RuntimeManagerException.js";
+import {RuntimeSession} from "./RuntimeSession.js";
+import {UserPreferences} from "../user/UserPreferences.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {INodeRef} from "../INode.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -48,6 +53,22 @@ export class RuntimeManager {
         );
     }
 
+    /**
+     *
+     * @param pSession
+     * @private
+     */
+    private async _createSessions(pSession:RuntimeSession):Promise<RuntimeSession>{
+
+        pSession.uuid = await this._ctx.getProjectDB().generateFreeUuid(
+                RuntimeSession.TYPE.getType(),
+                RuntimeSession.TYPE.getPrimaryKey().getName());
+
+        return await (this._ctx.getProjectDB()
+            .getCollectionOf(RuntimeSession.TYPE.getType()) as MongodbDbCollection)
+            .asyncAddEntry({ uuid: pSession.getUID() }, pSession);
+    }
+
     async getSessionsStats(pUser: UserAccount) {
         // Security check : acl
         this._checkAccess(pUser);
@@ -59,20 +80,13 @@ export class RuntimeManager {
         return [];
     }
 
-
-    /**
-     * Start a new hook session for a given user and device.
-     *
-     * If device is missing, the user preferences are used to select the device.
-     *
-     * @param pUser
-     * @param pDevice
-     * @returns
-     */
-    async startHookSession(pUser: UserAccount, pType:string, pDevice:Nullable<DeviceUUID> = null, pOptions:RuntimeHookSessionOpts = {}) {
-
-
+    async startSession(pUser:UserAccount, pDevice:Nullable<DeviceUUID> = null):Promise<RuntimeSession> {
         let dev:DeviceUUID = pDevice;
+        let sess = new RuntimeSession({
+            project: this._ctx.getUID(),
+            owner: pUser.getUID()
+        });
+
         if(pDevice==null){
             const prefs = await this._ctx.getContext().getUserService().getUserPrefs(pUser);
             if(prefs==null){
@@ -86,8 +100,45 @@ export class RuntimeManager {
             throw RuntimeManagerException.NO_DEVICE_SELECTED();
         }
 
+        sess.setContext(this._ctx);
+        sess.setDevice(dev);
+
+        sess = await this._createSessions(sess);
+
+        return sess;
+    }
+
+    /**
+     * Start a new hook session for a given user and device.
+     *
+     * If device is missing, the user preferences are used to select the device.
+     *
+     * @param pUser
+     * @param pDevice
+     * @returns
+     */
+    async startHookSession(pUser: UserAccount, pType:string,
+                           pDevice:Nullable<DeviceUUID> = null,
+                           pOptions:RuntimeHookSessionOpts = {}):Promise<{ rt:RuntimeSession, hs:HookSession }> {
+
+        let sess = await this.startSession(pUser, pDevice);
+        let hs = await this.newHookSession(pUser, sess, pType, pOptions);
+
+        return { rt:sess, hs:hs };
+    }
+
+    async newHookSession(pUser:UserAccount, pSess:RuntimeSession,
+                                 pType:string, pOptions:RuntimeHookSessionOpts = {}):Promise<HookSession>{
+
         let sess = await this._ctx.getHookManager().newSession();
+        // add session owner
         sess.setOwner(pUser.getUID());
+        // append hook session
+        pSess.addHookSession(sess.getUID());
+        // attach device
+        sess.setDeviceUID(pSess.device);
+
+
 
 
         switch(pType){
@@ -122,10 +173,16 @@ export class RuntimeManager {
         }
 
         // save session
-        return await this._saveSession(sess);
+        pSess = await this._save<RuntimeSession>(pSess, ['hksess','device']);
+        return sess;
     }
 
-    private async _saveSession(pSession:HookSession, pOptions?:string[]):Promise<HookSession> {
+
+    private async _saveHS(pSession:HookSession, pOptions?:string[]):Promise<HookSession> {
         return await this._ctx.getProjectDB().save(pSession,null,pOptions) as HookSession;
+    }
+
+    private async _save<T extends INode>(pSession:T, pOptions?:string[]):Promise<T> {
+        return await this._ctx.getProjectDB().save(pSession,null,pOptions) as T;
     }
 }

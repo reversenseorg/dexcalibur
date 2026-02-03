@@ -626,7 +626,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-                const session = await req.project.getRuntimeManager().startHookSession(
+                const sessions = await req.project.getRuntimeManager().startHookSession(
                     req.user,
                     req.body.type,
                     (req.body.dev != null ? req.body.dev : null),
@@ -669,7 +669,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                         throw new Error('Invalid start type');
                 }*/
 
-                $.sendSuccess(res, {sessid: session.getSessionID(), enable: true });
+                $.sendSuccess(res, { sess: sessions.hs.getUID(), rt:sessions.rt.getUID(), sessid: null, enable: true });
 
 
             }catch(err){

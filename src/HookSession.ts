@@ -35,13 +35,15 @@ import {CoreDebug} from "./core/CoreDebug.js";
 import {HookWorkspaceState} from "./hook/HookWorkspace.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {UserAccountUUID} from "./user/UserAccount.js";
-import {Device} from "./Device.js";
+import {Device, DeviceUUID} from "./Device.js";
 import DeviceEventCollector from "./platform/DeviceEventCollector.js";
 import InputEvent from "./platform/InputEvent.js";
 import Hook from "./Hook.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+export type HookSessionUUID = string;
 
 interface FridaBindings {
     session:Frida.Session,
@@ -128,7 +130,7 @@ export default class HookSession extends WebsocketSession implements INode
         ]).dataSource("PROJECT_DB");
     __:NodeInternalType = NodeInternalType.HOOK_SESSION;
 
-    public _uid:string = null;
+    public _uid:HookSessionUUID = null;
 
     /**
      * The owner of this session
@@ -246,7 +248,7 @@ export default class HookSession extends WebsocketSession implements INode
 
 
 
-    getUID():string {
+    getUID():HookSessionUUID {
         return this._uid;
     }
 
@@ -577,12 +579,22 @@ export default class HookSession extends WebsocketSession implements INode
      * To set the device where the session runs
      * @param {Device} pDevice The device
      * @method
+     * @deprecated
      */
     setDevice(pDevice:Device):void {
         this.devUID = pDevice.getUID();
     }
 
     /**
+     * To set the device where the session runs
+     * @param {Device} pDevice The device
+     * @method
+     */
+    setDeviceUID(pDevice:DeviceUUID):void {
+        this.devUID = pDevice;
+    }
+
+        /**
      * to get the UID of the device that triggered the session
      *
      * @returns {string} The device UID or null

@@ -5,7 +5,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import HookPrologue from "../HookPrologue.js";
 import HookSet from "../HookSet.js";
 import Hook from "../Hook.js";
-import {Device, DeviceUUID} from "../Device.js";
+import {Device} from "../Device.js";
 import Util from "../Utils.js";
 import ModelMethod from "../ModelMethod.js";
 import * as Log from '../Logger.js';
@@ -18,7 +18,7 @@ import KeyPointManager from "./KeyPointManager.js";
 import KeyPoint, {KeyPointRole} from "./KeyPoint.js";
 import JavaMethodHook from "./JavaMethodHook.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {AbstractHook} from "./AbstractHook.js";
 import {HookBuilder} from "./builders/HookBuider.js";
 import {HookDbApi} from "./HookDbApi.js";
@@ -37,10 +37,8 @@ import {CryptoUtils} from "../CryptoUtils.js";
 import {ScriptBuilderOptions, TargetLanguage} from "./common.js";
 import ModelFile from "../ModelFile.js";
 import Inspector from "../Inspector.js";
-import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
-import DeviceManager from "../DeviceManager.js";
-import DexcaliburEngine from "../DexcaliburEngine.js";
-import AndroidInputProfile from "../android/profiles/AndroidInputProfile.js";
+import {MerlinSearchRequest, OperationType} from "../search/MerlinSearchRequest.js";
+import {UserAccountUUID} from "../user/UserAccount.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -914,19 +912,27 @@ export class HookManager
         // retrieve default  device from project
         // else, it uses specified device
         if(pDevice == null){
-            target = this.context.getDevice();
+            // check if a device is already attached to hook session
+            if(pSession.getDeviceUID() != null){
+                target = this.context.getContext().getDeviceManager().getDevice(pSession.getDeviceUID());
+            }else{
+                // else, try to retrieve from project
+                target = this.context.getDevice();
+            }
         }
         else{
             target = pDevice;
         }
 
-        // link the device to the session
-        pSession.setDevice(target);
-
         if(target == null){
             Logger.error("[HOOK MANAGER] Device not found. Reconnect your device or select a target device to continue.");
             throw DeviceManagerException.DEVICE_NOT_FOUND();
         }
+
+        // link the device to the session
+        pSession.setDeviceUID(target.getUID());
+
+
 
         // start Frida
 
@@ -1808,6 +1814,30 @@ export class HookManager
         return this.sessions[this.sessions.length-1];
     }
 
+    async listSessions(pUser:UserAccountUUID[]):Promise<HookSession[]>{
+        let extra = pUser.length>0? { user: pUser }: {};
+       // return this.context.getProjectDB().listHookSessions(pUser)
+        this.context.getProjectDB().merlinSearch(
+            MerlinSearchRequest
+                .fromCondition(
+                    this.context.merlin,
+                    HookSession.TYPE,
+                    {
+                        project:this.context.getUID(),
+                        ...extra
+                    }, {
+                        not:false
+                    })
+                .addOperation({
+                    type: OperationType.FILTER,
+                    args: {
+                        pattern: "scope:PKG"
+                    }
+                })
+        );
+        return [];
+    }
+
     /**
      * To retrieve all sessions (warning : it can be heavy)
      *
@@ -1822,9 +1852,13 @@ export class HookManager
 
         const lastSess = this.lastSession();
         if(lastSess!=null){
-            if((sess.length==0) || ((sess[sess.length]!=null) && (lastSess.getSessionID()!=sess[sess.length].getSessionID()))){
+            /*if((sess.length==0) || ((sess[sess.length]!=null) && (lastSess.getSessionID()!=sess[sess.length].getSessionID()))){
+                sess.push(lastSess);
+            }*/
+            if((sess.length==0) || ((sess[sess.length]!=null) && (lastSess.getUID()!=sess[sess.length].getUID()))){
                 sess.push(lastSess);
             }
+
         }
 
         return sess;
@@ -1838,7 +1872,7 @@ export class HookManager
     async getSession( pUID:string):Promise<HookSession>  {
         let cached:HookSession = null;
         for(let i=0; i<this.sessions.length; i++){
-            if(this.sessions[i].getSessionID()===pUID){
+            if(this.sessions[i].getUID() /* getSessionID()*/===pUID){
                 cached =  this.sessions[i];
                 break;
             }

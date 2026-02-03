@@ -174,6 +174,8 @@ TAG_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 

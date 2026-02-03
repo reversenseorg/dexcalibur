@@ -724,11 +724,11 @@ export default class DeviceManager extends ValidationCapable
      *
      * @param pUUIDS
      */
-    getDevices(pUUIDS:DeviceUUID[]):Device[] {
+    getDevices( pUUIDS:DeviceUUID[]):Device[] {
         return Object.values(this.devices)
             .filter( x => (pUUIDS.indexOf(x.getUID())>-1) );
     }
-    
+
     /**
      * To export data to JSON
      * @returns {String} JSON payload

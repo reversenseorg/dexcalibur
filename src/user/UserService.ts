@@ -1055,7 +1055,7 @@ export class UserService {
 
         if(await (this._ctx.getEngineDB()
             .getCollectionOf(UserPreferences.TYPE.getType()) as MongodbDbCollection)
-            .asyncUpdateEntry(prefs, {replace:false, $set:['_prefs']})){
+            .asyncUpdateEntry(prefs, {replace:false, $set:['prefs']})){
 
             return prefs;
         }else{
