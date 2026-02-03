@@ -2,6 +2,11 @@ import ModelMethod from "./ModelMethod.js";
 import DDVM_ClassInstance from "./android/DDVM_ClassInstance.js";
 
 
+
+export interface DvmParamsOpts {
+    notset:boolean;
+    val:string;
+}
 /**
  * Interface required for any VM into Dexcalibur
  *
@@ -24,7 +29,7 @@ export interface DexcaliburVM {
 
     reset():void;
 
-    start( pMethod:ModelMethod, pThis:any, pArguments:any):void;
+    start( pMethod:ModelMethod, pThis:any, pArguments:DvmParamsOpts[]):void;
 
     getPseudoCode():string[];
 

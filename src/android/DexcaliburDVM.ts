@@ -21,7 +21,7 @@ import {ATYPE_DTYPE, DDVM_TypeHelper, DTYPE, RET_VOID, SYMBOL_OPE} from "./DDVM_
 import Util from "../Utils.js";
 import ModelInstruction from "../ModelInstruction.js";
 import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
-import {DexcaliburVM} from "../DexcaliburVM.js";
+import {DexcaliburVM, DvmParamsOpts} from "../DexcaliburVM.js";
 import DDVM_Hook from "./DDVM_Hook.js";
 import ModelBasicBlock from "../ModelBasicBlock.js";
 import DDVM_VirtualArray from "./DDVM_VirtualArray.js";
@@ -867,7 +867,7 @@ export default class DexcaliburDVM implements DexcaliburVM
      * @param {ModelMethod} pMethod The method to execute
      * @param {*} pLevel
      */
-    start( pMethod:ModelMethod, pThis:DDVM_ClassInstance, pArguments:any=null, pClearHeap:boolean=false):void{
+    start( pMethod:ModelMethod, pThis:DDVM_ClassInstance, pArguments:DvmParamsOpts[]=[], pClearHeap:boolean=false):void{
         let opt:DDVM_MethodInfo, margs:(ModelObjectType|ModelBasicType)[]=null, arr:any=null;
 
         // clean StackMemory
@@ -1167,6 +1167,11 @@ export default class DexcaliburDVM implements DexcaliburVM
         // add emulated method to callstack;
 
         do{
+            // stub methods from Android framework have not or few instructions
+            if(pInstr.length==0){
+
+            }
+
             // instruction
             if(pInstr[i].t===DDVM_InstructionType.OPERATION){
 
@@ -1548,6 +1553,7 @@ export default class DexcaliburDVM implements DexcaliburVM
             case OPCODE.REM_INT.byte:
             case OPCODE.REM_FLOAT.byte:
 
+                // Format : 23x, multi registers
                 if(this.simplify<1){
                     v = `${this.getRegisterName(oper.left[1])}${oper.opcode.ope}${this.getRegisterName(oper.right)}`;
                     this.stack.setLocalSymbol(regX,
@@ -1645,53 +1651,45 @@ export default class DexcaliburDVM implements DexcaliburVM
 
             case OPCODE.ADD_INT_2ADDR.byte:
             case OPCODE.ADD_FLOAT_2ADDR.byte:
-
             case OPCODE.SUB_INT_2ADDR.byte:
             case OPCODE.SUB_FLOAT_2ADDR.byte:
-
             case OPCODE.MUL_INT_2ADDR.byte:
             case OPCODE.MUL_FLOAT_2ADDR.byte:
-
             case OPCODE.DIV_INT_2ADDR.byte:
             case OPCODE.DIV_FLOAT_2ADDR.byte:
-
             case OPCODE.REM_INT_2ADDR.byte:
             case OPCODE.REM_FLOAT_2ADDR.byte:
 
             case OPCODE.AND_INT_2ADDR.byte:
             case OPCODE.AND_LONG_2ADDR.byte:
-
             case OPCODE.OR_INT_2ADDR.byte:
             case OPCODE.OR_LONG_2ADDR.byte:
-
             case OPCODE.XOR_INT_2ADDR.byte:
             case OPCODE.XOR_LONG_2ADDR.byte:
-
             case OPCODE.SHL_INT_2ADDR.byte:
             case OPCODE.SHL_LONG_2ADDR.byte:
-
             case OPCODE.SHR_INT_2ADDR.byte:
             case OPCODE.SHR_LONG_2ADDR.byte:
-
             case OPCODE.USHR_INT_2ADDR.byte:
             case OPCODE.USHR_LONG_2ADDR.byte:
+                // Format : move, simple registers
                 if(this.simplify<1){
-                    v = `${this.getRegisterName(oper.left[0])}${oper.opcode.ope}${this.getRegisterName(oper.right)}`;
+                    v = `${this.getRegisterName(oper.left)}${oper.opcode.ope}${this.getRegisterName(oper.right)}`;
 
                     this.stack.setLocalSymbol(
-                        this.getRegisterName(oper.left[0]),
+                        this.getRegisterName(oper.left),
                         DTYPE.IMM_NUMERIC,
                         null,
                         v);
 
-                    state.code.push(`${indent}${this.getRegisterName(oper.left[0])} = ${v};`);
+                    state.code.push(`${indent}${this.getRegisterName(oper.left)} = ${v};`);
                 }else{
                     regX = this.getRegisterName(oper.right);
                     regX = this.stack.getLocalSymbol(regX);
 
                     if(this.isImm(regX)){
 
-                        regV = this.getRegisterName(oper.left[0]);
+                        regV = this.getRegisterName(oper.left);
                         regV = this.stack.getLocalSymbol(regV);
 
                         if(this.isImm(regV)){
@@ -1720,13 +1718,13 @@ export default class DexcaliburDVM implements DexcaliburVM
                                     regV,
                                     DTYPE.IMM_NUMERIC,
                                     null,
-                                    `${this.getRegisterName(oper.left[0])}${oper.opcode.ope}${this.getImmediateValue(regV)}`);
+                                    `${this.getRegisterName(oper.left)}${oper.opcode.ope}${this.getImmediateValue(regV)}`);
                             }
                         }
                     }
                     else {
 
-                        regV = this.getRegisterName(oper.left[0]);
+                        regV = this.getRegisterName(oper.left);
                         regV = this.stack.getLocalSymbol(regV);
 
                         if(this.isImm(regV)){
@@ -1752,7 +1750,7 @@ export default class DexcaliburDVM implements DexcaliburVM
                                 regV,
                                 DTYPE.IMM_NUMERIC,
                                 null,
-                                `${(regV.hasCode()? '('+regV.getCode()+')':this.getRegisterName(oper.left[0]))}${oper.opcode.ope}${(regX.hasCode()? '('+regV.getCode()+')':this.getRegisterName(oper.right))}`);
+                                `${(regV.hasCode()? '('+regV.getCode()+')':this.getRegisterName(oper.left))}${oper.opcode.ope}${(regX.hasCode()? '('+regV.getCode()+')':this.getRegisterName(oper.right))}`);
                         }
                     }
                 }
@@ -2375,6 +2373,23 @@ export default class DexcaliburDVM implements DexcaliburVM
             case OPCODE.SGET_BOOLEAN.byte:
                 regX = this.getRegisterName(oper.left);
                 regZ = this.metharea.getGlobalSymbol(oper.right.enclosingClass.name+'.'+oper.right.name);
+
+                // missing global symbol => probably not initialized static field
+                if(regZ == null){
+                    this.metharea.setGlobalSymbol(
+                        oper.right.enclosingClass.name+'.'+oper.right.name,
+                        DDVM_TypeHelper.getDataTypeOf(oper.right.type),
+                        null,
+                        oper.right.alias!=null? oper.right.alias : oper.right.name
+                    );
+                    regZ = this.metharea.getGlobalSymbol(oper.right.enclosingClass.name+'.'+oper.right.name);
+
+                    if(regZ == null){
+                        this.throwError(regZ, regV, oper, "Static field is missing");
+                        break;
+                    }
+                }
+
                 regV = oper.right.type._name;
 
                 v = `${regV.endsWith(".String")?"":"("+regV+")"} ${oper.right.enclosingClass.alias!=null?oper.right.enclosingClass.alias:oper.right.enclosingClass.name}.${oper.right.alias!=null? oper.right.alias : oper.right.name}`;

@@ -23,6 +23,9 @@ import {NodeType, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 import ModelCall from "../ModelCall.js";
 import {NodePurpose} from "../core/EngineNode.js";
 import {ElixirUtils} from "../elixir/ElixirUtils.js";
+import {ScanOrder} from "../audit/common/ScanOrder.js";
+import AssuranceModel from "../audit/common/AssuranceModel.js";
+import AiHelper from "../core/ai/AiHelper.js";
 
 ;
 
@@ -117,11 +120,13 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
             try{
 
                 // ========== SECURITY CHECKS
+                project = req.dxc.project;
+                /*
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
                     project = req.dxc.project;
-                }
+                }*/
 
                 if(project == null || !project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
@@ -131,13 +136,15 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 
                 // collect
                 let dev:any = {};
+                // TODO : use Merlin and data from DB instead
                 let method:ModelMethod = project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
 
                 let simplifier:Simplifier = project.getSimplifier(); // Simplifier.getInstance($.project);
+                const mcpInfo = AiHelper.getInstance().getInfo("Simplifier");
 
                 // init body
                 simplifier.setParametersValues(req.body.params);
-                simplifier.setInitParentClass(req.body.clinit);
+                simplifier.setInitParentClass(req.body.clinit===true);
                 simplifier.setMaxDepth(req.body.depth);
 
                 let simplifyLvl:number = (req.body.level!=undefined)? req.body.level : 0;
@@ -151,6 +158,24 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendErrorAfterException(res, "Method cannot be simplified. Cause : ", err.message, err, {
                     context: err.extra
                 });
+            }
+        }
+    },{
+        mcp:{
+            [HTTP_VERB.POST]: {
+                name:'code-simplify',
+                uri: '/method/simplify/{methodUUID}',
+                summary: `Simplify the bytecode or instructions of the method by code lifting.`,
+                parameters: [{
+                    name: 'methodUUID',
+                    required: true,
+                    description: "The UUID of the method (a ModelMethod node) to simplify.",
+                    schema: {type:"string"} // ModelMethod.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: `Pseudocode of the simplified method.`,
+                    schema: { type:"object" }
+                }]
             }
         }
     }

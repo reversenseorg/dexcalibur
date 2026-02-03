@@ -10,6 +10,7 @@ import {CONST} from "./CoreConst.js";
 import * as Log from './Logger.js';
 import DDVM_Symbol from "./android/DDVM_Symbol.js";
 import {SimplifierException} from "./vm/errors/SimplifierException.js";
+import AiHelper from "./core/ai/AiHelper.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -26,6 +27,25 @@ var gInstance:Simplifier = null;
 
 export default class Simplifier
 {
+    static MCP_Info = AiHelper.getInstance().registerExtraComponent({
+        name: "simplifier tool",
+        fqcn: "Simplifier",
+        descr: "Represents an Simplifier tool instance",
+        properties:[
+            { name:"parameters", schema:{
+                type:"array",
+                items:{
+                    type:"object",
+                    properties:{
+                        notset:{type:"boolean"},
+                        val:{ type:"string"}
+                    }
+                }}, descr:"A list of parameters to pass to the method. Each parameter is an object with name and value properties."},
+            { name:"maxdepth", schema:{ type:"number"}, descr:"Maximum call stack. Set to -1 for infinite depth."},
+            { name:"initParent", schema:{ type:"boolean"}, descr:"Flag. TRUE to initialize enclosing class and static block, else FALSE."}
+        ]
+    })
+
     context:DexcaliburProject = null;
     vm:DexcaliburVM = null;
     simplified:any = {};
@@ -67,6 +87,7 @@ export default class Simplifier
      * @param {Object[]} pParamValues 
      */
     setParametersValues( pParamValues:any):void{
+
         this.parameters = pParamValues;
     }
 
