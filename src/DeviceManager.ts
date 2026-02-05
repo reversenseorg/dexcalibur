@@ -265,11 +265,14 @@ export default class DeviceManager extends ValidationCapable
      * 
      * @method
      */
-    save(){
+    async save():Promise<void> {
+        const ppts = Device.TYPE.getProperties().filter(p => {
+            return (['uid','_id','uid','apps'].indexOf(p.getName())==-1)
+        });
 
         for(let k in this.devices){
             if(this.devices[k].isEnrolled()){
-                this._ctx.getEngineDB().save(this.devices[k]);
+                await this._ctx.getEngineDB().save(this.devices[k], ppts);
             }
         }
     }
@@ -729,6 +732,16 @@ export default class DeviceManager extends ValidationCapable
             .filter( x => (pUUIDS.indexOf(x.getUID())>-1) );
     }
 
+    async listDevices( pUser:UserAccount, pUUIDS:Nullable<DeviceUUID[]> = null):Promise<Device[]> {
+        let devs = await this._ctx.getEngineDB().search({}, Device.TYPE.getType());
+
+        if(pUUIDS!=null && pUUIDS.length>0){
+            devs = devs.filter( x => (pUUIDS.indexOf(x.getUID())>-1) );
+        }
+
+        return devs;
+    }
+
     /**
      * To export data to JSON
      * @returns {String} JSON payload
@@ -866,7 +879,7 @@ export default class DeviceManager extends ValidationCapable
         device.setEnrolled(true);
 
         // save device manager data
-        this.save();
+        await this.save();
 
         return success;
     }

@@ -335,7 +335,7 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
             try{
 
                 const nodeType = req.params.node;
-                const nodeUID = decodeURI(Util.b64_decode(req.params.nodeuid));
+                const nodeUID = decodeURIComponent(Util.b64_decode(req.params.nodeuid));
                 const puid = req.query._puid as string;
 
                 if(!ValidationRule.uuid().test(puid)){

@@ -22,6 +22,7 @@ import {VdevEventType} from "../device/maker/VdevEvent.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {VirtualDeviceFactoryException} from "../device/error/VirtualDeviceFactoryException.js";
+import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -220,7 +221,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                 await dev.performProfiling(opts);
 
                 if(dev != null){
-                    $.context.getDeviceManager().save();
+                    await $.context.getDeviceManager().save();
                     switch (req.params.type){
                         case 'network':
                             $.sendSuccess(res, dev.getProfile().getNetworkProfile().toJsonObject());
@@ -253,7 +254,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
 DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/frida/settings',
     {
-        'post': (req:DelegateRequest, res:DelegateResponse):any => {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             let dev:Device = null;
             const $:WebServer = req.dxc.$;
 
@@ -273,7 +274,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                 const unsafeOptions = req.body.opts;
 
                 dev.setFridaServerOptions(unsafeOptions);
-                $.context.getDeviceManager().save();
+                await $.context.getDeviceManager().save();
 
                 $.sendSuccess(res, dev.getProfile().toJsonObject());
             }catch(err){
@@ -367,7 +368,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 if(data){
-                    dm.save();
+                    await dm.save();
                 }
 
                 //data = { success: data };
@@ -520,21 +521,19 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     {
     'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> => {
         // scan connected devices
-        let dm:DeviceManager;
+        let dm: DeviceManager;
         const $: WebServer = pReq.dxc.$;
 
         try {
-
-
             dm = DeviceManager.getInstance();
             await dm.scan();
-            dm.save();
+            await dm.save();
 
-            let devs:DeviceUUID[] = [];
+            let devs: DeviceUUID[] = [];
 
-            if(pReq.query.puid!=null){
+            if (pReq.query.puid != null) {
                 // to do
-            }else if(ApplicationUnit.VALIDATE.uuid.test(pReq.query.aid)){
+            } else if (ApplicationUnit.VALIDATE.uuid.test(pReq.query.aid)) {
                 const app = await $.context.getOrgManager().getApplicationUnit(
                     (pReq as any).user,
                     pReq.query.aid as string
@@ -544,18 +543,21 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                 console.log(app.getTargetDevices());
                 console.log(dm.getDevices(app.getTargetDevices()));
                 $.sendSuccess(pRes,
-                    {devices:dm.getDevices(app.getTargetDevices())
-                        .map(d => d.toJsonObject({
-                            exclude:{
-                                profile: false,
-                                frida: true,
-                                bridge: {
-                                    path: false
+                    {
+                        devices: dm.getDevices(app.getTargetDevices())
+                            .map(d => d.toJsonObject({
+                                exclude: {
+                                    profile: false,
+                                    frida: true,
+                                    bridge: {
+                                        path: false
+                                    }
                                 }
-                            }}))}
+                            }))
+                    }
                 );
 
-            }else if(ApplicationUnit.VALIDATE.uuid.test(pReq.query.oid)){
+            } else if (ApplicationUnit.VALIDATE.uuid.test(pReq.query.oid)) {
                 const org = await $.context.getOrgManager().getOrganization(
                     (pReq as any).user,
                     pReq.query.oid as string
@@ -563,19 +565,22 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 $.sendSuccess(pRes,
-                    {devices: dm.getDevices(org.getDevices())
-                        .map(d => d.toJsonObject({
-                            exclude:{
-                                profile: false,
-                                frida: true,
-                                bridge: {
-                                    path: false
+                    {
+                        devices: dm.getDevices(org.getDevices())
+                            .map(d => d.toJsonObject({
+                                exclude: {
+                                    profile: false,
+                                    frida: true,
+                                    bridge: {
+                                        path: false
+                                    }
                                 }
-                            }}))}
+                            }))
+                    }
                 );
-            }else{
+            } else {
                 $.sendSuccess(pRes, {
-                    devices: dm.toJsonObject(  {
+                    devices: dm.toJsonObject({
                         device: {
                             profile: false,
                             frida: true,
@@ -620,8 +625,11 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
             Logger.error("[API][DEVICE] List device : "+err.message+"\n"+err.stack);
             $.sendError( res, "Devices cannot be listed.")
         }*/
+        }
+    },{
+        nodeAffinity: DexcaliburEngineMode.MASTER
     }
-});
+);
 
 //
 DEVICE_WEB_API.addAsyncAuthenticatedRoute(
@@ -906,7 +914,7 @@ DEVICE_WEB_API.addPublicRoute(
 DEVICE_WEB_API.addPublicRoute(
     '/create',
     {
-        'post': (req:DelegateRequest, res:DelegateResponse):any => {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             // collect
             const uid:string = req.body["uid"];
             const dm:DeviceManager = DeviceManager.getInstance();
@@ -937,7 +945,7 @@ DEVICE_WEB_API.addPublicRoute(
                 if(dev==null)
                     throw DeviceManagerException.DEVICE_NOT_FOUND();
 
-                dm.save();
+                await dm.save();
 
                 $.sendSuccess( res, { msg: "Device <b>"+uid+"</b> has been created." })
             }catch(err){
@@ -967,7 +975,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                         //result = await dm.connect( bridge.ip, bridge.port, dev);
                         if(await dm.connect( bridge.ip, bridge.port, dev)){
                             dev.setDefaultBridge(req.body['name']);
-                            dm.save();
+                            await dm.save();
                             //res.status(200).send({ success: true });
                             $.sendSuccess(res, {});
                             return ;
@@ -983,7 +991,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                     }
                 }else{
                     dev.setDefaultBridge(req.body['name']);
-                    dm.save();
+                    await dm.save();
                     $.sendSuccess(res, {});
                     return;
                 }

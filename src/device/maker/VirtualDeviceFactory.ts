@@ -46,7 +46,7 @@ export class VirtualDeviceFactory {
         switch (pTemplate.getOS()){
             case OperatingSystem.ANDROID:
                 vdev = await this._avdf.allocateDevice(pUserAccount, pTemplate);
-                this._dm.save();
+                await this._dm.save();
                 break;
             default:
                 throw VirtualDeviceFactoryException.OS_NOT_SUPPORTED(pUserAccount.getUID(),pTemplate.getOS());
