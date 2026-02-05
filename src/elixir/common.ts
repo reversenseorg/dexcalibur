@@ -6,6 +6,8 @@ export enum RegisterType {
     PARAMETER = 'parameter',
     RESULT = 'result',
     TEMPORARY = 'temporary',
+    GLOBAL = 'global',
+    DVM='dvm',
     CPU='cpu',
     GPU='gpu',
 }
