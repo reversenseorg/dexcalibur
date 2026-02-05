@@ -62,7 +62,7 @@ export class TerminalServer {
                     action: 'ext', data: {
                         payload: pData,
                         localid: pUser.getLocalIdOf(pSession), //message.data.localid,
-                        sessid: pSession.getSessionID()
+                         sessid: pSession.getSessionID()
                     }
                 }));
             }
