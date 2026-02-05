@@ -28,6 +28,7 @@ import {ExportOptions} from "../ExplainedReport.js";
 import ControlAssessment from "./ControlAssessment.js";
 import Control from "./Control.js";
 import {MatchOccurence} from "./Match.js";
+import {RuntimeSessionUUID} from "../../runtime/RuntimeSession.js";
 
 export interface ReportExportOptions {
     appendApp: boolean,
@@ -166,6 +167,8 @@ export default class AssuranceReport implements INode {
 
     indicators: Indicator[] = [];
 
+    sessions: RuntimeSessionUUID[] = [];
+
     // --- END OF EXPLAINED REPORT ---
     private deviceInfo: Nullable<{ uid: string; os: OperatingSystem; emulated: boolean; arch: string }> = null;
     private appInfo: Nullable<{ package: string; os: OperatingSystem; version:string }>=null;
@@ -301,6 +304,8 @@ export default class AssuranceReport implements INode {
             };
         }
 
+        // TODO : replace by device linked to the RuntimeSessions mapped to this scan
+        // this.runtimeSessions.map(x=>{})
         if(pProject.getDevice()!=null){
             const dev = pProject.getDevice();
             project.device = {
@@ -362,6 +367,7 @@ export default class AssuranceReport implements INode {
                 case "device":
                 case "tags":
                 case "model":
+                case "sessions":
                     o[i] = this[i];
                     break;
             }
