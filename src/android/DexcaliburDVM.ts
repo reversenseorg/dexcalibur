@@ -2303,7 +2303,7 @@ export default class DexcaliburDVM implements DexcaliburVM
                     }
                 }
 
-                this.pcmaker.writeInvoke( oper.right, oper.left);
+                this.pcmaker.writeInvoke( oper.right, oper.left, (oper.opcode.byte===OPCODE.INVOKE_SUPER.byte));
                 break;
 
             case OPCODE.IGET.byte:
