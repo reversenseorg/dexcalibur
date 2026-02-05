@@ -270,8 +270,18 @@ export default  class ModelField extends Savable implements IPersistent
                 //case "instr":
                 //    break;
                 case "type":
-                    if(this.type != null)
-                        obj.type = this.type.toJsonObject();
+                    if(this.type != null){
+                        switch (this.type.__) {
+                            case NodeInternalType.OBJECT_TYPE:
+                                obj.type = { __: this.type.__, arr: this.type.arr, name:this.type.name };
+                                break;
+                            case NodeInternalType.PRIMITIVE_TYPE:
+                                obj.type = { __: this.type.__, arr: this.type.arr, name:this.type.name };
+                                break;
+                            default:
+                                break;
+                        }
+                    }
                     else
                         obj.type = null;
                     break;
