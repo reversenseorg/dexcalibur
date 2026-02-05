@@ -77,7 +77,7 @@ export default class DDVM_PseudoCodeMaker
      * @method
      * @author Georges-B. MICHEL
      */
-    writeInvoke( pMethodRef:ModelMethod, pParamsReg:ModelRegisterReference[]):void{
+    writeInvoke( pMethodRef:ModelMethod, pParamsReg:ModelRegisterReference[], pIsSuper = false):void{
         let v:string = null, rThis:string=null,  rArg:string=null;
         let vThis:DDVM_Symbol=null, vArg:DDVM_Symbol=null;
 
@@ -94,7 +94,7 @@ export default class DDVM_PseudoCodeMaker
         if((pMethodRef instanceof ModelMethod) && (pMethodRef.name=="<init>"))
             v += `${rThis} = new ${pMethodRef.enclosingClass.name}(`;
         else if(this.vm.method.isStatic()==false && rThis=="p0"){
-            v += `this.${pMethodRef.alias!=null? pMethodRef.alias : pMethodRef.name}(`;
+            v += `${pIsSuper?'super':'this'}.${pMethodRef.alias!=null? pMethodRef.alias : pMethodRef.name}(`;
         }
         else if(vThis.type==DTYPE.CLASS_REF && vThis.hasCode()){
             v += `${vThis.getCode()}.${pMethodRef.alias!=null? pMethodRef.alias : pMethodRef.name}(`;
