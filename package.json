@@ -1,6 +1,6 @@
 {
   "name": "@dexcalibur/dexcalibur-ts",
-  "version": "1.12.8",
+  "version": "1.13.0",
   "description": "Universal Reverse Engineering platform focused on dynamic binary instrumentation automation by Reversense",
   "main": "./dist/dexcalibur.js",
   "directories": {
