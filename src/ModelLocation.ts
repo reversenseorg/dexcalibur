@@ -86,4 +86,5 @@ export const CodeLocation = {
     APP: new ModelLocation({ _t:LocationType.APP }),
     PLATFORM: new ModelLocation({ _t:LocationType.PLATFORM }),
     MEM: new ModelLocation({ _t:LocationType.MEM }),
+    DYN: new ModelLocation({ _t:LocationType.DYN }),
 }

@@ -19,6 +19,7 @@ export class ModelRegister {
     dataType?: DataType;
     name?: string;
     initialValue?:any;
+    //history:Record<number,{sess:HookSessionUUID, val:any}> = {};
 
     constructor(pOptions:ModelRegisterOptions) {
         if(pOptions.type!=null) this.type=pOptions.type;

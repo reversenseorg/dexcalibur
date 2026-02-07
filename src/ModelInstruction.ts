@@ -11,8 +11,26 @@ import {CodeLabel, ModelRegisterReference} from "./ModelReference.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelConstantValue from "./ModelConstantValue.js";
 import {ElixirOpcodeDefinition} from "./Opcode.js";
-import {Operand} from "./elixir/common.js";
+import {ElixirOpcode, Operand} from "./elixir/common.js";
 
+export interface ModelInstructionOptions {
+    _raw?:string;
+    _call?:any;
+    _parent?:any;
+    opcode?:Nullable<ElixirOpcodeDefinition|ElixirOpcode>;
+    category?
+    left?:any;
+    right?:any;
+    // ??
+    read?:any;
+    // ??
+    value?:any;
+    // since 1.13.0
+    destination?: Operand;
+    operands?: Operand[];
+    offset?:number;
+    iline?:Nullable<number>;
+}
 /**
  * Represents an instruction from the Application bytecode
  * @param {Object} config Optional, an object wich can be used in order to initialize the instance
@@ -49,10 +67,11 @@ export default class ModelInstruction extends Savable
 
     // info
     offset:number = 0;
+
     // line number into source (.jav, .kotlin, ...) file. Its a metadata
     iline:Nullable<number> = null;
 
-    constructor(pConfig:any=null) {
+    constructor(pConfig:Nullable<ModelInstructionOptions>=null) {
         super(STUB_TYPE.INSTR);
 
         if(pConfig!==undefined)

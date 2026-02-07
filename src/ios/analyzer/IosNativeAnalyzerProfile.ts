@@ -13,13 +13,4 @@ export default class IosNativeAnalyzerProfile implements NativeAnalyzerProfile {
             this[i] = pConfig[i];
         }
     }
-
-    /**
-     * To verify is a file is compatible with a list of ABI
-     * @param pFile
-     * @param pAbiList
-     */
-    isAbiCompliant(pFile:ModelFile, pAbiList:ABI[]):number {
-        return 0;
-    }
 }

@@ -218,56 +218,12 @@ export class DataAnalyzer implements IAnalyzerUnit
      */
     async loadIndex(pScope:DataScope): Promise<void> {
         const coll:IDbCollection = this.context.getAnalyzer().getData().getCollection(pScope.getIndexName(), ModelFile.TYPE);
-        //coll.getAll();
-
         const files = await this._pdb.getCollectionOf(ModelFile.TYPE.getType())
                                 .search({ scope: pScope.getInternalName() });
 
         files.map((x:ModelFile) => {
             coll.addEntry(x.getRelativePath(), x);
         });
-    }
-
-    /**
-     * To scan and index all files contained into the location
-     * targeted by DataScope
-     *
-     * TODO : replace by bus-based processing or multithread or microservice
-     *
-     * @param pScope
-     */
-    async indexFilesIn(pScope:DataScope):Promise<Observable<ModelFile[]>> {
-
-        let obs:Observable<ModelFile[]> = new ReplaySubject<ModelFile[]>(10);
-        const dir = _fs_.readdirSync(pScope.getBasePath());
-        let vPath:string,a:any;
-
-        // TODO : call delegate data analyzer ?
-        if(this.context.platform.isAndroid()){
-            if(this.delegate[OperatingSystem.ANDROID]!=null){
-                Logger.info("[DATA ANALYZER][DELEGATED > ANDROID] Invoked ");
-                obs = (await this.delegate[OperatingSystem.ANDROID].indexFilesIn(pScope));
-            }else{
-                for(let i=0; i<dir.length; i++){
-                    vPath = _path_.join(pScope.getBasePath(),dir[i]);
-                    if(_fs_.lstatSync(vPath).isDirectory()){
-                        //await this.scan(vPath, pScope, dir[i]);
-                        (await this.scan(vPath, pScope, dir[i])).subscribe((vFiles:ModelFile[])=>{
-                            (obs as Subject<any>).next(vFiles);
-                        });
-                    }
-                }
-            }
-        }else if(this.context.os===OperatingSystem.IOS){
-            // file already analyzed
-            if(this.delegate[OperatingSystem.ANDROID]!=null){
-                obs = (await this.delegate[OperatingSystem.IOS].indexFilesIn(pScope));
-            }
-        }
-
-        this.state.append('indexedScopes', pScope.getUID(), {unique:true} ).save();
-
-        return obs;
     }
 
 

@@ -312,20 +312,20 @@ export class R2Pipe {
                 eoc = this.out_buff.indexOf("\x0a");
                 if (eoc == -1) {
                     // current command is not complete
-                    Logger.info(`wait ... RESULT NOT TERMINATED BY CRLF NOR NULL BYTE (blk=${data.length}, total=${this.out_buff.length})`);//,this.out_buff.toString('hex'));
+                    Logger.debug(`wait ... RESULT NOT TERMINATED BY CRLF NOR NULL BYTE (blk=${data.length}, total=${this.out_buff.length})`);//,this.out_buff.toString('hex'));
                     return;
                 }
             }
 
             if(this.out_buff[eoc-1]!=0x0a || (this.out_buff[eoc+1]!=undefined && this.out_buff[eoc+1]!=0x00)){
-                Logger.info(`wait ... RESULT NOT TERMINATED BY NULL (blk=${data.length}, eoc=${eoc}, total=${this.out_buff.length})`);//,this.out_buff.toString('hex'));
+                Logger.debug(`wait ... RESULT NOT TERMINATED BY NULL (blk=${data.length}, eoc=${eoc}, total=${this.out_buff.length})`);//,this.out_buff.toString('hex'));
                 return;
             }
 
             cmd = this.current; //this.cmdList.shift();
 
             if(cmd==null || cmd.listeners==null || cmd.cmd==null){
-                Logger.info("wait ... CMD undefined or inconsistent");
+                Logger.debug("wait ... CMD undefined or inconsistent");
                 return;
             }
 

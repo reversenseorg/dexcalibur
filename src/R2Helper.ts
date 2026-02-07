@@ -4,20 +4,25 @@ import * as Log from './Logger.js';
 import ModelExecutableSection, {SectionType} from "./ModelExecutableSection.js";
 import {ModelFunction} from "./ModelFunction.js";
 import ModelFile from "./ModelFile.js";
-import {ModelNativeRef} from "./ModelNativeRef.js";
 import ModelCpuInstruction from "./ModelCpuInstruction.js";
-import {ModelVariable, ModelVariableLocation} from "./ModelVariable.js";
+import {ModelVariable} from "./ModelVariable.js";
 import {External} from "./external/External.js";
 import Util from "./Utils.js";
 import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
 import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager.js";
 import {DataType} from "./types/DataType.js";
 import {TagManager} from "./tags/TagManager.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {INativeHelper, NativeHelperCmd} from "./analyzer/INativeHelper.js";
 import {NativeBackend} from "./NativeAnalyzer.js";
 import {Architecture} from "./Architecture.js";
 import {ModelRegister} from "./elixir/ModelRegister.js";
+import ModelStringValue from "./ModelStringValue.js";
+import ModelCall from "./ModelCall.js";
+import ModelInstruction from "./ModelInstruction.js";
+import {KernelInfoFactory} from "./platform/kernels/common/KernelFactory.js";
+import ModelSyscall from "./ModelSyscall.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -27,7 +32,36 @@ export enum R2_TYPE {
     HTTP
 }
 
+const DEFAULT_R2_OPTIONS = {
+    update: true
+    //force: false,
+    //json: true,
+    //ignoreErr: true,
+};
 
+interface AddrBased {
+    addr:number,
+}
+interface InterruptMatch extends AddrBased {
+    len:number,
+    code:string
+}
+
+interface SyscallMatch extends AddrBased {
+    name:string,
+    sysnum:number
+}
+
+interface R2String  {
+    vaddr:number,
+    paddr:number,
+    ordinal: number,
+    siwe:number,
+    length:number,
+    section:string,
+    type:string,
+    string:string
+}
 
 const COLS_SECTIONS = {'Nm':'n', 'Vaddr':'vaddr', 'Paddr':'paddr', 'Size':'sz', 'Memsz':'memsz', 'Perms':'perm', 'Name':'name'};
 const COLS_AFL = ['addr','sz','bbs','name'];
@@ -37,6 +71,14 @@ const ARCH_RET = {
     aarch32: "r0",
     // x64: "rdx",
     // x86: "edx",
+}
+
+export interface R2HelperOptions {
+    ctx?:DexcaliburProject;
+    /**
+     * URL to remote r2 server
+     */
+    url?:string;
 }
 
 /**
@@ -116,6 +158,8 @@ export default class RadareHelper implements INativeHelper
      */
     private _tagMgr: TagManager;
 
+    private _os:OperatingSystem = OperatingSystem.LINUX;
+
     /**
      *
      * @param {ModelFile} pBinary File to analyze
@@ -123,13 +167,14 @@ export default class RadareHelper implements INativeHelper
      * @param pOptions
      * @since 1.0.0
      */
-    constructor( pBinary:ModelFile, pType:R2_TYPE, pOptions:any = {}) {
+    constructor( pBinary:ModelFile, pType:R2_TYPE, pOptions:R2HelperOptions = {}) {
         this._t = pType;
         this.target = pBinary;
         this.opts = pOptions;
         if(pOptions.ctx!=null){
             this._typeMgr = pOptions.ctx.getTypeManager();
             this._tagMgr = pOptions.ctx.getTagManager();
+            this._os = pOptions.ctx.os;
         }
     }
 
@@ -294,6 +339,14 @@ export default class RadareHelper implements INativeHelper
     }
 
     /**
+     * To get the mnemomic of the interrupt to search according to project architecture
+     * @private
+     */
+    private _getIntMnemo():string {
+        // todo
+        return "svc";
+    }
+    /**
      * To check is a combination of commands have been already executed
      *
      * @param {string[]} pCommands Names of command to check
@@ -327,7 +380,7 @@ export default class RadareHelper implements INativeHelper
      * @method
      * @since 1.0.0
      */
-    async runCmd( pCommands:string[], pOptions:any= { update:true }):Promise<R2CmdResult[]> {
+    async runCmd( pCommands:string[], pOptions:any= DEFAULT_R2_OPTIONS):Promise<R2CmdResult[]> {
         let k:number = 0;
         let data:any;
         let res:R2CmdResult[] =[];
@@ -461,6 +514,39 @@ export default class RadareHelper implements INativeHelper
                         res.push(null);
                     }
                     if(data) k++;
+                    break;
+                case NativeHelperCmd.LIST_SYSCALLS:
+                    data = await this._p.runCmd(`/asj ${pOptions.x_only? "@e:search.in=io.maps.x":""}`, {json:true, ignoreErr: false});
+                    if(data != null){
+                        data.data = await this.parseSyscalls(data.data.results);
+
+                        if(pOptions.fn!=null){
+                            data.data.map( vCall => {
+                                vCall.caller = pOptions.fn;
+                            });
+                        }else{
+                            data.data.map( vCall => {
+                                vCall.caller = this.target;
+                            });
+                        }
+                        // save modelcalls
+                        // TODO ; craft ModelCall from syscall results
+                        // this.target.addSyscalls(data.data.results);
+
+                        res.push(data);
+                    }
+                    if(data) k++;
+                    break;
+                case NativeHelperCmd.LIST_STRINGS:
+                    data = await this._p.runCmd(`izj`, {json:true, ignoreErr: false});
+                    if(data != null){
+                        data.data = await this.parseStrings(data.data.results);
+                        res.push(data);
+                    }
+                    if(data) k++;
+                    break;
+                    break;
+                case NativeHelperCmd.LIST_XREFS:
                     break;
                 case 'syscall':
                     // TODO : detect platform x86 vs ARM to custome command, default ARM
@@ -631,6 +717,75 @@ export default class RadareHelper implements INativeHelper
     }
 
     /**
+     * To create a list of ModelCall from interrupt instructions detected
+     * `caller` part is not filled yet, because it depends of options.
+     *
+     *
+     * @param {(InterruptMatch|SyscallMatch)[]} pRes
+     */
+    async parseSyscalls(pRes:(InterruptMatch|SyscallMatch)[] ):Promise<ModelCall[]> {
+         if(pRes==null || pRes.length==0) return [];
+
+         let syscalls:ModelCall[] = [];
+
+         pRes.map( vRes => {
+
+             let sc:Nullable<ModelSyscall> = null;
+             if(pRes.hasOwnProperty('sysnum')){
+                 // @ts-ignore
+                 sc = KernelInfoFactory
+                         .find(this._os,  /* KernelInfoFactory.getArch(this.target) */ Architecture.AARCH64, "4.0")
+                         .getSyscall((pRes as any).sysnum);
+
+                 if(sc==null){
+                     sc = new ModelSyscall({
+                         name: (pRes as any).name,
+                         num: (pRes as any).sysnum
+                     })
+                 }
+             }
+
+             let c:ModelCall = new ModelCall({
+                 instr: new ModelInstruction({
+                     offset: vRes.addr,
+                     _raw: (vRes as InterruptMatch).code ?? null,
+                     // opcode: ElixirUtils.getOpcode(vRes.code),
+                 }),
+                 calleed: sc
+             });
+
+             syscalls.push(c);
+         });
+
+         return syscalls;
+    }
+
+
+    /**
+     * To create a list of ModelCall from interrupt instructions detected
+     * `caller` part is not filled yet, because it depends of options.
+     *
+     *
+     * @param {(InterruptMatch|SyscallMatch)[]} pRes
+     */
+    async parseStrings(pRes:R2String[] ):Promise<ModelStringValue[]> {
+        if(pRes==null || pRes.length==0) return [];
+
+        const ft = ModelFile.TYPE.getType();
+
+        return pRes.map( vRes => {
+            return new ModelStringValue({
+                value: vRes.string,
+                src: [{
+                    __: ft,
+                    _uid: this.target.getUID(),
+                    vaddr: vRes.vaddr,
+                    paddr: vRes.paddr,
+                }]
+            });
+        });
+    }
+    /**
      * To parse the JSON output of 'pdf' r2 command
      *
      *
@@ -727,23 +882,33 @@ export default class RadareHelper implements INativeHelper
         }
     }
 
-    async listSections():Promise<ModelExecutableSection[]> {
-        const res = await this.runCmd([NativeHelperCmd.LIST_SECTIONS]);
+    private async _listEl<T>(pCmd:NativeHelperCmd, pOptions:any = DEFAULT_R2_OPTIONS):Promise<T[]> {
+        const res = await this.runCmd([pCmd],pOptions);
 
         if(res.length==0 || !res[0].success){
             return [];
         }else{
-            return res[0].data as ModelExecutableSection[];
+            return res[0].data as T[];
         }
     }
 
-    async listSegments():Promise<ModelExecutableSection[]> {
-        const res = await this.runCmd([NativeHelperCmd.LIST_SEGMENTS]);
+    async listSections():Promise<ModelExecutableSection[]> {
+        return this._listEl<ModelExecutableSection>(NativeHelperCmd.LIST_SECTIONS);
+    }
 
-        if(res.length==0 || !res[0].success){
-            return [];
-        }else{
-            return res[0].data as ModelExecutableSection[];
-        }
+    async listSegments():Promise<ModelExecutableSection[]> {
+        return this._listEl<ModelExecutableSection>(NativeHelperCmd.LIST_SEGMENTS);
+    }
+
+    async listStrings(pOptions:any = DEFAULT_R2_OPTIONS):Promise<ModelStringValue[]> {
+        return this._listEl<ModelStringValue>(NativeHelperCmd.LIST_STRINGS, pOptions);
+    }
+
+    async listSyscalls(pOptions:any = DEFAULT_R2_OPTIONS):Promise<ModelCall[]> {
+        return this._listEl<ModelCall>(NativeHelperCmd.LIST_SYSCALLS, pOptions);
+    }
+
+    async listXrefs(pOptions:any = DEFAULT_R2_OPTIONS):Promise<ModelCall[]> {
+        return this._listEl<ModelCall>(NativeHelperCmd.LIST_XREFS, pOptions);
     }
 }

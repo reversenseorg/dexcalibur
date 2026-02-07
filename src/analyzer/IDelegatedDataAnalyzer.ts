@@ -9,7 +9,6 @@ export interface IDelegatedDataAnalyzer {
 
     scan(path:string, pScope:DataScope, pRelPath?:string):Promise<Observable<ModelFile[]>>;
 
-    indexFilesIn(pScope:DataScope):Promise<Observable<ModelFile[]>>;
 
     detectFmtFiles(pFiles:ModelFile[], pScope:DataScope):Promise<Observable<ModelFile[]>>;
 

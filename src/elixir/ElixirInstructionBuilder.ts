@@ -10,7 +10,6 @@ import {
 } from "./common.js";
 import ModelBasicBlock from "../ModelBasicBlock.js";
 import {DataType} from "../types/DataType.js";
-import {AndroidTypes} from "../android/AndroidTypes.js";
 
 
 export class ElixirInstructionBuilder {
@@ -66,7 +65,7 @@ export class ElixirInstructionBuilder {
             opcode: pOpcode,
             category: ElixirOperationCategory.ARITHMETIC,
             destination: ElixirInstructionBuilder.register(pDest),
-            operands: [ElixirInstructionBuilder.register(pLeft), rightOperand]
+            //operands: [ElixirInstructionBuilder.register(pLeft), rightOperand]
         });
     }
 
@@ -86,7 +85,7 @@ export class ElixirInstructionBuilder {
         return new ModelInstruction({
             opcode: pOpcode,
             category: ElixirOperationCategory.BRANCH,
-            operands: [this.register(pLeft), rightOperand, this.label(target)]
+            //operands: [this.register(pLeft), rightOperand, this.label(target)]
         });
     }
 
@@ -132,7 +131,7 @@ export class ElixirInstructionBuilder {
 
         return new ModelInstruction({
             opcode: ElixirOpcode.LOAD_FIELD,
-            category: ElixirOperationCategory.MEMORY,
+            // category: ElixirOperationCategory.MEMORY,
             destination: this.register(pDest),
             operands: [this.register(pObj), fieldOp]
         });
@@ -165,7 +164,7 @@ export class ElixirInstructionBuilder {
 
         return new ModelInstruction({
             opcode: pOpcode,
-            category: ElixirOperationCategory.METHOD,
+            // category: ElixirOperationCategory.METHOD,
             destination: dest ? this.register(dest) : undefined,
             operands
         });
@@ -177,7 +176,7 @@ export class ElixirInstructionBuilder {
     static return(pValue?: ModelRegister): ModelInstruction {
         return new ModelInstruction({
             opcode: ElixirOpcode.RETURN,
-            category: ElixirOperationCategory.METHOD,
+            // category: ElixirOperationCategory.METHOD,
             operands: pValue ? [this.register(pValue)] : []
         });
     }
@@ -188,11 +187,11 @@ export class ElixirInstructionBuilder {
     static throw(exceptionReg: ModelRegister): ModelInstruction {
         return new ModelInstruction({
             opcode: ElixirOpcode.THROW,
-            category: ElixirOperationCategory.EXCEPTION,
+            // category: ElixirOperationCategory.EXCEPTION,
             operands: [this.register(exceptionReg)],
-            metadata: {
+            /*metadata: {
                 comment: 'Throw exception'
-            }
+            }*/
         });
     }
 
@@ -208,9 +207,9 @@ export class ElixirInstructionBuilder {
         }
 
         return new ModelInstruction({
-            id: pBasicBlock.stack.length+1,
+            //id: pBasicBlock.stack.length+1,
             opcode: ElixirOpcode.LOAD_CONST,
-            category: ElixirOperationCategory.ASSIGNMENT,
+            // category: ElixirOperationCategory.ASSIGNMENT,
             destination: this.register(pRegister),
             operands,
             /*metadata: {

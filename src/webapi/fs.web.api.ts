@@ -93,22 +93,8 @@ FS_WEB_API.addAsyncAuthenticatedRoute(
                 let d:any;
                 if(_fs_.existsSync(file.getPath())){
 
-                    //Logger.raw(file.__p.f_list)
-                    /* if(file.isExecutable()){
-                        d = file.toJsonObject({extra:{ cmd:'sections:f_list'}});
-                    }else{*/
                         d = file.toJsonObject();
                         d.ctn = _fs_.readFileSync( file.getPath(), {encoding: "utf-8"});
-                    //}
-
-                    /*{
-                        _t: 'c',
-                        p: file.getPath(),
-                        n: file.getName(),
-                        _uid: file.getUID(),
-                        t: file.getType(),
-                        ctn: _fs_.readFileSync( target, {encoding: "utf-8"})
-                    }];*/
                 }
 
 
@@ -201,29 +187,6 @@ FS_WEB_API.addAsyncAuthenticatedRoute(
                     }
 
 
-                    /*
-                    d.push(f.toJsonObject(+))
-                    if(_fs_.existsSync(f.getPath())){
-
-                        Logger.raw(f.__p.f_list)
-                        if(f.isExecutable()){
-                            d.push(f.toJsonObject({extra:{ cmd:'sections:f_list'}}));
-                        }else{
-                            const ff =  f.toJsonObject();
-                            ff.ctn = _fs_.readFileSync( f.getPath(), {encoding: "utf-8"});
-
-                            d.push(ff);
-                        }
-
-                        /*{
-                            _t: 'c',
-                            p: file.getPath(),
-                            n: file.getName(),
-                            _uid: file.getUID(),
-                            t: file.getType(),
-                            ctn: _fs_.readFileSync( target, {encoding: "utf-8"})
-                        }];
-                    }*/
                 });
 
                 console.log(d);

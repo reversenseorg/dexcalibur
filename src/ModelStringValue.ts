@@ -38,6 +38,8 @@ export interface  IInstrRef {
 }
 export interface IStringCtxRef extends INodeRef {
     instr?:IInstrRef;
+    vaddr?:number;
+    paddr?:number;
     tags?:number[];
 }
 

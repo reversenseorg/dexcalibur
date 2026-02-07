@@ -1248,26 +1248,37 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this.graph = new GraphMaker(this);
 
         // init listeners
-        // data Analyzer
+        // ----------------------------
+        // listen for new ModelFile created when binary is loaded dynamically from extra file
         this.bus.subscribe("file.new.DYN_BYTECODE", BusSubscriber.from( (pEvent:BusEvent<any>) => {
             const d = pEvent.getData();
             Logger.info("[DXC-PROJECT] [SUBSCRIBER] <file.new.DYN_BYTECODE> scanning file : "+d.file.path);
             Logger.info(JSON.stringify(pEvent));
 
 
+            const dastTag = this.tagManager.getTag("discover.dynamic");
 
-            if(d.file.hasScope(this.dataAnalyzer.scopes.DYN_BYTECODE)){
-                this.dataAnalyzer.scanFile(
-                    d.file,
-                    d.file.scope
-                );
+            // update data analyzer with new file
+            if(d.file.hasScope(this.dataAnalyzer.scopes.DYN_BYTECODE))
+            {
+
+                this.analyze.path(
+                    d.file.path,
+                    CodeLocation.DYN,
+                    this.dataAnalyzer.scopes.DYN_BYTECODE,
+                    [dastTag],
+                    {
+                        createMode: this._createMode,
+                        openOpts: this._getOpenOptions()
+                    }
+                ).then((vRes)=>{
+
+                    },(err)=>{
+                        Logger.error(err);
+                    });
+
             }
 
-            this.dataAnalyzer.indexFile(d.file);
-            this.dataAnalyzer.indexFile(d.file.clone({
-                path:d.rpath,
-                scope:this.getDataAnalyzer().getScope('APPDATA')
-            }));
         }));
 
     }
@@ -2273,45 +2284,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     }
 
 
-    /*
-     * To perform a scan of the application byetcode only.
-     * 
-     * All reference to Android system classes will be tagged MissingReference or VMBinding
-     * 
-     * @param {string} path Optional, the path of the folder containing the decompiled smali code. 
-     * @returns {Project} Returns the instance of this project
-     * @deprecated ?
-     * @method
-     */
-    /*async scan( pPath:string):Promise<void>{
-        // make IR 
-        if(pPath !== undefined){   
-            await this.analyze.path( pPath);
-        }else{
-            const apkctnPath:string = this.appAnalyzer.getDefaultTargetPath(); //.workspace.getApkDir();
-
-            _fs_.mkdirSync(apkctnPath, {recursive: true});
-            Logger.info("Scanning default path : "+apkctnPath);
-
-            // bytecode analysis (from smali file)
-            await this.analyze.path( apkctnPath);
-
-            const pkgScope = this.dataAnalyzer.getScope('PKG');
-
-            // TODO : improve this step
-            // files analysis (signature, ...)
-            //this.dataAnalyzer.scan( apkctnPath);
-            // file analysis : icon detection, strings, etc ...
-            // TODO : multi threading : each file can be treated separately
-
-            // TODO : useless : replaced by  Analyzer.path(...)
-            (await this.dataAnalyzer.indexFilesIn(pkgScope)).subscribe((vFiles:ModelFile[])=>{
-                // update internal in-memory DB with file analyzer DB
-                this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getAll());
-            });
-            //}
-        }
-    }*/
 
     getPlatform():Platform {
         return this.platform;
@@ -2433,7 +2405,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
 
         // file analysis : icon detection, strings, etc ...
-        const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');;
+        const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');
 
         /*
          ====== [SCAN CODE OF TARGET PACKAGE] ======
@@ -2503,48 +2475,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         Logger.info("Scanning default path : "+targetPath);
 
 
-
-        // If android or iOS bytecode code analysis
-        // TODO : multi threading
-        await this.analyze.path(
-            targetPath,
-            CodeLocation.APP,
-            pkgScope,
-            [sastTag],
-            {
-                createMode: this._createMode,
-                openOpts: this._getOpenOptions()
-            }
-        );
-
-        this.analyze.tagAllIf(
-            (k,x) => {  return !internTag.match(x); },
-            [sastTag]);
-
-        this.analyze.tagIf<ModelStringValue>(
-            (k,x) => {
-                let e = x.src.find( s => internTag.match(s));
-                return (e!=null);
-            },
-            "strings",
-            [sastTag]);
-
-        // save model
-        //await this.pdb.saveAnalyzerDB(this.analyze.getData());
-        // update DB only on first open
-        if(this._createMode){
-           await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
-        }
-
-        // load hooks
-        await this.hook.load();
-
-        this.getWorkflow().setStep('App resources', 60);
-        this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
-
-
-
-
         this._analysis$.subscribe(async (vProjEvt)=>{
             if([ProjectEventType.DATA_ANALYSIS_DONE,
                 ProjectEventType.DATA_ANALYZER_LOADED].indexOf(vProjEvt.type)>-1){
@@ -2564,7 +2494,15 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
                 // detect and scan libs
                 // this.performNativeAnalysis(pkgScope);
-                const execFiles = await this.getDB().getFileDB().searchExecutables(pkgScope);
+                //const execFiles = await this.getDB().getFileDB().searchExecutables(pkgScope);
+
+                const execFiles:ModelFile[] = (await this.getProjectDB().merlinSearch(
+                    MerlinSearchRequest
+                        .fromCondition(
+                            this.merlin,
+                            ModelFile.TYPE,
+                            "@data.type.executable", { not:false })
+                )).getAsList();
 
                 for(let i=0; i<execFiles.length; i++){
                     if(this.analyze.hasBeenAnalyzed(execFiles[i])){
@@ -2594,64 +2532,69 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             }
         })
 
-        // perform data analaysis or load results
-        if(!this.dataAnalyzer.hasIndexed(pkgScope)) {
 
-            const req = MerlinSearchRequest.fromCondition(this.merlin, ModelFile.TYPE, "@data.type.unknown", { not:false });
-            const result = (await (this.getAnalyzer().db.getDataSetFromNodeType(ModelFile.TYPE.getType()) as InMemoryDbCollection).search(
-                req,
-                new InMemoryDbIndex()
-            )).getAsList() as INode[];
+        // If android or iOS bytecode code analysis
+        // OS-Agnostic parsing of files contained in inputs files and archive
+        // TODO : multi threading
+        await this.analyze.path(
+            targetPath,
+            CodeLocation.APP,
+            pkgScope,
+            [sastTag],
+            {
+                createMode: this._createMode,
+                openOpts: this._getOpenOptions()
+            }
+        );
 
-            console.log(result);
+        // trigger next steps, on data have been parsed
+        this._analysis$.next({
+            type: ProjectEventType.DATA_ANALYSIS_DONE,
+            data: null
+        })
 
-            (await  this.dataAnalyzer.detectFmtFiles(result as ModelFile[], pkgScope)).subscribe(async (vFiles:ModelFile[])=>{
-                Logger.info(`[package files analyzed=${vFiles.length}]`);
+        this.analyze.tagAllIf(
+            (k,x) => {  return !internTag.match(x); },
+            [sastTag]);
 
-                // update internal DB with file from package only (at this step)
-                this.analyze.updateFileIndex(
-                    await this.dataAnalyzer.getIndex('PKG'), true
-                );
+        this.analyze.tagIf<ModelStringValue>(
+            (k,x) => {
+                let e = x.src.find( s => internTag.match(s));
+                return (e!=null);
+            },
+            "strings",
+            [sastTag]);
 
-                // trigger next steps
-                this._analysis$.next({
-                    type: ProjectEventType.DATA_ANALYSIS_DONE,
-                    data: null
-                })
-            });
-
-
-           /*(await this.dataAnalyzer.indexFilesIn(pkgScope)).subscribe(async (vFiles:ModelFile[])=>{
-                Logger.info(`[package files analyzed=${vFiles.length}]`);
-
-                // update internal DB with file from package only (at this step)
-                this.analyze.updateFileIndex(
-                    await this.dataAnalyzer.getIndex('PKG'), true
-                );
-
-                // parsing and indexing
-                // this.dataAnalyzer.analyze(vFiles);
-
-
-                // trigger next steps
-                this._analysis$.next({
-                    type: ProjectEventType.DATA_ANALYSIS_DONE,
-                    data: null
-                })
-            });*/
-        }else{
-            this.dataAnalyzer.loadIndex(pkgScope );
-            // update internal DB with file from package only (at this step)
-            this.analyze.updateFileIndex(
-                await this.dataAnalyzer.getIndex('PKG'), true
-            );
-
-            // trigger next steps
-            this._analysis$.next({
-                type: ProjectEventType.DATA_ANALYZER_LOADED,
-                data: null
-            })
+        // save model
+        //await this.pdb.saveAnalyzerDB(this.analyze.getData());
+        // update DB only on first open
+        if(this._createMode){
+           await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag); //this.tagManager.getTag("discover.internal"));
         }
+
+        // load hooks
+        await this.hook.load();
+
+        this.getWorkflow().setStep('App resources', 60);
+        this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
+
+
+
+        // perform data analaysis or load results
+
+        // load files from project DB
+        await this.dataAnalyzer.loadIndex(pkgScope );
+        // update internal DB with file from package only (at this step)
+        this.analyze.updateFileIndex(
+            await this.dataAnalyzer.getIndex('PKG'), true
+        );
+
+        // trigger next steps
+        this._analysis$.next({
+            type: ProjectEventType.DATA_ANALYZER_LOADED,
+            data: null
+        })
+
 
         // loadSyscall / Instr hook
 
@@ -2681,9 +2624,6 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             // save strings
             //await this.pdb.updateStringValue(this.);
         }
-
-        //this.analyze.execDelayedTagging(TAG.Discover.Statically);
-
 
         // scan bytecode gathered during previous instrumentation session
         // if there is not path specified

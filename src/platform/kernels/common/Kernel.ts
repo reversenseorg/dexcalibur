@@ -60,4 +60,12 @@ export class KernelInfo {
     addInputSubsystem(pSub:InputSubsystem):void{
         this.inputSubsystem = pSub;
     }
+
+    /**
+     * To get a syscal by its number
+     * @param {number} pNum
+     */
+    getSyscall(pNum: number):Nullable<ModelSyscall> {
+        return this._syscalls.find(s => (s.sysnum===pNum));
+    }
 }

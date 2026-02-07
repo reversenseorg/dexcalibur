@@ -29,7 +29,12 @@ import ModelCpuInstruction from "./ModelCpuInstruction.js";
 import {Architecture} from "./Architecture.js";
 import {RegisterType} from "./elixir/common.js";
 import {R2CmdResult} from "./external/R2Pipe.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {AbiException} from "./errors/AbiException.js";
+import * as _path_ from "path";
+import {IExternalNativeBackend} from "./binary/IExternalNativeBackend.js";
+import {INativeHelper} from "./analyzer/INativeHelper.js";
+import ModelCall from "./ModelCall.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -332,8 +337,9 @@ export default class NativeAnalyzer {
                 // File is receivable if ABI is determined by file path if the scope is APK
                 //if(this.profile.name == PROFILES.ANDROID_LIB.name){
                     if(pScope.getInternalName()== "PKG"){
-                        Logger.debug("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
-                        const o:number = (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
+                        Logger.debug("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.isAbiCompliant( pFile, this.abi)+"");
+                        const o:number = this.isAbiCompliant(pFile, this.abi); // (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
+
 
                         if(o>-1){
                             if(targetable[fn] == null){
@@ -412,138 +418,8 @@ export default class NativeAnalyzer {
 
         }
 
-
-        //console.log("TRUE TARGETABLE (filtered by ABI) > ",this.targetable);
-
         return true;
     }
-
-    /**
-     * To scan all acceptable files into given scope
-     *
-     * @param pScope
-     * @param pOptions
-     */
-    /*
-    async scanFileByScope(pScope:DataScope, pProfile:NativeAnalyzerProfile=null, pOptions:any = {}):Promise<void> {
-
-        const da = this.context.getDataAnalyzer();
-
-        Logger.info("[NATIVE ANALYSIS] Scanning scope : ",pScope.getIndexName()," ",pScope.getBasePath());
-
-        if(!this.targets.hasOwnProperty(pScope.getName()))
-            this.targets[pScope.getName()] = [];
-
-        if(!this.targetable.hasOwnProperty(pScope.getName()))
-            this.targetable[pScope.getName()] = [];
-
-        let idx:IDbCollection = await da.getIndex(pScope);
-
-        const profile = pProfile!=null ? pProfile : this.profile;
-
-        const targetable:any = {};
-
-        // gather targetable file
-        idx.map( (pOffset:number, pFile:ModelFile) => {
-
-            Logger.debug(`[NATIVE ANALYSIS] Scanning file from (scope:${pScope.getName()}) : ${pFile.getRelativePath()}`);
-
-            if(this.fmt.indexOf(pFile.type)>-1){
-
-                const fn:string = pFile.getName();
-
-                // ABI detected into file
-                // File is receivable if ABI is determined by file path if the scope is APK
-                //
-                if(this.profile.name == PROFILES.ANDROID_LIB.name){
-                    if(pScope.getInternalName()== "PKG"){
-                        Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
-                        const o:number = (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
-
-                        if(o>-1){
-                            if(targetable[fn] == null){
-                                targetable[fn] = [];
-                            }
-                            targetable[fn].push({ pref:o, file:pFile})
-                        }
-                    }else{
-                        // by default, if ABI compliance check cannot be
-                        // based on file path (as into apk), file is considered compliant
-                        // todo : add ABI detection or let user force analysis
-                        // targetable.push(pFile);
-
-                        // this.targets[pScope.getName()].push(pFile);
-                        if(targetable[fn] == null){
-                            targetable[fn] = [];
-                        }
-
-                        targetable[fn].push({ pref:targetable[fn].length, file:pFile});
-
-                    }
-                }
-            }
-        });
-
-
-        // analyze gathered files
-        for(const fname in targetable){
-            // keep the file with the prefered ABI
-            const prefered = targetable[fname].sort( (a,b)=> (a.pref < b.pref)).pop();
-            if(prefered != null){
-
-                const file:ModelFile = prefered.file;
-
-                this.targetable[pScope.getName()].push(file)
-
-                if(pOptions==null || !pOptions.skipAuto){
-                    // default analysis
-                    this.analyzeFile(file, profile);
-                    // updated the list of analyzed file per scope
-                    this.targets[pScope.getName()].push(file)
-
-                }else if(this._isInWaitQueue(file)){
-                    // remove the file from the queue
-                    this._removeFromWaitQueue(file);
-                    // analyze file
-                    this.analyzeFile(file, profile);
-                    // updated the list of analyzed file per scope
-                    this.targets[pScope.getName()].push(file)
-
-                }else{
-                    Logger.info("[NATIVE ANALYZER] Native analysis of "+file.getRelativePath()+" has been skipped by configuration (#2)");
-                }
-
-            }else{
-                Logger.error(`[NATIVE ANALYZER] Compliant ABI are detected , but none are preferred [file=${fname}, ABIs=${JSON.stringify(this.abi)}, pref=${prefered.pref}`);
-            }
-
-        }
-
-    }*/
-
-    /*
-     *
-     * @param pProfile
-     */
-    /*
-    scanAllFiles(pProfile:NativeAnalyzerProfile = null):void{
-
-        if(!this.targets.hasOwnProperty('all'))
-            this.targets.all = [];
-
-
-        const profile = pProfile!=null ? pProfile : this.profile;
-
-        this._wf.computeStepUp(this.db.files.size());
-        this.db.files.map( (pOffset:number, pFile:ModelFile) => {
-
-            if(this.fmt.indexOf(pFile.type)>-1){
-                this.targets.all.push(pFile);
-
-                this.analyzeFile(pFile, profile);
-            }
-        });
-    }*/
 
     /**
      * To perform analysis of native file accordingly to a specified
@@ -735,7 +611,7 @@ export default class NativeAnalyzer {
                 pFunc.setDeclaringFile(node);
             }*/
 
-            let helper = this.r2factory.getHelperFor(node.get(0));
+            let helper:any = this.r2factory.getHelperFor(node.get(0));
 
             if(helper==null){
                 helper = await this.getHelper(node.get(0));
@@ -835,7 +711,7 @@ export default class NativeAnalyzer {
 
      * @param pFile
      */
-    async getHelper(pFile:ModelFile, pBackend:NativeBackend = NativeBackend.R2):Promise<any> {
+    async getHelper(pFile:ModelFile, pBackend:NativeBackend = NativeBackend.R2):Promise<INativeHelper> {
         switch (pBackend){
             case NativeBackend.BINARY_NINJA:
             case NativeBackend.GHIDRA:
@@ -902,6 +778,37 @@ export default class NativeAnalyzer {
 
                 // save file
                 await this._pdb.save(pFile, ModelFile.TYPE.getType(), ['__p','sections','segments']);
+
+                // discover strings
+                const strings = await helper.listStrings();
+                if(strings.length>0){
+                    try{
+                        await this._pdb.updateStrings(strings);
+                    }catch (es){
+                        Logger.error("[NATIVE ANALYZER] Strings cannot be saved successfully for : "+pFile.getRelativePath());
+                        console.error(es.stack);
+                    }
+                }else{
+                    Logger.warn("[NATIVE ANALYZER] No strings found in : "+pFile.getRelativePath());
+                }
+
+                // discover syscalls
+                const sc = await helper.listSyscalls();
+                if(sc.length>0){
+                    try{
+                        await this._pdb.saveMany(sc, ModelCall.TYPE.getType());
+                    }catch (es){
+                        Logger.error("[NATIVE ANALYZER] Syscalls cannot be saved successfully for : "+pFile.getRelativePath());
+                        console.error(es.stack);
+                    }
+                }else{
+                    Logger.warn("[NATIVE ANALYZER] No syscalls found in : "+pFile.getRelativePath());
+                }
+
+
+                // discover cross refs
+
+                // discover JNI
             }
 
             if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
@@ -947,8 +854,8 @@ export default class NativeAnalyzer {
                 // discovery action is performed on packages, on some platforms, as Android,
                 // files targeting differents ABI can be present. Then, they must be filtered
                 if(pScope.getInternalName()== "PKG"){
-                    Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
-                    const o:number = (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
+                    Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.isAbiCompliant( pFile, this.abi)+"");
+                    const o:number = this.isAbiCompliant( pFile, this.abi);
 
                     if(o>-1){
                         pFile.addTag(this.fmt_tags[pFile.type]);
@@ -1118,5 +1025,71 @@ export default class NativeAnalyzer {
             }
         });
         return ctx;
+    }
+
+    /**
+     * To verify if a file is compatible with a list of ABI
+     *
+     * It returns the offset of the ABI in the specified list
+     *
+     *
+     * @param {ModelFile} pFile The file to verify
+     * @param {ABI[]} pAbiList A list of supported ABI
+     * @return {number} Offset of the ABI detected into the specified ABI list (lower offset, is the privilegied version), -1 if not found
+     * @method
+     */
+    isAbiCompliant(pFile:ModelFile, pAbiList:ABI[]):number {
+
+        const execTag = this.context.getTagManager().getTag("data.type.executable");
+
+        if(!execTag.match(pFile)){
+            throw AbiException.UNDETECTABLE_ABI('File is not tagged as executable');
+        }
+
+        if(pAbiList.length == 0){
+            return -1;
+        }
+
+        // Future split using DataScope's path separator instead of serparator from host
+        const rpath = pFile.getRelativePath();
+        let alt:string[];
+        let offset = -1;
+
+        if(rpath == null){
+            throw AbiException.UNDETECTABLE_ABI('File path is empty');
+        }
+
+        const s = rpath.split(_path_.sep);
+
+        if(s[1]==='lib' && s[2]!=null){
+            const top = pAbiList.length-1;
+
+            for(let i=0; i<=top; i++){
+                if(pAbiList[i]==null) continue;
+
+                switch (this.context.os) {
+                    case OperatingSystem.ANDROID:
+                        alt = AndroidNativeAnalyzerProfile.abiFolders[pAbiList[i].name];
+                        break;
+                    default:
+                        alt = [pAbiList[i].name];
+                        break;
+                }
+
+
+                if(alt==null) continue;
+
+                for(let j=0; j<alt.length; j++){
+                    if(alt[j] === s[2]){
+                        offset = top-i;
+                        break;
+                    }
+                }
+            }
+        }else{
+            // todo : check by extracting ABI version from ELF header
+            offset = 0;
+        }
+        return offset;
     }
 }

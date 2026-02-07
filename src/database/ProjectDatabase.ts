@@ -801,6 +801,8 @@ export class ProjectDatabase implements IFileDatabase {
                     Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.length}][tag=${pTag.getUID()}]`);
                     if(result.length>0){
                         t1 = Util.now();
+                        await this.updateStrings(result as ModelStringValue[]);
+                        /*
                         await this.updateStringValue(result as ModelStringValue[]);
 
                         for(let k=0, len=result.length;k<Math.floor(len/100)+1;k++){
@@ -816,19 +818,12 @@ export class ProjectDatabase implements IFileDatabase {
                                     Logger.warn("[PROJECT DB] Retry atomic update of "+types[i].getName()+" (size="+(batch!=null ? batch.length:-1)+")");
                                     console.log(e1.errorResponse);
                                     console.log(e1.errorResponse.writeErrors);
-                                    /*await coll.asyncUpdateEntry(e1.errorResponse.op, {});
-
-
-                                    await coll.updateMany(batch, {
-                                        upsert:true,
-                                        atomic:true
-                                    });*/
                                 }else{
                                     throw e1;
                                 }
                             }
 
-                        }
+                        }*/
                         Logger.info(`[PROJECT DB] Finished to save in ${Util.now()-t1} s`);
                     }
                 }catch (e){
@@ -841,6 +836,38 @@ export class ProjectDatabase implements IFileDatabase {
     }
 
 
+    /**
+     * To update strings references in AnalyzerDB and save changes in DB
+     *
+     * @param pNewStrings
+     */
+    async updateStrings(pNewStrings:ModelStringValue[]):Promise<void> {
+        await this.updateStringValue(pNewStrings as ModelStringValue[]);
+
+        let batch:ModelStringValue[];
+        const coll = (this.getCollectionOf(ModelStringValue.TYPE.getType()) as MongodbDbCollection);
+
+        for(let k=0, len=pNewStrings.length;k<Math.floor(len/100)+1;k++){
+            try{
+                batch = pNewStrings.slice(k*100,(k+1)*100);
+                await coll.updateMany(batch, {
+                    upsert:true,
+                    $set:['src','tags','value']
+                });
+            }catch (e1){
+                // retry with atomic update
+                if(e1.errorResponse !=null && e1.errorResponse.code==11000){
+                    Logger.warn("[PROJECT DB][updateStrings] Retry atomic update of strings (size="+(batch!=null ? batch.length:-1)+")");
+                    console.log(e1.errorResponse);
+                    console.log(e1.errorResponse.writeErrors);
+                }else{
+                    throw e1;
+                }
+            }
+        }
+
+        return;
+    }
     /**
      * To drop this database
      *

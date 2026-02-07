@@ -25,6 +25,20 @@ import ModelSyscall from "./ModelSyscall.js";
 import ModelStringValue from "./ModelStringValue.js";
 import {ModelFunction} from "./ModelFunction.js";
 
+
+export interface ModelCallOptions {
+    __uid?:string;
+    instr?:ModelInstruction;
+    caller?:ModelMethod;
+    calleed?:(ModelMethod|ModelClass|ModelField|ModelFunction|ModelStringValue|ModelSyscall);
+    _caller?:Nullable<INodeRef>;
+    _called?:Nullable<INodeRef>;
+    line?:number;
+    type?:any;
+    object?:any;
+    subject?:any;
+    tags?:TagUUID[];
+}
 /**
  * Represents a call to a method, a field or a class
  * @param {Object} cfg Optional, an object wich can be used in order to initialize the instance
@@ -129,7 +143,7 @@ export default class ModelCall implements INode
 
     tags:TagUUID[] = [];
 
-    constructor(pConfig:any=null){
+    constructor(pConfig:Nullable<ModelCallOptions>=null){
         //super(STUB_TYPE.CALL);
 
         if(pConfig !== undefined)
