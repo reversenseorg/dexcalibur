@@ -56,7 +56,7 @@ interface R2String  {
     vaddr:number,
     paddr:number,
     ordinal: number,
-    siwe:number,
+    size:number,
     length:number,
     section:string,
     type:string,
@@ -517,7 +517,7 @@ export default class RadareHelper implements INativeHelper
                     break;
                 case NativeHelperCmd.LIST_SYSCALLS:
                     data = await this._p.runCmd(`/asj ${pOptions.x_only? "@e:search.in=io.maps.x":""}`, {json:true, ignoreErr: false});
-                    if(data != null){
+                    if(data?.data?.result !=null){
                         data.data = await this.parseSyscalls(data.data.results);
 
                         if(pOptions.fn!=null){
@@ -525,9 +525,10 @@ export default class RadareHelper implements INativeHelper
                                 vCall.caller = pOptions.fn;
                             });
                         }else{
-                            data.data.map( vCall => {
+                            // TODO : for each syscall  search parent function
+                            /*data.data.map( vCall => {
                                 vCall.caller = this.target;
-                            });
+                            });*/
                         }
                         // save modelcalls
                         // TODO ; craft ModelCall from syscall results
@@ -540,7 +541,7 @@ export default class RadareHelper implements INativeHelper
                 case NativeHelperCmd.LIST_STRINGS:
                     data = await this._p.runCmd(`izj`, {json:true, ignoreErr: false});
                     if(data != null){
-                        data.data = await this.parseStrings(data.data.results);
+                        data.data = await this.parseStrings(data.data);
                         res.push(data);
                     }
                     if(data) k++;

@@ -62,6 +62,7 @@ import ModelCall from "../ModelCall.js";
 import {ModelPermission} from "../android/ModelPermission.js";
 import {randomUUID} from "crypto";
 import {RuntimeSession} from "../runtime/RuntimeSession.js";
+import {StringAnalyzer} from "../analyzer/StringAnalyzer.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -776,13 +777,6 @@ export class ProjectDatabase implements IFileDatabase {
                                     Logger.warn("[PROJECT DB] Retry atomic update of "+types[i].getName()+" (size="+(batch!=null ? batch.length:-1)+")");
                                     console.log(e1.errorResponse);
                                     console.log(e1.errorResponse.writeErrors);
-                                    /*await coll.asyncUpdateEntry(e1.errorResponse.op, {});
-
-
-                                    await coll.updateMany(batch, {
-                                        upsert:true,
-                                        atomic:true
-                                    });*/
                                 }else{
                                     throw e1;
                                 }
@@ -802,28 +796,6 @@ export class ProjectDatabase implements IFileDatabase {
                     if(result.length>0){
                         t1 = Util.now();
                         await this.updateStrings(result as ModelStringValue[]);
-                        /*
-                        await this.updateStringValue(result as ModelStringValue[]);
-
-                        for(let k=0, len=result.length;k<Math.floor(len/100)+1;k++){
-                            try{
-                                batch = result.slice(k*100,(k+1)*100);
-                                await coll.updateMany(batch, {
-                                    upsert:true,
-                                    $set:['src','tags','value']
-                                });
-                            }catch (e1){
-                                // retry with atomic update
-                                if(e1.errorResponse !=null && e1.errorResponse.code==11000){
-                                    Logger.warn("[PROJECT DB] Retry atomic update of "+types[i].getName()+" (size="+(batch!=null ? batch.length:-1)+")");
-                                    console.log(e1.errorResponse);
-                                    console.log(e1.errorResponse.writeErrors);
-                                }else{
-                                    throw e1;
-                                }
-                            }
-
-                        }*/
                         Logger.info(`[PROJECT DB] Finished to save in ${Util.now()-t1} s`);
                     }
                 }catch (e){
@@ -923,9 +895,17 @@ export class ProjectDatabase implements IFileDatabase {
         pStrings.map(vStr => {
             const c = this._strCache[vStr.getUID()];
             if(c==null){
+
+                //StringAnalyzer.detectFormat(this._project, vStr);
+
                 this._strCache[vStr.getUID()] = vStr;
                 this._strCacheSz++;
                 ctrIn++;
+
+                this._project.trigger({
+                    type: "model.string.new",
+                    data: vStr
+                });
             }else{
                 c.updateSource(vStr);
                 ctrUp++;
@@ -978,26 +958,6 @@ export class ProjectDatabase implements IFileDatabase {
             Logger.error(`[PROJECT DB][save strings]  Strings "${all[i].value}"(uid=${all[i]._uid}) (${i}) cannot be saved : `+e.message+"\n"+e.stack);
             console.log(all[i]);
         }
-
-        /*
-        try{
-            //await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).updateMany(
-            //    Object.values(this._strCache), { replace:true, upsert:true, $set:['_uid','src','tags','value']}
-            //);
-
-            //await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).addMany( Object.values(this._strCache));
-
-            all = Object.values(this._strCache);
-            for( i=0; i<all.length;i++){
-                await (this.getCollectionOf(NodeInternalType.STRING) as MongodbDbCollection).addMany( [all[i]]);
-            }
-
-        }catch (e){
-            Logger.error(`[PROJECT DB] Strings "${all[i].value}"(uid=${all[i]._uid}) (${i}) cannot be saved : `+e.message+"\n"+e.stack);
-            console.log(all[i]);
-        }*/
-
-
         return ;
     }
 
@@ -1060,9 +1020,6 @@ export class ProjectDatabase implements IFileDatabase {
                     }
                 }
             }
-           /* await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
-                Object.values(update), { replace:false, upsert:false }
-            );*/
         }
 
         if(ctrIn>0){
@@ -1085,10 +1042,6 @@ export class ProjectDatabase implements IFileDatabase {
                     }
                 }
             }
-            /*
-            await (this.getCollectionOf(NodeInternalType.RESOURCE) as MongodbDbCollection).updateMany(
-                Object.values(insert), { replace:true, upsert:true }
-            );*/
         }
 
         return { updated:ctrUp, inserted:ctrIn, untouched: (all.length-ctrUp)  };
@@ -1179,4 +1132,69 @@ export class ProjectDatabase implements IFileDatabase {
 
         return uuid;
     }
+
+    /**
+     * To group nodes by internal types
+     *
+     * @param pNodes
+     * @private
+     */
+    private _groupByType(pNodes:INode[]):Record<number /* NodeInternalType */, INode[]> {
+        const result:Record<number /* NodeInternalType */, INode[]> = {};
+        pNodes.map(n => {
+            if(result[n.__]==null) result[n.__] = [];
+            result[n.__].push(n);
+        });
+        return result;
+    }
+
+    /**
+     * To updated tagged nodes in DB
+     * @param {INode[]} pNodes List of nodes to update
+     * @param {Nullable<NodeInternalType>} pType Optional. Type of node to save
+     */
+    async updateTags(pNodes:INode[], pType:Nullable<NodeInternalType> = null, pExtraFieldsUpdate:string[] = []):Promise<boolean> {
+
+        if(pNodes==null || pNodes.length==0) return true;
+
+        let grps:Record<number, INode[]> = {};
+        let batch:INode[];
+        let coll:MongodbDbCollection;
+
+        if(pType!=null){
+            grps[pType] = pNodes;
+        }else{
+            grps = this._groupByType(pNodes);
+        }
+
+        const fields = ['tags'].concat(pExtraFieldsUpdate);
+
+        // walk over types
+        for(let type in grps){
+            coll = (this.getCollectionOf((typeof type==='string') ? parseInt(type) : type) as MongodbDbCollection);
+
+            // update batches of 100
+            for(let k=0, len=grps[type].length;k<Math.floor(len/100)+1;k++){
+                try{
+                    batch = grps[type].slice(k*100,(k+1)*100);
+                    await coll.updateMany(batch, {
+                        upsert:true,
+                        $set: fields
+                    });
+                }catch (e1){
+                    // retry with atomic update
+                    if(e1.errorResponse !=null && e1.errorResponse.code==11000){
+                        Logger.error(`[PROJECT DB][updateTags] Should retry atomic update of node (type=${type} (${typeof type}), size=`+(batch!=null ? batch.length:-1)+")");
+                        console.log(e1.errorResponse);
+                        console.log(e1.errorResponse.writeErrors);
+                    }else{
+                        throw e1;
+                    }
+                }
+            }
+        }
+
+
+    }
+
 }

@@ -3,8 +3,15 @@ import {AnalyzerState} from "../AnalyzerState.js";
 import {AppIcon} from "../AppIcon.js";
 import DataScope from "../DataScope.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
+import ModelFile from "../ModelFile.js";
+import ModelCall from "../ModelCall.js";
+import ModelStringValue from "../ModelStringValue.js";
+import { NativeBackend } from "../NativeAnalyzer.js";
 
-
+export interface NativeDiscoverOpts {
+    backend: NativeBackend,
+    extra: any,
+}
 
 export interface IAppAnalyzer {
     prepareFullScan(pNewProject:boolean, pDataScope:Nullable<DataScope>):Promise<boolean>;
@@ -48,4 +55,6 @@ export interface IAppAnalyzer {
      * @method
      */
     getPathContext(vPath:string, vFile:string, vIsDir:boolean, vCtx:any):any;
+
+    performNativeDiscover(pFile:ModelFile, pExtra:{ sysc:ModelCall[], strings:ModelStringValue[]}, pOptions:NativeDiscoverOpts):Promise<any>;
 }

@@ -246,6 +246,10 @@ export default class ModelStringValue extends Savable implements INode
 
     updateSource(pStr:ModelStringValue):void {
 
+        if(pStr.getUID()!=this.getUID()){
+            throw new Error("Cannot update source of a string value with different UID");
+        }
+
         pStr.src.map( x => {
             let u:any;
 
@@ -266,7 +270,10 @@ export default class ModelStringValue extends Savable implements INode
         });
 
         pStr.tags.map(t => {
-            if(this.tags.indexOf(t)==-1) this.tags.push(t);
+            if(this.tags.indexOf(t)==-1){
+                console.log("Adding tag "+t+" to "+this.value);
+                this.tags.push(t);
+            }
         })
     }
 
@@ -288,7 +295,9 @@ export default class ModelStringValue extends Savable implements INode
         });
 
         pMethod.tags.map(t =>{
-            if(this.tags.indexOf(t)==-1) this.tags.push(t);
+            if(this.tags.indexOf(t)==-1){
+                this.tags.push(t);
+            }
         });
     }
 }

@@ -1,3 +1,4 @@
+import * as _path_ from "path";
 import {
     DbDataType,
     DbKeyType,
@@ -7,7 +8,7 @@ import {
     SerializeOptions,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {Auditable} from "../Auditable.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
@@ -28,6 +29,7 @@ export interface UploadedResourceOpts {
     tags?:TagUUID[];
     extra?:any;
     terminated?:boolean;
+    name?:Nullable<string>;
 }
 
 /**
@@ -49,6 +51,7 @@ export class UploadedResource extends Auditable implements INode {
             (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("path")).type(DbDataType.STRING),
+            (new NodeProperty("name")).type(DbDataType.STRING).def(null),
             (new NodeProperty("sum")).type(DbDataType.STRING).def(""),
             (new NodeProperty("extra")).type(DbDataType.BLOB).def({}),
             (new NodeProperty("algo")).type(DbDataType.STRING).def(CryptoUtils.ALG_SHA256),
@@ -82,6 +85,8 @@ export class UploadedResource extends Auditable implements INode {
 
     path:string;
 
+    name:Nullable<string> = null;
+
     terminated = false;
 
     date:number = -1
@@ -100,6 +105,7 @@ export class UploadedResource extends Auditable implements INode {
         if(pOptions._id!=null) this._id = pOptions._id;
         if(pOptions.uuid!=null) this.uuid = pOptions.uuid;
         if(pOptions.path!=null) this.path = pOptions.path;
+        if(pOptions.name!=null) this.name = pOptions.name;
         if(pOptions.date!=null) this.date = pOptions.date;
         if(pOptions.sum!=null) this.sum = pOptions.sum;
         if(pOptions.algo!=null) this.algo = pOptions.algo;
@@ -127,6 +133,7 @@ export class UploadedResource extends Auditable implements INode {
         return {
             _id: this._id,
             path: (pZone===SecurityZone.PRIVATE? this.path : null),
+            name: (pZone===SecurityZone.PUBLIC && _path_.isAbsolute(this.name) ? null : this.name),
             uuid: this.uuid,
             date: this.date,
             sum: this.sum,

@@ -95,86 +95,97 @@ export class MongoDbMerlinBackend {
                     // check if target property is property of current node
                     // or another node.
 
-                    currType = type;
-                    joins = [];
-                    finalField = null;
+                    //currType = type;
+                    //joins = [];
+                    //finalField = null;
 
-                    cs = searchArgs.pattern[0];
 
-                    if(cs.field!=null && cs.field!=""){
-                        parts = cs.getFieldParts();
+                    for(let k=0; k<searchArgs.pattern.length; k++){
 
-                        // search and execute required requests (join)
-                        for(let i=0;i<parts.length;i++){
-                            try{
-                                currPpt = currType.getProperty(parts[i]);
-                                if(currPpt!=null && currPpt.isNode()){
-                                    // require inner-join-like request
-                                    joins.push({
-                                        type: currPpt.getNodeType(),
-                                        on: {
-                                            type: currType,
-                                            field: parts[i],
-                                            ppt: currPpt
-                                        }
-                                    });
-                                    currType = currPpt.getNodeType();
-                                }else{
-                                    if(finalField==null)
-                                        finalField = parts[i];
-                                    else
-                                        finalField += '.'+parts[i];
+
+                        currType = type;
+                        joins = [];
+                        finalField = null;
+                        cs = searchArgs.pattern[k];
+
+
+                        if(cs.field!=null && cs.field!=""){
+                            parts = cs.getFieldParts();
+
+                            // search and execute required requests (join)
+                            for(let i=0;i<parts.length;i++){
+                                try{
+                                    currPpt = currType.getProperty(parts[i]);
+                                    if(currPpt!=null && currPpt.isNode()){
+                                        // require inner-join-like request
+                                        joins.push({
+                                            type: currPpt.getNodeType(),
+                                            on: {
+                                                type: currType,
+                                                field: parts[i],
+                                                ppt: currPpt
+                                            }
+                                        });
+                                        currType = currPpt.getNodeType();
+                                    }else{
+                                        if(finalField==null)
+                                            finalField = parts[i];
+                                        else
+                                            finalField += '.'+parts[i];
+                                    }
+                                }catch(e){
+                                    console.error(e);
                                 }
-                            }catch(e){
-                                console.error(e);
+                            }
+
+                            // condition must be applied on mostly nested field,
+                            // results at initial depth is retrieved by successive innerjoin from previous result
+                        }
+
+
+
+                        // prepare filters
+                        if(cs.hasTag()==true){
+                            if(cs.isNested()){
+                                field = /*cs.field*/finalField+".tags"; // _tags
+                            }else{
+                                field = "tags";
+                            }
+
+                            filters["$and"].push({ [field]: {
+                                    $in: await this._tm.searchTags(cs.tagKey)
+                                }
+                            });
+
+                            if(cs.isTagOnly()){
+                                i++;
                             }
                         }
-                        
-                        // condition must be applied on mostly nested field, 
-                        // results at initial depth is retrieved by successive innerjoin from previous result
-                    }
+                        else{
+                            field = finalField; //cs.field;
 
 
+                            if (cs.isRegExp()) {
+                                //filters[cs.field].push({ [cs.field]: cs.pattern })
 
-                    // prepare filters
-                    if(cs.hasTag()==true){
-                        if(cs.isNested()){
-                            field = /*cs.field*/finalField+".tags"; // _tags
-                        }else{
-                            field = "tags";
-                        }
 
-                        filters["$and"].push({ [field]: {
-                                $in: await this._tm.searchTags(cs.tagKey)
+                                filters['$and'].push({ [field]: { $regex: cs.getRegExpPattern(), $options: (cs.opts?.nocase ? 'i' : '') }});
+                                /*filter[cs.field] = {
+                                    [cs.field]: cs.pattern
+                                };
+                                /*match = match
+                                    && (Util.readValue(vData, cs.field)
+                                        === cs.pattern);*/
+                            } else {
+                                filters['$and'].push({ [field]: cs.pattern })
+                                //match = match && cs.test(vData);
+                                //filters[cs.field].push({ $regex: cs.getRegExpPattern() });
+
                             }
-                        });
-
-                        if(cs.isTagOnly()){
-                            i++;
                         }
                     }
-                    else{
-                        field = finalField; //cs.field;
 
 
-                        if (cs.isRegExp()) {
-                            //filters[cs.field].push({ [cs.field]: cs.pattern })
-
-
-                            filters['$and'].push({ [field]: { $regex: cs.getRegExpPattern(), $options: (cs.opts?.nocase ? 'i' : '') }});
-                            /*filter[cs.field] = {
-                                [cs.field]: cs.pattern
-                            };
-                            /*match = match
-                                && (Util.readValue(vData, cs.field)
-                                    === cs.pattern);*/
-                        } else {
-                            filters['$and'].push({ [field]: cs.pattern })
-                            //match = match && cs.test(vData);
-                            //filters[cs.field].push({ $regex: cs.getRegExpPattern() });
-
-                        }
-                    }
 
 
 

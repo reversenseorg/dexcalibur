@@ -46,6 +46,11 @@ export enum NativeBackend {
     BINARY_NINJA='bin_binja'
 }
 
+interface DiscoverOpts {
+    extraOpts?: any,
+    backend: NativeBackend
+}
+
 export const PROFILES = {
     ANDROID_LIB: new AndroidNativeAnalyzerProfile({ }),
     IOS_LIB: new IosNativeAnalyzerProfile({})
@@ -738,11 +743,11 @@ export default class NativeAnalyzer {
      *
      * @method
      */
-    async discover(pFile:ModelFile, pBackend = "radare2"):Promise<any> {
+    async discover(pFile:ModelFile, pOpts:DiscoverOpts = { extraOpts:null, backend:NativeBackend.R2 }):Promise<any> {
         let helper:any;
         try{
 
-            helper = await this.getHelper(pFile);
+            helper = await this.getHelper(pFile, pOpts.backend);
 
             const res = await helper.start([]);
 
@@ -765,8 +770,6 @@ export default class NativeAnalyzer {
 
                 pFile.appendFunctions(funcs);
                 pFile.setProgramSection(sections);
-                //pFile.addTag(this.context.getTagManager().getTag("analyzed.native_func"))
-                //pFile.addTag(this.context.getTagManager().getTag("analyzed.sections"))
 
                 // discover sections
                 const segs = await helper.listSegments();
@@ -789,7 +792,7 @@ export default class NativeAnalyzer {
                         console.error(es.stack);
                     }
                 }else{
-                    Logger.warn("[NATIVE ANALYZER] No strings found in : "+pFile.getRelativePath());
+                    Logger.error("[NATIVE ANALYZER] No strings found in : "+pFile.getRelativePath());
                 }
 
                 // discover syscalls
@@ -802,13 +805,20 @@ export default class NativeAnalyzer {
                         console.error(es.stack);
                     }
                 }else{
-                    Logger.warn("[NATIVE ANALYZER] No syscalls found in : "+pFile.getRelativePath());
+                    Logger.error("[NATIVE ANALYZER] No syscalls found in : "+pFile.getRelativePath());
                 }
 
 
                 // discover cross refs
 
-                // discover JNI
+                // discover OS-specific things (JNI, JNA, ...)
+                this.context.getAppAnalyzer().performNativeDiscover(pFile, {
+                    strings: strings,
+                    sysc: sc
+                },{
+                    backend: pOpts.backend,
+                    extra: pOpts.extraOpts
+                });
             }
 
             if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){

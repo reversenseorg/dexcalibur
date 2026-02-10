@@ -165,12 +165,13 @@ export default class Uploader {
      *
      * @param pUser
      * @param pPath
-     * @param pFileName
+     * @param {string} pFileName The filkename ll be stored within metadata
      */
     async uploadFile( pUser:UserAccount, pPath:string, pFileName:string = null, pExclude:string[] = []):Promise<UploadedResource> {
 
         const upl = new UploadedResource({
-            uuid: await this._ctx.getEngineDB().generateFreeUuid(NodeInternalType.UPLOAD)
+            uuid: await this._ctx.getEngineDB().generateFreeUuid(NodeInternalType.UPLOAD),
+            name: pFileName
         });
 
         upl.path = pPath;
@@ -194,7 +195,10 @@ export default class Uploader {
             {
                 uuid: upl.getUID(),
                 size: stat.size,
-                name: pFileName
+                name: pFileName,
+                algo: upl.algo,
+                sum: upl.sum,
+                owner: pUser.getUID()
             }
         );
 

@@ -14,7 +14,7 @@ import AndroidService from "./AndroidService.js";
 import Analyzer from "../Analyzer.js";
 import * as Log from '../Logger.js';
 import {AnalyzerState} from "../AnalyzerState.js";
-import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";
+import {IAppAnalyzer, NativeDiscoverOpts} from "../analyzer/IAppAnalyzer.js";
 import * as _path_ from "path";
 import ModelMethod from "../ModelMethod.js";
 import ModelClass from "../ModelClass.js";
@@ -31,12 +31,15 @@ import ModelResource from "../ModelResource.js";
 import {AnalyzerException} from "../errors/AnalyzerException.js";
 import {AppIcon} from "../AppIcon.js";
 import ModelFile from "../ModelFile.js";
-import {DataLocationFileSource} from "../DataLocation.js";
 import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
 import DataScope from "../DataScope.js";
 import {INodeRef} from "../INode.js";
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import ModelCall from "../ModelCall.js";
+import {ModelFunction} from "../ModelFunction.js";
+import {NativeBackend} from "../NativeAnalyzer.js";
+import { FinderResult } from "../search/FinderResult.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -55,6 +58,10 @@ export interface ResourcesMap {
 }*/
 
 export type ResourcesMap = Record<string, AndroidResource>;
+
+export interface AndroidDiscoverOpts extends NativeDiscoverOpts{
+    jniScan: boolean
+}
 
 export interface AndroidResParsedEvent {
 	restype:string;
@@ -1410,5 +1417,101 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	getPathContext(vPath:string, vFile:string, vIsDir:boolean, vCtx:any):any {
 		return {}
 	}
+
+    private async _updateJniCall(pFile:ModelFile, pOptions:AndroidDiscoverOpts):Promise<void>{
+
+        const jni = this.context.getTagManager().getTag("java.jni");
+        let fns:ModelFunction[];
+
+        // search declared JNI
+        fns = pFile.getFunctions().filter(fn => {
+            if(fn.getSymbol()!=null && fn.getSymbol().startsWith("Java_")){
+                fn.addTag(jni);
+                return true;
+            }
+        } );
+
+        // save changes
+        await this.context.getProjectDB().updateTags(fns, ModelFunction.TYPE.getType());
+
+        // search Java native methods
+        let updated:INode[] = [];
+
+        let sym:Nullable<string> = null;
+        let syp:string[];
+        let calls:FinderResult = null;
+        const t=ModelFunction.TYPE.getType();
+        for(let i=0; i<fns.length; i++){
+            sym = fns[i].getSymbol();
+            if(sym==null) continue;
+
+            if(pOptions.backend==NativeBackend.R2){
+                syp = sym.split("_").slice(1);
+
+                calls = await (this.context.getMerlinEngine().call({
+                    called: {
+                        __: t,
+                        _uid: "/^"+syp.join("\\.")+"\\("
+                    }
+                })).executePDB(this.context);
+
+                if(calls!=null && calls.count()>0){
+
+                    calls[0].addTag(jni);
+                    // replace called by native function
+                    calls[0].setCalled(fns[i]);
+                    updated.push(calls[0]);
+                }
+            }
+        }
+
+        if(updated.length>0){
+            await this.context.getProjectDB().updateTags(updated, ModelCall.TYPE.getType(), ['_called','called']);
+        }
+    }
+
+
+
+    private async _updateJniString(pFile:ModelFile, pStrs:ModelStringValue[], pOptions:AndroidDiscoverOpts):Promise<void>{
+
+        const jni = this.context.getTagManager().getTag("java.jni");
+
+        // decompile and index xref to strings
+        //const mmread = this.context.getTagManager().getTag("code.native.read");
+
+        let u:ModelStringValue[];
+
+        u = pStrs.filter(s => {
+            const v = s.getValue();
+            if(v==null) return false;
+
+            // regex : \\\(.*\\\)
+
+            if(v.match(/^\(.*\)([FDCVBJISZ]|L[^;]+;)$/)!=null){
+                s.addTag(jni);
+                return true;
+            }
+        } );
+
+        // save changes
+        if(u.length>0){
+            await this.context.getProjectDB().updateTags(u, ModelFunction.TYPE.getType());
+        }
+    }
+
+
+
+    async performNativeDiscover(pFile:ModelFile, pExtra:{ sysc:ModelCall[], strings:ModelStringValue[]},
+                                pOptions:AndroidDiscoverOpts):Promise<any> {
+
+
+        if(pOptions.jniScan){
+            await this._updateJniCall(pFile, pOptions);
+            await this._updateJniString(pFile, pExtra.strings, pOptions);
+            // TODO : use strings to detect dynamic JNI registering
+        }
+
+        return;
+    }
 }
 

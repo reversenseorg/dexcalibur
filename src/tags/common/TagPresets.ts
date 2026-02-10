@@ -1,4 +1,5 @@
 import {Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {StringAnalyzer} from "../../analyzer/StringAnalyzer.js";
 
 export function newTagPresets(){
     const GLOBAL = new TagCategory({ name: "global" });
@@ -18,10 +19,8 @@ export function newTagPresets(){
     const CODE_LOAD = new TagCategory({ name: "data.len" });
     const RUNTIME_MSG = new TagCategory({ name: "runtime.msg" });
     const DISCOVER = new TagCategory({ name: "discover" });
-//const AUDIT_THREAT = new TagCategory({ name: "audit.threat" });
     const AUDIT_TYPE = new TagCategory({ name: "audit.type" });
     const AUDIT_POLICY = new TagCategory({ name: "audit.policy" });
-//const AUDIT_THREAT = new TagCategory({ name: "audit.threat" });
     const NETWORK_DATA = new TagCategory({ name: "network.data" });
     const NETWORK_PROTOCOL = new TagCategory({ name: "network.protocol" });
     const NETWORK_HOST = new TagCategory({ name: "network.host" });
@@ -36,8 +35,13 @@ export function newTagPresets(){
     const SWIFT = new TagCategory({ name: "swift" });
     const IA = new TagCategory({ name: "ia" });
     const ANALYZED = new TagCategory({ name: "analyzed" });
+    const JAVA = new TagCategory({ name: "java" });
+    const NETWORK_URI = new TagCategory({ name: "network.uri" });
+    const ENCODED = new TagCategory({ name: "encoded", descr:"To tag strings containing encoded data such as base64, hex, JWT, IPv4, etc." });
 
 
+    // Removed since  1.13.0
+    /*
     const ANALYZED_TAGS = [
         new Tag({ name:"native_func", label:"Native Functions" }),
         new Tag({ name:"bin_sections", label:"Sections" }),
@@ -45,7 +49,7 @@ export function newTagPresets(){
         new Tag({ name:"crypto_key", label:"Crypto Key" }),
         new Tag({ name:"crypto_alg", label:"Crypto Algorithm" }),
     ];
-
+    */
     const OBJC_TAGS = [
         new Tag({ name:"bundle", label:"NSBundle" }),
         new Tag({ name:"main", label:"main" }),
@@ -53,8 +57,15 @@ export function newTagPresets(){
         new Tag({ name:"res", label:"Resource" }),
     ];
 
+    const JAVA_TAGS = [
+        new Tag({ name:"jni", label:"JNI", descr:"Java Native Interface" }),
+        new Tag({ name:"jna", label:"JNA", descr:"Java Native Access" }),
+        new Tag({ name:"iproxy", label:"Instance Proxy" }),
+        new Tag({ name:"acf", label:"AppComponentFactory", descr:"Application Component Factory" })
+    ];
+
     const IA_TAGS = [
-        new Tag({ name:"coreml", label:"CoreML" }),
+        new Tag({ name:"coreml", label:"CoreML", descr:"Apple CoreML (AI)" }),
     ];
 
     const SWIFT_TAGS = [
@@ -107,7 +118,8 @@ export function newTagPresets(){
     const CODE_NATIVE_TAGS = [
         new Tag({ name:"export" }),
         new Tag({ name:"import" }),
-        new Tag({ name:"not_stripped" })
+        new Tag({ name:"not_stripped" }),
+        new Tag({ name:"direct_int", label:"Direct Syscall", descr:"The code perform direct system call instead of using library function. Common for security purpose" }),
     ];
 
 
@@ -167,7 +179,7 @@ export function newTagPresets(){
     ];
 
     const CODE_CALL_TAGS = [
-        new Tag({ name:"static" }), // is
+        new Tag({ name:"static" }), // is - deprecated ?
         new Tag({ name:"dynamic" })  // id
     ];
 
@@ -187,6 +199,16 @@ export function newTagPresets(){
         new Tag({ name:"credential" })
     ];
 
+
+    const NETWORK_URI_TAGS = [
+        new Tag({ name:"host", label:"URI Host" }),
+        new Tag({ name:"query", label:"URI Query params" }),
+        new Tag({ name:"schema", label:"URI Schema"}),
+        new Tag({ name:"custom_schema", label:"Custom Schema" }),
+        new Tag({ name:"hash", label:"URI with Hashtag"  }),
+        new Tag({ name:"any", label:"URI" })
+    ];
+
     const NETWORK_DATA_TAGS = [
         new Tag({ name:"header" }),
         new Tag({ name:"body" }),
@@ -204,7 +226,10 @@ export function newTagPresets(){
         new Tag({ name:"gsm" }),
         new Tag({ name:"lte" }),
         new Tag({ name:"can" }),
-        new Tag({ name:"tcp" })
+        new Tag({ name:"tcp" }),
+        new Tag({ name:"usb" }),
+        new Tag({ name:"ftp" }),
+        new Tag({ name:"ssh" })
     ];
 
 
@@ -245,7 +270,9 @@ export function newTagPresets(){
         new Tag({ name:"java" }),
         new Tag({ name:"objc" }),
         new Tag({ name:"native" }),
-        new Tag({ name:"js" })
+        new Tag({ name:"js", label:"JavaScript" }),
+        new Tag({ name:"kt", label:"Kotlin" }),
+        new Tag({ name:"html" })
     ];
 
     const AUDIT_POLICY_TAGS = [
@@ -277,7 +304,7 @@ export function newTagPresets(){
     }*/
 
     AUDIT_POLICY_TAGS.map( x => { AUDIT_POLICY.addTag(x); });
-    ANALYZED_TAGS.map( x => { ANALYZED.addTag(x); });
+    // removed : ANALYZED_TAGS.map( x => { ANALYZED.addTag(x); });
 
 
 
@@ -310,11 +337,11 @@ export function newTagPresets(){
     OBJC_TAGS.map( x => { OBJC.addTag(x); });
     SWIFT_TAGS.map( x => { SWIFT.addTag(x); });
     IA_TAGS.map( x => { IA.addTag(x); });
+    JAVA_TAGS.map( x => { JAVA.addTag(x); })
+    NETWORK_URI_TAGS.map( x => { NETWORK_URI.addTag(x); });
 
-
-
-
-
+    // dynamically built tag category
+    StringAnalyzer.extractTags().map( x => { ENCODED.addTag(x); });
 
     return [
         GLOBAL,
@@ -351,7 +378,10 @@ export function newTagPresets(){
         OBJC,
         SWIFT,
         IA,
-        ANALYZED
+        JAVA,
+
+        NETWORK_URI,
+        ENCODED
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();

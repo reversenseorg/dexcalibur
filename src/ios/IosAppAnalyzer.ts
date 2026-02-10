@@ -1,7 +1,7 @@
 import IosApplication from "./IosApplication.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AnalyzerState} from "../AnalyzerState.js";
-import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";
+import {IAppAnalyzer, NativeDiscoverOpts} from "../analyzer/IAppAnalyzer.js";
 import {AppIcon} from "../AppIcon.js";
 import * as  _fs_ from "fs";
 import * as _path_ from "path";
@@ -19,6 +19,9 @@ import DataScope from "../DataScope.js";
 import Util from "../Utils.js";
 import {PlistDocument} from "./PlistDocument.js";
 import {Endpoint} from "../network/Endpoint.js";
+import ModelFile from "../ModelFile.js";
+import ModelCall from "../ModelCall.js";
+import ModelStringValue from "../ModelStringValue.js";
 
 export interface Bundle {
     name: string;
@@ -27,6 +30,11 @@ export interface Bundle {
     info: Nullable<ModelResource<any>>;
     xcprivacy: Nullable<ModelResource<any>>;
     files: ModelResource<any>[];
+}
+
+
+export interface IosDiscoverOpts extends NativeDiscoverOpts{
+
 }
 
 export default class IosAppAnalyzer implements IAppAnalyzer
@@ -423,5 +431,16 @@ export default class IosAppAnalyzer implements IAppAnalyzer
         }
 
         return vCtx;
+    }
+
+    /**
+     * To perform extra discovery of native files in app packages
+     *
+     * @param {ModelFile} pFile
+     * @param pExtra
+     */
+    async performNativeDiscover(pFile:ModelFile, pExtra:{ sysc:ModelCall[], strings:ModelStringValue[]},
+                          pOptions:IosDiscoverOpts):Promise<any> {
+        return true;
     }
 }

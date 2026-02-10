@@ -884,7 +884,7 @@ export default class Analyzer
                         // src: [pMethod],
                         // instr: instruct,
                         value: instruct.right._value,
-                        tags: defaultTags
+                        tags: [].concat(defaultTags)
                     });
 
                     s.setInstrSource(pMethod, instruct);
@@ -892,10 +892,10 @@ export default class Analyzer
 
                     if(s.getValue() != 'Stub!'){
                         data.strings.insert(s, false);
-                        this.getContext().getBus().send(new BusEvent<ModelStringValue>({
+                        /*this.getContext().getBus().send(new BusEvent<ModelStringValue>({
                             type: "model.string.new",
                             data: s
-                        }));
+                        }));*/
                     }
 
                     success=true;

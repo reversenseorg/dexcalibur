@@ -98,10 +98,9 @@ import {ProgramManager} from "./core/ProgramManager.js";
 import ModelStringValue from "./ModelStringValue.js";
 import {DataFormatManager} from "./formats/DataFormatManager.js";
 import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
-import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection.js";
-import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
 import {AndroidTypes} from "./android/AndroidTypes.js";
 import {RuntimeManager} from "./runtime/RuntimeManager.js";
+import {NativeBackend} from "./NativeAnalyzer.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1524,7 +1523,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 await this.pdb.getFileManager().writeFile('ws', pInput.getPath(), copy.getPath(), {
                     input: copy.getPath(),
                     upload: copy.getUploadUID(),
-                    type: ProjectWorkspace.BASE_PATH.IN
+                    type: ProjectWorkspace.BASE_PATH.IN,
+                    // filename:
                 });
 
                 if (this.inputs.filter(x => x.getPath()===copy.getPath()).length == 0) {
@@ -2781,7 +2781,16 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
 
         try{
-            const bin = await this.analyze.getNativeAnalyzer().discover(pFile);
+            let o:any = {};
+            if(this.os===OperatingSystem.ANDROID){
+                o.jniScan = true;
+            }
+            const bin = await this.analyze.getNativeAnalyzer().discover(
+                pFile, {
+                    backend: NativeBackend.R2, // TODO :  pull from user preferences or project
+                    extraOpts: o
+                });
+
             // { skipAuto: this.analCfg.isAutoNativeAnalysis() }
             //Logger.info("[ANALYZER] Load native hook");
             //await this.hook.loadNativeHook();
