@@ -1,22 +1,21 @@
 import DexcaliburProject from "../DexcaliburProject.js";
-import {ModelUiStruct} from "../graphics/models/ModelUiStruct.js";
-import {ModelUiTransition, UiTransitionHash} from "../graphics/models/ModelUiTransition.js";
 import * as Log from "../Logger.js";
-import {UiCmpMap, UiState, UiStateHash} from "../graphics/models/UiState.js";
 import InputEvent from "../platform/InputEvent.js";
-import HookSession from "../HookSession.js";
 import FuzzSession, {FuzzState} from "./FuzzSession.js";
+import {BusSubscriber} from "../Bus.js";
+import BusEvent from "../BusEvent.js";
+import {FuzzingEvent, FuzzSessionUID, IFuzzingEvent} from "./common.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import { UserAccount } from "../user/UserAccount.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export interface FuzzManagerOpts {
-    ctx?: DexcaliburProject;
     lastUiState?: ModelUiStruct;
     uiStateStructList?: ModelUiStruct[];
     transitionList?: ModelUiTransition[];
     eventsHistory?: InputEvent[];
-    runtimeSessionId?: any;
 }
 
 export enum FUZZ_EVENT_TYPE {
@@ -32,32 +31,35 @@ export enum FUZZ_EVENT_TYPE {
  * @class
  */
 export default class FuzzManager {
+
     ctx: DexcaliburProject = null;
-    runtimeSessionId: any;
-    linkedHookSession: HookSession;
 
 
     fuzzSessions: FuzzSession[] = [];
     results: any = [];
-    fuzzGenerator:FuzzGenerator;
     fuzzInputValue:any;
     initialSteps:UiState[] = [];
     lastInitialStepIndex:number = -1;
     fuzzEventResolver;
 
 
+
     /**
      * @constructor
      */
-    constructor(pOpts: FuzzManagerOpts) {
-        for (const i in pOpts) this[i] = pOpts[i];
+    constructor(pCtx: DexcaliburProject) {
+        this.ctx = pCtx;
+    }
+
+    setOptions(pOpts: FuzzManagerOpts){
+        for(const i in pOpts) this[i] = pOpts[i];
     }
 
     /**
      * @method
      */
     performInitialSteps(){
-        let currentUiState = this.getCurrentUiState();
+        /*let currentUiState = this.getCurrentUiState();
         if (needHardReset || currentUiState ==null || this.initialSteps.includes(currentUiState)) {
             // reset
             // currentUiState = initialSteps[0][0];
@@ -66,7 +68,7 @@ export default class FuzzManager {
             // this.lastInitialStepIndex = 0;
         }
         this.lastInitialStepIndex += 1;
-        this.performAction(this.initialSteps[this.lastInitialStepIndex])
+        this.performAction(this.initialSteps[this.lastInitialStepIndex]);*/
     }
 
     endSession(pClues, pResult:boolean = true){
@@ -76,40 +78,57 @@ export default class FuzzManager {
 
     }
 
-    generateNextFuzzInputValue(){
-        return this.fuzzGenerator.next();
+
+
+    async getSessionByUID(pUserAccount:UserAccount,  pSess:FuzzSessionUID):Promise<Nullable<FuzzSession>> {
+        const res = await this.ctx.getProjectDB().search({
+            _uid: pSess
+        }, FuzzSession.TYPE.getType())
+
+        return res.length>0?res[0]:null;
     }
 
-    resolveEvent(pData){
-        this.fuzzSessions[-1].pushEvent(pData);
-        if (pData.type == FUZZ_EVENT_TYPE.SUCCESS || pData.type == FUZZ_EVENT_TYPE.FAILURE) {
-            this.endSession(pData.eventType == FUZZ_EVENT_TYPE.SUCCESS, pData.result);
-        }
-        else {
-            let dataResolved = this.fuzzEventResolver.resolve(pData);
-            if (dataResolved) {
-
-            }
-        }
+    getLiveSession(pSess:FuzzSessionUID):Nullable<FuzzSession> {
+        return null;
     }
-}
 
-export interface FuzzGenerator{
-    init():void;
-    next():any;
-}
+    registerListener():void {
 
-export class DictFuzzGenerator implements FuzzGenerator{
-    dict:any[];
-    index:number = 0;
-    constructor(pDict:any[]){
-        // read dict in a file or hard coded.
-        this.dict = pDict;
-    }
-    init(){
-        this.index = 0;
-    }
-    next(){
-        return this.dict[this.index++];
+        this.ctx.getBus().subscribe(FuzzingEvent.STOP, BusSubscriber.from((vEvent:BusEvent<IFuzzingEvent>)=>{
+            if(vEvent.getData().fsid==null) return;
+
+            const s = this.getLiveSession(vEvent.getData().fsid);
+            if(s!=null) s.stop();
+        }));
+        this.ctx.getBus().subscribe(FuzzingEvent.START, BusSubscriber.from((vEvent:BusEvent<IFuzzingEvent>)=>{
+            if(vEvent.getData().fsid==null) return;
+
+            const s = this.getLiveSession(vEvent.getData().fsid);
+            if(s!=null) s.start();
+        }));
+        this.ctx.getBus().subscribe(FuzzingEvent.PAUSE, BusSubscriber.from((vEvent:BusEvent<IFuzzingEvent>)=>{
+            if(vEvent.getData().fsid==null) return;
+
+            const s = this.getLiveSession(vEvent.getData().fsid);
+            if(s!=null) s.pause();
+        }));
+        this.ctx.getBus().subscribe(FuzzingEvent.RESUME, BusSubscriber.from((vEvent:BusEvent<IFuzzingEvent>)=>{
+            if(vEvent.getData().fsid==null) return;
+
+            const s = this.getLiveSession(vEvent.getData().fsid);
+            if(s!=null) s.pause();
+        }));
+
+
+        this.ctx.getBus().subscribe([
+                FuzzingEvent.STEP_END,
+                FuzzingEvent.STEP_START,
+                FuzzingEvent.STEP_CRASH,
+            ], BusSubscriber.from((vEvent:BusEvent<IFuzzingEvent>)=>{
+            if(vEvent.getData().fsid==null) return;
+
+            const s = this.getLiveSession(vEvent.getData().fsid);
+            if(s!=null) s.pause();
+        }));
     }
 }

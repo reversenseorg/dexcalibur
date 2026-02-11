@@ -23,7 +23,8 @@ export enum RuntimeEventType {
     HOOK_ERROR='he',
     FRAG_ERROR='fe',
     INPUT_EVT='ev',
-    SCREENSHOT = 'ss'
+    SCREENSHOT = 'ss',
+    FUZZER ='fz'
 }
 
 

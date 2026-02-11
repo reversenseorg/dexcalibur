@@ -4,15 +4,12 @@
  *
  */
 import * as Log from '../Logger.js';
-import {WebsocketSession} from "../WebsocketSession.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
-import FuzzManager from "./FuzzManager.js";
+import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import FuzzManager, {FUZZ_EVENT_TYPE} from "./FuzzManager.js";
 import {UserAccountUUID} from "../user/UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
-import {UiStateHash} from "../graphics/models/UiState.js";
-import {UiCmpHash} from "../graphics/models/ModelUiCmp.js";
-import {createNormalizedUrl} from "typedoc/dist/lib/utils/index.js";
+import {FuzzSessionUID, IFuzzGenerator} from "./common.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -28,7 +25,6 @@ export enum FuzzState {
     DONE
 }
 
-export type FuzzSessionUUID = string;
 
 export type ProgramedAction = {
     //wait action
@@ -65,11 +61,11 @@ export interface RuntimeEventFilter {
  */
 export default class FuzzSession implements INode
 {
-    static TYPE:NodeType = new NodeType( "fuzz_session", NodeInternalType.FUZZ_SESSION,
+    static TYPE:NodeType = new NodeType( "fuzz_session", NodeInternalType.FUZZ_SESS,
         []);
-    __:NodeInternalType = NodeInternalType.FUZZ_SESSION;
+    __:NodeInternalType = NodeInternalType.FUZZ_SESS;
 
-    public _uid:FuzzSessionUUID = null;
+    public _uid:FuzzSessionUID = null;
 
     /**
      * The owner of this session
@@ -102,7 +98,7 @@ export default class FuzzSession implements INode
 
     state:FuzzState = FuzzState.OFF;
 
-    tags = [];
+    tags:TagUUID[] = [];
 
     /**
      * Device UID
@@ -114,13 +110,16 @@ export default class FuzzSession implements INode
 
     extra:any = {};
 
+    paused = false;
+
+    fuzzGenerator: Record<string, IFuzzGenerator> = {};
+
     /**
      *
      * @param {Nullable<FuzzSessionOpts>} pOptions Default NULL
      * @constructor
      */
     constructor(pOptions: Nullable<FuzzSessionOpts> = null) {
-        super();
 
         if(pOptions!=null){
             for (let i in pOptions){
@@ -134,7 +133,7 @@ export default class FuzzSession implements INode
     }
 
 
-    getUID():FuzzSessionUUID {
+    getUID():FuzzSessionUID {
         return this._uid;
     }
 
@@ -148,8 +147,51 @@ export default class FuzzSession implements INode
         return this.devUID;
     }
 
+    start(){}
+    stop(){}
+    pause(){
+        this.paused = true;
+    }
+
+    isPaused():boolean{
+        return this.paused;
+    }
+
+    resume(){
+        this.paused = false;
+    }
+
     pushEvent(pEvt:RuntimeEvent<any>):void {
         this.message.push(pEvt);
+    }
+
+
+    /*
+    resolveEvent(pData){
+        this.fuzzSessions[-1].pushEvent(pData);
+        if (pData.type == FUZZ_EVENT_TYPE.SUCCESS || pData.type == FUZZ_EVENT_TYPE.FAILURE) {
+            this.endSession(pData.eventType == FUZZ_EVENT_TYPE.SUCCESS, pData.result);
+        }
+        else {
+            let dataResolved = this.fuzzEventResolver.resolve(pData);
+            if (dataResolved) {
+
+            }
+        }
+    }*/
+
+    toJsonObject():any {
+        return {
+            _uid:this._uid,
+            owner:this.owner,
+            message:this.message,
+            fuzzManager:this.fuzzManager,
+            time:this.time,
+            fuzzStartTime:this.fuzzStartTime,
+            state:this.state,
+            tags:this.tags,
+            devUID:this.devUID,
+        }
     }
 
 }

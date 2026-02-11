@@ -101,6 +101,7 @@ import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
 import {AndroidTypes} from "./android/AndroidTypes.js";
 import {RuntimeManager} from "./runtime/RuntimeManager.js";
 import {NativeBackend} from "./NativeAnalyzer.js";
+import FuzzManager from "./fuzzing/FuzzManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -588,6 +589,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
 
     taintAnalyzer:Nullable<TaintAnalyzer> = null;
+    fzmgr: FuzzManager;
 
     /**
      *
@@ -1224,6 +1226,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this.scriptManager = new ScriptManager(this);
 
         this.rtmgr = new RuntimeManager(this);
+        this.fzmgr = new FuzzManager(this);
+        this.fzmgr.registerListener();
 
         // plugins
         // before this step this.inspectors should be empty

@@ -38,7 +38,6 @@ import {UserAccountUUID} from "./user/UserAccount.js";
 import {Device, DeviceUUID} from "./Device.js";
 import DeviceEventCollector from "./platform/DeviceEventCollector.js";
 import InputEvent from "./platform/InputEvent.js";
-import Hook from "./Hook.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -410,22 +409,34 @@ export default class HookSession extends WebsocketSession implements INode
         ev.addNode(hm.hook.getTarget() as INode);
         ev.data = hm;
 
-        this.offset++;
+        if(pRawMsg.fsid!=null && pRawMsg.fztype!=null){
+            ev.type = "fuzzer."+pRawMsg.fztype;
+            ev.rt_type = RuntimeEventType.FUZZER;
+            ev.data.fsid = pRawMsg.fsid;
+            ev.data.tcid = pRawMsg.tcid ?? null;
+            ev.data.value = pRawMsg.value ?? null;
+            this.hookManager.context.bus.send(ev);
+            return hm;
+        }else{
+            this.offset++;
 
-        // 'Action' is already known by fragment
-        // hm.action = msg.payload.action;
+            // 'Action' is already known by fragment
+            // hm.action = msg.payload.action;
 
-        // 'When' is the fragment location before/after/replace
-        //hm.when = (msg.after)? 1 : 0;
+            // 'When' is the fragment location before/after/replace
+            //hm.when = (msg.after)? 1 : 0;
 
 
-        // 'payload.tags' is updated host-side  by Inspectors
-        // if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
+            // 'payload.tags' is updated host-side  by Inspectors
+            // if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
 
-        //Logger.raw(JSON.stringify(hm));
+            //Logger.raw(JSON.stringify(hm));
 
-        // cache hook msg
-        this.message.push(ev);
+            // cache hook msg
+            this.message.push(ev);
+        }
+
+
 
         // TODO : send raw hook message only if specified
 
