@@ -39,12 +39,21 @@ import ModelFile from "../ModelFile.js";
 import Inspector from "../Inspector.js";
 import {MerlinSearchRequest, OperationType} from "../search/MerlinSearchRequest.js";
 import {UserAccountUUID} from "../user/UserAccount.js";
+import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import ModelInstruction from "../ModelInstruction.js";
+import { INodeRef } from "../INode.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 let FRIDA = null;
 
+
+
+export interface TriggerFragmentOptions {
+    hookOpts?:HookOptions;
+    keypoint?:KeyPoint;
+}
 
 export enum HOOK_TYPE {
     NONE,
@@ -1463,7 +1472,7 @@ export class HookManager
      * @method
      * @since 1.0.0
      */
-    createInstructionHook( pAddr:ModelFunction, pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
+    createInstructionHook( pInstr:ModelInstruction , pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
         return null;
     }
 
@@ -1696,19 +1705,6 @@ export class HookManager
         }
     }
 
-    /**
-     * To get a hook by its ID
-     *
-     * @param {string} hookId
-     */
-    findHook(hookId:string):Hook{
-        for(const i in this.hooks){
-            if(this.hooks[i].id == hookId){
-                return this.hooks[i];
-            }
-        }
-        return null;
-    }
 
     /**
      * To retrieve everay hook targeting a method or a function
@@ -1722,6 +1718,26 @@ export class HookManager
             }
         }
         return match;
+    }
+
+    /**
+     * To search a hook by a node
+     *
+     * @param {INode|INodeRef} pNode Node or Node reference to search
+     * @sinec 1.13.x
+     */
+    findHookByNode(pNode:INode|INodeRef):AbstractHook[]{
+
+       const uid = (NodeUtils.isNodeRef(pNode)? pNode._uid : (pNode as INode).getUID());
+       let hks:AbstractHook[] = [];
+
+       switch (pNode.__) {
+           case NodeInternalType.METHOD: hks = this.jhooks; break;
+           case NodeInternalType.FUNC: hks = this.nhooks; break;
+           case NodeInternalType.SYSCALL: hks = this.shooks; break;
+       }
+
+       return hks.filter( (hook:SystemCallHook)=>  (hook.getTarget().getUID() === uid));
     }
 
     /**
@@ -2264,6 +2280,31 @@ export class HookManager
         }
 
         return this.prologues;
+    }
+
+
+    /**
+     * To create a hook from a node
+     *
+     * @param pNode
+     * @param pOpts
+     * @param pKeyPoint
+     */
+    async createHookFromNode(pNode:INode, pOpts:any={}, pKeyPoint:KeyPoint=null):Promise<JavaMethodHook|NativeFunctionHook|SystemCallHook>{
+        switch(pNode.__){
+            case NodeInternalType.METHOD:
+                return await this.createJavaMethodHook(pNode as ModelMethod, pOpts);
+            case NodeInternalType.FUNC:
+                return await this.createNativeFunctionHook(pNode as ModelFunction, pOpts, pKeyPoint);
+            case NodeInternalType.SYSCALL:
+                return await this.createSyscallHook(pNode as ModelSyscall, pOpts, pKeyPoint);
+            case NodeInternalType.INSTRUCTION:
+                return await this.createInstructionHook(pNode as ModelInstruction, pOpts, pKeyPoint);
+            default:
+                throw new Error('This node type cannot be hooked yet');
+            //case NodeInternalType.CALL:
+            //    return await this.createJavaMethodHook(pNode as ModelMethod, pOpts);
+        }
     }
 
 

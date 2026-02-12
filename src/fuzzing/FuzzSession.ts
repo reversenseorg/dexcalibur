@@ -5,14 +5,21 @@
  */
 import * as Log from '../Logger.js';
 import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
-import FuzzManager, {FUZZ_EVENT_TYPE} from "./FuzzManager.js";
+import FuzzManager from "./FuzzManager.js";
 import {UserAccountUUID} from "../user/UserAccount.js";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 import {FuzzSessionUID, IFuzzGenerator} from "./common.js";
+import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {TriggerFragmentOptions} from "../hook/HookManager.js";
+import {HOOK_FRAGMENT_POS} from "../hook/AbstractHook.js";
+import HookTemplateFragment from "../hook/HookTemplateFragment.js";
+import HookPrologue from "../HookPrologue.js";
+import {MetadataTopic, MetadataType} from "../audit/common/Metadata.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
 
 
 export enum FuzzState {
@@ -22,7 +29,9 @@ export enum FuzzState {
     RESET,
     SETUP,
     RUNNING,
-    DONE
+    DONE,
+    // resume after PAUSE
+    RESUME
 }
 
 
@@ -42,10 +51,11 @@ export interface FuzzSessionOpts {
     _uid?:string;
     message?:RuntimeEvent<any>[];
     owner?:Nullable<UserAccountUUID>;
-    fuzzManager?:FuzzManager;
-    time?:number;
-    fuzzStartTime?:number;
-    state:FuzzState;
+    mgr?:FuzzManager;
+    state?:FuzzState;
+    devUID?:string;
+    history?:FuzzSessionStateChange[];
+    termPoint?:MerlinSearchRequest;
 }
 
 
@@ -54,6 +64,11 @@ export interface RuntimeEventFilter {
     hookUID?:string;
     tagUUIDs?:number[];
     tagNames?:string[];
+}
+
+export interface FuzzSessionStateChange {
+    time: number,
+    state: FuzzState
 }
 
 /**
@@ -82,19 +97,8 @@ export default class FuzzSession implements INode
      * The associated FuzzManager
      * @field
      */
-    fuzzManager:FuzzManager = null;
+    mgr:Nullable<FuzzManager> = null;
 
-    /**
-     * The timestamp of the fuzzing session initialization
-     * @field
-     */
-    time:number = -1;
-
-    /**
-     * The timestamp from the running of the fuzzing session.
-     * @field
-     */
-    fuzzStartTime:number = -1;
 
     state:FuzzState = FuzzState.OFF;
 
@@ -114,6 +118,10 @@ export default class FuzzSession implements INode
 
     fuzzGenerator: Record<string, IFuzzGenerator> = {};
 
+    history:FuzzSessionStateChange[] = [];
+
+    termPoint:Nullable<MerlinSearchRequest> = null;
+
     /**
      *
      * @param {Nullable<FuzzSessionOpts>} pOptions Default NULL
@@ -128,8 +136,82 @@ export default class FuzzSession implements INode
         }
     }
 
+    setUID(pUID:FuzzSessionUID):void{
+        this._uid = pUID;
+    }
+
     setFuzzManager(pFM:FuzzManager){
-        this.fuzzManager = pFM;
+        this.mgr = pFM;
+    }
+
+    private async _createTriggerFragment(pNode:INode, pTriggerOpts:TriggerFragmentOptions):Promise<void>{
+
+        // create of get hook
+        let hooks = this.mgr.ctx.getHookManager().findHookByNode(pNode);
+        if(hooks.length==0){
+            // the target node is not hooked
+            hooks = [await this.mgr.ctx.getHookManager().createHookFromNode(pNode, pTriggerOpts.hookOpts, pTriggerOpts.keypoint)];
+        }
+        if(hooks.length>1){
+            throw new Error(`[FuzzSession] Multiple hooks found for node ${pNode.getUID()} : add filters to avoid this error.`);
+        }
+
+        // check if a fuzzer fragment is set for session
+        if(!hooks[0].hasFuzzerFragment(this._uid)){
+            hooks[0].addExtraFragment(
+                HOOK_FRAGMENT_POS.BEFORE,
+                new HookTemplateFragment({
+                    name: `fuzzer-trigger`,
+                    description: `Fuzzer session ${this._uid}`,
+                    template: `DXC.fuzz.trigger(@@__HOOK_ID__@@, @@__FRAG_ID__@@, @@__FUZZ_CASEID__@@);`,
+                    metadata: [{
+                        type: MetadataType.ANY,
+                        key:  MetadataTopic.FUZZ,
+                        value: {
+                            fsid: this._uid
+                        }
+                    }]
+                })
+            )
+        }
+
+
+    }
+
+    /**
+     * Terminal point can be :
+     * - a method call (a hook)
+     * - a bus event (host-side)
+     * - a side event (device-side such as logcat, network, kernel driver events, ...)
+     * - an app crash
+     *
+     * @param pRequest
+     * @param pTriggerOpts
+     */
+    async setTerminalPoint(pRequest:MerlinSearchRequest, pTriggerOpts:any):Promise<void> {
+        // update request
+        this.termPoint = pRequest;
+        // gather terminal nodes
+        try{
+            // search nodes
+            const nodes = (await this.termPoint.executePDB(this.mgr.ctx)).list();
+
+            // create fragments from nodes
+            for(let i=0;i<nodes.length;i++){
+                await this._createTriggerFragment(nodes[i], pTriggerOpts);
+            }
+
+            // add prologue to configure Fuzzer helper
+            // this.mgr.ctx.getHookManager().addPrologue(new HookPrologue({ }))
+
+
+        }catch (e){
+
+        }
+    }
+
+    async addTerminalPoint(pType:string, pOpts:RuntimeEventFilter):Promise<void>{
+
     }
 
 
@@ -147,18 +229,35 @@ export default class FuzzSession implements INode
         return this.devUID;
     }
 
-    start(){}
-    stop(){}
+    private _logState(pState:FuzzState){
+        this.history.push({
+            time: (new Date()).getTime(),
+            state: pState
+        });
+        Logger.debug(`[FUZZ SESSION][${this._uid}] State change: ${pState}`);
+    }
+
+    // ---- STATE CHANGES
+
+    start(){
+        this._logState(FuzzState.RUNNING);
+    }
+
+    stop(){
+        this._logState(FuzzState.RUNNING);}
+
     pause(){
+        this._logState(FuzzState.PAUSE);
         this.paused = true;
+    }
+
+    resume(){
+        this._logState(FuzzState.RESUME);
+        this.paused = false;
     }
 
     isPaused():boolean{
         return this.paused;
-    }
-
-    resume(){
-        this.paused = false;
     }
 
     pushEvent(pEvt:RuntimeEvent<any>):void {
@@ -180,17 +279,25 @@ export default class FuzzSession implements INode
         }
     }*/
 
+    async save(pUpdatedPpts:string[]):Promise<void> {
+        if(pUpdatedPpts.length==0) return;
+
+        await this.mgr.ctx.getProjectDB().save(this,{
+            [FuzzSession.TYPE.getPrimaryKey().getName()]: this._uid
+        },pUpdatedPpts);
+    }
+
     toJsonObject():any {
         return {
             _uid:this._uid,
             owner:this.owner,
             message:this.message,
-            fuzzManager:this.fuzzManager,
-            time:this.time,
-            fuzzStartTime:this.fuzzStartTime,
+            mgr:this.mgr,
             state:this.state,
             tags:this.tags,
             devUID:this.devUID,
+            history:this.history,
+            termPoint: this.termPoint!=null ? this.termPoint.toJsonObject() : null
         }
     }
 

@@ -5,14 +5,11 @@
  */
 import * as Log from '../Logger.js';
 import {WebsocketSession} from "../WebsocketSession.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
+import {INode, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import FuzzManager from "./FuzzManager.js";
 import {UserAccountUUID} from "../user/UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
-import {UiStateHash} from "../graphics/models/UiState.js";
-import {UiCmpHash} from "../graphics/models/ModelUiCmp.js";
-import {createNormalizedUrl} from "typedoc/dist/lib/utils/index.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -61,8 +58,11 @@ export interface RuntimeEventFilter {
 /**
  * @class
  */
-export default class FuzzUseCase extends WebsocketSession implements INode {
-    public _uid: FuzzSessionUUID = null;
+export default class FuzzUseCase  {
+
+
+    public _uid: number = null;
+
 
 
     message: RuntimeEvent<any>[] = [];
@@ -82,7 +82,7 @@ export default class FuzzUseCase extends WebsocketSession implements INode {
 
     state: FuzzState;
 
-    tags = [];
+    tags:TagUUID[] = [];
 
     /**
      * Device UID
@@ -98,7 +98,6 @@ export default class FuzzUseCase extends WebsocketSession implements INode {
      * @constructor
      */
     constructor(pOptions: Nullable<FuzzSessionOpts> = null) {
-        super();
 
         if (pOptions != null) {
             for (let i in pOptions) {
@@ -112,7 +111,19 @@ export default class FuzzUseCase extends WebsocketSession implements INode {
     }
 
 
-    getUID(): FuzzSessionUUID {
+    getUID(): number {
         return this._uid;
+    }
+
+    toJsonObject():any {
+        return {
+            _uid:this._uid,
+            message:this.message,
+            fuzzManager:this.fuzzManager,
+            state:this.state,
+            tags:this.tags,
+            devUID:this.devUID,
+            time:this.time
+        }
     }
 }
