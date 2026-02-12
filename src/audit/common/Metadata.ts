@@ -1,4 +1,4 @@
-import {DataOperation, MetadataTopic} from "./ControlAssessment.js";
+import {DataOperation} from "./ControlAssessment.js";
 import {IJSONSchema} from "@dexcalibur/dexcalibur-orm";
 
 export enum MetadataType {
@@ -6,6 +6,32 @@ export enum MetadataType {
     ANY,
     URI,
     PARAM
+}
+
+
+export enum MetadataTopic {
+    DFLOW_STEP="step",
+    IMPACT="impact",
+    CRITICITY="criticity",
+    GROUP='grp',
+    CATEGORY='category',
+    ADVISORY='recommandation',
+    RECO="recommandation",
+    COUNTRY='country',
+    PURPOSE='sbom.purpose',
+    WEBSITE='www',
+    COMPANY='company',
+    REVISION='rev',
+    EXTRACT='ext',
+    CTRL='ctrl',
+    PREFERED_ABI='pabi',
+    FILE_HEADER='file.header',
+    FILE_DATA='file.data',
+    OS='os',
+    CPE_ID="cpeid",
+    CVE_ID="cveid",
+    CWE_ID="cweid",
+    FUZZ="fuzz"
 }
 
 export interface Metadata {

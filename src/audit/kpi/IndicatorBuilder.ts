@@ -2,14 +2,11 @@ import AssuranceModel, {ControlNode} from "../common/AssuranceModel.js";
 import AssuranceReport from "../common/AssuranceReport.js";
 import {DataSegment, Indicator, IndicatorViewType, KpiRule} from "../common/Indicator.js";
 import {IndicatorBuilderException} from "../errors/IndicatorBuilderException.js";
-import {MetadataTopic} from "../common/ControlAssessment.js";
-import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
-import {MetadataType} from "../common/Metadata.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import Util from "../../Utils.js";
 import {MatchOccurence} from "../common/Match.js";
-import {NodeInternalTypeName} from "@dexcalibur/dxc-core-api";
 import {BomPurpose, BomPurposeUID} from "../../bom/BomPurpose.js";
+import {MetadataTopic} from "../common/Metadata.js";
 
 
 

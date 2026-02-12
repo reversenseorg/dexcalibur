@@ -24,9 +24,7 @@ import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {Nullable} from "./core/IStringIndex.js";
-import {Metadata, MetadataType} from "./audit/common/Metadata.js";
-import {MetadataTopic} from "./audit/common/ControlAssessment.js";
-import ModelCpuInstruction from "./ModelCpuInstruction.js";
+import {Metadata, MetadataTopic, MetadataType} from "./audit/common/Metadata.js";
 import ModelSyscall from "./ModelSyscall.js";
 import AiHelper from "./core/ai/AiHelper.js";
 

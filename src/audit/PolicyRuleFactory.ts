@@ -3,7 +3,7 @@ import {ActionType, PolicyAction, PolicyRule, PolicyRuleCondition} from "./Polic
 import {Policy} from "./Policy.js";
 import {PiiCriticity} from "./privacy/pii/PiiCategory.js"
 import {PolicyActionFactory} from "./PolicyActionFactory.js";
-import {MetadataTopic} from "./common/ControlAssessment.js";
+import {MetadataTopic} from "./common/Metadata.js";
 
 
 
