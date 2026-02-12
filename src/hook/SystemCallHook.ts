@@ -1,7 +1,7 @@
 
 import {AbstractHook} from "./AbstractHook.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@dexcalibur/dxc-core-api";
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import ModelSyscall from "../ModelSyscall.js";
@@ -25,7 +25,7 @@ export default class SystemCallHook extends AbstractHook {
      * @field
      * @
      */
-    private _target:any  = null;
+    private _target:ModelSyscall  = null;
 
     private _targetType: HookTargetType[] = []; //HookTargetType.STATIC_OFFSET;
 

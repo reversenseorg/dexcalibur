@@ -10,7 +10,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {HookVariableMap, TargetLanguage} from "./common.js";
 import * as Log from "../Logger.js";
-import * as _assert_ from "node:assert";
+import {FuzzSessionUID} from "../fuzzing/common.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -245,6 +245,13 @@ export abstract class AbstractHook {
         return this._time;
     }
 
+
+    hasFuzzerFragment(pSess:FuzzSessionUID):boolean{
+       return (this.getBefore().find( vFrag => {
+           return (pSess===vFrag.getFuzzSession());
+       })!=null)
+    }
+
     /**
      * To add an extra hook template fragment (not rattached to a strategy)
      *
@@ -463,6 +470,8 @@ export abstract class AbstractHook {
         this._before.sort((vFragA, vFragB)=>{
             return (vFragA.weight > vFragB.weight ? -1 : 1);
         });
+
+        //if(this.)
         return this._before;
     }
 
