@@ -718,6 +718,7 @@ HookTemplateFragment.TYPE.updateProperties([
     (new NodeProperty("_keypoint")).type(DbDataType.STRING).def(null),
     (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("metadata")).type(DbDataType.BLOB).def([]),
 ]).dataSource("PROJECT_DB").builder(HookTemplateFragment);
 
 JavaMethodHook.TYPE.updateProperties([

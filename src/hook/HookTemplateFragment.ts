@@ -1,12 +1,12 @@
 import HookStrategy from "./HookStrategy.js";
 import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {InspectorState} from "./common.js";
 import {InspectorManagerException} from "../errors/InspectorManagerException.js";
-
+import {Metadata, MetadataTopic} from "../audit/common/Metadata.js";
+import {FuzzSessionUID} from "../fuzzing/common.js";
 
 
 /**
@@ -50,6 +50,8 @@ export default class HookTemplateFragment implements INode {
     public removed = false;
 
     public deprecated = false;
+
+    metadata:Metadata[] = [];
 
     tags:TagUUID[] = [];
 
@@ -197,6 +199,13 @@ export default class HookTemplateFragment implements INode {
         this.markAs(InspectorState.REMOVED);
     }
 
+    getFuzzSession():Nullable<FuzzSessionUID> {
+        if(this.metadata==null || this.metadata.length==0) return;
+
+        const m = this.metadata.filter(m=> m.key===MetadataTopic.FUZZ);
+        return (m.length>0)?m[0].value.fsid : null;
+    }
+
     /**
      *
      */
@@ -227,6 +236,7 @@ export default class HookTemplateFragment implements INode {
         o.autoEmit = pObject.autoEmit;
         o.removed = pObject.removed;
         o.deprecated = pObject.deprecated;
+        o.metadata = pObject.metadata;
 
         return o;
     }
@@ -244,6 +254,7 @@ export default class HookTemplateFragment implements INode {
         o._preproc = this._preproc;
         o.removed = this.removed;
         o.deprecated = this.deprecated;
+        o.metadata = this.metadata;
         CoreDebug.checkJsonSerialize(o,"HookTemplateFragment");
         return o;
     }
