@@ -14,9 +14,6 @@ import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export interface FuzzManagerOpts {
-    //lastUiState?: ModelUiStruct;
-    //uiStateStructList?: ModelUiStruct[];
-    //transitionList?: ModelUiTransition[];
     eventsHistory?: InputEvent[];
 }
 
@@ -35,6 +32,7 @@ export enum FUZZ_EVENT_TYPE {
 export default class FuzzManager {
 
     ctx: DexcaliburProject = null;
+    fuzzSessions: FuzzSession[] = [];
 
     /**
      * Cache contains only local and active session
@@ -52,22 +50,6 @@ export default class FuzzManager {
 
     setOptions(pOpts: FuzzManagerOpts){
         for(const i in pOpts) this[i] = pOpts[i];
-    }
-
-    /**
-     * @method
-     */
-    performInitialSteps(){
-        /*let currentUiState = this.getCurrentUiState();
-        if (needHardReset || currentUiState ==null || this.initialSteps.includes(currentUiState)) {
-            // reset
-            // currentUiState = initialSteps[0][0];
-            // this.lastCurrentUiCmp = null;
-            // this.lastCurrentProgramedAction = null;
-            // this.lastInitialStepIndex = 0;
-        }
-        this.lastInitialStepIndex += 1;
-        this.performAction(this.initialSteps[this.lastInitialStepIndex]);*/
     }
 
     /**
@@ -178,7 +160,7 @@ export default class FuzzManager {
             if(vEvent.getData().fsid==null) return;
 
             const s = this.getLiveSession(vEvent.getData().fsid);
-            if(s!=null) s.pause();
+            if(s!=null) s.resume();
         }));
 
 
@@ -190,7 +172,7 @@ export default class FuzzManager {
             if(vEvent.getData().fsid==null) return;
 
             const s = this.getLiveSession(vEvent.getData().fsid);
-            if(s!=null) s.pause();
+            if(s!=null) s.resolveEvent(vEvent);
         }));
     }
 }

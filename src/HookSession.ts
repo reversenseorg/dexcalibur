@@ -61,7 +61,7 @@ export interface HookSessionOptions {
 export interface HookSessionOpts {
     _uid?:string;
     message?:RuntimeEvent<any>[];
-    owner?:RuntimeEvent<any>[];
+    owner?:Nullable<UserAccountUUID>;
     hookManager?:HookManager;
     sets_matches?:any;
     time?:number;
@@ -410,7 +410,7 @@ export default class HookSession extends WebsocketSession implements INode
         ev.data = hm;
 
         if(pRawMsg.fsid!=null && pRawMsg.fztype!=null){
-            ev.type = "fuzzer."+pRawMsg.fztype;
+            ev.type = "fuzz."+pRawMsg.fztype;
             ev.rt_type = RuntimeEventType.FUZZER;
             ev.data.fsid = pRawMsg.fsid;
             ev.data.tcid = pRawMsg.tcid ?? null;

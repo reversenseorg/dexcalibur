@@ -9,13 +9,23 @@ import FuzzManager from "./FuzzManager.js";
 import {UserAccountUUID} from "../user/UserAccount.js";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
-import {FuzzSessionUID, IFuzzGenerator} from "./common.js";
+import {
+    FuzzingResolverResult,
+    FuzzInputValueDict,
+    FuzzSessionUID,
+    IFuzzGenerator,
+    IFuzzingEvent,
+    IFuzzResolver
+} from "./common.js";
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
 import {TriggerFragmentOptions} from "../hook/HookManager.js";
 import {HOOK_FRAGMENT_POS} from "../hook/AbstractHook.js";
 import HookTemplateFragment from "../hook/HookTemplateFragment.js";
-import HookPrologue from "../HookPrologue.js";
 import {MetadataTopic, MetadataType} from "../audit/common/Metadata.js";
+import FuzzTestCase, {FuzzTestCaseOpts} from "./FuzzTestCase.js";
+import {HookSessionUUID} from "../HookSession.js";
+import BusEvent from "../BusEvent.js";
+import Util from "../Utils.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -23,11 +33,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export enum FuzzState {
-    OFF = 0,
     PAUSE,
-    PERFORM,
-    RESET,
-    SETUP,
     RUNNING,
     DONE,
     // resume after PAUSE
@@ -41,7 +47,6 @@ export type ProgramedAction = {
     // adb actions
 }
 
-export type FuzzInputValue = any;
 
 
 /**
@@ -52,7 +57,6 @@ export interface FuzzSessionOpts {
     message?:RuntimeEvent<any>[];
     owner?:Nullable<UserAccountUUID>;
     mgr?:FuzzManager;
-    state?:FuzzState;
     devUID?:string;
     history?:FuzzSessionStateChange[];
     termPoint?:MerlinSearchRequest;
@@ -99,24 +103,23 @@ export default class FuzzSession implements INode
      */
     mgr:Nullable<FuzzManager> = null;
 
-
-    state:FuzzState = FuzzState.OFF;
-
     tags:TagUUID[] = [];
 
-    /**
-     * Device UID
-     */
-    devUID:string = null;
+    linkedHookSession: HookSessionUUID;
 
-    fuzzInputValue:FuzzInputValue = null;
+    testCases:FuzzTestCase[] = [];
 
-
-    extra:any = {};
+    results: any = [];
 
     paused = false;
 
-    fuzzGenerator: Record<string, IFuzzGenerator> = {};
+    generators: Record<string, IFuzzGenerator> = {};
+
+    inputValuesQueue: FuzzInputValueDict[];
+
+    resolvers: Record<string, IFuzzResolver> = {};
+
+    testCaseCounter: number = 0;
 
     history:FuzzSessionStateChange[] = [];
 
@@ -128,7 +131,6 @@ export default class FuzzSession implements INode
      * @constructor
      */
     constructor(pOptions: Nullable<FuzzSessionOpts> = null) {
-
         if(pOptions!=null){
             for (let i in pOptions){
                 this[i] = pOptions[i];
@@ -142,6 +144,10 @@ export default class FuzzSession implements INode
 
     setFuzzManager(pFM:FuzzManager){
         this.mgr = pFM;
+    }
+
+    setLinkedHookSession(pSession:HookSessionUUID){
+        this.linkedHookSession = pSession;
     }
 
     private async _createTriggerFragment(pNode:INode, pTriggerOpts:TriggerFragmentOptions):Promise<void>{
@@ -219,16 +225,6 @@ export default class FuzzSession implements INode
         return this._uid;
     }
 
-    /**
-     * to get the UID of the device that triggered the session
-     *
-     * @returns {string} The device UID or null
-     * @method
-     */
-    getDeviceUID():string {
-        return this.devUID;
-    }
-
     private _logState(pState:FuzzState){
         this.history.push({
             time: (new Date()).getTime(),
@@ -244,7 +240,8 @@ export default class FuzzSession implements INode
     }
 
     stop(){
-        this._logState(FuzzState.RUNNING);}
+        this._logState(FuzzState.DONE);
+    }
 
     pause(){
         this._logState(FuzzState.PAUSE);
@@ -256,28 +253,83 @@ export default class FuzzSession implements INode
         this.paused = false;
     }
 
+
+    /**
+     * Generate a new input value dictionary from the current fuzz generators dictionary.
+     * A generatorStrategy could be used to generate the next input values. It could be based on the current or previous testCase
+     *
+     * @param pOts
+     */
+    generateInputDict(pOts?:any): FuzzInputValueDict{
+        let inputDict:FuzzInputValueDict = {};
+        for (let input_label in this.generators) {
+            inputDict[input_label] = this.generators[input_label].next(pOts)
+        }
+        return inputDict;
+    }
+
+    nextTestCase(){
+        this.testCaseCounter += 1;
+        let inputDict = this.getNextInputDict();
+        if (inputDict == null) {
+            this.stop();
+            return;
+        }
+        let testCaseArg: FuzzTestCaseOpts = {
+            id:this.testCaseCounter.toString(),
+            inputValueDict:inputDict,
+            hookSession:this.linkedHookSession,
+            time:Util.time()
+        };
+        let newTestCase = new FuzzTestCase(testCaseArg);
+        this.testCases.push(newTestCase);
+        return newTestCase;
+    }
+
+    getNextInputDict():FuzzInputValueDict{
+        if (this.inputValuesQueue.length == 0) {
+            this.inputValuesQueue.push(this.generateInputDict());
+        }
+        let inputDict = this.inputValuesQueue.shift();
+        return inputDict;
+    }
+
     isPaused():boolean{
         return this.paused;
     }
 
-    pushEvent(pEvt:RuntimeEvent<any>):void {
-        this.message.push(pEvt);
+    /**
+     * Add a new event to the associated TestCase.
+     * @param pEvent FuzzingEvent.STEP_END, FuzzingEvent.STEP_START, FuzzingEvent.STEP_CRASH,
+     */
+    resolveEvent(pEvent:BusEvent<IFuzzingEvent>){
+        let testCase = this.testCases[-1];
+        if (pEvent.getData().tcid) {
+            testCase = this.testCases.find(tc=>tc.getUID() == pEvent.getData().tcid);
+        }
+        let resolver = this.findResolverForEvent(pEvent);
+        if(resolver==null) {return null;}
+        let res = resolver.process(testCase, pEvent);
+        switch (res.flag) {
+            case FuzzingResolverResult.SUCCESS:
+                testCase.pushEvent(pEvent);
+                this.results.push(testCase.inputValueDict, testCase);
+                break;
+            case FuzzingResolverResult.FAIL:
+                this.nextTestCase();
+                break;
+            case FuzzingResolverResult.INFO:
+                testCase.pushEvent(pEvent);
+                break;
+            case FuzzingResolverResult.DISCARD:
+            default:
+                break;
+        }
     }
 
-
-    /*
-    resolveEvent(pData){
-        this.fuzzSessions[-1].pushEvent(pData);
-        if (pData.type == FUZZ_EVENT_TYPE.SUCCESS || pData.type == FUZZ_EVENT_TYPE.FAILURE) {
-            this.endSession(pData.eventType == FUZZ_EVENT_TYPE.SUCCESS, pData.result);
-        }
-        else {
-            let dataResolved = this.fuzzEventResolver.resolve(pData);
-            if (dataResolved) {
-
-            }
-        }
-    }*/
+    findResolverForEvent(pEvent:BusEvent<IFuzzingEvent>): IFuzzResolver{
+        return null;
+    }
 
     async save(pUpdatedPpts:string[]):Promise<void> {
         if(pUpdatedPpts.length==0) return;
@@ -293,11 +345,10 @@ export default class FuzzSession implements INode
             owner:this.owner,
             message:this.message,
             mgr:this.mgr,
-            state:this.state,
             tags:this.tags,
-            devUID:this.devUID,
             history:this.history,
-            termPoint: this.termPoint!=null ? this.termPoint.toJsonObject() : null
+            termPoint: this.termPoint!=null ? this.termPoint.toJsonObject() : null,
+            testCaseCounter:this.testCaseCounter,
         }
     }
 
