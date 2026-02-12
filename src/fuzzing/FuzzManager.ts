@@ -1,14 +1,13 @@
 import DexcaliburProject from "../DexcaliburProject.js";
 import * as Log from "../Logger.js";
 import InputEvent from "../platform/InputEvent.js";
-import FuzzSession, {FuzzSessionOpts, FuzzState} from "./FuzzSession.js";
+import FuzzSession, {FuzzSessionOpts} from "./FuzzSession.js";
 import {BusSubscriber} from "../Bus.js";
 import BusEvent from "../BusEvent.js";
 import {FuzzingEvent, FuzzSessionUID, IFuzzingEvent} from "./common.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import { UserAccount } from "../user/UserAccount.js";
 import {FuzzerException} from "../errors/FuzzerException.js";
-import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
