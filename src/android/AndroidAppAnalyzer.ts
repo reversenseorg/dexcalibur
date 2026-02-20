@@ -31,7 +31,7 @@ import ModelResource from "../ModelResource.js";
 import {AnalyzerException} from "../errors/AnalyzerException.js";
 import {AppIcon} from "../AppIcon.js";
 import ModelFile from "../ModelFile.js";
-import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeUtils, Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
 import DataScope from "../DataScope.js";
 import {INodeRef} from "../INode.js";
@@ -47,15 +47,6 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 _xml2js_.Parser.prototype.parseStringPromise = _util_.promisify(_xml2js_.parseString);
 
-/*
-export interface ResourcesMap {
-	ids: AndroidResourceType,
-	string: AndroidResourceType,
-	styles: AndroidResourceType,
-	raw: AndroidResourceType,
-	xml: AndroidResourceType,
-	[name:string]: AndroidResourceType
-}*/
 
 export type ResourcesMap = Record<string, AndroidResource>;
 
@@ -93,6 +84,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	private _missingImpl:{ [implFqcn:string] :AndroidComponent } = {};
 
 	private _huntingImpl = false;
+
+    private _tags:Record<string, Tag> = {};
 
     constructor(context:DexcaliburProject, pOptions:any = {} ){
         this.context = context;
@@ -165,6 +158,13 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 	private _initRes(){
 		this.layouts = {};
+
+        this._tags = {
+            LAYOUT: this.context.getTagManager().getTag("ui.cmp.layout"),
+            LABEL: this.context.getTagManager().getTag("ui.cmp.label"),
+            INPUT: this.context.getTagManager().getTag("ui.cmp.input"),
+            LISTENER: this.context.getTagManager().getTag("ui.cmp.listener"),
+        };
 	}
 
 	/**
@@ -258,6 +258,9 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				}
 
 				if(res.length>0){
+
+                    // detect and tags
+
 					// save resources
 					pdb.updateResources(res)
 						.catch((err)=>{
@@ -517,20 +520,20 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 * @param pContext
 	 * @param pRootNode
 	 */
-	static async _parseResourceValuesFile(pFilePath:string, pResType:AndroidResource, pRootNode:Nullable<string>=null):Promise<AndroidResource[]>{
+	static async _parseResourceValuesFile(pFilePath:string, pResType:AndroidResource, pRootNode:Nullable<string>=null, pTags:TagUUID[] = []):Promise<AndroidResource[]>{
 		const xml = await AndroidAppAnalyzer._parseXmlFile(pFilePath, {preserveChildrenOrder:true, explicitChildren:true});
 		let res:AndroidResource[];
 
 		if(pRootNode != null){
 			if(xml[pRootNode]!=null && xml[pRootNode]['$$'] !=null){
-				res = AndroidResource.fromXml(xml[pRootNode]["$$"], pResType);
+				res = AndroidResource.fromXml(xml[pRootNode]["$$"], pResType, null, pTags);
 			}else{
 				throw AnalyzerException.ANDROID_RES_CANNOT_BE_PARSED(
 					_path_.basename(pFilePath), `Root [${pRootNode}] node not found.`
 				);
 			}
 		}else{
-			res = AndroidResource.fromXml(xml, pResType);
+			res = AndroidResource.fromXml(xml, pResType, null, pTags);
 		}
 		return res;
 	}
@@ -607,7 +610,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	}
 
     /**
-     * Deprecated ?
+     *
      */
 	async parseResources(pFolderPath:string, pDataScope:Nullable<DataScope> = null):Promise<void> {
 		// read folders in pFolderPath
@@ -617,6 +620,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		// resource tree
 		let resMap:Record<string, Record<string, ModelResource<any>|(Record<string, ModelResource<any>>) >> = {};
 		let variant:string, res:ModelResource<any>;
+
 
 		const cat = {
 			values:null,
@@ -954,6 +958,12 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		let resPath:string;
 		let stat:any;
 		let mr:ModelResource<any>;
+        let tags:TagUUID[] = [];
+
+        if(pFolderPath.startsWith("layout")){
+            tags.push(this._tags.LAYOUT.getUUID());
+        }
+
 
 		for(let i=0; i<entries.length; i++){
 
@@ -968,7 +978,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				}
 
 				// parse AndroidResource
-				data = await AndroidAppAnalyzer._parseResourceValuesFile(resPath, null, pRootNode);
+				data = await AndroidAppAnalyzer._parseResourceValuesFile(resPath, null, pRootNode, tags);
 
 				// convert to a list of ModelResource
 				if(data.length==1){
@@ -988,6 +998,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 					stat = _fs_.statSync(resPath);
 
 					mr = data[0].toModelResource("", pFolderPath, res_uid);
+
 					// placeholder for ModelFile (the true ModelFile
 					mr.setFileLocation(new ModelFile({
 						name: entries[i],
@@ -1212,6 +1223,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 			if(pExtra.fresh){
 				this.context.getAnalyzer().getData().permissions.addEntry(x.getUID(), x);
+                // Add permission scan
 			}
 
 			//Logger.debug("[Manifest] Permission found : ",x.name);

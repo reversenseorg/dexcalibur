@@ -1,5 +1,5 @@
 import {IPersistent} from "../persist/orm/IPersistent.js";
-import {NodeType, INode, INodeMap} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, INode, INodeMap, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
 import Util from "../Utils.js";
@@ -8,7 +8,7 @@ import * as Log from "../Logger.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {CustomCode} from "../actionnable/CustomCode.js";
 import {Nullable} from "../core/IStringIndex.js";
-
+import {RuntimeEventType} from "./RuntimeEvent.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export enum KeyPointType {
@@ -30,6 +30,28 @@ export enum KeyPointRole {
     LOAD='load',
     UNLOAD='unload',
     ANY='*'
+}
+
+export type VirtualID = number;
+
+export interface KeyPointOptions {
+    deps?:string[];
+    parent?:KeyPoint;
+    children?:KeyPoint[];
+    name?:string;
+    token?:string;
+    description?:string;
+    condition?:string;
+    code?:string;
+    generator?: any;
+    generatorCode?: Nullable<CustomCode>;
+    weight?:number;
+    type?: RuntimeEventType;
+    node?:Record<string,INode>;
+    enabled?:boolean;
+    _c?:string;
+    tags?:TagUUID[];
+    vid?:VirtualID;
 }
 /**
  * Represents a key point into application timeé
@@ -66,18 +88,22 @@ export default class KeyPoint implements INode, IPersistent {
     generator: any = null;
     generatorCode: Nullable<CustomCode> = null;
     weight:number;
-    type: KeyPointType = KeyPointType.HOOK;
+    type: RuntimeEventType = RuntimeEventType.HOOK;
     node:INodeMap = {};
     enabled:boolean;
     _c:string;
 
     tags:number[] = [];
+    vid:VirtualID = null;
 
-    constructor(pConfig:any={}){
+    constructor(pConfig:Nullable<KeyPointOptions>=null){
         this.weight = -1;
         this.enabled = true;
-        for(const i in pConfig){
-            this[i] = pConfig[i];
+
+        if(pConfig!=null){
+            for(const i in pConfig){
+                this[i] = pConfig[i];
+            }
         }
     }
 
@@ -86,15 +112,15 @@ export default class KeyPoint implements INode, IPersistent {
     }
 
     addNode(pNode:INode):any {
-        this.node[pNode.getUID()] = pNode ;
+        this.node[pNode.__+"::"+pNode.getUID()] = pNode ;
     }
 
     getNodes():INodeMap {
         return this.node;
     }
 
-    getNode(pUID:string):INode {
-        return this.node[pUID];
+    getNode(pType:NodeInternalType, pUID:string):INode {
+        return this.node[pType+"::"+pUID];
     }
 
     getFirstNode():INode {
@@ -151,7 +177,7 @@ export default class KeyPoint implements INode, IPersistent {
     }
 
     isHookBased():boolean {
-        return this.type === KeyPointType.HOOK;
+        return this.type === RuntimeEventType.HOOK;
     }
 
     /**
@@ -219,7 +245,7 @@ export default class KeyPoint implements INode, IPersistent {
     }
 
 
-    setKeypointType(keypointType:KeyPointType) {
+    setKeypointType(keypointType:RuntimeEventType) {
         this.type = keypointType;
     }
 
@@ -307,5 +333,26 @@ export default class KeyPoint implements INode, IPersistent {
         }
         CoreDebug.checkJsonSerialize(o, "KeyPoint");
         return o;
+    }
+
+    getOptions():KeyPointOptions {
+        return {
+            parent: this.parent,
+            token: this.token,
+            weight: this.weight,
+            description: this.description,
+            condition: this.condition,
+            name: this.name,
+            //cname: this.c
+            type: this.type
+        };
+    }
+
+    getVirtualID():VirtualID {
+        return this.vid;
+    }
+
+    setVirtualID(pID:VirtualID) {
+        this.vid = pID;
     }
 }

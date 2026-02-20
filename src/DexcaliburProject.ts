@@ -102,6 +102,7 @@ import {AndroidTypes} from "./android/AndroidTypes.js";
 import {RuntimeManager} from "./runtime/RuntimeManager.js";
 import {NativeBackend} from "./NativeAnalyzer.js";
 import FuzzManager from "./fuzzing/FuzzManager.js";
+import KeyPoint from "./hook/KeyPoint.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2508,12 +2509,23 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                             "@data.type.executable", { not:false })
                 )).getAsList();
 
+                let kp:KeyPoint;
                 for(let i=0; i<execFiles.length; i++){
                     if(this.analyze.hasBeenAnalyzed(execFiles[i])){
                         // skip it or load in memory somethings
                     }else if(this.analyze.isEligibleTo(pkgScope, execFiles[i],'native:discovery')){
                         try{
+                            // discover
                             await this.discoverExecutableFile(execFiles[i], true);
+
+                            // create empty key point
+                            kp = await this.getKeyPointManager().createKeyPoint(
+                                execFiles[i],
+                                {
+                                    name: `Loading of "${execFiles[i].getPath()}"`,
+
+                                }
+                            );
                         }catch (e){
                             console.error("Cannot analyze binary file : ",execFiles[i].getUID());
                         }

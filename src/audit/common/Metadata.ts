@@ -31,7 +31,8 @@ export enum MetadataTopic {
     CPE_ID="cpeid",
     CVE_ID="cveid",
     CWE_ID="cweid",
-    FUZZ="fuzz"
+    FUZZ="fuzz",
+    KP="kp"
 }
 
 export interface Metadata {

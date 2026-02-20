@@ -15,7 +15,8 @@ export class KeyPointManagerException extends MonitoredError {
         UNKNOW_TOKEN: ErrorCode.KP_MANAGER + 105,
         GENERATOR_ERROR_NO_NODE: ErrorCode.KP_MANAGER + 106,
         GENERATOR_ERROR_NODE_NOT_FOUND: ErrorCode.KP_MANAGER + 107,
-        MULTIPLE_TARGET_NOT_SUPPORTED: ErrorCode.KP_MANAGER + 108
+        MULTIPLE_TARGET_NOT_SUPPORTED: ErrorCode.KP_MANAGER + 108,
+        CONDITION_NOT_SUPPORTED: ErrorCode.KP_MANAGER + 109
     };
 
     static INVALID_DB = ()=>{ return new KeyPointManagerException(" The database cannot be null",KeyPointManagerException.ERR.INVALID_DB) };
@@ -26,6 +27,7 @@ export class KeyPointManagerException extends MonitoredError {
     static GENERATOR_ERROR_NO_NODE = (name)=>{ return new KeyPointManagerException(" [KEY POINT GENERATOR]  Code of Key Point cannot be generated, no node specified : keypoint="+name,KeyPointManagerException.ERR.GENERATOR_ERROR_NO_NODE) };
     static GENERATOR_ERROR_NODE_NOT_FOUND = (type,uid)=>{ return new KeyPointManagerException(" [KEY POINT GENERATOR]  Node associated to the target cannot be found (type="+type+", uid="+uid+")",KeyPointManagerException.ERR.GENERATOR_ERROR_NODE_NOT_FOUND) };
     static MULTIPLE_TARGET_NOT_SUPPORTED = ()=>{ return new KeyPointManagerException(" Single KeyPoint with multiple targets are not supported. Fill a ticket if you need it.",KeyPointManagerException.ERR.MULTIPLE_TARGET_NOT_SUPPORTED) };
+    static CONDITION_NOT_SUPPORTED = (type:string)=>{ return new KeyPointManagerException(" [KEY POINT GENERATOR] Condition type or node type not supported ",KeyPointManagerException.ERR.CONDITION_NOT_SUPPORTED) };
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('KEY POINT MANAGER', pMsg, pCode, pExtra);

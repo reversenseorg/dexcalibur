@@ -12,6 +12,7 @@ import {OrganizationManagerException} from "../../errors/OrganizationManagerExce
 import {ProjectAccessControl} from "../../user/acl/rbac/ProjectAccessContol.js";
 import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 import {AndroidImgType, DevicePurpose, DeviceTemplateFactory} from "./DeviceTemplateFactory.js";
+import {Architecture} from "../../Architecture.js";
 
 
 /**
@@ -36,8 +37,14 @@ export class DeviceTemplateAPI {
         const builtins = [
             DeviceTemplateFactory.newAndroidArm64("34", true, AndroidImgType.AOSP, DevicePurpose.PHONE),
             DeviceTemplateFactory.newAndroidArm64("33", true, AndroidImgType.AOSP, DevicePurpose.PHONE),
-            DeviceTemplateFactory.newAndroidArm64("32", true, AndroidImgType.AOSP, DevicePurpose.PHONE),
+            DeviceTemplateFactory.newAndroidArm64("32", false, AndroidImgType.AOSP, DevicePurpose.PHONE),
             DeviceTemplateFactory.newAndroidArm64("32", true, AndroidImgType.AOSP, DevicePurpose.TV),
+            DeviceTemplateFactory.newIosArm64("32", false),
+            DeviceTemplateFactory.newLinux("5.5", true, DevicePurpose.DESKTOP),
+            DeviceTemplateFactory.newTizen("8.0.0", true, DevicePurpose.TV), // M2
+            DeviceTemplateFactory.newTizen("10.0.0", true, DevicePurpose.ANY),
+            DeviceTemplateFactory.newUnicorn("v8a", true, Architecture.AARCH64, DevicePurpose.IOT),
+            DeviceTemplateFactory.newUnicorn("v7", true, Architecture.AARCH32, DevicePurpose.IOT),
         ];
 
         // retrieve list

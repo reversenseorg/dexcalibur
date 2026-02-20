@@ -1,67 +1,18 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
-import {Request, Response} from "express";
+import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import KeyPointManager from "../hook/KeyPointManager.js";
-import KeyPoint, {KeyPointLifecycleEventType} from "../hook/KeyPoint.js";
+import KeyPoint from "../hook/KeyPoint.js";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
-import {NodeInternalType, NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";;
-import {KeyPointOptions} from "../hook/KeyPointGenerator.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
-import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
-import { Node } from "../INode.js";
+import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
+import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";;
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const KEYPOINT_WEB_API: DelegateWebApi = new DelegateWebApi('KEYPOINTS');
-
-/*
-KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
-    '/search',
-    {
-        'get': async (req:DelegateRequest, res:DelegateResponse) =>{
-            const $: WebServer = req.dxc.$;
-            let project:DexcaliburProject = null;
-
-            try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
-
-                // get hook instance by ID
-                const kpm:KeyPointManager = project.getKeyPointManager();
-                const o:KeyPoint[] = [];
-
-                kpm.getKeyPoints().map( (x:KeyPoint)=>{
-                    o.push(x.toJsonObject());
-                })
-                $.sendSuccess(res,  o);
-            }catch(err){
-                Logger.error("[API][KEY POINTS] Key Points cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Key Points cannot be listed. Cause : " + err.message);
-            }
-        }
-    }
-);*/
-
 
 KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     '/list',
@@ -102,32 +53,47 @@ KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
     {
         'post': async (req:DelegateRequest, res:DelegateResponse) => {
             const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject;
 
             let kp:KeyPoint;
 
             try{
+                if(req.query['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
 
-                if(req.project==null){
+                if(project == null || !project.isReady())
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                if(req.project==null)
                     throw ProjectManagerException.PROJECT_IS_MANDATORY();
-                }
-
-                if(!req.project.isReady()) {
+                if(!req.project.isReady())
                     throw DexcaliburProjectException.PROJECT_NOT_READY(req.project.getUID());
-                }
+                if(!NodeUtils.isNodeRef(req.body['target']))
+                    throw new Error("Invalid target node reference");
+
 
                 // ========== LOGIC
-                // get hook instance by ID
-                // const uid =  KeyPoint.TYPE.getPrimaryKey().sanitize(req.params['uid']); //KeyPoint.TYPE.
-                const targetNodeType = NodeType.getByID(req.body['target'].__);
-                const node = new (targetNodeType.getBuilder())({});
-                targetNodeType.setPrimaryKeyValueOf(node, req.body['target']._uid)
+                const result = (await (MerlinSearchRequest.getByRef({
+                    __: req.body['target'].__,
+                    _uid: req.body['target']._uid
+                },project.getMerlinEngine() )).executePDB(project));
+
+                if(result.count()==0){
+                    throw new Error("Target node not found.");
+                }
 
                 kp = await ((req.project as DexcaliburProject)
                     .getKeyPointManager()
                     .createKeyPoint(
-                        node,
+                        result.get(0),
                         req.body['opts']
                     ));
+
+                (req.project as DexcaliburProject)
+                    .getKeyPointManager().generate(kp)
+
 
                 $.sendSuccess(res,  kp.toJsonObject());
             }catch(err){
@@ -136,7 +102,7 @@ KEYPOINT_WEB_API.addAsyncAuthenticatedRoute(
             }
         },
     },{
-        async: true
+        readProject: true
     }
 );
 

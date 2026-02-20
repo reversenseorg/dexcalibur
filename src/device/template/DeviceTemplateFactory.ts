@@ -3,6 +3,7 @@ import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Architecture} from "../../Architecture.js";
 import {TagUUID} from "@dexcalibur/dexcalibur-orm";
 import Util from "../../Utils.js";
+import {SemVerHelper} from "../../util/semver/SemverHelper.js";
 
 export enum AndroidImgType {
     DEFAULT='default',
@@ -23,7 +24,11 @@ export enum AndroidImgType {
 export enum DevicePurpose {
     TV='tv',
     AUTOMOTIVE='auto',
-    PHONE='phone'
+    PHONE='phone',
+    ANY='any',
+    DESKTOP='desktop',
+    SERVER='server',
+        IOT='iot'
 }
 
 export class DeviceTemplateFactory {
@@ -60,6 +65,51 @@ export class DeviceTemplateFactory {
             name: "ios_aarch64_api_"+pApiVersion,
             arch: Architecture.AARCH64,
             description: `iOS device running API version ${pApiVersion} over arm64 CPU`,
+            creation_date: Util.time(),
+            virtual:pVirtual,
+            extra:{}
+        });
+    }
+
+
+
+    static newUnicorn(pApiVersion:string, pVirtual:boolean, pArch:Architecture, pPurpose:DevicePurpose):DeviceTemplate {
+        return new DeviceTemplate({
+            os: OperatingSystem.NONE,
+            name: `uc_${pArch}_`+pApiVersion,
+            arch: pArch,
+            description: `Emulator (${pPurpose})  built on top of Unicorn engine and ${pArch} ${pApiVersion} CPU`,
+            creation_date: Util.time(),
+            virtual:pVirtual,
+            extra:{}
+        });
+    }
+
+
+    static newTizen(pApiVersion:string, pVirtual:boolean, pPurpose:DevicePurpose):DeviceTemplate {
+
+        const v = SemVerHelper.parse(pApiVersion);
+
+        return new DeviceTemplate({
+            os: OperatingSystem.TIZEN,
+            name: `tiz_aarch64_api_${v.major}_${v.minor}`,
+            arch: Architecture.AARCH64,
+            description: `Tizen device (${pPurpose})  running API version ${pApiVersion} over arm64 CPU`,
+            creation_date: Util.time(),
+            virtual:pVirtual,
+            extra:{
+                info: `https://docs.tizen.org/platform/release-notes/tizen-${v.major}-0`
+            }
+        });
+    }
+
+
+    static newLinux(pApiVersion:string, pVirtual:boolean, pPurpose:DevicePurpose):DeviceTemplate {
+        return new DeviceTemplate({
+            os: OperatingSystem.LINUX,
+            name: "linux_x64_"+pApiVersion,
+            arch: Architecture.X86_64,
+            description: `VM (${pPurpose}) running Linux version ${pApiVersion} over x64 CPU`,
             creation_date: Util.time(),
             virtual:pVirtual,
             extra:{}

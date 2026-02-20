@@ -1,7 +1,7 @@
-import KeyPoint from "./KeyPoint.js";
+import KeyPoint, {KeyPointOptions, VirtualID} from "./KeyPoint.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
-import {KeyPointGenerator, KeyPointOptions, KeyPointOptionsOptions} from "./KeyPointGenerator.js";
+import {KeyPointGenerator, KeyPointOptionsOptions} from "./KeyPointGenerator.js";
 import {IDatabase, IDbCollection, INode} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {OperatingSystem} from "@dexcalibur/dxc-core-api";
@@ -107,8 +107,16 @@ export default class KeyPointManager {
         return this._project;
     }
 
-    generateToken(pKeyPoint:KeyPoint, pOptions:KeyPointOptions):string{
-        return this.generator.generateToken(null, pKeyPoint, pOptions.getConditionName());
+    generateToken(pKeyPoint:KeyPoint, pOptions:Nullable<KeyPointOptions> = null):string{
+        return this.generator.generateToken(null, pKeyPoint, pOptions.condition ?? pKeyPoint.condition);
+    }
+
+    private async _nextVID():Promise<VirtualID>{
+        const s = (await this.getKeyPoints()).sort( (a, b)=>{
+            return (b.getVirtualID() - a.getVirtualID());
+        });
+
+        return s[0].getVirtualID()+1;
     }
 
     private async _createBinLoadKeyPoint():Promise<void>{
@@ -237,8 +245,16 @@ Java.deoptimizeEverything();
      * @param pKP
      * @param pModel
      */
-    public async generate( pKP:KeyPoint, pOptions:KeyPointOptions):Promise<KeyPoint>{
-        return await this.generator.generate(pKP, pOptions);
+    public async generate( pKP:KeyPoint, pOptions:Nullable<KeyPointOptions> = null):Promise<KeyPoint>{
+        const up = [];
+        if(pKP.getVirtualID()==null){
+            pKP.setVirtualID(await this._nextVID());
+            up.push("vid");
+        }
+
+        const kp = await this.generator.generate(pKP, pOptions);
+        await this.update(kp);
+        return kp;
     }
     /*
     private _createDalvikReadyKeyPoint(){
@@ -318,8 +334,10 @@ Java.deoptimizeEverything();
      *
      * @param pKeyPoint
      */
-    async update(pKeyPoint:KeyPoint):Promise<KeyPoint> {
-        await this._db.asyncUpdateEntry(pKeyPoint, {upsert:true});
+    async update(pKeyPoint:KeyPoint, pFields:string[] = []):Promise<KeyPoint> {
+        const o:any = {upsert:true};
+        if(pFields.length>0) o.set = pFields;
+        await this._db.asyncUpdateEntry(pKeyPoint, o);
         pKeyPoint.updated();
         return pKeyPoint;
     }
@@ -453,42 +471,41 @@ Java.deoptimizeEverything();
      * @param pKpTarget
      * @param pKpCreateOptions
      */
-    async createKeyPoint(pKpTarget:INode, pKpCreateOptions:KeyPointOptionsOptions):Promise<KeyPoint> {
+    async createKeyPoint(pKpTarget:INode, pKpCreateOptions:KeyPointOptions):Promise<KeyPoint> {
 
         let kp:KeyPoint = new KeyPoint();
-        let node:INode[];
-        const opts:KeyPointOptions = new KeyPointOptions(pKpCreateOptions);
+        //let node:INode[];
+        //const opts:KeyPointOptions = new KeyPointOptions(pKpCreateOptions);
 
         try{
             // search node
             // node = this._project.getAnalyzer().searchNode( pKpTarget.__, pKpTarget.uid);
 
-            node = await this._project.getProjectDB().search({ _uid: pKpTarget.getUID() }, pKpTarget);
+            //node = await this._project.getProjectDB().search({ _uid: pKpTarget.getUID() }, pKpTarget);
 
-            if(node == null || node.length==0 ){
+            if(pKpTarget == null){
                 throw KeyPointManagerException.INVALID_TARGET_NODE(pKpTarget);
-            }else if(node.length>1 ){
-                throw KeyPointManagerException.MULTIPLE_TARGET_NOT_SUPPORTED();
             } else{
-                kp.addNode(node[0] as INode);
+                kp.addNode(pKpTarget); //node[0] as INode);
             }
 
-            if(opts.hasOwnProperty('condition')) kp.setCondition(opts.condition);
+            if(pKpCreateOptions.hasOwnProperty('condition'))
+                kp.setCondition(pKpCreateOptions.condition);
 
             if(pKpCreateOptions.hasOwnProperty('name')){
                 kp.setName(pKpCreateOptions.name);
             }else{
                 // x.name = "core."+x.condition+(x.node.lengt>0 ? "."+x.node[0].uid : "");
-                kp.setName("user."+NodeInternalTypeName[node[0].__]+"."+opts.getConditionName()+"."+node[0].getUID());
+                kp.setName("user."+NodeInternalTypeName[pKpTarget.__]+"."+pKpCreateOptions.condition+"."+pKpTarget.getUID());
             }
 
             if(pKpCreateOptions.hasOwnProperty('token')) kp.setToken(pKpCreateOptions.token);
-            if(pKpCreateOptions.hasOwnProperty('descr')) kp.setDescription(pKpCreateOptions.descr);
+            if(pKpCreateOptions.hasOwnProperty('descr')) kp.setDescription(pKpCreateOptions.description);
             if(pKpCreateOptions.hasOwnProperty('weight')) kp.setWeight(pKpCreateOptions.weight );
-            if(pKpCreateOptions.hasOwnProperty('type')) kp.setKeypointType(pKpCreateOptions.keypointType);
+            if(pKpCreateOptions.hasOwnProperty('type')) kp.setKeypointType(pKpCreateOptions.type);
 
             if(kp.getToken()==null){
-                kp.setToken( this.generateToken( kp, opts));
+                kp.setToken( this.generateToken( kp, pKpCreateOptions));
             }
 
             kp = await this.update(kp);

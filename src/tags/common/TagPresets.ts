@@ -38,6 +38,9 @@ export function newTagPresets(){
     const JAVA = new TagCategory({ name: "java" });
     const NETWORK_URI = new TagCategory({ name: "network.uri" });
     const ENCODED = new TagCategory({ name: "encoded", descr:"To tag strings containing encoded data such as base64, hex, JWT, IPv4, etc." });
+    const UI_ROLE = new TagCategory({ name: "ui.role" });
+    const UI_CMP = new TagCategory({ name: "ui.cmp" });
+    const KP = new TagCategory({ name: "kp" });
 
 
     // Removed since  1.13.0
@@ -288,6 +291,47 @@ export function newTagPresets(){
         new Tag({ name:"network" })
     ];
 
+
+    /*
+    ui.type.purpose.form
+    ui.type.purpose.edit
+    ui.type.purpose.accept
+    ui.type.purpose.reject
+    ui.type.purpose.destroy
+    ui.type.purpose.exec
+    ui.type.purpose.help
+     */
+    const UI_ROLE_TAGS = [
+        new Tag({ name:"form" }),
+        new Tag({ name:"edit" }),
+        new Tag({ name:"accept" }),
+        new Tag({ name:"reject" }),
+        new Tag({ name:"destroy" }),
+        new Tag({ name:"exec" }),
+        new Tag({ name:"help" })
+    ];
+
+    const UI_CMP_TAGS = [
+        new Tag({ name:"input" }),
+        new Tag({ name:"layout" }),
+        new Tag({ name:"text" }),
+        new Tag({ name:"pin" }),
+        new Tag({ name:"pan" }),
+        new Tag({ name:"email" }),
+        new Tag({ name:"date" }),
+        new Tag({ name:"zip" }),
+        new Tag({ name:"select" })
+    ];
+
+
+    const KP_TAGS = [
+        new Tag({ name:"before", label:"Before" }),
+        new Tag({ name:"after", label:"After" }),
+        new Tag({ name:"dlopen", label:"DlOpen" }),
+        new Tag({ name:"new", label:"New" }),
+        new Tag({ name:"hook", label:"Hook" }),
+        new Tag({ name:"fs", label:"FS" })
+    ];
     /*
     Discover: {
         Statically: "ds",
@@ -343,6 +387,9 @@ export function newTagPresets(){
     // dynamically built tag category
     StringAnalyzer.extractTags().map( x => { ENCODED.addTag(x); });
 
+    UI_CMP_TAGS.map( x => { UI_CMP.addTag(x); });
+    UI_ROLE_TAGS.map( x => { UI_ROLE.addTag(x); });
+
     return [
         GLOBAL,
         DISCOVER,
@@ -381,7 +428,9 @@ export function newTagPresets(){
         JAVA,
 
         NETWORK_URI,
-        ENCODED
+        ENCODED,
+        UI_ROLE,
+        UI_CMP
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();

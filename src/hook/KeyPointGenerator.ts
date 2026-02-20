@@ -1,8 +1,8 @@
-import KeyPoint, {KeyPointType} from "./KeyPoint.js";
+import KeyPoint, { KeyPointOptions } from "./KeyPoint.js";
 import KeyPointManager from "./KeyPointManager.js";
 import ModelFile from "../ModelFile.js";
-import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType, Nullable}
+    from "@dexcalibur/dxc-core-api";;
 import {INode} from "../INode.js";
 import {Device} from "../Device.js";
 import ModelClass from "../ModelClass.js";
@@ -18,6 +18,10 @@ import AnalyzerDatabase from "../AnalyzerDatabase.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AbstractHook, HOOK_FRAGMENT_POS} from "./AbstractHook.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
+import {RuntimeEventType} from "./RuntimeEvent.js";
+import {Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import NativeFunctionHook from "./NativeFunctionHook.js";
+import {MetadataTopic, MetadataType} from "../audit/common/Metadata.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -42,82 +46,9 @@ export interface KeyPointOptionsOptions {
     condition?:string;
     name?:string;
     cname?:string;
-    keypointType?:KeyPointType;
+    keypointType?:RuntimeEventType;
 }
 
-/**
- * Represent options required to generate code of a key point
- *
- * @class
- */
-export class KeyPointOptions {
-    parent:string;
-
-    /**
-     * The token to use inside hook template
-     * Sommething like that : `@@_KP_XXX_@@`
-     * @string
-     */
-    token:string;
-    weight:number;
-    descr:string;
-
-    /**
-     * Condition ID
-     * @field
-     * @type {string}
-     */
-    condition = "";
-
-    /**
-     * Type of resources/event where key point is listening
-     * By defaylt a key point if trigged by hooks
-     *
-     * @default `KeyPointType.HOOK`
-     * @type {KeyPointType}
-     */
-    keypointType:KeyPointType = KeyPointType.HOOK;
-
-    /**
-     * Condition Name
-     * @field
-     * @private
-     * @type {string}
-     */
-    private cname:string = null;
-
-    /**
-     * Key point name
-     * @field
-     * @type {string}
-     */
-    name: string;
-
-    /**
-     *
-     * @param pConfig {any} Optional. Poor object containing config
-     * @constructor
-     */
-    constructor(pConfig:KeyPointOptionsOptions = {}) {
-        for(const i in pConfig) this[i] = pConfig[i];
-    }
-
-    /**
-     * To get the condition name
-     *
-     * It is the last part of the condition ID. Ex: 'read' in 'fldpkg_read'
-     *
-     * @return {string} Condition name. Meaning depends of targeted node.
-     * @method
-     */
-    getConditionName(){
-        if(this.cname!=null){
-            return this.cname;
-        }else{
-            return (this.cname = this.condition.split('_')[1]);
-        }
-    }
-}
 
 enum INSTR_LEVEL {
     JAVA,
@@ -142,8 +73,18 @@ export class KeyPointGenerator {
 
     deepestInstrLvl:INSTR_LEVEL = INSTR_LEVEL.INSTR;
 
+    tags:Record<string, Tag> = {};
+
     constructor(pKeyPointMgr:KeyPointManager) {
         this.mgr = pKeyPointMgr;
+    }
+
+    initTags():void {
+        if(this.mgr==null){
+            throw new Error("KeyPointGenerator: Invalid KeyPointManager instance : cannot be null");
+        }
+        const tm = this.mgr.getProject().getTagManager();
+        this.tags["executable"] = tm.getTag("data.type.executable");
     }
 
     setTarget( pDevice:Device){
@@ -180,16 +121,16 @@ export class KeyPointGenerator {
         switch (node.__) {
             case NodeInternalType.FILE:
                 return `@@__KP::FILE::${pEvent}::${(node as ModelFile).getName()}__@@`;
-                break;
             default:
                 return `@@__KP::CUSTOM::${pKeyPoint.getName()}_${pEvent}__@@`;
-                break;
         }
     }
 
     private generateForField( pField:ModelField, pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         let code:string  = "";
-        switch(pOptions.getConditionName()){
+        let cond = pKeyPoint.getCondition() ?? pOptions.condition;
+
+        switch(cond){
             case 'r':
                 // read access
                 code =  `/* TODO *//*@@__CONTENT__@@*/`;
@@ -230,7 +171,8 @@ export class KeyPointGenerator {
         let hm:HookManager = project.getHookManager();
         let hook:AbstractHook = null;
 
-        switch(pOptions.getConditionName()){
+        let cond = pKeyPoint.getCondition() ?? pOptions.condition
+        switch(cond){
             case 'def':
                 // on method defined
                 const args = [];
@@ -300,6 +242,8 @@ export class KeyPointGenerator {
         let code:string = "";
         let classFactory = "Java";
 
+        let cond = pKeyPoint.getCondition() ?? pOptions.condition
+
         switch (loc.getType()) {
             case LocationType.APP:
                 classFactory = `DXC.classLoader.path`;
@@ -319,7 +263,7 @@ export class KeyPointGenerator {
 
         }
 
-        switch(pOptions.getConditionName()){
+        switch(cond){
             case 'load':
                 // get info about the classloader to hook in order to hook the class to load
 
@@ -358,7 +302,8 @@ ${classFactory}.use("${pClass.getName()}").onAnyNew((vArgs)=>{
 
     private generateForPackage( pPackage:ModelPackage, pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         let code:string ="";
-        switch(pOptions.getConditionName()){
+        let cond = pKeyPoint.getCondition() ?? pOptions.condition
+        switch(cond){
             case 'load':
                 // get info about the classloader to hook in order to hook the class to load
 
@@ -372,50 +317,70 @@ ${classFactory}.use("${pClass.getName()}").onAnyNew((vArgs)=>{
 
     private generateForFile( pFile:ModelFile, pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         const libName = pFile.getName();
+        let cond = pKeyPoint.getCondition() ?? pOptions.condition
 
-        switch(pOptions.getConditionName()){
+        switch(cond){
             case 'load':
+
+                if(!this.tags.executable.match(pFile)){
+                    Logger.error("[KEY POINT GENERATOR] Warning : File '"+libName+"' is not an executable file. Keypojnt could be bugged");
+                }
+
                 // JNI Onload if native lib
                 // DexClassLoader if dex file, ...
-                if(pFile.isExecutable()){
-                    pKeyPoint.code = `  
-Interceptor.attach( 
+                pKeyPoint.description = "This point is trigged when the lib '"+libName+"' before the JNI entrypoint of a JNI libary is called.";
+                pKeyPoint.code = `DXC.kp.JniLoad("${libName}");\n`;
+
+                /*else if (lib.hasExt("dex")){
+pKeyPoint.code = `
+DXC.keypoint.JniLoad("${libName}");
+Interceptor.attach(
     Process.findModuleByName("${libName}").findExportByName("JNI_Onload"),
-    { 
+    {
         onEnter:function(args){
             DXC.JVM["${libName}"] = args[0];
         },
         onLeave:function(args){
-            /*@@__CONTENT__@@*/
+            ///@@__CONTENT__@@
         }
     }
 );
 `;
-                }/*else if (lib.hasExt("dex")){
-
                 }*/
 
                 // else if()
                 // pKeyPoint.code = "Interruptor.newAgent({ @@__CONTENT__@@ }).startOnLoad('"+lib+"')";
                 break
             case 'link':
+
+                if(!this.tags.executable.match(pFile)){
+                    Logger.error("[KEY POINT GENERATOR] Warning : File '"+libName+"' is not an executable file. Keypojnt could be bugged");
+                }
                 // if no instruction hook are enabled, then use only linker64 hook
                 pKeyPoint.description = "This point is trigged when the lib '"+libName+"' is linked by the dynamic linker.";
                 if(!this.mgr.hasActiveInstructionHook()){
                     // add a function to the list callback executed on load
-                    pKeyPoint.code = `__:function(vMod){ /*@@__CONTENT__@@*/ },`;
+                    //pKeyPoint.code = `__:function(vMod){ /*@@__CONTENT__@@*/ },`;
+
+                    pKeyPoint.code = `DXC.kp.DynLink("${libName}",0);\n`;
                 }else{
                     // use interruptor + onStart()
                     pKeyPoint.require("interruptor/LinuxArm64");
-                    pKeyPoint.code = `onStart: function(vMod){ /*@@__CONTENT__@@*/ }`;
+                    //pKeyPoint.code = `onStart: function(vMod){ /*@@__CONTENT__@@*/ }`;
+                    pKeyPoint.code = `DXC.kp.DynLink("${libName}",0);\n`;
                 }
                 break
             case 'dlo':
 
                 //if(this.isStalkerReady()){
+
+                pKeyPoint.description = "This point is trigged when the lib '"+libName+"' is opened using dlopen for the first time. ";
+                pKeyPoint.code = `DXC.kp.DlOpen("${libName}",0);\n`;
+
+                /*
                     pKeyPoint.code = `
 DXC.onDlOpenOf( /${libName}/, (vMod)=>{
-     /*@@__CONTENT__@@*/
+     /*@@__CONTENT__@@
 });
                     `;
                 /*}else{
@@ -480,30 +445,73 @@ DXC.onMemoryMapping(  {file:/${libName}$/}, (vMod)=>{
         return pKeyPoint;
     }
 
-    private generateForFunction( pFunc:ModelFunction, pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
-        let code:string ="";
-        const hm:HookManager = this.mgr.getProject().getHookManager();
-        const probe = hm.getProbe( pKeyPoint.getFirstNode() as ModelFunction);
+    private async _generateForFunction( pFunc:ModelFunction, pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):Promise<KeyPoint> {
 
-        switch(pOptions.getConditionName()){
-            case 'bef':
-            case 'aft':
-                /*if(probe == null){
-                    hm.createNativeFunctionHook( pKeyPoint.getFirstNode() as ModelFunction, {loadKP:  pKeyPoint.getAncestor() });
-                }*/
+        let cond = pKeyPoint.getCondition() ?? pOptions.condition
 
-                code =  `/* TODO *//*@@__CONTENT__@@*/`;
-                break
-            case 'dlsym':
-                code = `
-DXC.onDlSymOf( "${pFunc.getSymbol()}", (vMod)=>{
-     /*@@__CONTENT__@@*/
-});
-                `;
-                break
+        if(cond=="dlsym"){
+            pKeyPoint.code = `DXC.kp.DlSym( "${pFunc.getSignature()}","${pFunc.getSymbol()}");\n`;
+            return pKeyPoint;
         }
-        pKeyPoint.code = code;
-        return pKeyPoint;
+
+        let code:string ="";
+        let ancestor = pKeyPoint.getAncestor();
+        const hm:HookManager = this.mgr.getProject().getHookManager();
+        const hooks = hm.findHookByNode(pFunc) as NativeFunctionHook[];
+
+        if(hooks.length == 0){
+            hooks.push(
+                await hm.createNativeFunctionHook(
+                    pKeyPoint.getFirstNode() as ModelFunction,
+                    { loadKP:  ancestor })
+            );
+        }
+
+        switch(cond){
+            case 'bef':
+                if(hooks[0].getBefore().filter( x => x.name == "kp-before").length == 0){
+                    hooks[0].addExtraFragment(
+                        HOOK_FRAGMENT_POS.BEFORE,
+                        new HookTemplateFragment({
+                            name: `kp-before`,
+                            description: `Before KeyPoint`,
+                            template: `DXC.kp.trigger("before-fn-${pKeyPoint.getVirtualID()}", { @@__HOOK_ID__@@, @@__FRAG_ID__@@, @@__FUZZ_CASEID__@@ });`,
+                            metadata: [{
+                                type: MetadataType.ANY,
+                                key:  MetadataTopic.KP,
+                                value: { kp: pKeyPoint.getUID() }
+                            }]
+                        })
+                    )
+                }
+
+                pKeyPoint.code  = `DXC.kp.Before("fn-${pKeyPoint.getVirtualID()}");\n`;
+                return pKeyPoint;
+            case 'aft':
+                if(hooks[0].getBefore().filter( x => x.name == "kp-after").length == 0){
+                    hooks[0].addExtraFragment(
+                        HOOK_FRAGMENT_POS.BEFORE,
+                        new HookTemplateFragment({
+                            name: `kp-after`,
+                            description: `After KeyPoint`,
+                            template: `DXC.kp.trigger("after-fn-${pKeyPoint.getVirtualID()}", { @@__HOOK_ID__@@, @@__FRAG_ID__@@, @@__FUZZ_CASEID__@@ });`,
+                            metadata: [{
+                                type: MetadataType.ANY,
+                                key:  MetadataTopic.KP,
+                                value: { kp: pKeyPoint.getUID() }
+                            }]
+                        })
+                    )
+                }
+
+                pKeyPoint.code  = `DXC.kp.After("fn-${pKeyPoint.getVirtualID()}");\n`;
+                return pKeyPoint;
+            case 'dlsym':
+                pKeyPoint.code = `DXC.kp.DlSym( "${pFunc.getSignature()}","${pFunc.getSymbol()}");\n`;
+                return pKeyPoint;
+        }
+
+        throw KeyPointManagerException.CONDITION_NOT_SUPPORTED(cond)
     }
 
     /**
@@ -511,46 +519,43 @@ DXC.onDlSymOf( "${pFunc.getSymbol()}", (vMod)=>{
      * @param pKeyPoint
      * @param pOptions
      */
-    async generate( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):Promise<KeyPoint>{
+    async generate( pKeyPoint:KeyPoint, pOptions:Nullable<KeyPointOptions> = null):Promise<KeyPoint>{
 
         // get node associated to the key point
-        const target:any = this.getTargetNode(pKeyPoint);
+        const target:INode = this.getTargetNode(pKeyPoint);
         const hmopts:any = this.mgr.getProject().getHookManager().options;
-        const targetUID = (target.hasOwnProperty('uid')? target.uid : target.getUID());
+        const targetUID = target.getUID(); // (target.hasOwnProperty('uid')? target.uid : target.getUID());
         let analDB:any =  this.mgr.getProject().getAnalyzer();
-        const obj =  analDB.searchNode(
-                                        target.__,
-                                        targetUID
-                                    );
+        //const obj =  analDB.searchNode(target.__,  targetUID  );
 
 
-        if(obj==null){
+        if(target==null){
             Logger.error("[KEY POINT GENERATOR] Node associated to the target cannot be found (type="+target.__+", uid="+targetUID+")");
             throw KeyPointManagerException.GENERATOR_ERROR_NODE_NOT_FOUND(target.__,targetUID);
         }
 
         switch (target.__) {
             case NodeInternalType.FILE:
-                this.generateForFile( obj as ModelFile, pKeyPoint, pOptions, hmopts);
+                this.generateForFile( target as ModelFile, pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.PACKAGE:
-                this.generateForPackage( obj as ModelPackage, pKeyPoint, pOptions, hmopts);
+                this.generateForPackage( target as ModelPackage, pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.CLASS:
-                this.generateForClass( obj as ModelClass, pKeyPoint, pOptions, hmopts);
+                this.generateForClass( target as ModelClass, pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.METHOD:
-                await this.generateForMethod( obj as ModelMethod,pKeyPoint, pOptions, hmopts);
+                await this.generateForMethod( target as ModelMethod,pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.FIELD:
-                this.generateForField( obj as ModelField,pKeyPoint, pOptions, hmopts);
+                this.generateForField( target as ModelField,pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.FUNC:
-                this.generateForFunction( obj as ModelFunction,pKeyPoint, pOptions, hmopts);
+                pKeyPoint = await this._generateForFunction( target as ModelFunction,pKeyPoint, pOptions, hmopts);
                 break;
         }
 
-        pKeyPoint.token = this.generateToken( obj, pKeyPoint, pOptions.getConditionName());
+        pKeyPoint.token = this.generateToken( target, pKeyPoint, pKeyPoint.getCondition() ?? pOptions.condition);
 
         return pKeyPoint;
     }

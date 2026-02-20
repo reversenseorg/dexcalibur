@@ -1,6 +1,5 @@
 import ModelUiRole from "../models/ModelUiRole.js";
 
-
 const Submit = new ModelUiRole({  _uid:'submit', name:"Submit", tagNames:["ui.type.purpose.form"] });
 const Reset = new ModelUiRole({   _uid:'reset', name:"Reset", tagNames:["ui.type.purpose.form"] });
 const Copy = new ModelUiRole({   _uid:'copy', name:"Copy", tagNames:["ui.type.purpose.edit"] });

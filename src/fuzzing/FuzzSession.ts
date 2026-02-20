@@ -75,6 +75,13 @@ export interface FuzzSessionStateChange {
     state: FuzzState
 }
 
+export enum TerminalPointType {
+    HOOK='hk',
+    HOST='hk',
+    SIDE='hk',
+    CRASH='hk',
+}
+
 /**
  * @class
  */

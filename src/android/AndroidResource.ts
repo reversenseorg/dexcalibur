@@ -7,6 +7,7 @@ import ModelField from "../ModelField.js";
 import ModelStringValue from "../ModelStringValue.js";
 import ModelFile from "../ModelFile.js";
 import DexcaliburProject from "../DexcaliburProject.js";
+import {Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
 
 /**
  * Map resource name to offset in entries list
@@ -21,6 +22,7 @@ export interface AndroidResourceOpts {
     _value?:Nullable<string|ResourceReference>;
     _entries?:AndroidResource[];
     _children?:AndroidResourceMap;
+    tags?:TagUUID[];
 }
 
 
@@ -127,6 +129,7 @@ export class AndroidResource implements TreeNode<AndroidResource> {
     _entries:AndroidResource[] = [];
     _children:AndroidResourceMap = {};
 
+    tags:TagUUID[] = [];
 
     constructor( pConfig:AndroidResourceOpts) {
         this.update(pConfig);
@@ -158,18 +161,19 @@ export class AndroidResource implements TreeNode<AndroidResource> {
      * @static
      * @return {AndroidResourceType|AndroidResource}
      */
-    static fromXml(pXml:any, pResParent:Nullable<AndroidResourceType|AndroidResource>, pType:string = null):AndroidResource[]{
+    static fromXml(pXml:any, pResParent:Nullable<AndroidResourceType|AndroidResource>, pType:string = null, pTags:TagUUID[] = []):AndroidResource[]{
 
         let ress:AndroidResource[] = [];
         let res:AndroidResource[];
 
-        function createRes(pData:any):AndroidResource{
+        function createRes(pData:any, vTags:TagUUID[]):AndroidResource{
             let opts:AndroidResourceOpts = {
                 // gather type from tag of the node
                 _type: (pType!=null ? pType : pData['#name']),
                 _attr: {},
                 _entries: [],
-                _value: null
+                _value: null,
+                tags: vTags
             };
 
             // gather node attributes
@@ -191,7 +195,7 @@ export class AndroidResource implements TreeNode<AndroidResource> {
             // browse children
             if(pData['$$']!=null){
                 pData['$$'].map((vChild:any)=>{
-                    opts._entries.push(createRes(vChild));
+                    opts._entries.push(createRes(vChild, pTags));
                 })
             }
             /*
@@ -228,7 +232,7 @@ export class AndroidResource implements TreeNode<AndroidResource> {
         if(Array.isArray(pXml)==true){
             // the root node (out of scope) has multiple nodes at the same level
             pXml.map(v => {
-                const r = createRes( v)
+                const r = createRes( v, pTags)
                 ress.push(r);
                 if(pResParent != null){
                     pResParent.add(r);
@@ -240,7 +244,7 @@ export class AndroidResource implements TreeNode<AndroidResource> {
                 console.log("Object.values(pXml).length>1 : ",pXml);
                 throw new Error("Cannot parse android ressource ");
             }else if(Object.values(pXml).length == 1){
-                re = createRes(Object.values(pXml)[0]);
+                re = createRes(Object.values(pXml)[0], pTags);
                 ress.push(re);
                 if(pResParent != null){
                     pResParent.add(re);
@@ -383,7 +387,8 @@ export class AndroidResource implements TreeNode<AndroidResource> {
                 type: (pType==null ? this._type : pType),
                 attrs: {},
                 children: this._entries
-            }
+            },
+            tags: this.tags
         });
 
         if(typeof this._value === 'string'){
@@ -392,7 +397,8 @@ export class AndroidResource implements TreeNode<AndroidResource> {
                 src: [{
                     __: NodeInternalType.RESOURCE,
                     _uid: ResUID
-                }]
+                }],
+                tags: this.tags
             });
         }else if(this._value != null){
             value = this._value;
@@ -409,7 +415,8 @@ export class AndroidResource implements TreeNode<AndroidResource> {
                         src: [{
                             __: NodeInternalType.RESOURCE,
                             _uid: ResUID
-                        }]
+                        }],
+                        tags: this.tags
                     });
                 }else if(this._attr[i] != null){
                     attr[i] = this._attr[i];

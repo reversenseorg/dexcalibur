@@ -2768,7 +2768,11 @@ export class OrganizationManager {
         let uplres:UploadedResource;
         let ress:UploadedResource[] = [];
         for(let i=0;i<path.length;i++){
-            uplres = await this._ctx.getWebserver().uploader.uploadFile(pUser, path[i].path, path[i].path);
+            uplres = await this._ctx.getWebserver().uploader.uploadFile(
+                pUser,
+                path[i].path,
+                _path_.basename(path[i].path)
+            );
             uplres.appendExtra({ purpose: path[i].purpose });
             await this._ctx.getEngineDB().save(uplres);
             ress.push(uplres);

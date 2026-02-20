@@ -29,40 +29,8 @@ export default new InspectorFactory({
 
     useGUI: true,
 
-    version: "1.0.4",
-    tags : [
-        {
-            name:"ui.event",
-            _tagsOptions:[
-                { name:"click"},
-                { name:"touch"},
-                { name:"drag"},
-                { name:"drop"},
-                { name:"hover"},
-                { name:"key"},
-            ]
-        },
-        {
-            name:"ui.input",
-            _tagsOptions:[
-                { name:"text"},
-                { name:"pan"},
-                { name:"pincode"},
-                { name:"date"},
-                { name:"email"},
-            ]
-        },
-        {
-            name:"ui.cmp",
-            _tagsOptions:[
-                { name:"label"},
-                { name:"input"},
-                { name:"layout"},
-                { name:"listener"},
-                { name:"event"},
-            ]
-        }
-    ],
+    version: "1.0.5",
+    tags : [],
 
     hookSet: {
         id: "UI_Generic",

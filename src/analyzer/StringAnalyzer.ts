@@ -58,8 +58,7 @@ export class StringAnalyzer {
         [/^\d{4}-\d{2}-\d{2}$/, "encoded.date_iso", "ISO date"],
         // DateTime ISO 8601 (heuristique, avec Z/offset)
         [/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/, "encoded.datetime_iso", "ISO Datetime"],
-        // Version Android-like (v123 / 1.2.3(4))
-        [/^v?\d+(\.\d+){1,3}(\(\d+\))?$/, "encoded.version_soft", "Android-like version"],
+        // [/^v?\d+(\.\d+){1,3}?$/, "encoded.float", "Float number"],
         // INI / .properties “key=value” (1 ligne)
         [/^[A-Za-z0-9_.-]{1,64}(=[^=\n]|:[^:\n]).+$/, "encoded.key_pair", "Key Pair"],
         // URL-encoded (présence de %xx répétée)

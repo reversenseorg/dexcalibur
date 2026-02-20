@@ -8,7 +8,6 @@ import {HookManager} from "./HookManager.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import {AbstractHook} from "./AbstractHook.js";
 import * as Log from "../Logger.js";
-import {KeyPointOptions} from "./KeyPointGenerator.js";
 import Util from "../Utils.js";
 import {ScriptBuilderOptions, ScriptWriterOptions, TargetLanguage} from "./common.js";
 import {IStringIndex} from "@dexcalibur/dexcalibur-orm";
@@ -252,9 +251,7 @@ DXC.HOOK["${pLibraryName}"] = {
             //try{
             // if the keypoint template has been never generated, create it :
             if(!vKP.isTemplateReady()){
-                await this._hm.getKeyPointManager().generate(vKP, new KeyPointOptions({
-                    condition: vKP.getCondition()
-                }));
+                await this._hm.getKeyPointManager().generate(vKP);
                 // TODO : backup/save
             }
 
