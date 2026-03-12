@@ -27,13 +27,6 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
             },
             autoEmit: true,
             emitEvent: "hook.nativelib.loadLibrary.inject",
-            /*
-            preprocessor: ` 
-                pCtx.getInspector("NativeLibrary").emits("hook.nativelib.inject",pEvent);
-            `,/*
-            onMatch: function(ctx:DexcaliburProject,event:Event):any{
-                ctx.getInspector("NativeLibrary").emits("hook.nativelib.inject",event);
-            },*/
             replace: `
                 // <ts>={
                 // Source: https://cs.android.com/android/platform/superproject/+/android-13.0.0_r39:libcore/ojluni/src/main/java/java/lang/Runtime.java;l=978

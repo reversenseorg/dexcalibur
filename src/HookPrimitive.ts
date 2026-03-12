@@ -22,7 +22,6 @@ export default class HookPrimitive
     interceptBefore:any = null;
     interceptAfter:any = null;
     interceptReplace:any = null;
-    onMatch:any = null;
     custom:boolean = false;
     variables:HookVariable[] = null;
     raw:any = null;
@@ -132,7 +131,6 @@ export default class HookPrimitive
         hook.setID( CryptoUtils.md5(context.hook.nextHookIdFor(method)));
         hook.setParentID(set.id);//name);
         hook.isIntercept = true;
-        hook.onMatch = this.onMatch;
 
         //console.log(this);
         if(this.interceptBefore != null){
@@ -175,7 +173,6 @@ export default class HookPrimitive
         o.interceptReplace = (this.interceptReplace!=null)?this.interceptReplace:null;
 
         CoreDebug.checkJsonSerialize(o, "HookPrimitive");
-        // o.onMatch
         return o;
     }
 }

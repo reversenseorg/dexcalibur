@@ -41,6 +41,8 @@ export function newTagPresets(){
     const UI_ROLE = new TagCategory({ name: "ui.role" });
     const UI_CMP = new TagCategory({ name: "ui.cmp" });
     const KP = new TagCategory({ name: "kp" });
+    const KS_TYPE = new TagCategory({ name: "keystore.type" });
+    const KS_SVC = new TagCategory({ name: "keystore.svc" });
 
 
     // Removed since  1.13.0
@@ -332,6 +334,20 @@ export function newTagPresets(){
         new Tag({ name:"hook", label:"Hook" }),
         new Tag({ name:"fs", label:"FS" })
     ];
+
+    const KS_TYPE_TAGS = [
+        new Tag({ name:"aks", label:"KeyStorage:AndroidKeyStore"}),
+        new Tag({ name:"bks", label:"KeyStorage:BouncyCastle"}),
+        new Tag({ name:"keychain", label:"KeyStorage:KeyChain"}),
+        new Tag({ name:"tpm", label:"KeyStorage:TPM"}),
+        new Tag({ name:"ese", label:"KeyStorage:SecureElement"}),
+        new Tag({ name:"db", label:"KeyStorage:DBMS"}),
+    ];
+
+    const KS_SVC_TAGS = [
+        new Tag({ name:"load", label:"KeyStore-load"}),
+    ];
+
     /*
     Discover: {
         Statically: "ds",
@@ -389,6 +405,8 @@ export function newTagPresets(){
 
     UI_CMP_TAGS.map( x => { UI_CMP.addTag(x); });
     UI_ROLE_TAGS.map( x => { UI_ROLE.addTag(x); });
+    KS_SVC_TAGS.map( x => { KS_SVC.addTag(x); });
+    KS_TYPE_TAGS.map( x => { KS_TYPE.addTag(x); });
 
     return [
         GLOBAL,
@@ -430,7 +448,10 @@ export function newTagPresets(){
         NETWORK_URI,
         ENCODED,
         UI_ROLE,
-        UI_CMP
+        UI_CMP,
+
+        KS_TYPE,
+        KS_SVC
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();

@@ -1929,8 +1929,7 @@ export default class Analyzer
         );
 
 
-        console.log(execFiles.getAsList());
-
+        Logger.raw("[*] "+execFiles.size()+" native libraries or executable files found. ");
 
 
         // start object mapping (replace reference by relationship),

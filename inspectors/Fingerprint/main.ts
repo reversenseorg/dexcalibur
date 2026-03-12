@@ -52,13 +52,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
                 search: {
                     type: ModelMethod.TYPE.getName(),
                     uid: "android.telephony.TelephonyManager.getDeviceId()<java.lang.String>"
-                },/*
-                onMatch: function(ctx:DexcaliburProject,event:Event):any{
-                    ctx.getInspector("Fingerprint").emits("fingerprint.device.getId",event);
                 },
-                preprocessor: ` 
-                    pCtx.getInspector("Fingerprint").emits("fingerprint.device.getId", pEvent.data);
-                `,*/
                 autoEmit: true,
                 emitEvent: "fingerprint.device.getId",
                 replace: `  

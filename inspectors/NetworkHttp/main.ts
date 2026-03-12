@@ -8,7 +8,7 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.23",
+    version: "1.0.24",
     tags: [{
         name: "network.data",
         _tagsOptions: [
@@ -29,6 +29,36 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
 
         strategies: [
             {
+                name: "OkHttp_Request_Builder",
+                descr: "OkHttp Request builder is the predecessor of any HTTP request made by this lib",
+                search: {
+                    type: ModelMethod.TYPE.getName(),
+                    req: `method("name:^url$").filter("enclosingClass.name:okhttp")`
+                },
+                autoEmit: true,
+                emitEvent: "network.http.request.build",
+                before: `  
+                    if(arg0!=null){
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                sbom: "okhttp",
+                                url: (arg0.toString!=null ? arg0.toString() : arg0) 
+                            }
+                        );
+                    }else{
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                sbom: "okhttp",
+                                url: ""
+                            }
+                        );
+                    }
+                `
+            }, {
                 name: "OkHttp_Request_prepare",
                 descr: "A new HTTP(s) request is building using OkHttp client, and will probably executed later.",
                 search: {

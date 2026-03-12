@@ -8,16 +8,17 @@
  * @class
  */
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {Nullable} from "../core/IStringIndex.js";
+import {Operation} from "../search/MerlinSearchRequest.js";
 
 
 export interface HookStrategySelectorOptions {
     type: string;
     uid?:Nullable<any>;
-    req?:Nullable<string>;
+    req?:Nullable<string|Operation[]>;
+    opts?:any;
 }
 
 export default class HookStrategySelector {
@@ -30,7 +31,7 @@ export default class HookStrategySelector {
 
     uid?:any = null;
 
-    req?:string = null;
+    req?:string|Operation[] = null;
 
 
     /**
@@ -52,10 +53,6 @@ export default class HookStrategySelector {
         return new HookStrategySelector(pData);
     }
 
-    isSearchRequest():boolean {
-        return (this.req != null);
-    }
-
     getUids():string[] {
         if(this.isUidList()){
             return this.uid;
@@ -72,12 +69,16 @@ export default class HookStrategySelector {
         return (this.uid != null);
     }
 
-    setRequest(pReq:string){
+    setRequest(pReq:string|Operation[]){
         this.req = pReq;
     }
 
-    getRequest():string{
+    getRequest():string|Operation[]{
         return this.req;
+    }
+
+    hasMerlinRequest():boolean {
+        return (this.req != null) && (Array.isArray(this.req));
     }
 
     isMethod(){

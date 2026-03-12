@@ -24,7 +24,8 @@ export enum RuntimeEventType {
     FRAG_ERROR='fe',
     INPUT_EVT='ev',
     SCREENSHOT = 'ss',
-    FUZZER ='fz'
+    FUZZER ='fz',
+    ANY='*'
 }
 
 

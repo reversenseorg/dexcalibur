@@ -653,16 +653,15 @@ HookStrategy.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
     (new NodeProperty("name")).type(DbDataType.STRING).def(null),
     (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("preprocessor")).type(DbDataType.STRING).def(null),
     (new NodeProperty("on")).type(DbDataType.STRING).def(null),
     (new NodeProperty("enabled")).type(DbDataType.BOOLEAN).def(true),
     (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
-    (new NodeProperty("onMatch"))
-        .type(DbDataType.STRING)
-        .def(null)
-        .sleep( (x:NodePropertyState) => { return null; })
-        .wakeUp( (x:NodePropertyState) => { return (x.self.preprocessor != null ? HookStrategy.newPreprocessorFn(x.self.preprocessor) : null )}),
+    //(new NodeProperty("onMatch"))
+    //    .type(DbDataType.STRING)
+    //    .def(null)
+    //    .sleep( (x:NodePropertyState) => { return null; })
+    //    .wakeUp( (x:NodePropertyState) => { return (x.self.preprocessor != null ? HookStrategy.newPreprocessorFn(x.self.preprocessor) : null )}),
 
     (new NodeProperty("loadOn")).type(DbDataType.STRING).def(null),
     (new NodeProperty("unloadOn")).type(DbDataType.STRING).def(null),

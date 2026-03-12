@@ -11,12 +11,11 @@ import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
 import {IDbCollection, IDbIndex, NodeProperty, NodeType} from "@dexcalibur/dexcalibur-orm";
 import * as Log from "../Logger.js";
 import {Nullable} from "../core/IStringIndex.js";
-import {SearchPattern} from "./SearchPattern.js";
 import {MerlinSearchRequestException} from "./error/MerlinSearchRequestException.js";
 import {INodeRef} from "../INode.js";
 import ModelStringValue from "../ModelStringValue.js";
 
-;
+
 
 const TAG_TOKEN = '@';
 const SEP_TOKEN = ':';

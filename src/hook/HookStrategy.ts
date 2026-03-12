@@ -22,6 +22,7 @@ import {HookRevision, HookRevisionSubject, RevisionOperation} from "../HookRevis
 import {UPGRADE_MODE} from "../inspector/common.js";
 import Util from "../Utils.js";
 import {InspectorManagerException} from "../errors/InspectorManagerException.js";
+import {Operation} from "../search/MerlinSearchRequest.js";
 
 export const DEFAULT_PRIORITY = -1;
 
@@ -38,14 +39,6 @@ export interface HookStrategyOptions {
     replace?:Nullable<string>;
     loadOn?:Nullable<string>;
     unloadOn?:Nullable<string>;
-    /**
-     * @deprecated
-     */
-    preprocessor?:Nullable<string>;
-    /**
-     * @deprecated
-     */
-    onMatch?:Nullable<any>;
     deprecated?:boolean;
     removed?:boolean;
     [key:string] :any;
@@ -96,10 +89,6 @@ export default class HookStrategy implements INode{
     emitEvent:string = null;
 
     /**
-     * @deprecated
-     */
-    preprocessor: string = null;
-    /**
      * Search Engine request
      * @private
      */
@@ -118,10 +107,6 @@ export default class HookStrategy implements INode{
 
     on:string = null;
 
-    /**
-     * @deprecated
-     */
-    onMatch:any = null;
 
     loadOn:string = null;
     unloadOn:string = null;
@@ -172,9 +157,9 @@ export default class HookStrategy implements INode{
     static from(pConfig:any):HookStrategy {
         const o:HookStrategy = new HookStrategy(pConfig);
 
-        if(pConfig.preprocessor != null){
-            o.updatePreprocessorSrc(pConfig.preprocessor);
-        }
+        //if(pConfig.preprocessor != null){
+        //    o.updatePreprocessorSrc(pConfig.preprocessor);
+        //}
 
         if(o.search != null){
             o.search = HookStrategySelector.from(o.search);
@@ -291,11 +276,11 @@ export default class HookStrategy implements INode{
         this.loadOn = pKeyPoint.getUID();
     }
 
-    setSearchEngineRequest(pRequest:string) {
+    setSearchEngineRequest(pRequest:string|Operation[]) {
         this.search.setRequest(pRequest);
     }
 
-    getSearchEngineRequest():string {
+    getSearchEngineRequest():string|Operation[] {
         return this.search.getRequest();
     }
 
@@ -303,23 +288,7 @@ export default class HookStrategy implements INode{
         this.on = pEventName;
     }
 
-    /**
-     * @deprecated
-     * @param pSource
-     */
-    updatePreprocessorSrc( pSource:string):void {
-        this.preprocessor = pSource;
-        this.onMatch = new Function('pCtx', 'pEvent', this.preprocessor);
-    }
 
-    /**
-     * @deprecated
-     * @param pFunc
-     */
-    setPreprocessorFn( pFunc:any):void {
-        this.preprocessor = null;
-        this.onMatch = pFunc;
-    }
     /**
      *
      * @param pContext
@@ -383,11 +352,6 @@ export default class HookStrategy implements INode{
 
                 await hm.save(h,create);
 
-                // deprecated
-                if(this.onMatch != null){
-                    pContext.getHookManager().addMatchListener(h.getGUID(), this.onMatch);
-                }
-
                 success = success || true;
             }
         }
@@ -442,11 +406,6 @@ export default class HookStrategy implements INode{
             // update hook script
             jhook.build(this.lang);
             await hm.save(jhook, create);
-
-
-            if(this.preprocessor != null){
-                hm.addMatchListener(jhook.getGUID(), this.preprocessor);
-            }
         }
     }
 
@@ -473,11 +432,6 @@ export default class HookStrategy implements INode{
 
             nhook.build(this.lang);
             await hm.save(nhook,create);
-
-
-            if(this.preprocessor != null){
-                hm.addMatchListener(nhook.getGUID(), this.preprocessor);
-            }
         }
     }
 
@@ -561,38 +515,6 @@ export default class HookStrategy implements INode{
                 let x = uids[i];
                 await this._searchAndCreateNativeFnHook(uids[i], pContext);
             }
-
-            /*
-            this.search.getUids().map( (x:string) =>
-            {
-                let nhook:NativeFunctionHook = null;
-                const m:ModelFunction = pContext.find.get.func(x);
-                let create = true;
-
-                if(m != null){
-                    nhook = hm.getNativeFunctionHook(m)
-
-                    if(nhook == null){
-                        nhook = await hm.createNativeFunctionHook(m, {loadKP:  this.load_kp });
-                        nhook.unloadOn(this.unload_kp);
-                        create = true;
-                    }
-
-
-                    if(Object.keys(this.variables).length>0) nhook.initVariables(this.variables);
-                    if(this.before != null) nhook.appendBefore(this.before);
-                    if(this.after != null) nhook.appendAfter(this.after);
-                    if(this.replace != null) nhook.appendReplace(this.replace);
-
-                    nhook.build(this.lang);
-                    hm.save(nhook,create);
-
-
-                    if(this.preprocessor != null){
-                        hm.addMatchListener(nhook.getGUID(), this.preprocessor);
-                    }
-                }
-            });*/
         }
         else if(this.search.isSystemCall()){
 

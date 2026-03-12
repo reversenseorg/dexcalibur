@@ -132,12 +132,6 @@ export default new InspectorFactory({
                 },
                 autoEmit: true,
                 emitEvent: "hook.dex.find.class",
-                /*preprocessor: `
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.find.class", pEvent.getData().data);
-                `,
-               /* onMatch: function (ctx:DexcaliburProject, event:Event):void {
-                    ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event.data);
-                },*/
                 after: `   
                         let cls = Java.cast(ret, DXC.java.class.lang.Class);
             
@@ -158,16 +152,10 @@ export default new InspectorFactory({
                 },
                 autoEmit: true,
                 emitEvent: "hook.dex.classloader.new",
-                /* //method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
-                onMatch: function (ctx:DexcaliburProject, event:Event):void {
-                    // the evvent data contains the bytecode of the Dex file        
-                    ctx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", event.data);
-                },*/
+
 
                 // the event data contains the bytecode of the Dex file
-                /*preprocessor: `
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.getData().data);
-                `,*/
+
                 before: ` 
                         //<ts>={
                         DXC.send(
@@ -207,14 +195,6 @@ export default new InspectorFactory({
                     type: ModelMethod.TYPE.getName(),
                     uid: "dalvik.system.DexFile.loadDex(<java.lang.String><java.lang.String><int>)<dalvik.system.DexFile>"
                 },
-                /*
-                onMatch: function (ctx:DexcaliburProject, event:Event):void{
-                    ctx.getInspector("DynamicLoader").emits("hook.dex.load", event.data);
-                },
-                preprocessor: ` 
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.load", pEvent.getData().data);
-                `,*/
-
                 autoEmit: true,
                 emitEvent: "hook.dex.load",
                 variables: {
@@ -304,13 +284,7 @@ export default new InspectorFactory({
                         "dalvik.system.DexFile.<init>(<java.io.File>)<void>",
                         "dalvik.system.DexFile.<init>(<java.lang.String>)<void>",
                     ]
-                },/*
-                onMatch: function (ctx:DexcaliburProject, event:Event):void {
-                    ctx.getInspector("DynamicLoader").emits("hook.dex.new", event.data);
                 },
-                preprocessor: ` 
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.new", pEvent.getData().data);
-                `,*/
                 autoEmit: true,
                 emitEvent: "hook.dex.new",
                 before: `     
@@ -338,11 +312,7 @@ export default new InspectorFactory({
                 },
                 autoEmit: true,
                 emitEvent: "hook.dex.buffer.new",
-                /* //method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
-                onMatch: function (ctx:DexcaliburProject, event:Event):void {
-                    // the evvent data contains the bytecode of the Dex file
-                    ctx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", event.data);
-                },*/
+
 
                 // the event data contains the bytecode of the Dex file
                 /*preprocessor: `
@@ -379,9 +349,7 @@ export default new InspectorFactory({
                 `
             },/*,{
                 method: "android.os.Parcelable$ClassLoaderCreator.createFromParcel(<android.os.Parcel><java.lang.ClassLoader>)<java.lang.Object>",
-                onMatch: function(ctx,event){
-                   
-                },
+
                 interceptBefore: `    
                         
                         var parcel = arg0;

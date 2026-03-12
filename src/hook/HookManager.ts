@@ -2180,13 +2180,6 @@ export class HookManager
         const msg:HookMessageV2 = pEvent.getMessage();
         const frag = msg.getFragment();
 
-        if(pEvent.isNotError() && frag!=null){
-            if(frag.isPreProcessed() && frag.getStrategy()!=null){
-                if(frag.getStrategy().onMatch != null){
-                    frag.getStrategy().onMatch.apply(this.context, pEvent);
-                }
-            }
-        }
 
         if(pEmit){
             this.context.bus.send(pEvent);

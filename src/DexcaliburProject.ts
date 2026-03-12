@@ -42,7 +42,7 @@ import {AccesErrCode, AccessException} from "./user/acl/Access.js";
 import Util from "./Utils.js";
 import {Auditable} from "./Auditable.js";
 import DataScope from "./DataScope.js";
-import KeyPointManager from "./hook/KeyPointManager.js";
+import KeyPointManager, {KeyPointCondition} from "./hook/KeyPointManager.js";
 import {ScriptManager} from "./ScriptManager.js";
 import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager.js";
 import {AnalyzerState} from "./AnalyzerState.js";
@@ -103,6 +103,7 @@ import {RuntimeManager} from "./runtime/RuntimeManager.js";
 import {NativeBackend} from "./NativeAnalyzer.js";
 import FuzzManager from "./fuzzing/FuzzManager.js";
 import KeyPoint from "./hook/KeyPoint.js";
+import {InspectorEditor} from "./inspector/InspectorEditor.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -591,6 +592,12 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
     taintAnalyzer:Nullable<TaintAnalyzer> = null;
     fzmgr: FuzzManager;
+
+    /**
+     * Not initialized by default
+     * @private
+     */
+    private _iedit: Nullable<InspectorEditor> = null;
 
     /**
      *
@@ -2522,8 +2529,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                             kp = await this.getKeyPointManager().createKeyPoint(
                                 execFiles[i],
                                 {
-                                    name: `Loading of "${execFiles[i].getPath()}"`,
-
+                                    name: `Loading of "${execFiles[i].getName()}"`,
+                                    condition: KeyPointCondition.DLOPEN
                                 }
                             );
                         }catch (e){
@@ -3248,6 +3255,13 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 this.getTypeManager().initTypes(DATATYPE_CATEGORY.JAVA, Object.values(AndroidTypes));
                 break;
         }
+    }
+    
+    getInspectorEditor():InspectorEditor {
+        if(this._iedit==null){
+            this._iedit = new InspectorEditor(this);
+        }
+        return this._iedit;
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

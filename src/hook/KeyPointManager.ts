@@ -9,6 +9,24 @@ import {Nullable} from "../core/IStringIndex.js";
 import {NodeInternalType, NodeInternalTypeName}
 from "@dexcalibur/dxc-core-api";;
 
+export enum KeyPointCondition {
+    ONLOAD="load",
+    DLOPEN="dlo",
+    DLSYM="dlsym",
+    LINK="link",
+    AFTER="aft",
+    BEFORE="bef",
+    READ="read",
+    WRITE="write",
+    OPEN="open",
+    CLOSE="close",
+    DEL="del",
+    MEM_MAP="mmap",
+    DEFINE='def',
+    VISIBILITY='vis',
+    FIRST_NEW='new_1st',
+    ANY_NEW='new_*',
+}
 export enum DEOPT_TYPE {
     NONE,
     BOOT,

@@ -31,13 +31,6 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                         "java.io.File.<init>(<java.lang.String><java.lang.String>)<void>",
                     ]
                 },
-
-                /*onMatch: function(ctx:DexcaliburProject,event:Event):void{
-                    ctx.getInspector("FileDescriptor").emits("hook.file.new",event);
-                },
-                preprocessor: ` 
-                    pCtx.getInspector("FileDescriptor").emits("hook.file.new", pEvent.data);
-                `,*/
                 autoEmit: true,
                 emitEvent: "hook.file.new",
                 before: `

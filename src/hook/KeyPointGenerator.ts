@@ -1,5 +1,5 @@
 import KeyPoint, { KeyPointOptions } from "./KeyPoint.js";
-import KeyPointManager from "./KeyPointManager.js";
+import KeyPointManager, {KeyPointCondition} from "./KeyPointManager.js";
 import ModelFile from "../ModelFile.js";
 import {NodeInternalType, Nullable}
     from "@dexcalibur/dxc-core-api";;
@@ -131,15 +131,15 @@ export class KeyPointGenerator {
         let cond = pKeyPoint.getCondition() ?? pOptions.condition;
 
         switch(cond){
-            case 'r':
+            case KeyPointCondition.READ:
                 // read access
                 code =  `/* TODO *//*@@__CONTENT__@@*/`;
                 break
-            case 'w':
+            case KeyPointCondition.WRITE:
                 // write access
                 code =  `/* TODO *//*@@__CONTENT__@@*/`;
                 break
-            case 'vis':
+            case KeyPointCondition.VISIBILITY:
                 // visibility change over reflection
                 code =  `
                 DXC.onModifierChange({
@@ -149,7 +149,7 @@ export class KeyPointGenerator {
                     /*@@__CONTENT__@@*/
                 })`;
                 break
-            case 'def':
+            case KeyPointCondition.DEFINE:
                 // define
                 code =  `
                 DXC.onFieldDefine({
@@ -173,7 +173,7 @@ export class KeyPointGenerator {
 
         let cond = pKeyPoint.getCondition() ?? pOptions.condition
         switch(cond){
-            case 'def':
+            case KeyPointCondition.DEFINE:
                 // on method defined
                 const args = [];
                 pMeth.args.map( x => {
@@ -191,7 +191,7 @@ export class KeyPointGenerator {
                  });`;
 
                 break
-            case 'bef':
+            case KeyPointCondition.BEFORE:
                 // detect is the method is already hooked
                 hook = hm.getProbe(pMeth);
                 if(hook == null){
@@ -209,7 +209,7 @@ export class KeyPointGenerator {
 
                 code =  `/*@@__CONTENT__@@*/`;
                 break
-            case 'aft':
+            case KeyPointCondition.AFTER:
                 // detect is the method is already hooked
                 hook = hm.getProbe(pMeth);
                 if(hook == null){
@@ -264,20 +264,20 @@ export class KeyPointGenerator {
         }
 
         switch(cond){
-            case 'load':
+            case KeyPointCondition.ONLOAD:
                 // get info about the classloader to hook in order to hook the class to load
 
                 // on class load
                 code =  `/* TODO *//*@@__CONTENT__@@*/`;
                 break
-            case 'def':
+            case KeyPointCondition.DEFINE:
                 // on class define
 
 
                 // get info about the classloader to hook in order to hook the class to load
                 code =  `/* TODO *//*@@__CONTENT__@@*/`;
                 break
-            case 'new_1st':
+            case KeyPointCondition.FIRST_NEW:
                 // for only the first new instance
                 code =  `
 ${classFactory}.use("${pClass.getName()}").onFirstNew((vArgs)=>{
@@ -286,7 +286,7 @@ ${classFactory}.use("${pClass.getName()}").onFirstNew((vArgs)=>{
                 `;
 
                 break
-            case 'new_any':
+            case KeyPointCondition.ANY_NEW:
                 // for each new instance
                 code =  `
 ${classFactory}.use("${pClass.getName()}").onAnyNew((vArgs)=>{
@@ -304,7 +304,7 @@ ${classFactory}.use("${pClass.getName()}").onAnyNew((vArgs)=>{
         let code:string ="";
         let cond = pKeyPoint.getCondition() ?? pOptions.condition
         switch(cond){
-            case 'load':
+            case KeyPointCondition.ONLOAD:
                 // get info about the classloader to hook in order to hook the class to load
 
                 // load a class from the target package
@@ -320,7 +320,7 @@ ${classFactory}.use("${pClass.getName()}").onAnyNew((vArgs)=>{
         let cond = pKeyPoint.getCondition() ?? pOptions.condition
 
         switch(cond){
-            case 'load':
+            case KeyPointCondition.ONLOAD:
 
                 if(!this.tags.executable.match(pFile)){
                     Logger.error("[KEY POINT GENERATOR] Warning : File '"+libName+"' is not an executable file. Keypojnt could be bugged");
@@ -330,28 +330,8 @@ ${classFactory}.use("${pClass.getName()}").onAnyNew((vArgs)=>{
                 // DexClassLoader if dex file, ...
                 pKeyPoint.description = "This point is trigged when the lib '"+libName+"' before the JNI entrypoint of a JNI libary is called.";
                 pKeyPoint.code = `DXC.kp.JniLoad("${libName}");\n`;
-
-                /*else if (lib.hasExt("dex")){
-pKeyPoint.code = `
-DXC.keypoint.JniLoad("${libName}");
-Interceptor.attach(
-    Process.findModuleByName("${libName}").findExportByName("JNI_Onload"),
-    {
-        onEnter:function(args){
-            DXC.JVM["${libName}"] = args[0];
-        },
-        onLeave:function(args){
-            ///@@__CONTENT__@@
-        }
-    }
-);
-`;
-                }*/
-
-                // else if()
-                // pKeyPoint.code = "Interruptor.newAgent({ @@__CONTENT__@@ }).startOnLoad('"+lib+"')";
                 break
-            case 'link':
+            case KeyPointCondition.LINK:
 
                 if(!this.tags.executable.match(pFile)){
                     Logger.error("[KEY POINT GENERATOR] Warning : File '"+libName+"' is not an executable file. Keypojnt could be bugged");
@@ -370,7 +350,7 @@ Interceptor.attach(
                     pKeyPoint.code = `DXC.kp.DynLink("${libName}",0);\n`;
                 }
                 break
-            case 'dlo':
+            case KeyPointCondition.DLOPEN:
 
                 //if(this.isStalkerReady()){
 
@@ -400,7 +380,7 @@ Process.findModuleByName('linker64').enumerateSymbols().forEach(sym => {
 
                 // DL_OPEN
                 break
-            case 'open':
+            case KeyPointCondition.OPEN:
                 // FS open
                 pKeyPoint.code = `
 DXC.onSyscall( "open", {file:/${libName}$/}, (vMod)=>{
@@ -408,7 +388,7 @@ DXC.onSyscall( "open", {file:/${libName}$/}, (vMod)=>{
 });
                 `;
                 break
-            case 'write':
+            case KeyPointCondition.WRITE:
                 // FS write
                 pKeyPoint.code = `
 DXC.onSyscall( "write", {file:/${libName}$/}, (vMod)=>{
@@ -416,7 +396,7 @@ DXC.onSyscall( "write", {file:/${libName}$/}, (vMod)=>{
 });
                 `;
                 break
-            case 'read':
+            case KeyPointCondition.READ:
                 // FS read
                 pKeyPoint.code = `
 DXC.onSyscall( "read", {file:/${libName}$/}, (vMod)=>{
@@ -424,7 +404,7 @@ DXC.onSyscall( "read", {file:/${libName}$/}, (vMod)=>{
 });
                 `;
                 break
-            case 'del':
+            case KeyPointCondition.DEL:
                 // FS delete
                 pKeyPoint.code = `
 DXC.onSyscall( "unlink", {file:/${libName}$/}, (vMod)=>{
@@ -432,7 +412,7 @@ DXC.onSyscall( "unlink", {file:/${libName}$/}, (vMod)=>{
 });
                 `;
                 break
-            case 'mmap':
+            case KeyPointCondition.MEM_MAP:
                 // FS delete
                 pKeyPoint.code = `
 // lookup the path associated to the FD on mmap syscall
@@ -449,7 +429,7 @@ DXC.onMemoryMapping(  {file:/${libName}$/}, (vMod)=>{
 
         let cond = pKeyPoint.getCondition() ?? pOptions.condition
 
-        if(cond=="dlsym"){
+        if(cond==KeyPointCondition.DLSYM){
             pKeyPoint.code = `DXC.kp.DlSym( "${pFunc.getSignature()}","${pFunc.getSymbol()}");\n`;
             return pKeyPoint;
         }
@@ -468,7 +448,7 @@ DXC.onMemoryMapping(  {file:/${libName}$/}, (vMod)=>{
         }
 
         switch(cond){
-            case 'bef':
+            case KeyPointCondition.BEFORE:
                 if(hooks[0].getBefore().filter( x => x.name == "kp-before").length == 0){
                     hooks[0].addExtraFragment(
                         HOOK_FRAGMENT_POS.BEFORE,
@@ -487,7 +467,7 @@ DXC.onMemoryMapping(  {file:/${libName}$/}, (vMod)=>{
 
                 pKeyPoint.code  = `DXC.kp.Before("fn-${pKeyPoint.getVirtualID()}");\n`;
                 return pKeyPoint;
-            case 'aft':
+            case KeyPointCondition.AFTER:
                 if(hooks[0].getBefore().filter( x => x.name == "kp-after").length == 0){
                     hooks[0].addExtraFragment(
                         HOOK_FRAGMENT_POS.BEFORE,
@@ -506,7 +486,7 @@ DXC.onMemoryMapping(  {file:/${libName}$/}, (vMod)=>{
 
                 pKeyPoint.code  = `DXC.kp.After("fn-${pKeyPoint.getVirtualID()}");\n`;
                 return pKeyPoint;
-            case 'dlsym':
+            case KeyPointCondition.DLSYM:
                 pKeyPoint.code = `DXC.kp.DlSym( "${pFunc.getSignature()}","${pFunc.getSymbol()}");\n`;
                 return pKeyPoint;
         }

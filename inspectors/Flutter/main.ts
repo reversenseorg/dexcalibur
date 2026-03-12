@@ -7,6 +7,7 @@ import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import * as Log from "../../src/Logger.js";
 import ModelMethod from "../../src/ModelMethod.js";
+import {OperationType} from "../../src/search/MerlinSearchRequest.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -14,7 +15,7 @@ var FlutterInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.1",
+    version: "1.1.0",
     tags: [],
 
     hookSet: {
@@ -48,7 +49,33 @@ var FlutterInspector:InspectorFactory = new InspectorFactory({
                             }
                         );
                 `
-            }
+            }/*{
+                name: "Dynamic method call",
+                descr: "Call a method dynamically by referencing it by symbol like a dlsym followed by a call, or a method call trigged from Java's reflection",
+                search: {
+                    type: ModelMethod.TYPE.getName(),
+                    req: [{
+                        type: OperationType.SEARCH,
+                        args: {
+                            pattern: [{
+                                field: "enclosingClass."
+                            }]
+                        }
+                    }]
+                },
+                autoEmit: true,
+                emitEvent: "hook.flutter.keyboard.visibility",
+                replace: `  
+         
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                name: "@@__METHNAME__@@"
+                            }
+                        );
+                `
+            }*/
         ]
     },
 

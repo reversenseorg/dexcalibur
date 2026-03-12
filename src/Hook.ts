@@ -45,7 +45,6 @@ export default class Hook
     enabled:boolean = true;
     native:boolean = false;
     isIntercept:boolean = false;
-    onMatch = null;
 
     context:DexcaliburProject = null;
     edited:boolean = false;

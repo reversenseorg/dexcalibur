@@ -379,6 +379,8 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         let extraToMerge: ProjectInput[] = pExtra.external;
 
+        if(extraToMerge==null) return;
+
         // pBaseApk has been already extracted to apk dir into project workspace
         for (let extraBundle of extraToMerge) {
             if(extraBundle.type!=ProjectInputType.FOLDER){

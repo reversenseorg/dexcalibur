@@ -15,71 +15,11 @@ import InspectorManager, {InspectorMap} from "../InspectorManager.js";
 import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import FridaHelper from "../FridaHelper.js";
+import {InspectorEditor} from "../inspector/InspectorEditor.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const INSPECTOR_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-
-/*
-INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
-    '/inspectors/:inspectorID',
-    {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
-
-            const $: WebServer = req.dxc.$;
-            let project:DexcaliburProject = null;
-
-            try{
-                project = req.dxc.project;
-
-                // ========== LOGIC
-                const insp:Inspector = InspectorManager.getInstance().getEnabledInspector(
-                    project,
-                    req.params.inspectorID
-                );
-
-                if (insp == null) {
-                    throw new Error("Inspector cannot be retrieved");
-                    return false;
-                }
-
-                insp.performGet(req, res);
-            }catch(err){
-                Logger.error("[API][PLUGINS] Request cannot be forwarded to inspector. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Request cannot be forwarded to inspector. Cause : " + err.message);
-            }
-
-
-        },
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
-
-            const $: WebServer = req.dxc.$;
-            let project:DexcaliburProject = null;
-
-            try{
-                project = req.dxc.project;
-
-                // ========== LOGIC
-                const insp:Inspector = InspectorManager.getInstance().getEnabledInspector(
-                    project,
-                    req.params.inspectorID
-                );
-
-                if (insp == null) {
-                    throw new Error("Inspector cannot be retrieved");
-                    return false;
-                }
-
-                insp.performPost(req, res);
-            }catch(err){
-                Logger.error("[API][PLUGINS] Request cannot be forwarded to inspector. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Request cannot be forwarded to inspector. Cause : " + err.message);
-            }
-        }
-    },{
-        readProject: true
-    }
-);*/
 
 
 /**
@@ -158,7 +98,16 @@ INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-                project = req.dxc.project;
+                if(req.query['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
 
                 // ========== LOGIC
                 const insp:InspectorMap = project.getInspectors()
@@ -192,7 +141,16 @@ INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-                project = req.dxc.project;
+                if(req.query['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
 
                 if(typeof req.query['insp']!=='string'){
                     throw new Error("Invalid inspector UID");
@@ -232,7 +190,18 @@ INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-                project = req.dxc.project;
+
+                if(req.query['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+
 
                 // ========== LOGIC
                 const insp:InspectorMap = project.getInspectors()
@@ -244,6 +213,45 @@ INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 $.sendSuccess(res, data);
+            }catch(err){
+                Logger.error("[API][PLUGINS] Request cannot be forwarded to inspector. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Request cannot be forwarded to inspector. Cause : " + err.message);
+            }
+
+
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+// create InspectorFactory and one instance of Inspector from this factory
+INSPECTOR_WEB_API.addAsyncAuthenticatedRoute(
+    '/inspector/editor',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse) =>{
+
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                if(req.query['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+
+                // ========== LOGIC
+                const insp:InspectorEditor = project.getInspectorEditor();
+
+
+                $.sendSuccess(res, {});
             }catch(err){
                 Logger.error("[API][PLUGINS] Request cannot be forwarded to inspector. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Request cannot be forwarded to inspector. Cause : " + err.message);

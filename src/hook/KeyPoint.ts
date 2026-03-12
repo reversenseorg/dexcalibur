@@ -9,6 +9,7 @@ import {CoreDebug} from "../core/CoreDebug.js";
 import {CustomCode} from "../actionnable/CustomCode.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {RuntimeEventType} from "./RuntimeEvent.js";
+import {KeyPointCondition} from "./KeyPointManager.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export enum KeyPointType {
@@ -41,7 +42,7 @@ export interface KeyPointOptions {
     name?:string;
     token?:string;
     description?:string;
-    condition?:string;
+    condition?:KeyPointCondition|string;
     code?:string;
     generator?: any;
     generatorCode?: Nullable<CustomCode>;
@@ -82,7 +83,7 @@ export default class KeyPoint implements INode, IPersistent {
 
     token:string;
     description:string;
-    condition:string;
+    condition:KeyPointCondition|string;
     code = "";
     //genCode: string = null;
     generator: any = null;
@@ -144,7 +145,7 @@ export default class KeyPoint implements INode, IPersistent {
         this.condition = pConditionName;
     }
 
-    getCondition():string {
+    getCondition():KeyPointCondition|string {
         return this.condition;
     }
 
@@ -344,7 +345,8 @@ export default class KeyPoint implements INode, IPersistent {
             condition: this.condition,
             name: this.name,
             //cname: this.c
-            type: this.type
+            type: this.type,
+            vid:this.vid
         };
     }
 
