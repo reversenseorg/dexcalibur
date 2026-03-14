@@ -32,15 +32,18 @@ export class RuntimeSession implements INode {
             .key(DbKeyType.PRIMARY)
             .schema({ type:"string", format:"uuid", description:"Unique identifier of the runtime session" }),
         (new NodeProperty("hksess"))
-            .multiple(HookSession.TYPE).def([]),
+            .multiple(HookSession.TYPE)
+            .def([]),
         (new NodeProperty("owner"))
-            .single(UserAccount.TYPE).def(null),
+            .type(DbDataType.STRING)
+            .def(null),
         (new NodeProperty("project"))
             .type(DbDataType.STRING)
             .schema(Tag.TYPE.getPrimaryKey().toJSONSchemaPart(true))
             .def(null),
         (new NodeProperty("device"))
-            .single(Device.TYPE).def(null),
+            .type(DbDataType.STRING)
+            .def(null),
         (new NodeProperty("tools"))
             .type(DbDataType.STRING)
             .def([])

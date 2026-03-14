@@ -61,6 +61,59 @@ RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
 
 
 RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
+    '/session/:sessid/stop',
+    {
+        'post': async  (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                project = req.dxc.project;
+
+                // get hook instance by ID
+                await project.getRuntimeManager().stopSession(req.user, req.params.sessid);
+
+                $.sendSuccess(res,  "done");
+
+            }catch(err){
+                Logger.error("[API][HOOK] Hooked application cannot be detached. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Hooked application cannot be detached. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
+    '/session/:sessid/pause',
+    {
+        'post': async  (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                project = req.dxc.project;
+
+                // get hook instance by ID
+                await project.getRuntimeManager().pause(req.user, req.params.sessid);
+
+                $.sendSuccess(res,  "done");
+
+            }catch(err){
+                Logger.error("[API][HOOK] Hooked application cannot be detached. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Hooked application cannot be detached. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
     '/sessions/stats',
     {
         'get': async  (req:DelegateRequest, res:DelegateResponse) => {

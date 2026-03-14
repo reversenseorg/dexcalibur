@@ -26,6 +26,7 @@ import {
     ModelRegisterReference
 } from "./ModelReference.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 /**
  * This API is a helper to create nodes  from event listener.
@@ -149,5 +150,9 @@ export class ModelAPI {
 
     newVariable( pOptions:any):ModelVariable {
         return new ModelVariable(pOptions);
+    }
+
+    getType(pName:string):NodeInternalType {
+        return NodeInternalType[pName];
     }
 }

@@ -9,11 +9,12 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 import {Device, DeviceUUID} from "../Device.js";
 import * as Log from "../Logger.js";
 import {RuntimeManagerException} from "../errors/RuntimeManagerException.js";
-import {RuntimeSession} from "./RuntimeSession.js";
+import {RuntimeSession, RuntimeSessionUUID} from "./RuntimeSession.js";
 import {UserPreferences} from "../user/UserPreferences.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import {INodeRef} from "../INode.js";
+import FuzzSession from "../fuzzing/FuzzSession.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -106,6 +107,33 @@ export class RuntimeManager {
         sess = await this._createSessions(sess);
 
         return sess;
+    }
+
+
+    async stopSession(pUser:UserAccount, pSession:RuntimeSessionUUID):Promise<void> {
+
+        const sess = await this._ctx.getProjectDB().search({
+            _uid: pSession
+        }, RuntimeSession.TYPE.getType())
+
+        if(sess==null || sess.length==0){
+            throw RuntimeManagerException.SESS_NOT_FOUND(pSession);
+        }
+
+        let s:any;
+        for(let i=0; i<sess.length; i++){
+            s = await this._ctx.getHookManager().getSession(sess[i].getUID());
+            console.log(s);
+        }
+
+        //sess[0].getActiveSessions();
+        //await sess[0].stop();
+
+    }
+
+
+    async pause(pUser:UserAccount, pSession:RuntimeSessionUUID):Promise<void> {
+        return null;
     }
 
     /**

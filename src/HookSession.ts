@@ -22,7 +22,6 @@ import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {
     DbDataType,
     DbKeyType,
-    DbSerialize,
     INode,
     NodeProperty,
     NodePropertyState,
@@ -91,7 +90,7 @@ export default class HookSession extends WebsocketSession implements INode
             (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("message"))
                 .multiple(RuntimeEvent.TYPE)
-                .def("[]"),
+                .def([]),
             (new NodeProperty("owner"))
                 .type(DbDataType.STRING).def(null), // owner UUID
             (new NodeProperty("hookManager")).volatile(),
@@ -114,18 +113,25 @@ export default class HookSession extends WebsocketSession implements INode
                 })
                 .def(0),
             (new NodeProperty("active")).volatile().type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty("opts")).type(DbDataType.BLOB).serialize(DbSerialize.JSON).def(null),
-            (new NodeProperty("wsState")).type(DbDataType.BLOB).serialize(DbSerialize.JSON).def(null),
+            (new NodeProperty("opts"))
+                .type(DbDataType.BLOB)
+                .def({
+                    rawOutput: false,
+                    //timeout: 100000,
+                }),
+            (new NodeProperty("wsState"))
+                .type(DbDataType.BLOB)
+                .def({
+                    commit: null
+                }),
             (new NodeProperty("offset")).type(DbDataType.NUMERIC).def(0),
             (new NodeProperty("devUID")).type(DbDataType.STRING).def(null),
             (new NodeProperty("evTags"))
+                .volatile()
                 .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{
-                    //const t = Object.keys(x.p);
-                    return Object.keys(x.p);
-                })
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? x.p : null)})
-                .def(0)
+                // .sleep( (x:NodePropertyState)=>{  return Object.keys(x.p);})
+                // .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? x.p : null)})
+                .def({})
         ]).dataSource("PROJECT_DB");
     __:NodeInternalType = NodeInternalType.HOOK_SESSION;
 
@@ -194,7 +200,7 @@ export default class HookSession extends WebsocketSession implements INode
     /**
      * Device UID
      */
-    devUID:string = null;
+    devUID:Nullable<DeviceUUID> = null;
 
     /**
      * Spawned a child process to collect devices events from device.
@@ -202,6 +208,8 @@ export default class HookSession extends WebsocketSession implements INode
     deviceEventCollector: DeviceEventCollector = null;
 
     extra:any = {};
+
+    private _batch:RuntimeEvent<any>[] = [];
 
     /**
      *
@@ -407,7 +415,7 @@ export default class HookSession extends WebsocketSession implements INode
 
         // fill runtiume event
         ev.addNode(hm.hook.getTarget() as INode);
-        ev.data = hm;
+        ev.setData<HookMessageV2>(hm);
 
         if(pRawMsg.fsid!=null && pRawMsg.fztype!=null){
             ev.type = "fuzz."+pRawMsg.fztype;
@@ -444,7 +452,6 @@ export default class HookSession extends WebsocketSession implements INode
             // process hook message as RuntimeEvent
             const jsonNode = [];
             ev.node.map( x => jsonNode.push( x.__!=null ? (x as any).toJsonObject() : x));
-
 
             // TODO : ev to websocket msg
             // only valid message are broadcasted
@@ -483,6 +490,13 @@ export default class HookSession extends WebsocketSession implements INode
                 frag:  (hm.frag!=null) ? hm.frag.getUID() : null
             });
         }
+
+        // save hook message in DB by batch of 100 message
+        this.batchSave(ev, 100).then((vLen:number)=>{
+            if(vLen>-1){
+                Logger.info("HookSession.push() : batch save done with "+vLen+" messages");
+            }
+        })
 
         // TODO : remove 'match' from hook message template
         // if(hm.match)
@@ -586,6 +600,7 @@ export default class HookSession extends WebsocketSession implements INode
         }*/
     }
 
+
     /**
      * To set the device where the session runs
      * @param {Device} pDevice The device
@@ -660,5 +675,26 @@ export default class HookSession extends WebsocketSession implements INode
     setOwner(pOwner:UserAccountUUID):void{
         this.owner = pOwner;
     }
+
+    async batchSave(pEvent: RuntimeEvent<any>, pBatchSz: number):Promise<number> {
+        if(this._batch.length==pBatchSz) {
+            const t = this._batch;
+            this._batch = [pEvent];
+
+            const evs = await this.hookManager.context
+                                            .getProjectDB()
+                                            .saveMany(t, NodeInternalType.RUNTIME_EVENT);
+            // flush batch
+            return 1;
+        }else{
+            this._batch.push(pEvent);
+            return -1;
+        }
+    }
+
+    hasWaitingEvents():boolean {
+        return (this._batch.length>0);
+    }
+
 }
 HookSession.TYPE.builder(HookSession);

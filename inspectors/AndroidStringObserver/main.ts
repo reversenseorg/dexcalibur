@@ -14,7 +14,7 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.0",
+    version: "1.0.3",
 
     tags: [],
 
@@ -75,6 +75,10 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
     
                     const str = pEvent.getContext().modelAPI.newStringValue({
                         value: pEvent.data.data.str,
+                        src: [{
+                            __: pEvent.getContext().modelAPI.getType("RUNTIME_EVENT"), 
+                            _uid: pEvent.data.id
+                        }],
                         instance: [
                            pEvent.getContext().modelAPI.newInstance({
                                 session: "", //ctx.getHookManager().get
@@ -82,13 +86,16 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
                             })
                         ]
                     });
-    
-    
-                    pEvent.getContext().getAnalyzer().getData().strings.addEntry(str);
                     
-                    pEvent.getContext().trigger( {
-                        type: "string.instance.new",
-                        data: str
+                    str.addTag(pEvent.getContext().getTagManager().getTag("discover.dynamic"));
+                    
+                    pEvent.getContext().getProjectDB().updateStrings([str]).then(()=>{
+                        //pEvent.getContext().getAnalyzer().getData().strings.addEntry(str);
+                    
+                        pEvent.getContext().trigger( {
+                            type: "string.instance.new",
+                            data: str
+                        });
                     });
                 }
             `

@@ -242,5 +242,9 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
     isNotError():boolean {
         return (this.rt_type!=RuntimeEventType.HOOK_ERROR);
     }
+
+    setData<T>(pData:T):void {
+        this.data = pData;
+    }
 }
 RuntimeEvent.TYPE.builder(RuntimeEvent);
