@@ -1,16 +1,12 @@
 
-import DexcaliburProject from "../DexcaliburProject.js";
+import {newTagPresets, } from "./common/TagPresets.js";
 
-import {newTagPresets, TAG_CATEGORY_PRESETS} from "./common/TagPresets.js";
-
-import {IDatabase, IDbCollection, IStringIndex, Tag, TagCategory, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import { IDbCollection, INode, IStringIndex, Tag, TagCategory, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
 import {newLogger} from "../Logger.js";
 import {ProjectDatabase} from "../database/ProjectDatabase.js";
-import type = Mocha.utils.type;
-import {Observable} from "rxjs";
-import {REGEXP_DELIMITER_TOKEN, SearchRequestCondition} from "../search/SearchRequestCondition.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import { SearchRequestCondition} from "../search/SearchRequestCondition.js";
+import {INodeRef} from "../INode.js";
 
 export interface TagMap {
     [num:number] :Tag
@@ -47,6 +43,8 @@ export class TagManager {
     private _tagsCache:Tag[] = [];
 
     ready = false;
+
+    _ctrEdit = 0;
 
     constructor() {
     }
@@ -476,5 +474,34 @@ export class TagManager {
 
             return tags.map(x => x.getUUID());
         }
+    }
+
+    /**
+     * To increment tag counter
+     * @method
+     */
+    incTag(pTag:Tag, pObj:INode|INodeRef):void {
+        if(pTag.extra._occ==null){
+            pTag.extra._occ = {};
+        }
+        pTag.extra._occ[pObj.__] = (pTag.extra._occ[pObj.__] || 0) + 1;
+        this._ctrEdit++;
+    }
+
+    /**
+     * To increment tag counter
+     * @method
+     */
+    decTag(pTag:Tag, pObj:INode|INodeRef):void {
+        if(pTag.extra._occ==null){
+            pTag.extra._occ = {};
+        }
+        pTag.extra._occ[pObj.__] = (pTag.extra._occ[pObj.__] || 0) - 1;
+        this._ctrEdit++;
+    }
+
+    count(pTag:Tag, pObj:INode|INodeRef):number {
+        if(pTag.extra._occ==null) return 0;
+        return pTag.extra._occ[pObj.__] || 0;
     }
 }

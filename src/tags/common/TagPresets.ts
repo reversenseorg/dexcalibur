@@ -4,6 +4,7 @@ import {StringAnalyzer} from "../../analyzer/StringAnalyzer.js";
 export function newTagPresets(){
     const GLOBAL = new TagCategory({ name: "global" });
     const DATA_TYPE = new TagCategory({ name: "data.type" });
+    const LEX = new TagCategory({ name: "lex" });
     const DATA_HASH = new TagCategory({ name: "data.hash" });
     const CRYPTO_HASH = new TagCategory({ name: "crypto.hash" });
     const DATA_LEN = new TagCategory({ name: "data.len" });
@@ -43,6 +44,86 @@ export function newTagPresets(){
     const KP = new TagCategory({ name: "kp" });
     const KS_TYPE = new TagCategory({ name: "keystore.type" });
     const KS_SVC = new TagCategory({ name: "keystore.svc" });
+    const REACH_EPT = new TagCategory({ name: "reach.eptype", descr:"Reachability: type of entrypoint" });
+    const REACH_EXP = new TagCategory({ name: "reach.exp", descr:"Reachability: exposition" });
+    const PROTO = new TagCategory({ name: "proto", descr:"Protocol: agnostic type of protocol" });
+
+    const LEX_TAGS = [
+        new Tag({ name:"begin",  label:"Begin token", descr:"Token that indicated the begin of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"end", label:"End token", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"gt", label:"Tok >", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"lt", label:"Tok <", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"eq", label:"Tok =", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"sep", label:"Tok |", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"assign", label:"Tok :", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"plus", label:"Tok +", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"minus", label:"Tok -", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"div", label:"Tok /", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+        new Tag({ name:"sem", label:"Tok ;", descr:"Token that indicated the end of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
+    ];
+
+    const REACH_EXP_TAGS = [
+        new Tag({ name:"av-network",  label:"AV:N", descr:"Exploitable remotely over the network", styles:{ color:"#000000", backgroundColor:"#eec5ff"} }),
+        new Tag({ name:"av-adjacent", label:"AV:A", descr:"Exploitable from adjacent network", styles:{ color:"#000000", backgroundColor:"#eec5ff"} }),
+        new Tag({ name:"av-local",    label:"AV:L", descr:"Exploitable with local access", styles:{ color:"#000000", backgroundColor:"#eec5ff"} }),
+        new Tag({ name:"av-physical", label:"AV:P", descr:"Exploitable with physical access", styles:{ color:"#000000", backgroundColor:"#eec5ff"} }),
+        new Tag({ name:"ac-low",  label:"AC:L", descr:"No special conditions required", styles:{ color:"#000000", backgroundColor:"#dcc5ff"} }),
+        new Tag({ name:"ac-high", label:"AC:H", descr:"Special conditions or hardware required", styles:{ color:"#000000", backgroundColor:"#dcc5ff"} }),
+        new Tag({ name:"pr-none", label:"PR:N", descr:"No privileges required", styles:{ color:"#000000", backgroundColor:"#cac5ff"} }),
+        new Tag({ name:"pr-low",  label:"PR:L", descr:"Low privileges required", styles:{ color:"#000000", backgroundColor:"#cac5ff"} }),
+        new Tag({ name:"pr-high", label:"PR:H", descr:"High privileges required", styles:{ color:"#000000", backgroundColor:"#cac5ff"} }),
+        new Tag({ name:"ui-none",     label:"UI:N", descr:"No user interaction required (zero-click)", styles:{ color:"#000000", backgroundColor:"#b8c5ff"} }),
+        new Tag({ name:"ui-required", label:"UI:R", descr:"User interaction required", styles:{ color:"#000000", backgroundColor:"#b8c5ff"} }),
+    ];
+
+    const REACH_EPT_TAGS = [
+        new Tag({ name:"ep-receiver",      label:"Receiver",      descr:"Passively receives messages or events", styles:{ color:"#000000", backgroundColor:"#c5e8ff"} }),
+        new Tag({ name:"ep-listener",      label:"Listener",      descr:"Listens on a port or channel", styles:{ color:"#000000", backgroundColor:"#c5e8ff"} }),
+        new Tag({ name:"ep-event-handler", label:"Event Handler", descr:"Handles OS or runtime events", styles:{ color:"#000000", backgroundColor:"#c5e8ff"} }),
+        new Tag({ name:"ep-interrupt",     label:"Interrupt",     descr:"Hardware or software interrupt handler", styles:{ color:"#000000", backgroundColor:"#c5e8ff"} }),
+        new Tag({ name:"ep-service",   label:"Service",   descr:"Exposes a callable interface", styles:{ color:"#000000", backgroundColor:"#c5fff0"} }),
+        new Tag({ name:"ep-daemon",    label:"Daemon",    descr:"Background service running continuously", styles:{ color:"#000000", backgroundColor:"#c5fff0"} }),
+        new Tag({ name:"ep-rpc",       label:"RPC",       descr:"Remote procedure call endpoint", styles:{ color:"#000000", backgroundColor:"#c5fff0"} }),
+        new Tag({ name:"ep-api",       label:"API",       descr:"Programmatic interface exposed to callers", styles:{ color:"#000000", backgroundColor:"#c5fff0"} }),
+        new Tag({ name:"ep-provider",   label:"Provider",   descr:"Exposes data to other components", styles:{ color:"#000000", backgroundColor:"#fffac5"} }),
+        new Tag({ name:"ep-file-parser",label:"Parser",     descr:"Parses an input file or data stream", styles:{ color:"#000000", backgroundColor:"#fffac5"} }),
+        new Tag({ name:"ep-deserializer",label:"Deserializer",descr:"Deserializes structured input", styles:{ color:"#000000", backgroundColor:"#fffac5"} }),
+        new Tag({ name:"ep-ui-handler",  label:"UI Handler",  descr:"Handles user input from a UI", styles:{ color:"#000000", backgroundColor:"#ffdfc5"} }),
+        new Tag({ name:"ep-uri-handler", label:"URI Handler", descr:"Handles inbound URI or deep-link dispatch", styles:{ color:"#000000", backgroundColor:"#ffdfc5"} }),
+        new Tag({ name:"ep-clipboard",   label:"Clipboard",   descr:"Reads from clipboard on activation", styles:{ color:"#000000", backgroundColor:"#ffdfc5"} }),
+        new Tag({ name:"ep-debug",      label:"Debug",      descr:"Debug or diagnostic interface", styles:{ color:"#000000", backgroundColor:"#ffc5c5"} }),
+        new Tag({ name:"ep-test-hook",  label:"Test Hook",  descr:"Testing hook left in production binary", styles:{ color:"#000000", backgroundColor:"#ffc5c5"} }),
+        new Tag({ name:"ep-backdoor",   label:"Backdoor",   descr:"Undocumented access point", styles:{ color:"#000000", backgroundColor:"#ffc5c5"} }),
+
+    ];
+
+    const PROTO_TAGS = [
+        new Tag({ name:"tcp-ip", label:"TCP/IP", descr:"Direct TCP or IP-based communication", styles:{ color:"#000000", backgroundColor:"#c5e8ff"} }),
+        new Tag({ name:"http", label:"HTTP/S", descr:"HTTP or HTTPS protocol", styles:{ color:"#000000", backgroundColor:"#c5e8ff"} }),
+        new Tag({ name:"websocket", label:"WS", descr:"WebSocket protocol", styles:{ color:"#000000", backgroundColor:"#c5e8ff"} }),
+        new Tag({ name:"dns", label:"DNS", descr:"DNS-based communication or tunneling", styles:{ color:"#000000", backgroundColor:"#c5e8ff"} }),
+        new Tag({ name:"sms", label:"SMS", descr:"Short Message Service", styles:{ color:"#000000", backgroundColor:"#c5ffd6"} }),
+        new Tag({ name:"mms", label:"MMS", descr:"Multimedia Messaging Service", styles:{ color:"#000000", backgroundColor:"#c5ffd6"} }),
+        new Tag({ name:"push-notification", label:"Push", descr:"Push notification channel (APNS, FCM…)", styles:{ color:"#000000", backgroundColor:"#c5ffd6"} }),
+        new Tag({ name:"nfc", label:"NFC", descr:"Near Field Communication", styles:{ color:"#000000", backgroundColor:"#fffac5"} }),
+        new Tag({ name:"bluetooth", label:"BT", descr:"Bluetooth Classic", styles:{ color:"#000000", backgroundColor:"#fffac5"} }),
+        new Tag({ name:"ble", label:"BLE", descr:"Bluetooth Low Energy", styles:{ color:"#000000", backgroundColor:"#fffac5"} }),
+        new Tag({ name:"wifi-direct", label:"Wi-Fi Direct", descr:"Peer-to-peer Wi-Fi without access point", styles:{ color:"#000000", backgroundColor:"#fffac5"} }),
+        new Tag({ name:"zigbee", label:"Zigbee", descr:"Zigbee wireless protocol", styles:{ color:"#000000", backgroundColor:"#fffac5"} }),
+        new Tag({ name:"usb", label:"USB", descr:"USB interface", styles:{ color:"#000000", backgroundColor:"#ffc5c5"} }),
+        new Tag({ name:"uart", label:"UART", descr:"Serial UART interface", styles:{ color:"#000000", backgroundColor:"#ffc5c5"} }),
+        new Tag({ name:"jtag", label:"JTAG", descr:"JTAG debug interface", styles:{ color:"#000000", backgroundColor:"#ffc5c5"} }),
+        new Tag({ name:"spi", label:"SPI", descr:"SPI bus interface", styles:{ color:"#000000", backgroundColor:"#ffc5c5"} }),
+        new Tag({ name:"i2c", label:"I2C", descr:"I2C bus interface", styles:{ color:"#000000", backgroundColor:"#ffc5c5"} }),
+        new Tag({ name:"ipc", label:"IPC", descr:"Generic inter-process communication", styles:{ color:"#000000", backgroundColor:"#ffdfc5"} }),
+        new Tag({ name:"shared-memory", label:"SHM", descr:"Shared memory segment", styles:{ color:"#000000", backgroundColor:"#ffdfc5"} }),
+        new Tag({ name:"pipe", label:"Pipe", descr:"Named or anonymous pipe", styles:{ color:"#000000", backgroundColor:"#ffdfc5"} }),
+        new Tag({ name:"socket-local", label:"Unix Socket", descr:"Unix domain socket", styles:{ color:"#000000", backgroundColor:"#ffdfc5"} }),
+        new Tag({ name:"signal", label:"Signal", descr:"OS signal handling", styles:{ color:"#000000", backgroundColor:"#ffdfc5"} }),
+        new Tag({ name:"uri-handler", label:"URI", descr:"URI or deep-link handler", styles:{ color:"#000000", backgroundColor:"#e8c5ff"} }),
+        new Tag({ name:"file", label:"File", descr:"File-based input (parsed file, watched path…)", styles:{ color:"#000000", backgroundColor:"#e8c5ff"} }),
+        new Tag({ name:"clipboard", label:"Clipboard", descr:"Clipboard read/write", styles:{ color:"#000000", backgroundColor:"#e8c5ff"} }),
+    ];
 
 
     // Removed since  1.13.0
@@ -180,19 +261,19 @@ export function newTagPresets(){
     ];
 
     const GLOBAL_TAGS = [
-        new Tag({ name:"missing" })
+        new Tag({ name:"missing", descr:"Only references have been found" })
     ];
 
     const CODE_CALL_TAGS = [
-        new Tag({ name:"static" }), // is - deprecated ?
-        new Tag({ name:"dynamic" })  // id
+        new Tag({ name:"static", descr:"Static call site" }), // is - deprecated ?
+        new Tag({ name:"dynamic", descr:"Invoked dynamically" })  // id
     ];
 
     const DISCOVER_TAGS = [
-        new Tag({ name:"static" }), // ds
-        new Tag({ name:"mixed" }), // dm
-        new Tag({ name:"dynamic" }), // dd
-        new Tag({ name:"internal" }) // di
+        new Tag({ name:"static", descr:"Discovered by static analysis" }), // ds
+        new Tag({ name:"mixed", descr:"Discovered by interactive analysis" }), // dm
+        new Tag({ name:"dynamic", descr:"Discovered by dynamic analysis" }), // dd
+        new Tag({ name:"internal", descr:"Discovered by analysis  of system API" }) // di
     ];
 
 
@@ -292,6 +373,7 @@ export function newTagPresets(){
         new Tag({ name:"auth" }),
         new Tag({ name:"network" })
     ];
+
 
 
     /*
@@ -408,6 +490,11 @@ export function newTagPresets(){
     KS_SVC_TAGS.map( x => { KS_SVC.addTag(x); });
     KS_TYPE_TAGS.map( x => { KS_TYPE.addTag(x); });
 
+    REACH_EPT_TAGS.map( x => { REACH_EPT.addTag(x); });
+    REACH_EXP_TAGS.map( x => { REACH_EXP.addTag(x); });
+    PROTO_TAGS.map( x => { PROTO.addTag(x); });
+    LEX_TAGS.map( x => { LEX.addTag(x); });
+
     return [
         GLOBAL,
         DISCOVER,
@@ -451,7 +538,12 @@ export function newTagPresets(){
         UI_CMP,
 
         KS_TYPE,
-        KS_SVC
+        KS_SVC,
+
+        REACH_EPT,
+        REACH_EXP,
+        PROTO,
+        LEX
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();
