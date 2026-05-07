@@ -10,7 +10,7 @@ import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./
 import {ModelLocation} from "./ModelLocation.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {
     NodeType,
     DataSourceHelper,
@@ -32,6 +32,30 @@ interface IMethodSet {
 
 interface IFieldSet {
     [p: string]: ModelField
+}
+
+
+interface ModelClassOptions {
+    name?:string;
+    fqcn?:string;
+    alias?:string;
+    simpleName?:string;
+    innerName?:string;
+    package?:ModelPackage|string;
+    source?:string;
+    modifiers?:Modifier;
+    implements?:(ModelClass|string)[];
+    extends?:ModelClass|ModelClassReference;
+    fields?:Record<string, ModelField>;
+    methods?:Record<string, ModelMethod>;
+    supers?:(ModelClass|ModelClassReference)[];
+    loader?:ModelClass;
+    annotations?:any[];
+    tags?:number[];
+    enclosingClass?:ModelClass|ModelClassReference;
+    _callers?:string[]|ModelMethod[];
+    _hashcode?:string;
+    _isBinding?:boolean;
 }
 
 /**
@@ -125,10 +149,10 @@ export default class ModelClass extends Savable implements INode, IPersistent
      */
     __p:any = {};
 
-    constructor(pConfig:any=null){
+    constructor(pConfig:Nullable<ModelClassOptions>=null){
         super(STUB_TYPE.CLASS);
 
-        if(pConfig!==undefined)
+        if(pConfig!=null)
             for(const i in pConfig)
                 this[i]=pConfig[i];
     }

@@ -1653,11 +1653,16 @@ export default class Analyzer
                 err.push(e);
 
                 file.addTag(this.context.getTagManager().getTag("data.type.unknown"));
+
+                Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
+
+                // TODO : measure entropy
+                /*
                 if(file.getScope()!=null){
                     Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
                 }else{
                     Logger.error(`File "${file.getRelativePath()}" cannot be parsed successfully.`);
-                }
+                }*/
 
             }finally {
                 try{
@@ -1671,7 +1676,7 @@ export default class Analyzer
                     if(res!=null && res.ok!=null){
                         await this.saveParsedObject(res.ok, vCtx, ffmt, fparser, file, []);
                     }else{
-                        Logger.error(`Parsing of "${file.getRelativePath()}" failed => tag a unknown.`);
+                        Logger.debug(`Parsing of "${file.getRelativePath()}" failed => tag as unknown.`);
                         // save
                         file.addTag(this.context.getTagManager().getTag("data.type.unknown"));
                         await this.saveParsedObject(file, vCtx, null, null, null, []);

@@ -28,6 +28,7 @@ import {Tag} from "@dexcalibur/dexcalibur-orm";
 import {ModelRegister} from "../elixir/ModelRegister.js";
 import {AndroidTypes} from "../android/AndroidTypes.js";
 import {DataType} from "../types/DataType.js";
+import {Dex} from "./DexParser.js";
 
 
 const SML_MAIN=0;
@@ -385,7 +386,7 @@ export namespace Smali {
             }
 
             const [, registerName, paramName, typeSignature, defaultValue] = match;
-            const dataType = this.parseTypeSignature(typeSignature);
+            const dataType = Dex.DexFile.createTypeFromDalvikString(typeSignature); // this.parseTypeSignature(typeSignature);
 
             let initialValue: any = undefined;
 
@@ -456,6 +457,7 @@ export namespace Smali {
             return { kind: 'undefined' };
         }
 
+        /*
         parseTypeSignature(pTypeSignature: string):DataType {
             switch (pTypeSignature) {
                 case 'V': return AndroidTypes.V;
@@ -467,7 +469,7 @@ export namespace Smali {
                 case 'J': return AndroidTypes.J;
                 case 'F': return AndroidTypes.F;
                 case 'D': return AndroidTypes.D;
-                case 'Ljava/lang/String;': return AndroidTypes.STRING;
+                case 'Ljava/lang/String;': return new AndroidTypes.STRING;
                 default:
                     if (pTypeSignature.startsWith('L')) {
                         return AndroidTypes.OBJECT;
@@ -477,7 +479,7 @@ export namespace Smali {
                     }
                     return AndroidTypes.UNKNOWN;
             }
-        }
+        }*/
     }
 
     /**

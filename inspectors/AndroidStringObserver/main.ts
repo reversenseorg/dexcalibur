@@ -87,7 +87,9 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
                         ]
                     });
                     
-                    str.addTag(pEvent.getContext().getTagManager().getTag("discover.dynamic"));
+                    const t = pEvent.getContext().getTagManager().getTag("discover.dynamic");
+                    str.addTag(t);
+                    pEvent.getContext().incTag(t, str);
                     
                     pEvent.getContext().getProjectDB().updateStrings([str]).then(()=>{
                         //pEvent.getContext().getAnalyzer().getData().strings.addEntry(str);

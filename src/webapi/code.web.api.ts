@@ -26,6 +26,7 @@ import {ElixirUtils} from "../elixir/ElixirUtils.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 import AiHelper from "../core/ai/AiHelper.js";
+import {MerlinSearchRequestException} from "../search/error/MerlinSearchRequestException.js";
 
 ;
 
@@ -182,6 +183,57 @@ CODE_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
+
+CODE_WEB_API.addAsyncAuthenticatedRoute(
+    '/method/body/:id',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+
+
+            let $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                // ========== SECURITY CHECKS
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                await project.resetIdleTime();
+
+                // ========== LOGIC
+
+                const data:any = { success:false };
+                const result = (await (MerlinSearchRequest.getByRef({
+                    __: ModelMethod.TYPE.getType(),
+                    _uid: Util.decodeURI(Util.b64_decode(req.params.id))
+                },project.getMerlinEngine() )).executePDB(project));
+
+
+                if(result!=null && result.count()>0){
+
+                    // ============= RESPONSE
+                    $.sendSuccess( res, (result.get(0) as ModelMethod).instr);
+                }else{
+                    throw MerlinSearchRequestException.NODE_NOT_FOUND(
+                        ModelMethod.TYPE.getType(),
+                        Util.decodeURI(Util.b64_decode(req.params.id))
+                    )
+                }
+            }catch(err){
+                Logger.error("[API][CODE] Basic blocks cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Basic blocks cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    }
+);
 
 CODE_WEB_API.addAsyncAuthenticatedRoute(
     '/method/disass/:id',

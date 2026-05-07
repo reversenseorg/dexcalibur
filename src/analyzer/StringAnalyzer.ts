@@ -4,6 +4,13 @@ import {Tag} from "@dexcalibur/dexcalibur-orm";
 import * as console from "node:console";
 
 
+const SQL_KEYWORDS = [
+    "SELECT", "INSERT", "UPDATE", "DELETE", "REPLACE",
+    "CREATE", "DROP", "ALTER",
+    "WHERE", "JOIN", "HAVING", "GROUP", "ORDER", "LIMIT",
+    "BEGIN", "COMMIT", "ROLLBACK",
+    "INTO", "FROM", "TABLE", "VALUES",
+];
 
 export class StringAnalyzer {
 
@@ -60,11 +67,51 @@ export class StringAnalyzer {
         [/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/, "encoded.datetime_iso", "ISO Datetime"],
         // [/^v?\d+(\.\d+){1,3}?$/, "encoded.float", "Float number"],
         // INI / .properties “key=value” (1 ligne)
-        [/^[A-Za-z0-9_.-]{1,64}(=[^=\n]|:[^:\n]).+$/, "encoded.key_pair", "Key Pair"],
+        [/^[A-Za-z0-9_.-]{1,64}(=[^=\n]|:[^:\n])[^/]{1,2}.+$/, "encoded.key_pair", "Key Pair"],
         // URL-encoded (présence de %xx répétée)
         [/^.*\/.*(%[0-9A-Fa-f]{2})+.*\/.*$/, "encoded.urlencoded_soft", "URL-encoded"],
         [/^&([a-zA-Z0-9_%]+(\[[a-zA-Z0-9_%]*\])?)=.*$/, "encoded.uri_param", "URI Param"],
         [/(\(\?\:?)?.*(\[[a-aA-Z0-9]+\]|a-F|A-F|a-z|A-Z|[01]-9|\\[SDBWsdbwtmrfTNRF]|\([^)]+:\\.*\)|\\u[0-9]{4}).*/, "encoded.regexp", "Regexp"]
+    ];
+
+    static sqlPatterns: [RegExp, string, string][] = [
+
+        // ─── DDL ──────────────────────────────────────────────────────────────────
+
+        [/\bCREATE\s+(?:TEMP(?:ORARY)?\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[\w"`\[\]]+/i, "sql.ddl.create_table", "CREATE TABLE"],
+        [/\bDROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?[\w"`\[\]]+/i, "sql.ddl.drop_table", "DROP TABLE"],
+        [/\bALTER\s+TABLE\s+[\w"`\[\]]+/i, "sql.ddl.alter_table", "ALTER TABLE"],
+
+        // ─── DML ──────────────────────────────────────────────────────────────────
+
+        [/\bSELECT\s+(?:DISTINCT\s+)?(?:\*|[\w"`\[\],\s]+)\s+FROM\s+[\w"`\[\]]+/i, "sql.dml.select", "SELECT"],
+        [/\bINSERT\s+(?:OR\s+\w+\s+)?INTO\s+[\w"`\[\]]+\s*(?:\([^)]*\))?\s*VALUES\s*\(/i, "sql.dml.insert", "INSERT"],
+        [/\bUPDATE\s+[\w"`\[\]]+\s+SET\s+[\w"`\[\]]+\s*=/i, "sql.dml.update", "UPDATE"],
+        [/\bDELETE\s+FROM\s+[\w"`\[\]]+/i, "sql.dml.delete", "DELETE"],
+        [/\bREPLACE\s+INTO\s+[\w"`\[\]]+/i, "sql.dml.replace", "REPLACE"],
+        [/\bINSERT\s+.*\bON\s+CONFLICT\b|\bON\s+DUPLICATE\s+KEY\s+UPDATE\b/i, "sql.dml.upsert", "UPSERT"],
+
+        // ─── CLAUSES ──────────────────────────────────────────────────────────────
+
+        [/\bWHERE\s+[\w"`\[\]]+\s*(?:=|!=|<>|LIKE|IN|IS|BETWEEN|>|<)/i, "sql.clause.where", "WHERE"],
+        [/\b(?:INNER|LEFT|RIGHT|FULL|CROSS)?\s*(?:OUTER\s+)?JOIN\s+[\w"`\[\]]+\s+ON\b/i, "sql.clause.join", "JOIN"],
+        [/\bORDER\s+BY\s+[\w"`\[\],\s]+(?:ASC|DESC)?/i, "sql.clause.order_by", "ORDER BY"],
+        [/\bGROUP\s+BY\s+[\w"`\[\],\s]+/i, "sql.clause.group_by", "GROUP BY"],
+        [/\bHAVING\s+[\w"`\[\]]+\s*(?:=|>|<|!=|<>)/i, "sql.clause.having", "HAVING"],
+        [/\bLIMIT\s+\d+(?:\s*,\s*\d+|\s+OFFSET\s+\d+)?/i, "sql.clause.limit", "LIMIT"],
+
+        // ─── TRANSACTIONS ─────────────────────────────────────────────────────────
+
+        [/\bBEGIN\s+(?:DEFERRED|IMMEDIATE|EXCLUSIVE\s+)?TRANSACTION\b|\bBEGIN\b/i, "sql.tx.begin", "BEGIN"],
+        [/\bCOMMIT(?:\s+TRANSACTION)?\b/i, "sql.tx.commit", "COMMIT"],
+        [/\bROLLBACK(?:\s+TRANSACTION)?\b/i, "sql.tx.rollback", "ROLLBACK"],
+
+        // ─── INJECTION ────────────────────────────────────────────────────────────
+
+        [/(?:["'`]\s*\+\s*\w+|\w+\s*\+\s*["'`])\s*(?:WHERE|FROM|INTO|VALUES)/i, "sql.injection.string_concat", "String concat"],
+        [/(?:sprintf|snprintf|printf|format|String\.format|%s|%d)\s*.*(?:SELECT|INSERT|UPDATE|DELETE|WHERE)/i, "sql.injection.format_string", "Format string"],
+        [/(?:rawQuery|execSQL|execute|query)\s*\(\s*["'`][^"'`]*(?:SELECT|INSERT|UPDATE|DELETE)/i, "sql.injection.raw_query", "Raw query"],
+
     ];
 
 
@@ -91,6 +138,50 @@ export class StringAnalyzer {
         }catch(e){
             return false;
         }
+    }
+
+    static detectSQL(pStr:string):string[]{
+        const up = pStr.toUpperCase();
+        if(!SQL_KEYWORDS.some((v:string)=> up.includes(v))) return [];
+
+        return StringAnalyzer.sqlPatterns.filter((vPattern:any) => {
+            return vPattern[0].test(pStr);
+        }).map((v:any) => {
+            return v[1];
+        });
+    }
+
+    static detectToken(pStr:string):string[]{
+
+        if(pStr.length!=1)  return [];
+
+        const t:string[] = [];
+        switch (pStr[0]) {
+            case "<":
+                t.push("lex.lt");
+            case "{":
+                t.push("lex.begin");
+                break;
+            case ">":
+                t.push("lex.gt");
+            case "}":
+                t.push("lex.end");
+                break;
+            case "=":
+                t.push("lex.eq");
+                break;
+            case ":":
+                t.push("lex.assign");
+                break;
+            case "|":
+                t.push("lex.sep");
+                break;
+            case ";":
+                t.push("lex.sem");
+                break;
+        }
+
+        return t;
     }
 
 
@@ -135,10 +226,10 @@ export class StringAnalyzer {
 
         if(pStr==null) return [];
 
-        const t:string[] = [];
+        let t:string[] = [];
+        const trim = pStr.trim();
 
         if(URL.canParse(pStr) && pStr.indexOf("://")>-1){
-
             const u = new URL(pStr);
             if(u.port.length>0){
                 t.push("network.uri.port")
@@ -166,9 +257,12 @@ export class StringAnalyzer {
             }
         }
 
-        if(StringAnalyzer.detectJson(pStr.trim())){
+        if(StringAnalyzer.detectJson(trim)){
             t.push("encoded.json");
         }
+
+        t = t.concat(StringAnalyzer.detectToken(trim));
+        t = t.concat(StringAnalyzer.detectSQL(trim));
 
 
         StringAnalyzer.FORMATS.map((v:any) => {

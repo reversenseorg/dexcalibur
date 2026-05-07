@@ -38,8 +38,8 @@ import {INodeRef} from "../INode.js";
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
 import ModelCall from "../ModelCall.js";
 import {ModelFunction} from "../ModelFunction.js";
-import {NativeBackend} from "../NativeAnalyzer.js";
 import { FinderResult } from "../search/FinderResult.js";
+import {NativeBackend} from "../types/common.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

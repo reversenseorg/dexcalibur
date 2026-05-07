@@ -31,19 +31,12 @@ import {R2CmdResult} from "./external/R2Pipe.js";
 import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {AbiException} from "./errors/AbiException.js";
 import * as _path_ from "path";
-import {IExternalNativeBackend} from "./binary/IExternalNativeBackend.js";
 import {INativeHelper} from "./analyzer/INativeHelper.js";
 import ModelCall from "./ModelCall.js";
+import {NativeBackend} from "./types/common.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-
-export enum NativeBackend {
-    R2="radare2",
-    GHIDRA='ghidra',
-    IDA='ida',
-    BINARY_NINJA='bin_binja'
-}
 
 interface DiscoverOpts {
     extraOpts?: any,

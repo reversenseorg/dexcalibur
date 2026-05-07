@@ -65,6 +65,7 @@ import {
     DEFAULT_HEADER_API_OID, DEFAULT_HEADER_API_SID,
     DEFAULT_HEADER_API_UUID
 } from "./user/auth/passport/ApiKeyStrategy.js";
+import {RUNTIME_WEB_API} from "./webapi/runtime.web.api.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -1465,6 +1466,7 @@ export default class WebServer
         ORG_WEB_API.injectServer(this, "/api/organization", securedRoutes);
         HEALTH_WEB_API.injectServer(this, "/api/health", securedRoutes);
         MARKETPLACE_WEB_API.injectServer(this, "/api/mkp", securedRoutes);
+        RUNTIME_WEB_API.injectServer(this, "/api/runtime", securedRoutes);
         WEBHOOK_WEB_API.injectServer(this, "/activate", securedRoutes);
 
         this.initRoutes({

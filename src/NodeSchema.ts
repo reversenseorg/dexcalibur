@@ -36,7 +36,7 @@ import InMemoryConnector from "../connectors/inmemory/adapter.js";
 import {MongodbAdapter, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {CustomCode} from "./actionnable/CustomCode.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {Metadata, NodeInternalType} from "@dexcalibur/dxc-core-api";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
 import AssuranceReport, {Match} from "./audit/common/AssuranceReport.js";
 import AssuranceModel, { ControlNode } from "./audit/common/AssuranceModel.js";
@@ -457,6 +457,7 @@ ModelMethod.TYPE.updateProperties([
 
         (new NodeProperty("enclosingClass")).single(ModelClass.TYPE),
         (new NodeProperty("declaringClass")).single(ModelClass.TYPE),
+        (new NodeProperty("metadata")).type(DbDataType.BLOB).def([]),
         (new NodeProperty("tags"))
             .type(DbDataType.STRING).serialize(DbSerialize.JSON).def([]),
     ]).dataSource("MEM").builder(ModelMethod);
@@ -477,6 +478,7 @@ ModelField.TYPE.updateProperties([
         (new NodeProperty("_callers")).multiple(ModelMethod.TYPE),
         (new NodeProperty("_getters")).multiple(ModelMethod.TYPE),
         (new NodeProperty("_setters")).multiple(ModelMethod.TYPE),
+        (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
         (new NodeProperty("tags"))
             .type(DbDataType.STRING)
     ]).dataSource("MEM").builder(ModelField);

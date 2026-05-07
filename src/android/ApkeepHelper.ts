@@ -157,11 +157,22 @@ export class ApkeepHelper extends  External.ExternalHelper {
             stdio: ['ignore', process.stdout, process.stderr /*'pipe', 'pipe'*/ ],
         });
 
-        if(mult){
-            // split APKs mode
-            const dest = _path_.join(pOptions.destFolder,pPackageID)
+
+        let res:DownloadedProjectInput[] = [];
+
+
+        if(_fs_.existsSync(_path_.join(pOptions.destFolder,pPackageID+".apk"))){
+            res.push({
+                path: _path_.join(pOptions.destFolder,pPackageID+".apk"),
+                purpose: ProjectInputPurpose.MAIN
+            });
+        }
+
+        // split APKs mode
+        if(res.length==0 && mult){
+
+            const dest = _path_.join(pOptions.destFolder,pPackageID);
             const entries = _fs_.readdirSync(dest);
-            let res:DownloadedProjectInput[] = [];
 
             entries.map((vEntry:string)=>{
                 if(vEntry.endsWith('.apk')){
@@ -172,26 +183,14 @@ export class ApkeepHelper extends  External.ExternalHelper {
 
                     Logger.info("[*] Split APK : "+vEntry+" downloaded.");
                 }
-            })
-
-            if(res.length==0){
-                throw new Error("Application packages cannot be downloaded.")
-            }
-
-
-            return res;
-        }else{
-            // single APK mode
-            const apk = _path_.join(pOptions.destFolder,pPackageID+".apk");
-            if(!_fs_.existsSync(apk)){
-                throw new Error("Application package cannot be downloaded.")
-            }
-
-
-            Logger.info("[*] Single APK : "+apk+" downloaded.");
-            return [{ path:apk, purpose: ProjectInputPurpose.MAIN }];
+            });
         }
 
+        if(res.length==0){
+            throw new Error("Application packages cannot be downloaded.")
+        }
+
+        return res;
     }
 }
 const p = Util.whereIs(ApkeepHelper.BIN);

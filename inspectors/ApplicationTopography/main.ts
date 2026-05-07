@@ -54,6 +54,7 @@ function tagByIntent(context:DexcaliburProject, event:BusEvent<any>):void {
             const t:any = TAGS_SIGNATURE.action[a.getName()];
             if (t != null) {
                 event.data.obj.addTag(t);
+                event.getContext().getTagManager().incTag(t, event.data.obj);
             }
         });
 
@@ -61,6 +62,7 @@ function tagByIntent(context:DexcaliburProject, event:BusEvent<any>):void {
             const t:any = TAGS_SIGNATURE.category[a.getName()];
             if (t != null) {
                 event.data.obj.addTag(t);
+                event.getContext().getTagManager().incTag(t, event.data.obj);
             }
         });
     });
@@ -75,6 +77,7 @@ function tagByAttr(context:DexcaliburProject, pAttr:any, event:BusEvent<any>):vo
         if (t != null) {
             if (pAttr[i] == t.value) {
                 event.data.obj.addTag(t.tag);
+                event.getContext().getTagManager().incTag(t.tag, event.data.obj);
             }
         }
     }
@@ -153,9 +156,14 @@ export default new InspectorFactory({
             const pCtx = pEvent.getContext();
             const cls = AndroidAppAnalyzer.getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
 
+            const t = pCtx.getTagManager().getTag("topo.android.RECEIVER");
+            const e = pCtx.getTagManager().getTag("topo.android.RECEIVER");
+
             if ((cls != null) && (cls instanceof ModelClass)) {
                 pEvent.data.obj.setImplementedBy(cls);
-                cls.addTag(pCtx.getTagManager().getTag("topo.android.RECEIVER"));
+                cls.addTag(t);
+                pEvent.getContext().getTagManager().incTag(t, cls);
+                pEvent.getContext().getTagManager().incTag(t, pEvent.data.obj);
             }else{
                 //Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
@@ -163,6 +171,7 @@ export default new InspectorFactory({
 
             if(pEvent.getData().obj.attr.exported=="true"){
                 cls.addTag(pCtx.getTagManager().getTag("topo.android.RECEIVER"));
+                pEvent.getContext().getTagManager().incTag(t, cls);
             }
             // tag by intent filter
             tagByIntent(pCtx, pEvent);

@@ -34,6 +34,12 @@ export class ConnectionFactory {
             case ConnectionProtocol.PLAYSTORE:
                 mapping = GooglePlaystoreConnection.MAPPING;
                 break;
+            case ConnectionProtocol.CLAUDE:
+            case ConnectionProtocol.OPENAI:
+            case ConnectionProtocol.AWS:
+            case ConnectionProtocol.GCP:
+                mapping = GooglePlaystoreConnection.MAPPING;
+                break;
         }
 
         return mapping;

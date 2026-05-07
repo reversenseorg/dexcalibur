@@ -12,9 +12,8 @@ import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
 import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager.js";
 import {DataType} from "./types/DataType.js";
 import {TagManager} from "./tags/TagManager.js";
-import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {INativeHelper, NativeHelperCmd} from "./analyzer/INativeHelper.js";
-import {NativeBackend} from "./NativeAnalyzer.js";
 import {Architecture} from "./Architecture.js";
 import {ModelRegister} from "./elixir/ModelRegister.js";
 import ModelStringValue from "./ModelStringValue.js";
@@ -23,6 +22,7 @@ import ModelInstruction from "./ModelInstruction.js";
 import {KernelInfoFactory} from "./platform/kernels/common/KernelFactory.js";
 import ModelSyscall from "./ModelSyscall.js";
 import DexcaliburProject from "./DexcaliburProject.js";
+import {FloatType, IntType, NativeBackend, PointerType, UnknownType, VoidType} from "./types/common.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -81,13 +81,88 @@ export interface R2HelperOptions {
     url?:string;
 }
 
+
+/**
+ * Radare2 'pf' format type characters
+ * Used in type definitions returned by 'tj' and 'ts' commands
+ */
+export enum R2FormatType {
+    // Basic types
+    BYTE = 'b',              // byte (unsigned)
+    CHAR = 'c',              // char (signed byte)
+    INT32 = 'd',             // 32-bit signed decimal
+    INT64 = 'D',             // 64-bit signed decimal
+    FLOAT = 'f',             // float (32-bit)
+    DOUBLE = 'F',            // double (64-bit)
+    INT = 'i',               // 32-bit signed integer
+    OCTAL = 'o',             // 32-bit octal
+    POINTER = 'p',           // pointer (arch dependent)
+    QWORD = 'q',             // 64-bit signed integer
+    STRING = 's',            // null-terminated string
+    WIDE_STRING = 'S',       // wide string (wchar_t*)
+    TIMESTAMP = 't',         // UNIX timestamp (32-bit)
+    TIMESTAMP64 = 'T',       // UNIX timestamp (64-bit)
+    UINT32 = 'u',            // 32-bit unsigned
+    WORD = 'w',              // 16-bit word
+    HEX32 = 'x',             // 32-bit hexadecimal
+    HEX64 = 'X',             // 64-bit hexadecimal
+    STRING_SIZED = 'z',      // sized string
+    WIDE_STRING_SIZED = 'Z', // sized wide string
+
+    // Special
+    ENUM = 'E',              // enum
+    BITFIELD = 'B',          // bitfield
+    REGISTER = 'r',          // CPU register
+    NUMBER = 'n',            // auto-detect size
+    NUMBER128 = 'N',         // 128-bit number
+
+    // Modifiers
+    ARRAY = '*',             // array
+    SKIP = '.',              // skip N bytes
+    ENDIAN_TOGGLE = ':',     // toggle endianness
+}
+
+
+/**
+ * Type information from 'tj' command
+ */
+export interface R2TypeInfo {
+    type: string;           // Type name
+    size: number;           // Size in bytes
+    format?: string;        // Format string (pf format)
+    offset?: number;        // Offset in structure
+}
+
+
+/**
+ * Structure field from 'tj' or 'ts' output
+ */
+export interface R2StructField {
+    name: string;           // Field name
+    type: string;           // Field type
+    offset: number;         // Offset in structure
+    size: number;           // Size in bytes
+    format?: string;        // Format character
+    array?: number;         // Array size if array
+    comment?: string;       // Optional comment
+}
+
+/**
+ * Complete structure definition from 'ts' output
+ */
+export interface R2StructDef {
+    name: string;                   // Structure name
+    size: number;                   // Total size
+    members: R2StructField[];       // Fields/members
+}
+
+
 /**
  * @class
  * @author Georges-B MICHEL
  */
 export default class RadareHelper implements INativeHelper
 {
-
     readonly BACKEND_TYPE = NativeBackend.R2;
 
     _t:R2_TYPE = R2_TYPE.LOCAL;
@@ -635,6 +710,54 @@ export default class RadareHelper implements INativeHelper
          return data;
     }
 
+    private _createType(pInfo:R2TypeInfo):DataType {
+
+        if (!pInfo.format) {
+            return new UnknownType(NativeBackend.R2, pInfo.type);
+        }
+
+        const format = pInfo.format[0];
+        const bitSize = pInfo.size * 8;
+
+        switch (format) {
+            // Integers unsigned
+            case 'b': return new IntType(NativeBackend.R2, 8, false, 'uint8_t');
+            case 'w': return new IntType(NativeBackend.R2, 16, false, 'uint16_t');
+            case 'u': return new IntType(NativeBackend.R2, 32, false, 'uint32_t');
+            case 'x': return new IntType(NativeBackend.R2, 32, false, 'hex32');
+            case 'X': return new IntType(NativeBackend.R2, 64, false, 'hex64');
+            case 'o': return new IntType(NativeBackend.R2, 32, false, 'octal');
+            case 'N': return new IntType(NativeBackend.R2, 128, false, 'uint128_t');
+
+            // Integers signed
+            case 'c': return new IntType(NativeBackend.R2, 8, true, 'int8_t');
+            case 'd':
+            case 'i': return new IntType(NativeBackend.R2, 32, true, 'int32_t');
+            case 'D': return new IntType(NativeBackend.R2, 64, true, 'int64_t');
+            case 'q': return new IntType(NativeBackend.R2, 64, true, 'int64_t');
+            case 'n': return new IntType(NativeBackend.R2, bitSize || 32, true, 'number');
+
+            // Floats
+            case 'f': return new FloatType(NativeBackend.R2, 32, 'float');
+            case 'F': return new FloatType(NativeBackend.R2, 64, 'double');
+
+            // Pointers & Strings
+            case 'p': return new PointerType(new VoidType(NativeBackend.R2), bitSize, NativeBackend.R2);
+            case 's':
+            case 'z': return new PointerType(new IntType(NativeBackend.R2, 8, true, 'char'), bitSize, NativeBackend.R2);
+            case 'S':
+            case 'Z': return new PointerType(new IntType(NativeBackend.R2, 16, true, 'wchar_t'), bitSize, NativeBackend.R2);
+
+            // Special
+            case 't': return new IntType(NativeBackend.R2, 32, false, 'time_t');
+            case 'T': return new IntType(NativeBackend.R2, 64, false, 'time64_t');
+            case 'E': return new IntType(NativeBackend.R2, 32, true, pInfo.type || 'enum');
+            case 'B': return new IntType(NativeBackend.R2, bitSize || 32, false, 'bitfield');
+            case 'r': return new IntType(NativeBackend.R2, bitSize, false, 'register');
+
+            default: return new UnknownType(NativeBackend.R2, pInfo.type);
+        }
+    }
 
     /**
      * To initialize or update native types into TypeManager by importing types from r2
@@ -650,26 +773,56 @@ export default class RadareHelper implements INativeHelper
 
             if(!this._typeMgr.isInitialized(DATATYPE_CATEGORY.NATIVE)){
 
+
+
+                let types:DataType[] = [];
                 data = await this._p.runCmd("tj").catch(err => {
                     Logger.error(`[R2] Error 'tj' : ${err.message}`)
                 });
 
 
                 if(typeof data.data === 'string'){
-                    data = JSON.parse(data.data);
+                    data = JSON.parse(data.data) as {types:R2TypeInfo[]};
                 }
-
-                const types:DataType[] = [];
                 if(data.types!=null){
-                    data.types.map( (vData:any)=>{
-                        const t = new DataType(vData.type, vData.size);
-                        t.fmt = vData.format;
+                    data.types.map( (vData:R2TypeInfo)=>{
+
+                        const t = this._createType(vData);
+                        t.fmt = vData.type; // deprecated
                         types.push(t);
+                        this._typeMgr.importFromBackend(t, {
+                            origin: NativeBackend.R2,
+                            sourceId: this.target.getUID(),
+                            nativeId: vData.type,
+                        })
                     })
                 }
-                success = await this._typeMgr.initTypes( DATATYPE_CATEGORY.NATIVE, types);
-            }else{
-                success = true;
+
+                data = await this._p.runCmd("ts*").catch(err => {
+                    Logger.error(`[R2] Error 'tj' : ${err.message}`)
+                });
+
+
+                console.log(data);
+                /*
+                if(typeof data.data === 'string'){
+                    data = JSON.parse(data.data) as {types:R2TypeInfo[]};
+                }
+                if(data.types!=null){
+                    data.types.map( (vData:R2TypeInfo)=>{
+
+                        const t = this._createType(vData);
+                        t.fmt = vData.type; // deprecated
+                        types.push(t);
+                        this._typeMgr.importFromBackend(t, {
+                            origin: NativeBackend.R2,
+                            sourceId: this.target.getUID(),
+                            nativeId: vData.type,
+                        })
+                    })
+                }*/
+
+                //success = await this._typeMgr.initTypes( DATATYPE_CATEGORY.NATIVE, types);
             }
         } catch(err)  {
             Logger.error(`[R2] Error: ${err.message} ${err.stack}`)

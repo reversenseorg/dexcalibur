@@ -13,7 +13,7 @@ const OpcodeType = CONST.OPCODE_TYPE;
 export type OpcodeValue = number;
 
 enum RegType {
-	PARAM= 0,
+    PARAM= 0,
 	REGISTER= 1,
 	LOCAL= 2
 }

@@ -1,6 +1,5 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
-import {NativeBackend} from "../NativeAnalyzer.js";
-
+import {NativeBackend} from "../types/common.js";
 
 
 export class NativeAnalyzerException extends MonitoredError {

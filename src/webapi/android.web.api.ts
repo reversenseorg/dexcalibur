@@ -16,6 +16,7 @@ from "@dexcalibur/dxc-core-api";;
 import AndroidComponent from "../android/AndroidComponent.js";
 import {AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer.js";
 import {AndroidAnalyzerException} from "../errors/android/AndroidAnalyzerException.js";
+import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ANDROID_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -187,8 +188,6 @@ ANDROID_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.user)[req.body['project']];
                 }else if(req.project != null){
@@ -219,16 +218,18 @@ ANDROID_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.user)[req.body['project']];
                 }else if(req.project != null){
                     project = req.project;
                 }
 
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                if(project==null){
+                    throw ProjectManagerException.PROJECT_IS_MANDATORY();
+                }
+
+                if(!project.isReady()) {
+                    throw DexcaliburProjectException.PROJECT_NOT_READY(project.getUID());
                 }
 
                 // ========== LOGIC + RESPONSE

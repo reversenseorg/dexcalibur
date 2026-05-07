@@ -2,6 +2,7 @@ import {ModelFunction} from "../ModelFunction.js";
 import ModelExecutableSection from "../ModelExecutableSection.js";
 import ModelStringValue from "../ModelStringValue.js";
 import ModelCall from "../ModelCall.js";
+import {NativeBackend} from "../types/common.js";
 
 export enum NativeHelperCmd {
     LIST_SECTIONS='sections',
@@ -13,7 +14,11 @@ export enum NativeHelperCmd {
     SEARCH_INT='s_svc'
 }
 
+export type NativeHelperUID = string;
+
 export interface INativeHelper {
+
+    BACKEND_TYPE: NativeBackend;
 
     start(pCommands:string[]):Promise<any>;
 

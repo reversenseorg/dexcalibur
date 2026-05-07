@@ -1,4 +1,4 @@
-import DexcaliburProject from "../DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {UserAccount} from "../user/UserAccount.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
@@ -15,6 +15,7 @@ import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import {INodeRef} from "../INode.js";
 import FuzzSession from "../fuzzing/FuzzSession.js";
+import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -85,7 +86,8 @@ export class RuntimeManager {
         let dev:DeviceUUID = pDevice;
         let sess = new RuntimeSession({
             project: this._ctx.getUID(),
-            owner: pUser.getUID()
+            owner: pUser.getUID(),
+            date: (new Date()).getTime()
         });
 
         if(pDevice==null){
@@ -212,5 +214,75 @@ export class RuntimeManager {
 
     private async _save<T extends INode>(pSession:T, pOptions?:string[]):Promise<T> {
         return await this._ctx.getProjectDB().save(pSession,null,pOptions) as T;
+    }
+
+    async getSession(pUser: UserAccount, pSess:RuntimeSessionUUID):Promise<RuntimeSession> {
+        // Security check : acl
+        this._checkAccess(pUser);
+
+        const sess:RuntimeSession[] = await this._ctx.getProjectDB().search({
+                uuid: pSess
+            },RuntimeEvent.TYPE.getType()
+        );
+
+        if(sess==null || sess.length==0)
+            return null;
+        else
+            return sess[0];
+    }
+
+    async listSessions(pUser: UserAccount, pProject:DexcaliburProjectUUID, pStat = false):Promise<RuntimeSession[]> {
+        // Security check : acl
+        this._checkAccess(pUser);
+
+        const sess = await this._ctx.getProjectDB().search(
+            { project: pProject },
+            RuntimeSession.TYPE.getType()
+        );
+
+        if(pStat) return sess;
+
+        for(let i=0; i<sess.length; i++){
+
+            sess[i].hksess = await this._ctx.getProjectDB().search({
+                filter: {
+                    _uid: { $in: sess[i].hksess }
+                }
+            },HookSession.TYPE.getType(), { raw: true });
+
+            sess[i].hksess = sess[i].hksess.map( (v:HookSession) => {
+                return {
+                    date: v.time,
+                    len: v.offset,
+                    pid: v.frida.pid,
+                    _uid: v.getUID()
+                }
+            });
+        }
+
+        return sess;
+    }
+
+    async listEvents(pUser: UserAccount, pSess:RuntimeSessionUUID, pOpts:any):Promise<RuntimeEvent<any>[]> {
+        // Security check : acl
+        this._checkAccess(pUser);
+
+
+        const sess = await this.getSession(pUser, pSess);
+        if(sess==null){
+            throw RuntimeManagerException.SESS_NOT_FOUND(pSess);
+        }
+
+       /* sess.hksess
+
+        const evts = await this._ctx.getProjectDB().search(
+            {
+                project: pProject
+            },
+            RuntimeEvent.TYPE.getType()
+        );*/
+
+
+        return [];
     }
 }

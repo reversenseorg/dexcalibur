@@ -8,13 +8,25 @@ import * as Log from "./Logger.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {NodeType, DataSourceHelper, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {Metadata, NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+export interface ModelFieldOptions {
+    alias?:string;
+    fqcn?:string;
+    name?:string;
+    modifiers?:Modifier;
+    type?:any;
+    enclosingClass?:ModelClass;
+    declaringClass?:ModelClass|string;
+    _hashcode?:string;
+    _isBinding?:boolean;
+    metadata?:Metadata[];
+}
 
 export default  class ModelField extends Savable implements IPersistent
 {
@@ -44,6 +56,7 @@ export default  class ModelField extends Savable implements IPersistent
     _setters:ModelMethod[] = [];
     tags:any = [];
 
+    metadata:Metadata[] = [];
     /**
      * Multi typed
      */
@@ -55,7 +68,7 @@ export default  class ModelField extends Savable implements IPersistent
      *
      * @param pConfig
      */
-    constructor(pConfig:any=null) {
+    constructor(pConfig:Nullable<ModelFieldOptions>=null) {
         super(STUB_TYPE.FIELD);
 
         if(pConfig!==undefined)

@@ -22,6 +22,7 @@ import {HookManagerException} from "../errors/HookManagerException.js";
 import {WebApiWindowing} from "./internals/WebApiWindowing.js";
 import {TargetLanguage} from "../hook/common.js";
 import {ScriptCompilerOutput} from "../hook/HookWorkspace.js";
+import {RuntimeSession} from "../runtime/RuntimeSession.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const RUNTIME_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -127,6 +128,56 @@ RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
                 // get hook instance by ID
                 const sessions:HookSession[] = await project.rtmgr.getSessionsStats(req.user);
                 $.sendSuccess(res,  sessions.map(s=>s.toJsonObject()));
+            }catch(err){
+                Logger.error("[API][HOOK] Hooked application cannot be detached. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Hooked application cannot be detached. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
+    '/sessions/list',
+    {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                project = req.dxc.project;
+                const sessions:RuntimeSession[] = await project.rtmgr.listSessions(req.user, project.getUID());
+                $.sendSuccess(res,  sessions.map(s=>s.toJsonObject()));
+            }catch(err){
+                Logger.error("[API][HOOK] Hooked application cannot be detached. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Hooked application cannot be detached. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+RUNTIME_WEB_API.addAsyncAuthenticatedRoute(
+    '/events/list',
+    {
+        'get': async  (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                project = req.dxc.project;
+                const evt:RuntimeEvent<any>[] = await project.rtmgr.listEvents(
+                    req.user, project.getUID(),
+                    {
+                        sess: req.query.sessid as string,
+                        type: req.query.type as RuntimeEventType,
+                        offset: req.query.offset ?? -1,
+                        size: req.query.size ?? -1
+                    });
+                $.sendSuccess(res,  evt.map(s=>s.toJsonObject()));
             }catch(err){
                 Logger.error("[API][HOOK] Hooked application cannot be detached. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Hooked application cannot be detached. Cause : " + err.message);

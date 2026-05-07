@@ -29,7 +29,7 @@ import ModelSyscall from "./ModelSyscall.js";
 import AiHelper from "./core/ai/AiHelper.js";
 
 
-
+export type ModelFileUID = string;
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -306,7 +306,7 @@ export default class ModelFile implements INode,IPersistent {
 
     __:NodeInternalType = NodeInternalType.FILE;
 
-    _uid: string = null;
+    _uid: ModelFileUID = null;
 
     /**
      * Object type

@@ -22,6 +22,10 @@ export interface RuntimeSessionOpts {
     owner?:UserAccountUUID;
     project?:DexcaliburProjectUUID;
     device?:DeviceUUID;
+    date?:number;
+    tags?:number;
+    tools?:number;
+    hksess?:number;
 }
 
 export class RuntimeSession implements INode {
@@ -32,7 +36,7 @@ export class RuntimeSession implements INode {
             .key(DbKeyType.PRIMARY)
             .schema({ type:"string", format:"uuid", description:"Unique identifier of the runtime session" }),
         (new NodeProperty("hksess"))
-            .multiple(HookSession.TYPE)
+            .type(DbDataType.STRING)
             .def([]),
         (new NodeProperty("owner"))
             .type(DbDataType.STRING)
@@ -44,6 +48,9 @@ export class RuntimeSession implements INode {
         (new NodeProperty("device"))
             .type(DbDataType.STRING)
             .def(null),
+        (new NodeProperty("date"))
+            .type(DbDataType.STRING)
+            .def(0),
         (new NodeProperty("tools"))
             .type(DbDataType.STRING)
             .def([])
@@ -62,6 +69,7 @@ export class RuntimeSession implements INode {
     device:DeviceUUID = null;
     tools:any[] = [];
     tags:TagUUID[] = [];
+    date:number = 0;
 
     _ctx:Nullable<DexcaliburProject> = null;
 
@@ -99,7 +107,8 @@ export class RuntimeSession implements INode {
             project: this.project,
             device: this.device,
             tools: this.tools,
-            tags: this.tags
+            tags: this.tags,
+            date: this.date
         }
     }
 }

@@ -21,6 +21,7 @@ import {PolicyActionFactory} from "../audit/PolicyActionFactory.js";
 import Util from "../Utils.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IControl} from "../audit/common/IControl.js";
+import {NodePurpose} from "../core/EngineNode.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -940,40 +941,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
 
 /**
- * To get a list of available models
- */
-AUDIT_WEB_API.addAsyncAuthenticatedRoute(
-    '/models/all',
-    {
-        'get': async (req:DelegateRequest, res:DelegateResponse) => {
-            const $: WebServer = req.dxc.$;
-
-            try{
-                if(req.project==null){
-                    throw ProjectManagerException.PROJECT_NOT_LOADED("");
-                }
-
-                // ========== LOGIC
-                const am = $.context.getAuditManager();
-
-                const models = await am.listModels(req.user, req.project);
-
-
-                const data = models.map(x => x.toJsonObject());
-
-                $.sendSuccess(res, data);
-            }catch(err){
-                Logger.error("[API][AUDIT] List of all models cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "List of all models cannot be retrieved. See logs for details. ");
-            }
-        }
-    },{
-        lazyProject: true,
-        nodeAffinity: DexcaliburEngineMode.MASTER
-    }
-);
-
-
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/project/:projectID/scan/start',
     {
@@ -1017,10 +984,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     //console.log(project);
                     const report = await scheduler.newStandaloneScan(req.user, project, order, org);
 
-                    /*const report = await scheduler.newLocalScan(req.user, project, ScanOrder.fromScanOptions({
-                        modelUID: req.body.modelUID[0],
-                        projectUID: req.body.projectUID,
-                    }));*/
 
                     console.log("SERIALIZE REPORT TO SEND TO WEB");
                     $.sendSuccess(res,report.toJsonObject());
@@ -1039,9 +1002,40 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        lazyProject: true
+        lazyProject: true,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-start-scan',
+                uri: '/project/{projectUUID}/scan/start',
+                summary: `To start a scan for the specified project. The scan is started in background according to specified configuration passed in body. A completed scan creates a report.`,
+                parameters: [{
+                    name: 'projectUUID',
+                    required: true,
+                    description: DexcaliburProject.TYPE.getPrimaryKey()._dscr,
+                    schema: DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'project',
+                    required: false,
+                    description: "Optional but recommended, it is the UUID of the project. "+DexcaliburProject.TYPE.getPrimaryKey()._dscr,
+                    schema: DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'request',
+                    required: true,
+                    description: `Serialized JSON object containing the Merlin request.
+
+                    The request is composed of a set of conditions.
+
+                    Possible values are : ${Object.values(NodePurpose).join(',')}.`,
+                    schema: { type:"string", enum: Object.values(NodePurpose) as NodePurpose[] }
+                }],
+                responses: [{
+                    description: "The list of **assurance_model** node. An 'assurance_model' is a referential or a set of requirements validated by Reversense platform during a scan.",
+                    schema: AssuranceModel.TYPE.toJSONSchemaPart(true)
+                }]
+            }
+        }
     }
-);
+);*/
 
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(

@@ -22,7 +22,7 @@ import ModelSyscall from "../ModelSyscall.js";
 import {IAnalyzerUnit} from "../analyzer/IAnalyzerUnit.js";
 import {OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {NodeInternalType, Nullable}
-  from "@dexcalibur/dxc-core-api";;
+  from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {ISearchAPISelector} from "./ISearchApiSelector.js";
 import {INodeRef} from "../INode.js";

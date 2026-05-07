@@ -6,7 +6,7 @@ import {Nullable} from "@dexcalibur/dxc-core-api";
 import ModelFile from "../ModelFile.js";
 import ModelCall from "../ModelCall.js";
 import ModelStringValue from "../ModelStringValue.js";
-import { NativeBackend } from "../NativeAnalyzer.js";
+import {NativeBackend} from "../types/common.js";
 
 export interface NativeDiscoverOpts {
     backend: NativeBackend,

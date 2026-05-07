@@ -8,9 +8,9 @@ import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelCall from "./ModelCall.js";
 import {ModelLocation} from "./ModelLocation.js";
-import {INode, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, SerializeOptions, TagUUID} from "@dexcalibur/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {Metadata, NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import JavaMethodHook from "./hook/JavaMethodHook.js";
 
@@ -22,6 +22,39 @@ import {DataType} from "./types/DataType.js";
 import {RegisterType} from "./elixir/common.js";
 import {ElixirInstructionBuilder} from "./elixir/ElixirInstructionBuilder.js";
 
+
+interface ModelMethodOptions {
+    alias?:string;
+    name?:string;
+    modifiers?:Modifier;
+    args?:(ModelObjectType|ModelBasicType)[];
+    ret?:(ModelObjectType|ModelBasicType);
+    instr?:ModelBasicBlock[];
+    locals?:number;
+    registers?:number;
+    params?:ModelRegister[];
+    localsR?:ModelRegister[];
+    enclosingClass?:ModelClass;
+    declaringClass?:ModelClass|string;
+    _hashcode?:string;
+    __callSignature__?:string;
+    __aliasedCallSignature__?:string;
+    __signature__?:string;
+    __pretty_signature__?:string;
+    _callers?:string[]|ModelMethod[];
+    _useMethod?:any;
+    _useMethodCtr?:number;
+    _useField?:any;
+    datas?:ModelDataBlock[];
+    switches?:any;
+    probing?:boolean;
+    hooks?:JavaMethodHook[];
+    tags?:TagUUID[];
+    isDerived?:boolean;
+    _?:any;
+    dyn?:any;
+    metadata?:Metadata[];
+}
 
 /*interface LazyMethodReference {
     string|ModelMethod
@@ -105,11 +138,13 @@ Methods are found by parsing native code or bytecode from targeted application e
     /**
      * All tags of the node
      */
-    tags:number[] = [];
+    tags:TagUUID[] = [];
 
     isDerived = false; // TODO
 
     _:any = {};
+
+    metadata:Metadata[] = [];
 
     /**
      *
@@ -117,7 +152,7 @@ Methods are found by parsing native code or bytecode from targeted application e
      * @param {Object} cfg Optional, an object wich can be used in order to initialize the instance
      * @constructor
      */
-    constructor(pConfig:any = null){
+    constructor(pConfig:Nullable<ModelMethodOptions> = null){
         super(STUB_TYPE.METHOD);
 
         if(pConfig!==undefined)
@@ -448,6 +483,7 @@ Methods are found by parsing native code or bytecode from targeted application e
                     case "registers":
                     case "params":
                     case "tags":
+                    case "metadata":
                     case "probing":
                         obj[i] = this[i];
                         break;

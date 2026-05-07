@@ -100,10 +100,11 @@ import {DataFormatManager} from "./formats/DataFormatManager.js";
 import {MerlinSearchRequest} from "./search/MerlinSearchRequest.js";
 import {AndroidTypes} from "./android/AndroidTypes.js";
 import {RuntimeManager} from "./runtime/RuntimeManager.js";
-import {NativeBackend} from "./NativeAnalyzer.js";
 import FuzzManager from "./fuzzing/FuzzManager.js";
 import KeyPoint from "./hook/KeyPoint.js";
 import {InspectorEditor} from "./inspector/InspectorEditor.js";
+import {NativeBackend} from "./types/common.js";
+import {INodeRef} from "./INode.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -443,7 +444,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     // FridaBuilder make Frida script chunk from cls
     fridaBuilder:any = null;
 
-    //
+    /**
+     * @deprecated
+     */
     graph:GraphMaker = null;
 
     // NEW
@@ -623,6 +626,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
         // scan scheduler should be attach to master engine
         this._scanScheduler = new ScanSchedulerProject(this);
+        if(this.sharedStorage.tagsCtr==null){
+            this.sharedStorage.tagsCtr = {};
+        }
     }
 
     private _emit(pEvent:string, pData:any = {}):void {
@@ -2301,6 +2307,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         return this.platform;
     }
 
+    /**
+     * @deprecated
+     */
     getDisassembler(){
         if(this.platform.isAndroid()){
             return new SmaliDisassembler();
@@ -2670,6 +2679,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         const dynBcScope = this.dataAnalyzer.getScope('DYN_BYTECODE');
         console.log("DYN_BYTECODE> ", dynBcScope);
 
+        // TODO : rewrite or remove
 
         (await this.dataAnalyzer.scan(
             this.workspace.getRuntimeBcDir(),
@@ -2724,7 +2734,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         //}
         this._emit("dxc.fullscan.post_dast_tag");
 
-        this._emit("dxc.fullscan.post" );
+        //this._emit("dxc.fullscan.post" );
 
         this.getWorkflow().pushStatus(new StatusMessage(24, "Deploying inspectors [POST_APP_SCAN]"));
 
@@ -2732,9 +2742,15 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         await this.deployInspectors(INSPECTOR_TYPE.POST_APP_SCAN);
 
 
+        this._emit("dxc.fullscan.post" );
+
         this.state = ProjectState.FULLSCAN_END;
 
         this._emit("dxc.fullscan.post_deploy" );
+
+        if(this._createMode){
+            this._emit("dxc.fullscan.post.once" );
+        }
 
         this.ready = true;
 
@@ -3263,6 +3279,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         }
         return this._iedit;
     }
+
+
+
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);
 

@@ -46,7 +46,14 @@ export enum ConnectionProtocol {
     APKPURE="apkpure",
     FDROID="fdroid",
     HUAWAIAPPG="huawaiappstore",
-    APPSTORE="appstore"
+    APPSTORE="appstore",
+    OPENAI="openai",
+    CLAUDE="claude",
+    LLM="llm",
+    SCW="scw",
+    AWS="aws",
+    GCP="gcp",
+    CORL="corl"
 }
 
 export enum ConnectionSubject {
@@ -81,6 +88,12 @@ export class Connection extends Auditable   {
         { name:"FDROID", value:ConnectionProtocol.FDROID, disabled:false, label:"F-Droid", icon:["fab","google-play"] },
         { name:"HUAWAIAPPG", value:ConnectionProtocol.HUAWAIAPPG, disabled:false, label:"Huawei App Gallery", icon:["fab","google-play"] },
         { name:"APPSTORE", value:ConnectionProtocol.APPSTORE, disabled:true, label:"Apple AppStore", icon:["fab","app-store-ios"] },
+        { name:"OPENAI", value:ConnectionProtocol.OPENAI, disabled:false, label:"OpenAI", icon:["fas","brain"] },
+        { name:"CLAUDE", value:ConnectionProtocol.CLAUDE, disabled:false, label:"Claude", icon:["fas","brain"] },
+        { name:"LLM", value:ConnectionProtocol.LLM, disabled:false, label:"LLM", icon:["fas","brain"] },
+        { name:"AWS", value:ConnectionProtocol.AWS, disabled:false, label:"AWS", icon:["fab","aws"] },
+        { name:"GCP", value:ConnectionProtocol.GCP, disabled:false, label:"Google Cloud", icon:["fab","google"] },
+        { name:"CORL", value:ConnectionProtocol.CORL, disabled:true, label:"Corellium", icon:["fab","google"] }
     ];
 
     static VALIDATE:Record<string, ValidationRule> = {
@@ -99,7 +112,12 @@ export class Connection extends Auditable   {
             ConnectionProtocol.FDROID,
             ConnectionProtocol.APKPURE,
             ConnectionProtocol.HUAWAIAPPG,
-            ConnectionProtocol.APPSTORE
+            ConnectionProtocol.APPSTORE,
+            ConnectionProtocol.GCP,
+            ConnectionProtocol.AWS,
+            ConnectionProtocol.OPENAI,
+            ConnectionProtocol.CLAUDE,
+            ConnectionProtocol.LLM
         ])
     }
 
