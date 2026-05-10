@@ -105,7 +105,7 @@ VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
 # ===============================
 WORKDIR /
 
-RUN apt-get update && apt install -y pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
+RUN apt-get update && apt install -y --fix-missing pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
     bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3  \
     libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
     wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils \
