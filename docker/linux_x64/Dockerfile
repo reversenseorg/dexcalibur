@@ -106,7 +106,6 @@ VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
 WORKDIR /
 
 RUN mkdir -p /etc/apt/keyrings && \
-    (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
     (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list) && \
     (echo "deb http://deb.debian.org/debian bullseye main" > /etc/apt/sources.list) && \
     (echo "deb http://deb.debian.org/debian-security bullseye-security main" >> /etc/apt/sources.listapt-get update) && \
@@ -117,7 +116,8 @@ RUN mkdir -p /etc/apt/keyrings && \
     sudo libfontconfig1-dev libfreetype6-dev
 
 
-RUN  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+RUN (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
+    (curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl") && \
      chmod +x kubectl && \
      mv kubectl /usr/local/bin/
 
