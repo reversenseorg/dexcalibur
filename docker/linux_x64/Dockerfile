@@ -105,19 +105,19 @@ VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
 # ===============================
 WORKDIR /
 
-RUN apt install -y --fix-missing pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
-    bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3 libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  && \
-    apt install -y --fix-missing pkg-config wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils sudo libfontconfig1-dev libfreetype6-dev
-
-    #(echo "deb http://deb.debian.org/debian bullseye main" > /etc/apt/sources.list) && \
-    #(echo "deb http://deb.debian.org/debian-security bullseye-security main" >> /etc/apt/sources.listapt-get update) && \
+RUN apt-get update && apt install -y --fix-missing pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
+    bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3 && \
+    apt install -y --fix-missing libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
+    wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils \
+    sudo libfontconfig1-dev libfreetype6-dev
 
 
 RUN mkdir -p /etc/apt/keyrings && \
-    (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list) && \(curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
-    (curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl") && \
-     chmod +x kubectl && \
-     mv kubectl /usr/local/bin/
+    (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
+    (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list) && \
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+        && chmod +x kubectl \
+        && mv kubectl /usr/local/bin/
 
 
 # ===============================
@@ -132,12 +132,11 @@ USER $DXC_USER_SRV
 WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
-    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt && \
-    mkdir $TMP_FOLDER && \
-    curl -sSL https://bootstrap.pypa.io/pip/3.9/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
-    python3 $TMP_FOLDER/"get-pip.py" && \
-    sudo npm install -g npm@10.0.0 && \
-    (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
+    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt
+
+RUN sudo npm install -g npm@10.0.0
+
+RUN  (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
     export PATH=$HOME/.cargo/bin:$PATH && \
     ls -la $HOME/.cargo/bin
 
@@ -151,6 +150,9 @@ RUN wget -q https://dl.google.com/android/repository/${ANDROID_CMD_VERSION} -P /
     mkdir tools && \
     mv NOTICE.txt source.properties bin lib ./tools/ && \
     cd $ANDROID_SDK_ROOT/cmdline-tools/tools && \
+    mkdir $TMP_FOLDER && \
+    curl -sSL https://bootstrap.pypa.io/pip/3.9/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
+    python3 $TMP_FOLDER/"get-pip.py" && \
     rm -f /tmp/$ANDROID_CMD_VERSION
 
 # curl -sSL https://bootstrap.pypa.io/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
