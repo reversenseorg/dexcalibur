@@ -105,16 +105,16 @@ VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
 # ===============================
 WORKDIR /
 
-RUN mkdir -p /etc/apt/keyrings && \
-    (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list) && \
-    apt install -y --fix-missing pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
+RUN apt install -y --fix-missing pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
     bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3 libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  && \
     apt install -y --fix-missing pkg-config wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils sudo libfontconfig1-dev libfreetype6-dev
+
     #(echo "deb http://deb.debian.org/debian bullseye main" > /etc/apt/sources.list) && \
     #(echo "deb http://deb.debian.org/debian-security bullseye-security main" >> /etc/apt/sources.listapt-get update) && \
 
 
-RUN (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
+RUN mkdir -p /etc/apt/keyrings && \
+    (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list) && \(curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
     (curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl") && \
      chmod +x kubectl && \
      mv kubectl /usr/local/bin/
