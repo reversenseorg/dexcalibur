@@ -151,9 +151,11 @@ RUN wget -q https://dl.google.com/android/repository/${ANDROID_CMD_VERSION} -P /
     mv NOTICE.txt source.properties bin lib ./tools/ && \
     cd $ANDROID_SDK_ROOT/cmdline-tools/tools && \
     mkdir $TMP_FOLDER && \
-    curl -sSL https://bootstrap.pypa.io/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
+    curl -sSL https://bootstrap.pypa.io/pip/3.9/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
     python3 $TMP_FOLDER/"get-pip.py" && \
     rm -f /tmp/$ANDROID_CMD_VERSION
+
+# curl -sSL https://bootstrap.pypa.io/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
 
 ENV PATH="$PATH:$DXC_USER_HOME/.local/bin:$ANDROID_SDK_ROOT/cmdline-tools/tools:$ANDROID_SDK_ROOT/cmdline-tools/tools/bin:$ANDROID_SDK_ROOT/emulator:$ANDROID_SDK_ROOT/tools/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/${ANDROID_BUILD_TOOLS_VERSION}"
 
