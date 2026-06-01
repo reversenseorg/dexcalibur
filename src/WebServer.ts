@@ -1168,7 +1168,7 @@ export default class WebServer
                 //if(vReq.baseUrl.indexOf("/api/")===0){}
                 //vRes.set('Access-Control-Allow-Origin', '*');
                 //vRes.status(200).redirect("/"+this.guiCfgs[0].name+"/");
-                if(vReq.path.indexOf("/api/health/ready")==-1){
+                if(vReq.path.indexOf("/api/health/ready")==-1 && vReq.path.indexOf("/api/settings/resources")==-1){
                     vRes.status(200).redirect('https://www.reversense.com/');
                 }
             })
