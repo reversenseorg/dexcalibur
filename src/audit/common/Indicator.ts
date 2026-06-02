@@ -1,7 +1,7 @@
 import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import { NodeInternalType } from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../../core/CoreDebug.js";
-import {Metadata} from "./Metadata.js";
+import {Metadata, MetadataJsonSchema} from "./Metadata.js";
 import {Nullable} from "../../core/IStringIndex.js";
 
 
@@ -58,16 +58,47 @@ export class Indicator implements INode {
     __ = NodeInternalType.INDICATOR;
 
     static TYPE:NodeType = (new NodeType( "indicator", NodeInternalType.INDICATOR, [
-        (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("title")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("rules")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("data")).type(DbDataType.BLOB).def([]),
-        (new NodeProperty("view")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("enable")).type(DbDataType.BOOLEAN).def(true),
-        (new NodeProperty("version")).type(DbDataType.BLOB).def({}),
+        (new NodeProperty("uuid"))
+            .schema({ type:"string", pattern:"^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$"})
+            .descr("Unique identifier of the indicator, in the form of a dot-separated path, eg: my.indicator.name. Indicator from source source are prefixed by 'built.' ")
+            .type(DbDataType.STRING)
+            .key(DbKeyType.PRIMARY),
+        (new NodeProperty("name"))
+            .schema({ type:"string" })
+            .descr("The internal name of the indicator, must be unique within the same report. It is often equal to UUID without the 'built.' prefix.")
+            .type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("title"))
+            .schema({ type:"string" })
+            .descr("The title of the indicators when it is rendered or integrated to the report (eg: in a dashboard).")
+            .type(DbDataType.STRING).def(""),
+        (new NodeProperty("description"))
+            .schema({ type:"string" })
+            .descr("A description to help the final user to understand what is represented by this indicator..")
+            .type(DbDataType.STRING).def(""),
+        (new NodeProperty("metadata"))
+            .schema({ type:"array", items: MetadataJsonSchema })
+            .descr("A list of metadata related to this indicators, eg: the styles, an external resource, the source of the data, the unit of measure, the type of data, etc..")
+            .type(DbDataType.STRING).def([]),
+        (new NodeProperty("rules"))
+            .schema({ type:"array", items: MetadataJsonSchema })
+            .descr("Rules are a list of aggregation rule used to count things in order to compute the values of the indicator.")
+            .type(DbDataType.STRING).def([]),
+        (new NodeProperty("data"))
+            .schema({ type:"array", items: {type:"object"} })
+            .descr("the raw data of the indicator instance. An Indicator object without data is just the template of the indictor or the KPI.")
+            .type(DbDataType.BLOB).def([]),
+        (new NodeProperty("view"))
+            .schema({ type:"string", enum: ["doughnut", "radar", "curv", "plot", "stacked_bar", "progress",] })
+            .descr("The type of view to use to render the indicator by the render engine. The default is 'doughnut'. Data are processed by the render engine accordingly to this value.")
+            .type(DbDataType.STRING).def("doughnut"),
+        (new NodeProperty("enable"))
+            .schema({ type:"boolean" })
+            .descr("A boolean flag to enable or disable this indicator. Disabled indicators are not rendered in the report, but can be used to build dashboards. Default is true.")
+            .type(DbDataType.BOOLEAN).def(true),
+        (new NodeProperty("version"))
+            .schema({ type:"string" })
+            .descr("Semver style of version number to track evolution of this indicator. Default is empty string.")
+            .type(DbDataType.BLOB).def("1.0.0"),
         //(new NodeProperty("metric")).type(DbDataType.STRING).def({})
     ])).descr(`
 An Indicator is a metric, optionally filed with data.

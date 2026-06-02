@@ -76,6 +76,7 @@ export default class AndroidActivity extends AndroidComponent
         (new NodeProperty("label")).type(DbDataType.STRING).def(""),
         (new NodeProperty("attr")).type(DbDataType.STRING).def({}),
         (new NodeProperty("metadata")).type(DbDataType.STRING).def({}),
+        (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
         (new NodeProperty("intentFilters"))
             .type(DbDataType.STRING)
             .sleep( (x:NodePropertyState)=>{
@@ -101,6 +102,8 @@ export default class AndroidActivity extends AndroidComponent
         .dataSource("PROJECT_DB"); //, "androidActivity");
 
     __:NodeInternalType = NodeInternalType.ANDROID_ACTIVITY;
+
+    type = "activity";
 
     static MODEL = {
         allowEmbedded:["true" , "false"],
@@ -208,3 +211,4 @@ export default class AndroidActivity extends AndroidComponent
         return act;
     }
 }
+AndroidActivity.TYPE.builder(AndroidActivity);

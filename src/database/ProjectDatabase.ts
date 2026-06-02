@@ -63,6 +63,7 @@ import {ModelPermission} from "../android/ModelPermission.js";
 import {randomUUID} from "crypto";
 import {RuntimeSession} from "../runtime/RuntimeSession.js";
 import {StringAnalyzer} from "../analyzer/StringAnalyzer.js";
+import AndroidComponent from "../android/AndroidComponent.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -312,6 +313,7 @@ export class ProjectDatabase implements IFileDatabase {
 
             this.save(pEvent.getData().file).then((v)=>{},()=>{})
         }) )*/
+
     }
 
     /**

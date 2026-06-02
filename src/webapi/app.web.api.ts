@@ -12,6 +12,10 @@ import Util from "../Utils.js";
 import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
 import {ConnectionProtocol} from "../organization/conn/Connection.js";
 import {ORG_WEB_API} from "./organization.web.api.js";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
+import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {MerlinSearchRequestException} from "../search/error/MerlinSearchRequestException.js";
+import ModelMethod from "../ModelMethod.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const APP_WEB_API: DelegateWebApi = new DelegateWebApi("APP");
@@ -51,6 +55,7 @@ APP_WEB_API.addAsyncAuthenticatedRoute(
     }
 
 );
+
 
 APP_WEB_API.addAsyncAuthenticatedRoute(
     '/package/content',
@@ -220,6 +225,77 @@ APP_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendErrorAfterException(
                     pRes, APP_WEB_API.name,
                     "Details about Application Unit cannot be retrieved from organization.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
+APP_WEB_API.addAsyncAuthenticatedRoute(
+    '/scan',
+    {
+        'post': async (pReq:DelegateRequest, res:DelegateResponse) => {
+            const $:WebServer = pReq.dxc.$;
+            let project:DexcaliburProject = null;
+            try{
+                if(pReq.body['project']!=null){
+                    project = $.context.getActiveProjects(pReq.dxc.sess.getUserAccount())[pReq.body['project']];
+                }else if(pReq.dxc.project != null){
+                    project = pReq.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                if(pReq.body.obj==null || pReq.body.obj.__==null || pReq.body.obj._uid==null){
+                    throw new Error("Invalid object to scan");
+                }
+
+
+                if(!project.isReady()){
+                    project = (await $.context.getProjectManager().preloadForDirect(pReq.user, pReq.params.pid));
+                }
+
+                // get object
+                const result = (await (MerlinSearchRequest.getByRef({
+                    __: parseInt(pReq.body.obj.__,10),
+                    _uid: pReq.body.obj._uid
+                },project.getMerlinEngine() )).executePDB(project));
+
+                if(result==null || result.count()==0){
+                    throw MerlinSearchRequestException.NODE_NOT_FOUND(
+                        parseInt(pReq.body.obj.__,10),
+                        Util.decodeURI(Util.b64_decode(pReq.body.obj._uid))
+                    )
+                }
+
+                if(/^[a-zA-Z0-9]+\.[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*$/.test(pReq.body.evt)===false){
+                    throw new Error("Invalid scan type");
+                }
+
+                const wf = await project.getContext().getProjectManager().createWorkflow(
+                    pReq.user.getUID(),
+                    (project.getContext().getNodeUUID()!=null? project.getContext().getNodeUUID() : null),
+                    project.getUID(),
+                    "sod", // scan on demand
+                    true
+                );
+
+                project.trigger({
+                    type: pReq.body.evt,
+                    data: {
+                        obj: result.get(0),
+                        wf: wf
+                    }
+                });
+
+                $.sendSuccess( res, { wf: wf.getUID() });
+            }catch(err){
+                $.sendErrorAfterException(
+                    res, APP_WEB_API.name,
+                    "Cannot scan the specified object.",
                     err,{cause:err.message});
             }
         }

@@ -36,6 +36,8 @@ export default class AndroidComponent extends AndroidIntentable implements INode
 
     tags:number[] = [];
 
+    type = "";
+
     constructor() {
         super();
     }

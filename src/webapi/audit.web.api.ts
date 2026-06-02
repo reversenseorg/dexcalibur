@@ -509,6 +509,51 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/reports/:aid/previews',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse) => {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const am = $.context.getAuditManager();
+                const app:ApplicationUnit = await  $.context.getOrgManager().getDirectApplication(
+                    req.user,
+                    req.params.aid as string
+                );
+
+                $.sendSuccess(res, (await am.getReportPreviews(
+                    req.user, app)).map(x => x.toJsonObject()) );
+            }catch(err){
+                $.sendErrorWithLog(res,
+                    AUDIT_WEB_API.name,
+                    "Reports cannot be listed.",
+                    err.message);
+            }
+        }
+    },{
+        lazyProject: true,
+        nodeAffinity: DexcaliburEngineMode.MASTER,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-list-report-previews-by-app',
+                uri: '/reports/{applicationUUID}/previews',
+                summary: `Return the list of report previews for application unit specified by its UUID in 'applicationUUID' params. This route should be used to know existing reports for any application unit from a specific organization.`,
+                parameters: [{
+                    name: 'applicationUUID',
+                    required: true,
+                    description: ApplicationUnit.TYPE.getPrimaryKey()._dscr,
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                }],
+                responses: [{
+                    description: "A list of partial Assurance Report (an assurance_report object) for the specified application unit. It is a scan report",
+                    schemaDoc: AssuranceReport.TYPE.toJSONSchemaDoc()
+                }]
+            }
+        }
+    }
+);
+
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/reports/:aid/latest',

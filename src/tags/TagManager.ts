@@ -481,11 +481,35 @@ export class TagManager {
      * @method
      */
     incTag(pTag:Tag, pObj:INode|INodeRef):void {
+         if(pTag==null) throw new Error("Tag '"+pTag+"' not found.");
+
         if(pTag.extra._occ==null){
             pTag.extra._occ = {};
         }
         pTag.extra._occ[pObj.__] = (pTag.extra._occ[pObj.__] || 0) + 1;
         this._ctrEdit++;
+    }
+
+    annotate(pTag:Tag|string, pObj:INode|INode[]):void {
+        const tag = (typeof pTag === 'string' ? this.getTag(pTag) : pTag);
+        if(tag==null) throw new Error("Tag '"+pTag+"' not found.");
+
+        if(Array.isArray(pObj)){
+            (pObj as INode[]).map( x => {
+                if(x!=null && x.addTag!=null){
+                    x.addTag(tag);
+                    this.incTag(tag, x);
+                }
+            })
+        }else if(pObj!=null){
+            if(pObj["addTag"]==null){
+                throw new Error("Tag '"+tag.name+"' cannot be added to object because object is not a node.");
+            }else{
+                pObj["addTag"](tag);
+            }
+
+            this.incTag(tag, pObj);
+        }
     }
 
     /**

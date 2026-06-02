@@ -164,7 +164,7 @@ export class Connection extends Auditable   {
         (new NodeProperty("tags"))
             .type(DbDataType.STRING)
             .descr("List of tags")
-            .schema({ type: "string", format: "uuid" })
+            .schema({ type: "string" })
             .def(null),
     ])).descr(`
     A connection is a generic representation of a way to connect to a remote service and pull resources. 

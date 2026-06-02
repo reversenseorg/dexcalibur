@@ -105,10 +105,18 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 
 		[
-			"app.activity.new",
-			"app.provider.new",
-			"app.receiver.new",
-			"app.service.new",
+			"app.activity.new", // deprecated
+			"app.provider.new", // deprecated
+			"app.receiver.new", // deprecated
+			"app.service.new", // deprecated
+            "app.component.new",
+
+
+            "app.activity.update", // deprecated
+            "app.provider.update", // deprecated
+            "app.receiver.update", // deprecated
+            "app.service.update", // deprecated
+            "app.component.save",
 		].map((vEvtType:string)=>{
 			this.context.getBus().subscribe(vEvtType, BusSubscriber.from((pEvent:BusEvent<any>)=>{
 
@@ -116,7 +124,10 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 					(async ()=>{
 						try{
 							// it should be skipped if already exists
-							await this.context.getProjectDB().save(pEvent.getData().obj, null, ['label','name','attr','intentFilters'] /*, { _id:obj._id, name: obj.name}*/);
+							await this.context.getProjectDB().save(pEvent.getData().obj, null, ['label','name','attr','__impl','intentFilters','tags'] /*, { _id:obj._id, name: obj.name}*/);
+                            if(pEvent.getData().cls!=null){
+                                await this.context.getProjectDB().save(pEvent.getData().cls, null, ['tags']);
+                            }
 						}catch(err){
 
 						}
@@ -143,17 +154,6 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				})();
 			}));
 		});
-		/*
-		this.context.getBus().subscribe("app.application.new", BusSubscriber.from((pEvent:BusEvent<any>)=>{
-			try{
-				(async ()=>{
-					await this.context.getProjectDB().save(pEvent.getData());
-				})();
-			}catch(err){
-				Logger.error(err.message,err.stack);
-			}
-
-		}));*/
 	}
 
 	private _initRes(){
@@ -1233,7 +1233,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 			manifest.application.activities.map(x => {
 				this.context.trigger({
-					type: "app.activity.new",
+					type: "app.component.new", //"app.activity.new",
 					data: {
 						obj:x,
 						manifest:manifest,
@@ -1246,7 +1246,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			});
 			manifest.application.providers.map(x => {
 				this.context.trigger({
-					type: "app.provider.new",
+					type: "app.component.new", //"app.provider.new",
 					data: {
 						obj:x,
 						manifest:manifest,
@@ -1259,7 +1259,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			});
 			manifest.application.receivers.map(x => {
 				this.context.trigger({
-					type: "app.receiver.new",
+					type: "app.component.new", //"app.receiver.new",
 					data: {
 						obj:x,
 						manifest:manifest,
@@ -1272,7 +1272,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			});
 			manifest.application.services.map(x => {
 				this.context.trigger({
-					type: "app.service.new",
+					type: "app.component.new", //"app.service.new",
 					data: {
 						obj:x,
 						manifest:manifest,
@@ -1328,6 +1328,15 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				if(cls!=null){
 					Logger.info(`[APP ANALYZER][ANDROID] Class implementing component (${vCmp.name}) has been found`);
 					vCmp.__impl = (cls);
+                    pProject.trigger({
+                        type: "app.component.scan",
+                        data: {
+                            obj: vCmp,
+                            manifest: pManifest,
+                            from: 'update',
+                            fresh: true
+                        }
+                    });
 				}else{
 					Logger.error(`[APP ANALYZER][ANDROID] Class implementing component (${vCmp.name}) cannot be found`);
 					pProject.getBus().send(new BusEvent({
@@ -1525,5 +1534,22 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
         return;
     }
-}
 
+    async scanComponents():Promise<void>{
+        const t =['activity','provider','receiver','service'];
+        for(let i=0;i<4;i++){
+            let cmp = await (this.context.getMerlinEngine())[t[i]]().executePDB(this.context);
+            if(cmp!=null && cmp.count()>0){
+                for(let j=0; j<cmp.count(); j++) this.context.trigger({
+                    type: "app.component.scan",
+                    data: {
+                        obj: cmp.get(j),
+                        manifest: this.manifest,
+                        from: 'scan',
+                        fresh: true
+                    }
+                })
+            }
+        }
+    }
+}

@@ -10,7 +10,14 @@ import {
 } from "./AndroidAttribute.js";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
+import {
+    NodeType,
+    DataSourceHelper,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    NodePropertyState
+} from "@dexcalibur/dexcalibur-orm";
 import ModelClass from "../ModelClass.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -23,12 +30,35 @@ export default class AndroidProvider extends AndroidComponent
         (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("description")).type(DbDataType.STRING).def(""),
         (new NodeProperty("label")).type(DbDataType.STRING).def(""),
-        (new NodeProperty("attr")).volatile().type(DbDataType.STRING),
-        (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
+        (new NodeProperty("attr")).type(DbDataType.STRING).def({}),
+        (new NodeProperty("metadata")).type(DbDataType.STRING).def({}),
+        (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("intentFilters"))
+            .type(DbDataType.STRING)
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p==null) return [];
+
+                let filters=[];
+                x.p.map(y => filters.push(y.toJsonObject()));
+
+                return filters;
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                if(x.p==null) return [];
+
+                let filters=[];
+                x.p.map(y => {
+                    filters.push(new IntentFilter(y))
+                });
+                return filters;
+            })
+            .def([]),
+        (new NodeProperty("__impl")).single(ModelClass.TYPE),
     ])).dataSource("PROJECT_DB"); //, "androidProvider");
 
     __:NodeInternalType = NodeInternalType.ANDROID_PROVIDER;
 
+    type = "provider";
     static MODEL:AndroidAttribute[] = [
         AndroidAttributeModel.authorities,
         AndroidAttributeModel.directBootAware,
@@ -107,3 +137,5 @@ export default class AndroidProvider extends AndroidComponent
 
 
 }
+
+AndroidProvider.TYPE.builder(AndroidProvider);

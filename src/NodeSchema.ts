@@ -36,7 +36,7 @@ import InMemoryConnector from "../connectors/inmemory/adapter.js";
 import {MongodbAdapter, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {CustomCode} from "./actionnable/CustomCode.js";
 
-import {Metadata, NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {Metadata, NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
 import AssuranceReport, {Match} from "./audit/common/AssuranceReport.js";
 import AssuranceModel, { ControlNode } from "./audit/common/AssuranceModel.js";
@@ -56,6 +56,8 @@ import ModelCatchStatement, {EBoundary} from "./ModelCatchStatement.js";
 import {Indicator} from "./audit/common/Indicator.js";
 import DataScope from "./DataScope.js";
 import {ApiKey} from "./user/auth/ApiKey.js";
+import {ApplicationUnit} from "./organization/ApplicationUnit.js";
+import {MetadataJsonSchema} from "./audit/common/Metadata.js";
 
 
 
@@ -1058,32 +1060,98 @@ Brand.TYPE.updateProperties([
 
 
 AssuranceReport.TYPE.updateProperties([
-    (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
-    (new NodeProperty("line")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY)
+        .schema({ type: "string", format: "uuid" })
+        .descr("Unique identifier of the assurance report"), // path relative to scope root
 
-    (new NodeProperty("application")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("device")).type(DbDataType.STRING).def(null),
+    // Removed  properties :
+    // (new NodeProperty("line")).type(DbDataType.NUMERIC).def(null),
+    // (new NodeProperty("values")).type(DbDataType.BLOB).def(null),
 
-    (new NodeProperty("values")).type(DbDataType.BLOB).def(null),
-    (new NodeProperty("time")).type(DbDataType.NUMERIC).def(null),
-    (new NodeProperty("started")).type(DbDataType.NUMERIC).def(null),
-    (new NodeProperty("terminated")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("application"))
+        .type(DbDataType.STRING)
+        .schema(ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart())
+        .descr("Unique identifier of the Application related to the assurance report. An Application is represented by an instance of AssuranceReport class, and referenced by its uuid")
+        .def(null),
+    (new NodeProperty("device"))
+        .type(DbDataType.STRING)
+        .schema(Device.TYPE.getPrimaryKey().toJSONSchemaPart())
+        .descr("Unique identifier of the Device used for this test. Detail related to test device can be obtain using this reference")
+        .def(null),
 
-    (new NodeProperty("primaryAssets")).volatile().type(DbDataType.BLOB).def(null),
-    (new NodeProperty("secondaryAssets")).volatile().type(DbDataType.BLOB).def(null),
-    (new NodeProperty("globalThreats")).volatile().type(DbDataType.BLOB).def(null),
+    (new NodeProperty("time"))
+        .schema({ type: "number" })
+        .descr("Timestamp when the assurance report has been created")
+        .type(DbDataType.NUMERIC)
+        .def(null),
+    (new NodeProperty("started"))
+        .schema({ type: "number" })
+        .descr("Scan start timestamp")
+        .type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("terminated"))
+        .schema({ type: "number" })
+        .descr("Scan terminate timestamp")
+        .type(DbDataType.NUMERIC).def(null),
 
-    (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
+    (new NodeProperty("primaryAssets"))
+        .schema({ type: "object" })
+        .descr("Deprecated. Optional primary assets from the risk assessments")
+        .volatile().type(DbDataType.BLOB).def(null),
 
-    (new NodeProperty("_proj")).volatile().single(DexcaliburProject.TYPE).def(null),
-    (new NodeProperty("_device")).volatile().single(Device.TYPE).def(null),
+    (new NodeProperty("secondaryAssets"))
+        .schema({ type: "object" })
+        .descr("Deprecated. Optional secondary assets from the risk assessments")
+        .volatile().type(DbDataType.BLOB).def(null),
 
-    (new NodeProperty("project")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("appInfo")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("deviceInfo")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("globalThreats"))
+        .schema({ type: "object" })
+        .descr("Deprecated. Optional threats detected by the risk assessments")
+        .volatile().type(DbDataType.BLOB).def(null),
 
-    (new NodeProperty("indicators")).multiple(Indicator.TYPE).embed().def([]),
-    (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
+    (new NodeProperty("tags"))
+        .type(DbDataType.STRING)
+        .schema(Tag.TYPE.getProperty('_').toJSONSchemaPart(true))
+        .descr("Tags associated with the assurance report. Such tags can be used to gather reports on specific threats or assets over a set of multiple application or project")
+        .def([]),
+
+    (new NodeProperty("_proj"))
+        .volatile().single(DexcaliburProject.TYPE).def(null),
+    (new NodeProperty("_device"))
+        .volatile().single(Device.TYPE).def(null),
+
+    (new NodeProperty("project"))
+        .descr("Unique identifier of the project related to the assurance report. An assurance report is related to a project, and referenced by its uuid. So any findings fromn the report is related to this project.")
+        .schema(DexcaliburProject.TYPE.getPrimaryKey().toJSONSchemaPart())
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("appInfo"))
+        .type(DbDataType.STRING)
+        .descr("Short description of the application related to the assurance report, intended to be used as a human readable identifier in the report directly instead.")
+        .schema({ type:"object", properties: {
+            package: ApplicationUnit.TYPE.getProperty("packageID").toJSONSchemaPart(), // { type: "string" },
+            os: DexcaliburProject.TYPE.getProperty('os').toJSONSchemaPart(), // { type: "string" },
+            version: { type: "string" }
+        }})
+        .def(null),
+    (new NodeProperty("deviceInfo"))
+        .type(DbDataType.STRING)
+        .descr("Short description of the device used to generate the assurance report, intended to be used as a human readable identifier in the report directly instead.")
+        .schema({ type:"object", properties: {
+                uid: Device.TYPE.getPrimaryKey().toJSONSchemaPart(),
+                os: Device.TYPE.getProperty('os').toJSONSchemaPart(),
+                emulated: Device.TYPE.getProperty('isEmulated').toJSONSchemaPart(),
+                arch: Device.TYPE.getProperty('model').toJSONSchemaPart()
+            }
+        })
+        .def(null),
+    (new NodeProperty("indicators"))
+        .multiple(Indicator.TYPE)
+        .embed()
+        .def([]),
+    (new NodeProperty("metadata"))
+        .type(DbDataType.STRING)
+        .descr("A list of metadata associated with the assurance report. This field is used to store any additional information that is not directly related to the assurance report itself.")
+        .schema({ type: "array", items: MetadataJsonSchema })
+        .def([]),
     (new NodeProperty("controls"))
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => {
@@ -1142,13 +1210,21 @@ AssuranceReport.TYPE.updateProperties([
         })
         .def([]),
 
-    (new NodeProperty("title")).type(DbDataType.STRING).def(""),
-    (new NodeProperty("description")).type(DbDataType.STRING).def(""),
-    (new NodeProperty("model")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_rawMatches")).volatile().type(DbDataType.BLOB).def({}),
+    (new NodeProperty("title"))
+        .type(DbDataType.STRING)
+        .def(""),
+    (new NodeProperty("description"))
+        .type(DbDataType.STRING)
+        .def(""),
+    (new NodeProperty("model"))
+        .type(DbDataType.STRING)
+        .def(null),
+    (new NodeProperty("_rawMatches"))
+        .volatile()
+        .type(DbDataType.BLOB).def({}),
     (new NodeProperty("matches"))
         .type(DbDataType.BLOB)
-        .def([]),
+        .def([])
 ]);
 
 AssuranceModel.TYPE.dataSource("SIGNATURE_DB");

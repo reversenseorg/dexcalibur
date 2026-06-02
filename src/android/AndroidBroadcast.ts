@@ -12,6 +12,7 @@ export class AndroidBroadcast extends AndroidComponent {
 
     name:string = null;
 
+    type = "broadcast";
     constructor(config:any=null){
         super();
         if(config != null){

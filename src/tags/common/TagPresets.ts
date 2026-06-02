@@ -47,6 +47,7 @@ export function newTagPresets(){
     const REACH_EPT = new TagCategory({ name: "reach.eptype", descr:"Reachability: type of entrypoint" });
     const REACH_EXP = new TagCategory({ name: "reach.exp", descr:"Reachability: exposition" });
     const PROTO = new TagCategory({ name: "proto", descr:"Protocol: agnostic type of protocol" });
+    const DPAT = new TagCategory({ name: "dpat", descr:"Design pattern" });
 
     const LEX_TAGS = [
         new Tag({ name:"begin",  label:"Begin token", descr:"Token that indicated the begin of something", styles:{ color:"#000000", backgroundColor:"#f2ffc5"} }),
@@ -123,8 +124,78 @@ export function newTagPresets(){
         new Tag({ name:"uri-handler", label:"URI", descr:"URI or deep-link handler", styles:{ color:"#000000", backgroundColor:"#e8c5ff"} }),
         new Tag({ name:"file", label:"File", descr:"File-based input (parsed file, watched path…)", styles:{ color:"#000000", backgroundColor:"#e8c5ff"} }),
         new Tag({ name:"clipboard", label:"Clipboard", descr:"Clipboard read/write", styles:{ color:"#000000", backgroundColor:"#e8c5ff"} }),
+        new Tag({ name:"gsm", label:"GSM", descr:"GSM", styles:{ color:"#000000", backgroundColor:"#ffb77b"} }),
+        new Tag({ name:"lte", label:"LTE", descr:"LTE", styles:{ color:"#000000", backgroundColor:"#ffb77b"} }),
+        new Tag({ name:"wifi", label:"wifi", descr:"Standard wifi", styles:{ color:"#000000", backgroundColor:"#ffb77b"} }),
     ];
 
+
+    const DESIGN_PATTERN_TAGS: Tag[] = [
+
+        // ── MVC / MVx ─────────────────────────────────────────────────────────────
+
+        new Tag({ name:"model",       label:"Model",       descr:"Holds data and business logic, no UI dependency",                         styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"view",        label:"View",        descr:"Renders data to the user, no business logic",                             styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"controller",  label:"Controller",  descr:"Handles user input, coordinates model and view (MVC)",                    styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"presenter",   label:"Presenter",   descr:"Mediates between view and model, owns presentation logic (MVP)",          styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"viewmodel",   label:"ViewModel",   descr:"Exposes observable state for data binding (MVVM)",                        styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+
+        // ── Creational ────────────────────────────────────────────────────────────
+
+        new Tag({ name:"factory",     label:"Factory",     descr:"Creates objects without exposing instantiation logic",                    styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"builder",     label:"Builder",     descr:"Constructs complex objects step by step",                                 styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"singleton",   label:"Singleton",   descr:"Ensures a class has only one instance",                                   styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"prototype",   label:"Prototype",   descr:"Creates new objects by cloning an existing instance",                     styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"pool",        label:"Pool",        descr:"Reuses a set of pre-instantiated objects to reduce allocation cost",       styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+
+        // ── Structural ────────────────────────────────────────────────────────────
+
+        new Tag({ name:"adapter",     label:"Adapter",     descr:"Bridges incompatible interfaces",                                         styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"bridge",      label:"Bridge",      descr:"Decouples abstraction from implementation",                               styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"composite",   label:"Composite",   descr:"Treats individual objects and compositions uniformly (tree structure)",    styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"decorator",   label:"Decorator",   descr:"Adds responsibilities to an object dynamically without subclassing",      styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"facade",      label:"Facade",      descr:"Provides a simplified interface to a complex subsystem",                  styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"flyweight",   label:"Flyweight",   descr:"Shares common state across many fine-grained objects",                    styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"proxy",       label:"Proxy",       descr:"Controls access to another object (lazy, remote, protective, logging)",   styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+
+        // ── Behavioral ────────────────────────────────────────────────────────────
+
+        new Tag({ name:"observer",    label:"Observer",    descr:"Notifies dependents automatically when state changes (pub/sub)",          styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"strategy",    label:"Strategy",    descr:"Defines a family of interchangeable algorithms",                          styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"command",     label:"Command",     descr:"Encapsulates a request as an object, enabling undo/redo and queuing",     styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"chain",       label:"Chain",       descr:"Passes a request along a chain of handlers until one handles it",         styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"iterator",    label:"Iterator",    descr:"Provides sequential access to elements without exposing the structure",    styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"mediator",    label:"Mediator",    descr:"Centralizes communication between components to reduce coupling",          styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"memento",     label:"Memento",     descr:"Captures and restores an object's internal state",                        styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"state",       label:"State",       descr:"Alters an object's behavior when its internal state changes",             styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"template",    label:"Template",    descr:"Defines the skeleton of an algorithm, deferring steps to subclasses",     styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"visitor",     label:"Visitor",     descr:"Adds operations to objects without modifying their classes",              styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"interpreter", label:"Interpreter", descr:"Implements a grammar and evaluates sentences of a language",              styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+
+        // ── Architectural / Application ───────────────────────────────────────────
+
+        new Tag({ name:"service",     label:"Service",     descr:"Encapsulates a reusable piece of business logic with no UI",              styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"repository",  label:"Repository",  descr:"Abstracts data access behind a collection-like interface",                styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"gateway",     label:"Gateway",     descr:"Wraps access to an external system or API",                               styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"mapper",      label:"Mapper",      descr:"Transforms objects between two different representations or layers",       styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"dto",         label:"DTO",         descr:"Data Transfer Object — carries data between processes with no logic",      styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"dao",         label:"DAO",         descr:"Data Access Object — abstracts and encapsulates all access to a data source", styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"middleware",  label:"Middleware",  descr:"Intercepts and processes requests/responses in a pipeline",               styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"interceptor", label:"Interceptor", descr:"Hooks into a call chain to add cross-cutting behavior",                   styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"router",      label:"Router",      descr:"Dispatches requests to the appropriate handler based on rules",            styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"scheduler",   label:"Scheduler",   descr:"Triggers tasks at defined times or intervals",                            styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"worker",      label:"Worker",      descr:"Executes tasks asynchronously, often from a queue",                       styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"dispatcher",  label:"Dispatcher",  descr:"Routes events or messages to the appropriate consumer",                   styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"handler",     label:"Handler",     descr:"Processes a specific type of request, event, or message",                 styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+
+        // ── Concurrency ───────────────────────────────────────────────────────────
+
+        new Tag({ name:"mutex",       label:"Mutex",       descr:"Ensures mutual exclusion for shared resource access",                     styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"semaphore",   label:"Semaphore",   descr:"Controls access to a resource pool by count",                             styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"actor",       label:"Actor",       descr:"Concurrent unit that processes messages sequentially from a mailbox",      styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+        new Tag({ name:"monitor",     label:"Monitor",     descr:"Synchronization construct that combines mutex and condition variables",    styles:{ color:"#000000", backgroundColor:"#0095f6"} }),
+
+    ]
 
     // Removed since  1.13.0
     /*
@@ -181,8 +252,8 @@ export function newTagPresets(){
 
 
     const FS_FILE_TAGS = [
-        new Tag({ name:"write" }),
-        new Tag({ name:"read" }),
+        new Tag({ name:"write", label:"File Write", descr:"File write operation", styles:{ color:"#d99aff", backgroundColor:"#71aabd"} }),
+        new Tag({ name:"read", label:"File Read", descr:"File read operation", styles:{ color:"#45ff7c", backgroundColor:"#71aabd"}  }),
     ];
 
     const DATA_ACTION_TAGS = [
@@ -270,10 +341,10 @@ export function newTagPresets(){
     ];
 
     const DISCOVER_TAGS = [
-        new Tag({ name:"static", descr:"Discovered by static analysis" }), // ds
-        new Tag({ name:"mixed", descr:"Discovered by interactive analysis" }), // dm
-        new Tag({ name:"dynamic", descr:"Discovered by dynamic analysis" }), // dd
-        new Tag({ name:"internal", descr:"Discovered by analysis  of system API" }) // di
+        new Tag({ name:"static", label:"AppCode", descr:"Discovered by static analysis", styles:{ color:"#1941ff", backgroundColor:"#e9f9ff"} }), // ds
+        new Tag({ name:"mixed", label:"Mixed Code", descr:"Discovered by interactive analysis", styles:{ color:"#9703fb", backgroundColor:"#e9f9ff"} }), // dm
+        new Tag({ name:"dynamic", label:"Dynamic", descr:"Discovered by dynamic analysis", styles:{ color:"#d50079", backgroundColor:"#e9f9ff"} }), // dd
+        new Tag({ name:"internal",  label:"System API", descr:"Discovered by analysis  of system API", styles:{ color:"#008526", backgroundColor:"#e9f9ff"} }) // di
     ];
 
 
@@ -494,6 +565,7 @@ export function newTagPresets(){
     REACH_EXP_TAGS.map( x => { REACH_EXP.addTag(x); });
     PROTO_TAGS.map( x => { PROTO.addTag(x); });
     LEX_TAGS.map( x => { LEX.addTag(x); });
+    DESIGN_PATTERN_TAGS.map( x => { DPAT.addTag(x); });
 
     return [
         GLOBAL,
@@ -543,7 +615,8 @@ export function newTagPresets(){
         REACH_EPT,
         REACH_EXP,
         PROTO,
-        LEX
+        LEX,
+        DPAT
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();

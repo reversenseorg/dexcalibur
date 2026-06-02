@@ -228,8 +228,34 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             })
             .descr("The default device assigned to this project. It is a DeviceUUID")
             .schema(Device.TYPE.getPrimaryKey().toJSONSchemaPart()),
-        (new NodeProperty("meta")).type(DbDataType.BLOB),
-        (new NodeProperty("bus")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("meta"))
+            .schema({ type: "object", properties: {
+                    creationDate: { type: "number", description: "Creation date of the project" },
+                    lastOpenDate: { type: "number", description: "Last open date of the project" },
+                    lastExecDate: { type: "number", description: "Last exec date of the project" },
+                    version: { type: "string", description: "Version of the application/input" },
+                    versionName: { type: "string", description: "Version name" },
+                    tag: { type: "object" },
+                    branch: { type: "string" } ,
+                    commit: { type: "string" },
+                    hash: { type: "string" },
+                    label: { type: "string" }
+                } })
+            .type(DbDataType.BLOB).def({
+                    creationDate: null,
+                    lastOpenDate: null,
+                    lastExecDate: null,
+                    version: null,
+                    versionName: null,
+                    tag: null,
+                    branch: null,
+                    commit: null,
+                    hash: null,
+                    label: null
+                }),
+        (new NodeProperty("bus"))
+            .volatile()
+            .type(DbDataType.BLOB),
         (new NodeProperty("inputs"))
             .type(DbDataType.BLOB)
             .def([])
@@ -257,7 +283,9 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                 }
             })
             .descr("The list of package or files passed as inputs to this project."),
-        (new NodeProperty("hook")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("hook"))
+            .volatile()
+            .type(DbDataType.BLOB),
         (new NodeProperty("inspectors")).volatile().type(DbDataType.BLOB).def({}),
         (new NodeProperty("analCfg")).type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{

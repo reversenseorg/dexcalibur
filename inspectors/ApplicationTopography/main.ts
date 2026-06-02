@@ -10,10 +10,103 @@ import BusEvent from "../../src/BusEvent.js";
 import * as Log from "../../src/Logger.js";
 import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer.js";
 import AndroidAppAnalyzer from "../../src/android/AndroidAppAnalyzer.js";
+import AndroidComponent from "../../src/android/AndroidComponent.js";
 import AndroidActivity from "../../src/android/AndroidActivity.js";
 import {Finder} from "../../src/search/Finder.js";
 import {FinderResult} from "../../src/search/FinderResult.js";
 import ModelFile from "../../src/ModelFile.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+
+
+const ANDROID_INTENT_TAG_MAPPING: Record<string, string[]> =  Object.fromEntries([
+    ["android.app.action.ADD_DEVICE_ADMIN",                              ["reach.eptype.ep-ui-handler", "reach.exp.pr-high", "purpose.security", "auth", "purpose.security"]],
+    ["android.app.action.SET_NEW_PASSWORD",                              ["reach.eptype.ep-ui-handler", "reach.exp.pr-high", "purpose.security", "auth"]],
+    ["android.app.action.START_ENCRYPTION",                              ["reach.eptype.ep-ui-handler", "reach.exp.pr-high", "purpose.security"]],
+    ["android.bluetooth.adapter.action.REQUEST_DISCOVERABLE",            ["reach.eptype.ep-ui-handler", "reach.exp.av-adjacent", "reach.exp.ac-low", "reach.exp.pr-low", "reach.exp.ui-required", "proto.bluetooth", "purpose.security"]],
+    ["android.bluetooth.adapter.action.REQUEST_ENABLE",                  ["reach.eptype.ep-ui-handler", "reach.exp.av-adjacent", "reach.exp.ac-low", "reach.exp.pr-low", "reach.exp.ui-required", "proto.bluetooth", "purpose.security"]],
+    ["android.intent.action.ALL_APPS",                                   ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none"]],
+    ["android.intent.action.ANSWER",                                     ["reach.eptype.ep-receiver", "reach.exp.av-network", "reach.exp.ac-low", "reach.exp.pr-none", "reach.exp.ui-required", "gsm"]],
+    ["android.intent.action.APP_ERROR",                                  ["reach.eptype.ep-event-handler", "reach.exp.av-local", "reach.exp.pr-none"]],
+    ["android.intent.action.ATTACH_DATA",                                ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required", "proto.file"]],
+    ["android.intent.action.BUG_REPORT",                                 ["reach.eptype.ep-ui-handler", "reach.eptype.ep-debug", "reach.exp.av-local", "reach.exp.pr-low", "purpose.security"]],
+    ["android.intent.action.CALL",                                       ["reach.eptype.ep-receiver", "reach.exp.av-network", "reach.exp.ac-low", "reach.exp.pr-none", "proto.gsm"]],
+    ["android.intent.action.CALL_BUTTON",                                ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required", "proto.gsm"]],
+    ["android.intent.action.CHOOSER",                                    ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.CREATE_LIVE_FOLDER",                         ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.CREATE_SHORTCUT",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.DELETE",                                     ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low", "reach.exp.ui-required", "purpose.security"]],
+    ["android.intent.action.DIAL",                                       ["reach.eptype.ep-uri-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required", "proto.gsm"]],
+    ["android.intent.action.EDIT",                                       ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.EVENT_REMINDER",                             ["reach.eptype.ep-receiver", "reach.exp.av-local", "reach.exp.pr-none"]],
+    ["android.intent.action.GET_CONTENT",                                ["reach.eptype.ep-provider", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required", "proto.file"]],
+    ["android.intent.action.INSERT",                                     ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.INSERT_OR_EDIT",                             ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.INSTALL_PACKAGE",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-high", "reach.exp.ui-required", "proto.file", "purpose.security"]],
+    ["android.intent.action.MAIN",                                       ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.MANAGE_NETWORK_USAGE",                       ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low", "reach.exp.ui-required"]],
+    ["android.intent.action.MEDIA_SEARCH",                               ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.MUSIC_PLAYER",                               ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.PASTE",                                      ["reach.eptype.ep-clipboard", "reach.exp.av-local", "reach.exp.pr-none", "proto.clipboard"]],
+    ["android.intent.action.PICK",                                       ["reach.eptype.ep-provider", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.PICK_ACTIVITY",                              ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.POWER_USAGE_SUMMARY",                        ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low"]],
+    ["android.intent.action.RINGTONE_PICKER",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.RUN",                                        ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low", "purpose.security"]],
+    ["android.intent.action.SEARCH",                                     ["reach.eptype.ep-uri-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required", "proto.uri-handler"]],
+    ["android.intent.action.SEARCH_LONG_PRESS",                          ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.SEND",                                       ["reach.eptype.ep-receiver", "reach.exp.av-local", "reach.exp.ac-low", "reach.exp.pr-none", "reach.exp.ui-required", "proto.ipc"]],
+    ["android.intent.action.SENDTO",                                     ["reach.eptype.ep-receiver", "reach.exp.av-network", "reach.exp.ac-low", "reach.exp.pr-none", "reach.exp.ui-required", "proto.sms", "proto.ipc"]],
+    ["android.intent.action.SEND_MULTIPLE",                              ["reach.eptype.ep-receiver", "reach.exp.av-local", "reach.exp.ac-low", "reach.exp.pr-none", "reach.exp.ui-required", "proto.ipc"]],
+    ["android.intent.action.SET_ALARM",                                  ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.SET_WALLPAPER",                              ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.SYNC",                                       ["reach.eptype.ep-service", "reach.exp.av-network", "reach.exp.ac-low", "reach.exp.pr-low", "proto.http"]],
+    ["android.intent.action.SYSTEM_TUTORIAL",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.UNINSTALL_PACKAGE",                          ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-high", "reach.exp.ui-required", "purpose.security"]],
+    ["android.intent.action.VIEW",                                       ["reach.eptype.ep-uri-handler", "reach.exp.av-local", "reach.exp.ac-low", "reach.exp.pr-none", "reach.exp.ui-required", "proto.http"]],
+    ["android.intent.action.VOICE_COMMAND",                              ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.intent.action.WEB_SEARCH",                                 ["reach.eptype.ep-uri-handler", "reach.exp.av-network", "reach.exp.pr-none", "reach.exp.ui-required", "proto.http"]],
+    ["android.media.action.DISPLAY_AUDIO_EFFECT_CONTROL_PANEL",         ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.net.wifi.PICK_WIFI_NETWORK",                               ["reach.eptype.ep-ui-handler", "reach.exp.av-adjacent", "reach.exp.pr-low", "reach.exp.ui-required", "proto.wifi-direct", "purpose.security"]],
+    ["android.nfc.action.NDEF_DISCOVERED",                               ["reach.eptype.ep-receiver", "reach.exp.av-adjacent", "reach.exp.ac-low", "reach.exp.pr-none", "reach.exp.ui-none", "proto.nfc", "purpose.security"]],
+    ["android.nfc.action.TAG_DISCOVERED",                                ["reach.eptype.ep-receiver", "reach.exp.av-adjacent", "reach.exp.ac-low", "reach.exp.pr-none", "reach.exp.ui-none", "proto.nfc", "purpose.security"]],
+    ["android.nfc.action.TECH_DISCOVERED",                               ["reach.eptype.ep-receiver", "reach.exp.av-adjacent", "reach.exp.ac-low", "reach.exp.pr-none", "reach.exp.ui-none", "proto.nfc", "purpose.security"]],
+    ["android.search.action.SEARCH_SETTINGS",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.ACCESSIBILITY_SETTINGS",                          ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.ADD_ACCOUNT_SETTINGS",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low", "reach.exp.ui-required", "purpose.auth", "purpose.identity", "purpose.security"]],
+    ["android.settings.AIRPLANE_MODE_SETTINGS",                          ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low", "reach.exp.ui-required"]],
+    ["android.settings.APN_SETTINGS",                                    ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-high", "reach.exp.ui-required", "proto.gsm", "proto.lte",  "purpose.security"]],
+    ["android.settings.APPLICATION_DETAILS_SETTINGS",                    ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.APPLICATION_DEVELOPMENT_SETTINGS",                ["reach.eptype.ep-ui-handler", "reach.eptype.ep-debug", "reach.exp.av-local", "reach.exp.pr-low", "reach.exp.ui-required", "purpose.security"]],
+    ["android.settings.APPLICATION_SETTINGS",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.BLUETOOTH_SETTINGS",                              ["reach.eptype.ep-ui-handler", "reach.exp.av-adjacent", "reach.exp.pr-low", "reach.exp.ui-required", "proto.bluetooth", "proto.ble", "purpose.security"]],
+    ["android.settings.DATA_ROAMING_SETTINGS",                           ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-high", "reach.exp.ui-required", "proto.gsm", "proto.lte"]],
+    ["android.settings.DATE_SETTINGS",                                   ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.DEVICE_INFO_SETTINGS",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.DISPLAY_SETTINGS",                                ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.INPUT_METHOD_SETTINGS",                           ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required", "purpose.security"]],
+    ["android.settings.INPUT_METHOD_SUBTYPE_SETTINGS",                   ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.INTERNAL_STORAGE_SETTINGS",                       ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.LOCALE_SETTINGS",                                 ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.LOCATION_SOURCE_SETTINGS",                        ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low", "reach.exp.ui-required", "purpose.location"]],
+    ["android.settings.MANAGE_ALL_APPLICATIONS_SETTINGS",                ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.MANAGE_APPLICATIONS_SETTINGS",                    ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.MEMORY_CARD_SETTINGS",                            ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.NETWORK_OPERATOR_SETTINGS",                       ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-high", "reach.exp.ui-required", "proto.gsm", "proto.lte",  "purpose.security"]],
+    ["android.settings.NFCSHARING_SETTINGS",                             ["reach.eptype.ep-ui-handler", "reach.exp.av-adjacent", "reach.exp.pr-low", "reach.exp.ui-required", "proto.nfc", "purpose.security"]],
+    ["android.settings.PRIVACY_SETTINGS",                                ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.QUICK_LAUNCH_SETTINGS",                           ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.SECURITY_SETTINGS",                               ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low", "reach.exp.ui-required", "purpose.security"]],
+    ["android.settings.SETTINGS",                                        ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.SOUND_SETTINGS",                                  ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.SYNC_SETTINGS",                                   ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-low", "reach.exp.ui-required"]],
+    ["android.settings.USER_DICTIONARY_SETTINGS",                        ["reach.eptype.ep-ui-handler", "reach.exp.av-local", "reach.exp.pr-none", "reach.exp.ui-required"]],
+    ["android.settings.WIFI_IP_SETTINGS",                                ["reach.eptype.ep-ui-handler", "reach.exp.av-adjacent", "reach.exp.pr-low", "reach.exp.ui-required", "proto.wifi",  "purpose.security"]],
+    ["android.settings.WIFI_SETTINGS",                                   ["reach.eptype.ep-ui-handler", "reach.exp.av-adjacent", "reach.exp.pr-low", "reach.exp.ui-required", "proto.wifi",  "purpose.security"]],
+    ["android.settings.WIRELESS_SETTINGS",                               ["reach.eptype.ep-ui-handler", "reach.exp.av-adjacent", "reach.exp.pr-low", "reach.exp.ui-required", "proto.wifi", "proto.bluetooth",  "purpose.security"]],
+    ["android.speech.tts.engine.CHECK_TTS_DATA",                         ["reach.eptype.ep-service", "reach.exp.av-local", "reach.exp.pr-none"]],
+    ["android.speech.tts.engine.INSTALL_TTS_DATA",                       ["reach.eptype.ep-service", "reach.exp.av-network", "reach.exp.pr-low", "reach.exp.ui-required", "proto.http", "purpose.security"]],
+]);
+
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -92,7 +185,7 @@ export default new InspectorFactory({
 
     useGUI: true,
 
-    version: "1.0.5",
+    version: "1.1.3",
     tags: [
         {
             name:"android.cmp",
@@ -292,7 +385,17 @@ export default new InspectorFactory({
         }
     },
     eventListenerSources: {
-
+        "dxc.fullscan.post": {
+            lang: 'ts',
+            source: `
+            // <ts>={
+            
+            const ctx:any = pEvent.getContext();
+            if(ctx.getPlatform().isAndroid()){
+                 (ctx.getAppAnalyzer() as AndroidAppAnalyzer).scanComponents().then((vResult:FinderResult)=>{}).catch((e)=>{ console.log(e.stack) });
+            }
+            `
+        },
         "app.package.new": {
             lang: 'ts',
             source: `
@@ -353,12 +456,13 @@ export default new InspectorFactory({
                 }
             `
         },
-        "app.activity.new": {
+        "app.component.scan": {
             lang: 'ts',
             source:`
             // <ts>={
 
             const pCtx:any = pEvent.getContext();
+            const tm = pCtx.getTagManager();
 
             function isRelativeName(pName){
                 return pName[0]=='.';
@@ -375,63 +479,89 @@ export default new InspectorFactory({
                 return pContext.find.get.class(clsUID);
             }
 
-            // to retrieve class implementign this activity
-            let cmp:AndroidActivity = pEvent.getData().obj;
+            let cls:any;
+            try{
+                cls = getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
+            
+                if ((cls != null) && (cls.__===${NodeInternalType.CLASS}) {
+                    pEvent.data.obj.setImplementedBy(cls);
+                    switch (pEvent.data.obj.type){
+                        case "activity":
+                            tm.annotate("topo.android.ACTIVITY", cls);
+                            tm.annotate("dpat.controller", cls);
+                            tm.annotate("dpat.view", cls);
+                            break;
+                        case "service":
+                            tm.annotate("topo.android.SERVICE", cls);
+                            tm.annotate("dpat.service", cls);
+                            //tm.annotate("dpat.daemon", cls); ou worker
+                            break;
+                        case "receiver":
+                            tm.annotate("topo.android.RECEIVER", cls);
+                            tm.annotate("dpat.observer", cls);
+                            tm.annotate("reach.eptype.ep-receiver", cls);
+                            break;
+                        case "provider":
+                            tm.annotate("topo.android.PROVIDER", cls);
+                            tm.annotate("dpat.repository", cls);
+                            tm.annotate("dpat.facade", cls);
+                            break;
+                    }
+                }
+            }catch (e){
+                console.error("[AppTopo][component] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found",e);
+            }
+            
+            try{
+                // to retrieve class implementign this activity
+            let cmp:AndroidComponent = pEvent.getData().obj as AndroidComponent;
             
             if(cmp.attr.exported!=null && cmp.attr.exported==='true'){
-                cmp.addTag(pCtx.getTagManager().getTag("android.cmp.exported"))                
+                tm.annotate("reach.exp.av-adjacent",  [cmp,cls]);
+                tm.annotate("android.cmp.exported",  [cmp,cls]); // deprecated             
             }
             
             
             if(cmp.intentFilters.length>0){
-                cmp.addTag(pCtx.getTagManager().getTag("android.intent.ope.receive"));
                 cmp.intentFilters.map(x => {
                     x.action.map( y => {
-                        switch (y.name){
-                            case "android.intent.action.MAIN":
-                                cmp.addTag(pCtx.getTagManager().getTag("android.intent.action.main"))        
-                                break;
+                        
+                        const itags = ANDROID_INTENT_TAG_MAPPING[y.name];
+                        if(itags!=null){
+                            itags.map(t => tm.annotate(t,  [cmp,cls]));
                         }
                     });
                 
                     x.category.map( y =>{
                          switch (y.name){
                             case "android.intent.category.BROWSABLE":
-                                cmp.addTag(pCtx.getTagManager().getTag("android.cmp.browsable"))        
+                                tm.annotate("reach.eptype.reach.eptype.ep-uri-handler", [cmp,cls]);
+                                tm.annotate("proto.nfc",  [cmp,cls]);
+                                tm.annotate("android.cmp.browsable",  [cmp,cls]); // deprecated
+                                tm.annotate("reach.exp.av-network",  [cmp,cls]);
                                 break;
                         }
                     })
-                    
-                
                 });          
             }
             
-            // tag by intent filter  
-            //tagByIntent(pCtx, pEvent);
-
+            // update tags
+            pEvent.getContext().trigger({
+                type: "app.component.save",
+                data: {
+                    fresh: true
+                    obj: cmp,
+                    cls: cls
+                }
+            });
+            }catch (e){
+                
+                console.error("[AppTopo][component] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : err :",e.stack);
+            }
+            
+            
             // tag by attributes
             //tagByAttr(pCtx, acmpct.getAttributes(), pEvent);
-            
-            // search impl
-            const cls = getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
-            
-            if ((cls != null) && (cls instanceof ModelClass)) {
-                pEvent.data.obj.setImplementedBy(cls);
-                cls.addTag( pCtx.getTagManager().getTag("topo.android.ACTIVITY"));
-            }else{
-                // pCtx.LOG.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
-                return true;
-            }
-
-
-
-            // search dependencies to platform method and class
-            /*
-            if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
-                pCtx.LOG.log("[AppTopo][activity] Internal dependencies mapped for : ", pEvent.data.obj.name);
-            } else {
-                pCtx.LOG.error("[AppTopo][activity] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
-            }*/
             `
         }
     }

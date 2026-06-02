@@ -1,6 +1,10 @@
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
-import AssuranceModel, {AssuranceModelPreview, AssuranceModelUUID} from "./common/AssuranceModel.js";
-import AssuranceReport, {AssuranceReportUUID, ReportExportOptions} from "./common/AssuranceReport.js";
+import AssuranceModel, {
+    AssuranceModelPreview,
+    AssuranceModelUUID, ControlNode,
+    ControlNodeCanonicalUID
+} from "./common/AssuranceModel.js";
+import AssuranceReport, {AssuranceReportUUID, Match, ReportExportOptions} from "./common/AssuranceReport.js";
 import {AuditManagerException} from "./errors/AuditManagerException.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import * as Log from "../Logger.js";
@@ -22,9 +26,18 @@ import {PolicyRuleFactory} from "./PolicyRuleFactory.js";
 import {Policy} from "./Policy.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {ReversenseProductUUID} from "../billing/ReversenseProduct.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {BomPurpose} from "../bom/BomPurpose.js";
 import Util from "../Utils.js";
+import {Device, DeviceUUID} from "../Device.js";
+import {ConstraintMatch} from "./common/ConstraintMatch.js";
+import Asset from "./common/Asset.js";
+import Threat from "./common/Threat.js";
+import {TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {ExportOptions} from "./ExplainedReport.js";
+import {Metadata} from "./common/Metadata.js";
+import {Indicator} from "./common/Indicator.js";
+import {RuntimeSessionUUID} from "../runtime/RuntimeSession.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -710,6 +723,51 @@ export class AuditManager {
         return reports;
     }
 
+
+    /**
+     * To retrieve an assurance model by its uid
+     * @param pUser
+     * @param pModelID
+     */
+    async getReportPreviews( pUser:UserAccount, pApp:ApplicationUnit, pLimit = -1):Promise<AssuranceReport[]> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.AUDIT_REPORT_READ,
+            pUser,
+            pApp,
+            [
+                OrganizationAccessControl.attr.APP_MEMBER,
+                OrganizationAccessControl.attr.OWNER,
+            ]
+        );
+
+        // TODO check assurance ACL
+        const reports = await (this.engine.getEngineDB()
+            .getCollectionOf(AssuranceReport.TYPE.getType())as MongodbDbCollection)
+            .search({ application:pApp.getUID() },{
+                raw: false,
+                projectOpts:{
+                    uid:1,
+                    time:1,
+                    started:1,
+                    terminated:1,
+                    application:1,
+                    device:1,
+                    project:1,
+                    model:1,
+                    tags: 1,
+                    title: 1,
+                    description: 1,
+                    metadata: 1,
+                    indicators: 1,
+                    deviceInfo: 1,
+                    appInfo: 1
+                }
+            });
+
+
+        return reports;
+    }
 
 
 
