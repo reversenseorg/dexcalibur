@@ -468,7 +468,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     req.params.appUID as string
                 );
 
-                $.sendSuccess(res, (await am.listReportsByApp(req.user, app)).map(x =>  x.asPreview().toJsonObject()) );
+                $.sendSuccess(res, (await am.listReportsByApp(req.user, app)).map(x =>  x.asPreview()) );
             }catch(err){
                 Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
