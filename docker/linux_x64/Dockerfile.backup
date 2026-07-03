@@ -1,9 +1,12 @@
 # =================== BUILD STAGE =====================
+
 # =================== FINAL STAGE =====================
 
 FROM openjdk:18-jdk-slim
 
 LABEL maintainer="georges.michel@reversense.com"
+
+
 
 
 # ===============================
@@ -102,14 +105,15 @@ VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
 # ===============================
 WORKDIR /
 
-RUN apt-get update && apt install -y pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
-    bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3  \
-    libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
-    wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils \
-    sudo libfontconfig1-dev libfreetype6-dev
+RUN apt-get update && apt install -y --fix-missing pkg-config libssl-dev curl ca-certificates gnupg wget unzip  \
+    bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3 && \
+    apt install -y --fix-missing libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
+    wmctrl libdbus-glib-1-2
 
 
-RUN mkdir -p /etc/apt/keyrings && \
+RUN apt install -y --fix-missing sudo make gcc build-essential xz-utils \
+        sudo libfontconfig1-dev libfreetype6-dev && \
+    mkdir -p /etc/apt/keyrings && \
     (curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg) && \
     (echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list) && \
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
@@ -129,9 +133,11 @@ USER $DXC_USER_SRV
 WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
-    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt && \
-    sudo npm install -g npm@10.0.0 && \
-    (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
+    sudo apt-get -qqy install nodejs python3 python3-distutils python3-apt
+
+RUN sudo npm install -g npm@10.0.0
+
+RUN  (curl https://sh.rustup.rs -sSf | sh -s -- -y) && \
     export PATH=$HOME/.cargo/bin:$PATH && \
     ls -la $HOME/.cargo/bin
 
@@ -146,9 +152,11 @@ RUN wget -q https://dl.google.com/android/repository/${ANDROID_CMD_VERSION} -P /
     mv NOTICE.txt source.properties bin lib ./tools/ && \
     cd $ANDROID_SDK_ROOT/cmdline-tools/tools && \
     mkdir $TMP_FOLDER && \
-    curl -sSL https://bootstrap.pypa.io/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
+    curl -sSL https://bootstrap.pypa.io/pip/3.9/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
     python3 $TMP_FOLDER/"get-pip.py" && \
     rm -f /tmp/$ANDROID_CMD_VERSION
+
+# curl -sSL https://bootstrap.pypa.io/get-pip.py -o $TMP_FOLDER"/get-pip.py" && \
 
 ENV PATH="$PATH:$DXC_USER_HOME/.local/bin:$ANDROID_SDK_ROOT/cmdline-tools/tools:$ANDROID_SDK_ROOT/cmdline-tools/tools/bin:$ANDROID_SDK_ROOT/emulator:$ANDROID_SDK_ROOT/tools/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/${ANDROID_BUILD_TOOLS_VERSION}"
 
@@ -172,7 +180,7 @@ RUN curl -L -o "$TMP_FOLDER/apkeep.zip" "https://github.com/EFForg/apkeep/archiv
     cp ./target/release/apkeep $DXC_USER_HOME/apkeep && \
     sudo chmod +x $DXC_USER_HOME/apkeep && \
     cd $DXC_USER_HOME && \
-    rm -r ./apkeep-$DXC_V_APKEEP
+    rm -rf ./apkeep-$DXC_V_APKEEP
 
 
 # ===============================
@@ -196,8 +204,8 @@ RUN curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/
     sudo chmod 777 /usr/local/bin/binwalk && \
     cp ./target/release/binwalk $DXC_USER_HOME/binwalk && \
     sudo chmod +x $DXC_USER_HOME/binwalk && \
-    rm -r cd ./binwalk-$DXC_V_BINWALK && \
-    cd $DXC_USER_HOME
+    cd $DXC_USER_HOME && \
+    rm -rf ./binwalk-$DXC_V_BINWALK
 
 # Enable this environment variable to remove extractor top-level symlink,
 # as the symlink target path in the docker environment will not match that of the host.
@@ -234,3 +242,76 @@ COPY frida_version "$ARTIFACTS_FOLDER/frida_version"
 # ===============================
 
 RUN IMPORTED_FRIDA_VER=`cat "$ARTIFACTS_FOLDER/frida_version"` && pip install frida==$IMPORTED_FRIDA_VER frida-tools
+
+# ===============================
+# Install dexcalibur server from artifacts
+# ===============================
+COPY dxc-server-linux.tar.gz "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
+
+RUN ls -la $ARTIFACTS_FOLDER && \
+    sudo chown -R $DXC_USER_SRV:$DXC_USER_SRV $ARTIFACTS_FOLDER && \
+    sudo chown $DXC_USER_SRV:$DXC_USER_SRV "$ARTIFACTS_FOLDER/dxc-server.tar.gz" && \
+    cd "$ARTIFACTS_FOLDER" && \
+    tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
+
+# ===============================
+# [REMOVED] Install UIs
+# ===============================
+
+# RUN rm -r $ARTIFACTS_FOLDER/dist/src/webserver/www/ && ln -s /www_uis  $ARTIFACTS_FOLDER/dist/src/webserver/www
+
+# ===============================
+# Configure server
+# ===============================
+
+WORKDIR "$ARTIFACTS_FOLDER/dist"
+
+# create files
+RUN mkdir $DXC_USER_HOME/.dexcalibur && \
+    ln -s /uis  $ARTIFACTS_FOLDER/dist/src/webserver/www && \
+     chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur && \
+     node ./dexcalibur-adm.mjs server \
+        --create-home=$DXC_USER_HOME/.dexcalibur \
+        --db-host=$DXC_DB_HOST \
+        --db-port=$DXC_DB_PORT \
+        --set-marketplace=$marketplace_uri \
+        --set-wsi=$DXC_USER_HOME/.dexcalibur/.dxc \
+        --create-ws=$DXC_USER_HOME/workspace \
+        --heap-size=$DXC_HEAP_SZ \
+        --http-port=$DXC_HTTP_PORT \
+        --ws-port=$DXC_WS_PORT && \
+    echo "$DXC_DB_USER:$DXC_DB_PWD:admin:$DXC_DB_MODE" > $DXC_USER_HOME/.dexcalibur/db.credentials && \
+    node ./dexcalibur-adm.mjs server --db-credential=$DXC_USER_HOME"/.dexcalibur/db.credentials" && \
+    cat  $DXC_USER_HOME/.dexcalibur/dxc.json
+
+
+
+# configure external tools
+RUN ls -la $DXC_USER_HOME/.dexcalibur && \
+    ls -la $DXC_USER_HOME/.dexcalibur/.dxc && \
+    echo $PATH && \
+    chmod 777 -R $DXC_USER_HOME/.dexcalibur/.dxc && \
+    mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
+    mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
+    node ./dexcalibur-adm.mjs tools --name=java --path=java && \
+    node ./dexcalibur-adm.mjs tools --name=python --path=python3 && \
+    node ./dexcalibur-adm.mjs tools --name=frida --path=frida && \
+    node ./dexcalibur-adm.mjs tools --name=radare2 --path=r2 && \
+    node ./dexcalibur-adm.mjs tools --name=adb --path=$ANDROID_SDK_ROOT/platform-tools/adb && \
+    node ./dexcalibur-adm.mjs tools --name=binwalk --path=binwalk && \
+    node ./dexcalibur-adm.mjs tools --name=shell --path=/bin/sh && \
+    node ./dexcalibur-adm.mjs tools --name=baksmali --path=$DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
+    node ./dexcalibur-adm.mjs tools --name=apktool --path=$DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
+    node ./dexcalibur-adm.mjs server -l && \
+    node ./dexcalibur-adm.mjs tools -l
+
+# check install
+RUN node ./dexcalibur-adm.mjs tools --check
+
+# Dexcalibur HTTP & WebSocket
+EXPOSE ${DXC_HTTP_PORT} ${DXC_WS_PORT}
+
+# Dexcalibur HTTPS
+EXPOSE 8443
+
+ENTRYPOINT [ "node", "./dexcalibur.js" ]

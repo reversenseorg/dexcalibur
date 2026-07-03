@@ -1,0 +1,163 @@
+# =================== REVERSENSE/DEXCALIBUR BASE IMAGE =====================
+# This image contains all third-party dependencies that rarely change
+# Version: 1.0.0
+# ================================================================
+
+FROM openjdk:18-jdk-slim
+
+LABEL maintainer="georges.michel@reversense.com"
+LABEL description="dexcalibur base image with all third-party dependencies for Reversense project"
+LABEL version="1.0.0"
+
+# ===============================
+# Args
+# ===============================
+ARG user_server="dexcalibur-bin"
+ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
+ARG NODE_MAJOR="18"
+
+# ===============================
+# Environment Variables - Versions
+# ===============================
+ENV DEBIAN_FRONTEND=noninteractive
+ENV DXC_V_APKTOOL="2.12.0"
+ENV DXC_V_BAKSMALI="2.5.2"
+ENV DXC_V_BINWALK="3.1.0"
+ENV DXC_V_APKEEP="0.17.0"
+ENV NODE_MAJOR=${NODE_MAJOR}
+
+# ===============================
+# Environment Variables - Paths
+# ===============================
+ENV DXC_USER_SRV=${user_server}
+ENV DXC_USER_HOME="/home/${user_server}"
+ENV TMP_FOLDER="${DXC_USER_HOME}/tmp"
+ENV ANDROID_SDK_ROOT="${DXC_USER_HOME}/android"
+ENV PATH="${PATH}:${DXC_USER_HOME}/.local/bin:${ANDROID_SDK_ROOT}/cmdline-tools/tools:${ANDROID_SDK_ROOT}/cmdline-tools/tools/bin:${ANDROID_SDK_ROOT}/emulator:${ANDROID_SDK_ROOT}/tools/bin:${ANDROID_SDK_ROOT}/platform-tools"
+
+# ===============================
+# Install System Dependencies
+# ===============================
+WORKDIR /
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config libssl-dev curl ca-certificates gnupg wget unzip \
+    bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3 \
+    libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox \
+    wmctrl libdbus-glib-1-2 sudo make gcc build-essential xz-utils \
+    libfontconfig1-dev libfreetype6-dev python3 python3-distutils python3-apt && \
+    rm -rf /var/lib/apt/lists/*
+
+# ===============================
+# Install Node.js
+# ===============================
+RUN mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends nodejs && \
+    npm install -g npm@10.0.0 && \
+    rm -rf /var/lib/apt/lists/*
+
+# ===============================
+# Install kubectl
+# ===============================
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/
+
+# ===============================
+# Setup User
+# ===============================
+RUN useradd "${DXC_USER_SRV}" --create-home --shell /bin/bash && \
+    passwd -d "${DXC_USER_SRV}" && \
+    echo "%${DXC_USER_SRV} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER ${DXC_USER_SRV}
+WORKDIR ${DXC_USER_HOME}
+
+# ===============================
+# Install Rust
+# ===============================
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+    . $HOME/.cargo/env
+
+ENV PATH="${PATH}:${DXC_USER_HOME}/.cargo/bin"
+
+# ===============================
+# Install Android SDK & pip
+# ===============================
+RUN mkdir -p ${TMP_FOLDER} && \
+    wget -q https://dl.google.com/android/repository/${ANDROID_CMD_VERSION} -P /tmp && \
+    unzip -q -d ${ANDROID_SDK_ROOT} /tmp/${ANDROID_CMD_VERSION} && \
+    mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools/tools && \
+    cd ${ANDROID_SDK_ROOT}/cmdline-tools && \
+    mv NOTICE.txt source.properties bin lib ./tools/ && \
+    rm -f /tmp/${ANDROID_CMD_VERSION}
+
+RUN curl -sSL https://bootstrap.pypa.io/pip/3.9/get-pip.py -o ${TMP_FOLDER}/get-pip.py && \
+    python3 ${TMP_FOLDER}/get-pip.py && \
+    rm -f ${TMP_FOLDER}/get-pip.py
+
+# ===============================
+# Configure pip
+# ===============================
+RUN mkdir -p ${DXC_USER_HOME}/.config/pip && \
+    echo "[global]" > ${DXC_USER_HOME}/.config/pip/pip.conf && \
+    echo "break-system-packages = true" >> ${DXC_USER_HOME}/.config/pip/pip.conf
+
+# ===============================
+# Install Apkeep from source
+# ===============================
+RUN curl -L -o "${TMP_FOLDER}/apkeep.zip" "https://github.com/EFForg/apkeep/archive/refs/tags/${DXC_V_APKEEP}.zip" && \
+    cd ${TMP_FOLDER} && \
+    unzip -q apkeep.zip && \
+    cd ./apkeep-${DXC_V_APKEEP} && \
+    ${HOME}/.cargo/bin/cargo build --release && \
+    sudo cp ./target/release/apkeep /usr/local/bin/apkeep && \
+    sudo chmod 755 /usr/local/bin/apkeep && \
+    cd ${DXC_USER_HOME} && \
+    rm -rf ${TMP_FOLDER}/apkeep-${DXC_V_APKEEP} ${TMP_FOLDER}/apkeep.zip
+
+# ===============================
+# Install Binwalk from source
+# ===============================
+RUN curl -L -o "${TMP_FOLDER}/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/archive/refs/tags/v${DXC_V_BINWALK}.zip" && \
+    cd ${TMP_FOLDER} && \
+    unzip -q binwalk.zip && \
+    cd ./binwalk-${DXC_V_BINWALK} && \
+    chmod +x ./dependencies/ubuntu.sh && \
+    sudo ./dependencies/ubuntu.sh && \
+    ${HOME}/.cargo/bin/cargo build --release && \
+    sudo cp ./target/release/binwalk /usr/local/bin/binwalk && \
+    sudo chmod 755 /usr/local/bin/binwalk && \
+    cd ${DXC_USER_HOME} && \
+    rm -rf ${TMP_FOLDER}/binwalk-${DXC_V_BINWALK} ${TMP_FOLDER}/binwalk.zip
+
+ENV BINWALK_RM_EXTRACTION_SYMLINK=1
+
+# ===============================
+# Install Android Platform Tools & Radare2
+# ===============================
+RUN yes Y | sdkmanager --verbose --no_https "platform-tools" && \
+    cd ${TMP_FOLDER} && \
+    git clone --depth 1 https://github.com/radareorg/radare2 && \
+    cd ./radare2 && \
+    chmod a+x ./sys/install.sh && \
+    ./sys/install.sh && \
+    cd ${DXC_USER_HOME} && \
+    rm -rf ${TMP_FOLDER}/radare2
+
+# ===============================
+# Download apktool & baksmali JARs
+# ===============================
+RUN curl -L -o "${TMP_FOLDER}/apktool.jar" "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_${DXC_V_APKTOOL}.jar" && \
+    curl -L -o "${TMP_FOLDER}/baksmali.jar" "https://bitbucket.org/JesusFreke/smali/downloads/baksmali-${DXC_V_BAKSMALI}.jar"
+
+# ===============================
+# Cleanup
+# ===============================
+RUN sudo apt-get clean && \
+    sudo rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+WORKDIR ${DXC_USER_HOME}
