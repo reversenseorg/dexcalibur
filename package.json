@@ -1,6 +1,6 @@
 {
   "name": "@dexcalibur/dexcalibur-ts",
-  "version": "1.16.0",
+  "version": "1.16.1",
   "description": "Universal Reverse Engineering platform focused on dynamic binary instrumentation automation by Reversense",
   "main": "./dist/dexcalibur.js",
   "directories": {
@@ -95,7 +95,7 @@
   "type": "module",
   "author": {
     "name": "Georges-Bastien MICHEL",
-    "email": "georges.michel@protonmail.com"
+    "email": "georges.michel@reversense.com"
   },
   "os": [
     "darwin",
@@ -103,7 +103,7 @@
     "win32"
   ],
   "homepage": "https://github.com/FrenchYeti/dexcalibur",
-  "license": "Copyright Georges-B Michel , Reversense SAS (See LICENSE.MD)",
+  "license": "AGPL-3.0-only",
   "publishConfig": {
     "@dexcalibur:registry": "https://gitlab.reversense.org/api/v4/projects/30/packages/npm/"
   }

@@ -6,6 +6,7 @@
     "declaration": true,
     "outDir": "./dist",
     "esModuleInterop": true,
+    "removeComments": true,
     "allowSyntheticDefaultImports": false,
     "moduleResolution": "nodenext",
     "allowJs": true,
