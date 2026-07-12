@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import {CONST} from "../../CoreConst.js";
 import Util from "../../Utils.js";
 import HookTemplateFragment from "../HookTemplateFragment.js";
@@ -9,6 +30,9 @@ import {NativeHookBuilderException} from "../../errors/NativeHookBuilderExceptio
 import ModelFile from "../../ModelFile.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import {TargetLanguage} from "../common.js";
+import {HookOptions} from "../HookManager.js";
 
 const FRIDA_READ_API = ['readU8','readS8','readU16','readS16','readU32','readS32','readU64','readS64'];
 
@@ -134,25 +158,28 @@ export class NativeHookBuilder{
         return helper;
     }
 
+    private _serializeAs( pDataType: DataType, pValExpress:string, pLang:TargetLanguage):string {
+        if(pDataType.isReference){
+            // if type is known, try to read data form memory, else return addr
+        }
+        return pValExpress;
+    }
+
     /**
      *
      * @param ret
      */
-    makeRetHelper(pRet:ModelVariable, pOnLeave = true):any{
+    makeRetHelper(pRet:Nullable<ModelVariable>, pLang:TargetLanguage, pOnLeave = true):any{
         if(pRet == null) return null;
 
         const helper:any = {
             data: ""
         };
 
+        //
         helper.data += pRet.getName()+":";
-
-
-        if(pOnLeave){
-            helper.data += "ret";
-        }else{
-            helper.data += `this.context.${pRet.getRef()}`;
-        }
+        const d = (pOnLeave ? "ret" : `this.context.${pRet.getRef()}`);
+        helper.data += (pRet.getType()==null ? d : this._serializeAs(pRet.getType(),d, pLang));
 
         return helper;
     }
@@ -270,7 +297,7 @@ export class NativeHookBuilder{
      * @param {Method} method The method to hook
      * @function
      */
-    build( pNativeHook:NativeFunctionHook, pOptions:any = {}):string{
+    build( pNativeHook:NativeFunctionHook, pOptions:Nullable<HookOptions> = null):string{
 
         /* TODO : implement MissingReference probing */
 
@@ -290,7 +317,7 @@ export class NativeHookBuilder{
             "@@__HOOK_ARGS__@@": "",
             "@@__NESTED_ARGS__@@": "",
             "@@__RET__@@": "",
-            "@@__RET_TYPE__@@": target.getReturn().getType().getName(),
+            "@@__RET_TYPE__@@": (target.getReturn()==null ? "void" :target.getReturn().getType().getName()),
             "@@__ARGS_VAL__@@": "",
             "@@__ARGS_TYPE__@@":"[]",
             "@@__RET_VAL__@@": "",
@@ -303,15 +330,14 @@ export class NativeHookBuilder{
             "@@__FN_SYM__@@": target.getSymbol()
         };
 
-        const lib = target.getDeclaringFile();
-
-
-
-        if(typeof lib === 'string'){
-            tags["@@__LIB_FILE_NAME__@@"] = lib;
-        }else{
-            tags["@@__LIB_FILE_NAME__@@"] = (lib as ModelFile).getName();
+        if(pOptions!=null && pOptions.lib!=null){
+            if(typeof pOptions.lib ==="string"){
+                tags["@@__LIB_FILE_NAME__@@"]  = pOptions.lib;
+            }else{
+                tags["@@__LIB_FILE_NAME__@@"]  = (pOptions.lib as ModelFile).getName();
+            }
         }
+
 
         tags["@@__VAR__@@"] = "v_"+CryptoUtils.md5(pNativeHook.getGUID())+"_VAR";
         pNativeHook.setVariableID(tags["@@__VAR__@@"]);
@@ -323,8 +349,8 @@ export class NativeHookBuilder{
 
         //this.code.varID = tags["@@__VAR__@@"];
 
-        const retHelper:any = this.makeRetHelper(target.getReturn(), true);
-        tags["@@__RET_DATA__@@"] = "{"+retHelper.data+"}";
+        const retHelper:any = this.makeRetHelper(target.getReturn(), pNativeHook.lang,  true);
+        tags["@@__RET_DATA__@@"] = retHelper==null ? "null": "{"+retHelper.data+"}";
 
         // TODO : replace by keypoint namespace
         if(pNativeHook.parentID != null){

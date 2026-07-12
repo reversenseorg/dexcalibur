@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer from "../WebServer.js";
@@ -22,6 +43,9 @@ import {HookManagerException} from "../errors/HookManagerException.js";
 import {WebApiWindowing} from "./internals/WebApiWindowing.js";
 import {TargetLanguage} from "../hook/common.js";
 import {ScriptCompilerOutput} from "../hook/HookWorkspace.js";
+import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
+import ModelSyscall from "../ModelSyscall.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -576,14 +600,22 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-                project = req.dxc.project;
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
 
                 // ========== LOGIC
                 if(req.params.id == null){
                     throw new Error("KeyPoint UID must be specified");
                 }
 
-                const kp:KeyPoint = await project.getKeyPointManager().getKeyPointByAttr({ name: req.params.id });
+                const kp:KeyPoint = await project.getKeyPointManager().getKeyPoint(req.params.id);
 
                 console.log(kp, kp.getUID());
                 if(await kp == null){
@@ -963,11 +995,17 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
 
-                project = req.dxc.project;
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
 
-
-                let meth:ModelMethod|ModelFunction;
+                let target:ModelMethod|ModelFunction|ModelSyscall;
                 let probe:AbstractHook;
                 let file:ModelFile = null;
                 let opts:any = {};
@@ -975,65 +1013,22 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 
                 const targetType = req.body.__ ;
 
-                // get reference to the targeted node
-                if(targetType === NodeInternalType.FUNC){
-
-                    meth = project.find.get.func(Util.decodeURI(Util.b64_decode(Util.decodeURI(req.params.method))));
-                    if (meth == null) {
-                        Logger.error("[API][HOOK::FUNCTION] Function not found "+Util.b64_decode(Util.decodeURI(req.params.method)));
-                        throw new Error("Method or Function not found");
-                    }
-
-                    // get the reference to the file where the function is declared
-                    const lib = meth.getDeclaringFile();
-                    if(lib!=null){
-                        if( (typeof lib) ==='string'){
-                            // @ts-ignore
-                            file = project.find.get.files(lib as string);
-                            if(file != null){
-                                // update function
-                                (meth as ModelFunction).setDeclaringFile(file);
-                            }
-                        }else if(lib instanceof ModelFile){
-                            file = project.find.get.files((lib as ModelFile).getUID()) ;
-                        }else if(lib.__>0 && lib._uid!=null){
-                            file = project.find.get.files(lib._uid) ;
-                        }
-                    }
+                const result = (await (MerlinSearchRequest.getByRef({
+                    __:parseInt(req.body.__,10),
+                    _uid:Util.decodeURI(Util.b64_decode(Util.decodeURI(req.params.method)))
+                },project.getMerlinEngine() )).executePDB(project));
 
 
-                    //file = project.find.get.files(meth.getDeclaringFile()) file('_uid:'+meth.getDeclaringFile());
-
-                    // if declaring file is found, information are added to hook options
-                    // to allow to use relative offset and symbol, instead of absolute offset
-                    if(file != null){
-                        opts =  {
-                            lib: file,
-                            file: file.getName(),
-                            ptr_mode: 'relative'
-                        }
-                    }else{
-                        opts =  {
-                            ptr_mode: 'addr'
-                        }
-                    }
-
+                if(result.count()==0){
+                    throw new Error("Target node cannot be found"+Util.b64_decode(Util.decodeURI(req.params.method)));
                 }
-                // same as above with Java
-                else if(targetType === NodeInternalType.METHOD){
-                    meth = project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.method)));
-                    if (meth == null) {
-                        Logger.error("[API][HOOK::METHOD] Method not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
-                        throw new Error("Method or Function not found");
-                    }
-                }else{
-                    throw new Error("The target node is not supported.");
+
+                if([NodeInternalType.METHOD,NodeInternalType.FUNC,NodeInternalType.SYSCALL].indexOf(targetType)==-1){
+                    throw new Error("The target node is not supported: "+targetType);
                 }
 
                 // prevent tries to hook class initializer (static blocks)
-                if((meth.__ === NodeInternalType.METHOD) && (meth.name == "<clinit>")){
-                    throw new Error("Static blocks (<clinit>) cannot be hooked");
-                }
+                project.hook.isSupportDirectHooking(result.get(0), true);
 
                 // get instance for key points
                 opts.loadKP = (req.body['loadkp']!=null ? await project.getKeyPointManager().getKeyPointByAttr({name:req.body['loadkp']}) : null);
@@ -1044,81 +1039,15 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                 opts.weight = req.body['weight'];
                 opts.behavior = req.body['behavior'];
 
-                // search if the target function is already hooked, with same load/unload key point, and get it
-                probe = project.hook.getProbe(meth, opts);
-
-                // if the hook not exists, it is created
-                if (probe == null) {
-                    // create hook
-                    if(meth.__ === NodeInternalType.METHOD){
-                        probe = await project.hook.createJavaMethodHook(meth as ModelMethod, opts);
-                    }else{
-                        probe = await project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
-                    }
-                    isNewHook = true;
-
-                    // generate hook code body
-                    if(req.body['lang']!=null
-                        && [
-                            TargetLanguage.JS,
-                            TargetLanguage.TS
-                        ].indexOf(req.body['lang'])>-1){
-
-                        probe.build(req.body['lang']);
-                    }else{
-                        probe.build(TargetLanguage.TS);
-                    }
-                }
-
-                // if a behavior is defined, update hook to add relevant fragments
-                if(probe != null && opts.behavior != null){
-                    // modify hook to merge existing with new
-                    probe.extends( opts);
-                }
-
-                // add fragment
-                //const fragOpts = req.body['frag'];
-                if(opts.behavior != null){
-
-                    if(opts.location.before){
-                        probe.appendBefore(
-                            project.hook.presets.generateFragment(probe, opts.behavior, 'before'), false
-                        );
-                    }
-                    if(opts.location.after){
-                        probe.appendAfter(
-                            project.hook.presets.generateFragment(probe, opts.behavior, 'after'), false
-                        );
-                    }
-                    if(opts.location.replace){
-                        probe.appendAfter(
-                            project.hook.presets.generateFragment(probe, opts.behavior, 'replace'), false
-                        );
-                    }
-
-
-
-                    // generate hook code body
-                    if(req.body['lang']!=null
-                        && [
-                            TargetLanguage.JS,
-                            TargetLanguage.TS
-                        ].indexOf(req.body['lang'])>-1){
-
-                        probe.build(req.body['lang']);
-                    }else{
-                        probe.build(TargetLanguage.TS);
-                    }
-                }
-
-                // save and create
-                await project.hook.save(probe, isNewHook);
+                probe = await project.getHookManager().addOrEditProbe(req.user, result.get(0), opts);
 
                 $.sendSuccess( res, { hook: probe.toJsonObject(), hookid: probe.getGUID(), enable: probe.isEnable() });
 
             }catch(err){
-                Logger.error("[API][HOOK] Hook messages cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, " Hook messages cannot be retrieved. Cause : " + err.message);
+                Logger.error("[API][HOOK] Hook cannot be created nor updated. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Hook cannot be created nor updated. Cause : " + err.message, {
+                    extra: err.extra
+                });
             }
         },
         'put': async (req:DelegateRequest, res:DelegateResponse) =>  {

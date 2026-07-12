@@ -1,5 +1,27 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {ScriptCompilerOutput} from "../hook/HookWorkspace.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 export enum HookErrCode {
     GENERIC=100,
@@ -25,7 +47,8 @@ export class HookManagerException extends MonitoredError {
         SCRIPT_SYNTAX_ERROR: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 13,
         COMPILER_INPUT_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 14,
         CANNOT_START_HOOK_BECAUSE_SYNTAX_ERR: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 15,
-        SESSION_INTERRUPTED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 16
+        SESSION_INTERRUPTED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 16,
+        CANNOT_BE_HOOKED:  ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 17
     };
 
     static EXISTING_HOOK_SET = ()=>{ return new HookManagerException(" An hook set already exists for this ID",HookManagerException.ERR.EXISTING_HOOK_SET) };
@@ -50,6 +73,10 @@ export class HookManagerException extends MonitoredError {
         );
     };
     static SESSION_INTERRUPTED = (pStep:string)=>{ return new HookManagerException(" Hook sessions has been interrupted by lifecycle hooks at : "+pStep,HookManagerException.ERR.SESSION_INTERRUPTED) };
+    static CANNOT_BE_HOOKED = (pType:NodeInternalType,pUID:string)=>{ return new HookManagerException(" Target node not support direct hooking",HookManagerException.ERR.CANNOT_BE_HOOKED, {
+        __: pType,
+        _uid: pUID
+    }) };
 
 
 

@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import DexcaliburProject from "../DexcaliburProject.js";
 import HookStrategySelector, {HookStrategySelectorOptions} from "./HookStrategySelector.js";
 import * as VM from "vm";
@@ -282,10 +303,6 @@ export default class HookStrategy implements INode{
 
     getSearchEngineRequest():string|Operation[] {
         return this.search.getRequest();
-    }
-
-    triggerOn(pEventName:string):void {
-        this.on = pEventName;
     }
 
 
@@ -654,3 +671,13 @@ export default class HookStrategy implements INode{
         if(this.after!=null) this.after.markAs(pFlag);
     }
 }
+HookStrategy.TYPE.builder(HookStrategy);
+HookStrategy.TYPE.descr("Aim of a hook strategy " +
+    "is to search target nodes in the intermediate representation (using Merlin request) " +
+    "and generate part of hook code named 'hook fragment' to trace, to gather " +
+    "or to tamper the behavior and/or the context of  a to define a set of " +
+    "hook fragments to be applied on a specific search request. " +
+    "It's a key mechanism to generate instrumentation, a hook strategy is " +
+    "automatically triggered when the parent Inspector is deployed. Any inspector is " +
+    "attached to a step while the DexcaliburProject lifecycle. A hook strategy offer cross-session " +
+    "variable injected into hook code to help to implement state machine over execution.")

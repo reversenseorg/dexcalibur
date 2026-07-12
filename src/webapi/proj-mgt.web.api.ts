@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import {DelegateRequest, DelegateResponse, DelegateWebApi, HTTP_VERB} from "./DelegateWebApi.js";
 import {Device, DeviceUUID} from "../Device.js";
 import WebServer from "../WebServer.js";
@@ -185,8 +206,9 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 ));
 
                 // to track and save changes in workflow
-                $.context.registerWorkflow(wf);
+                //$.context.registerWorkflow(wf);
 
+                wf.start();
 
                 // TODO : retrieve platform from special value of req.body['platform'] : target, from target device, target API version from manifest , ...
 
@@ -341,13 +363,13 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 //console.log(projInputs);
 
-                project = await $.context.newProject(projectUID, projInputs, device,  (req as any).user , platform, anal);
+                project = await $.context.newProject(projectUID, projInputs, device,  (req as any).user , platform, anal, null, wf);
 
                 if(project == null){
                     throw DexcaliburProjectException.STEP2_FAILURE();
                 }
 
-                project.setWorkflow(wf);
+                //project.setWorkflow(wf);
 
                 //if(req.body['msa_auto']){
 

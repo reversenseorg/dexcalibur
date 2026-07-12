@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import Asset from "./Asset.js";
 import Threat from "./Threat.js";
 import {ConstraintMatch} from "./ConstraintMatch.js";
@@ -14,7 +35,16 @@ import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 
 import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {FinderResult} from "../../search/FinderResult.js";
-import {INode, NodeType, NodeUtils, SerializeOptions, TagUUID, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {
+    DbDataType, DbKeyType,
+    INode,
+    NodeProperty,
+    NodeType,
+    NodeUtils,
+    SerializeOptions,
+    TagUUID,
+    ValidationRule
+} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../../core/IStringIndex.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
@@ -105,7 +135,11 @@ export type AssuranceReportUUID = string;
  */
 export default class AssuranceReport implements INode {
 
-    static TYPE:NodeType = new NodeType("reports", NodeInternalType.ASSURANCE_REPORT,[]);
+    static TYPE:NodeType = new NodeType("reports", NodeInternalType.ASSURANCE_REPORT,[
+        (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY)
+            .schema({ type: "string", format: "uuid" })
+            .descr("Unique identifier of the assurance report"),
+    ]);
     __:NodeInternalType = NodeInternalType.ASSURANCE_REPORT;
 
     uid:Nullable<AssuranceReportUUID> = null;

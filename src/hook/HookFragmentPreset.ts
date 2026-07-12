@@ -1,8 +1,30 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import ModelMethod from "../ModelMethod.js";
 import HookStrategy from "./HookStrategy.js";
 import {CryptoUtils} from "../CryptoUtils.js";
+import {ModelFunction} from "../ModelFunction.js";
 
 export enum HookFragmentPresetType {
     TRACK='track',
@@ -52,18 +74,16 @@ export default class HookFragmentPreset {
 
         switch (pOptions.type){
             case HookFragmentPresetType.TRACK:
-                if(ModelMethod.TYPE.is(pHook.getTarget())){
-                    if(pLocation == 'before'){
-                        frag.name = "trace_args";
-                        frag.description = "To trace the params value";
-                        frag.setCodeTemplate(this._createMethodTrack(pHook, pOptions, true ));
-                        frag.setUID(HookFragmentPreset.generateFragmentUID(pHook, HOOK_FRAGMENT_POS.BEFORE, frag, null));
-                    }else{
-                        frag.name = "trace_return_value";
-                        frag.description = "To trace the return value";
-                        frag.setCodeTemplate(this._createMethodTrack(pHook, pOptions, false ));
-                        frag.setUID(HookFragmentPreset.generateFragmentUID(pHook, HOOK_FRAGMENT_POS.AFTER, frag, null));
-                    }
+                if(pLocation == 'before'){
+                    frag.name = "trace_args";
+                    frag.description = "To trace the params value";
+                    frag.setCodeTemplate(this._createMethodTrack(pHook, pOptions, true ));
+                    frag.setUID(HookFragmentPreset.generateFragmentUID(pHook, HOOK_FRAGMENT_POS.BEFORE, frag, null));
+                }else{
+                    frag.name = "trace_return_value";
+                    frag.description = "To trace the return value";
+                    frag.setCodeTemplate(this._createMethodTrack(pHook, pOptions, false ));
+                    frag.setUID(HookFragmentPreset.generateFragmentUID(pHook, HOOK_FRAGMENT_POS.AFTER, frag, null));
                 }
                 break;
             case HookFragmentPresetType.TAMPER_PARAM:

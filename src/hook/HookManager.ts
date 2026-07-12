@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import * as co from 'co';
 
 import HookSession from "../HookSession.js";
@@ -38,10 +59,10 @@ import {ScriptBuilderOptions, TargetLanguage} from "./common.js";
 import ModelFile from "../ModelFile.js";
 import Inspector from "../Inspector.js";
 import {MerlinSearchRequest, OperationType} from "../search/MerlinSearchRequest.js";
-import {UserAccountUUID} from "../user/UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import ModelInstruction from "../ModelInstruction.js";
-import { INodeRef } from "../INode.js";
+import {INodeRef} from "../INode.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -84,12 +105,13 @@ export interface HookSetList {
 export interface HookOptions {
     loadKP?:KeyPoint,
     unloadKP?:KeyPoint,
-    location?:string,
+    location?: {after:boolean, before:boolean, replace:boolean},
     weight?:number,
     behavior?:any,
     lib?:string,
     file?:string,
-    ptr_mode?:string
+    ptr_mode?:string,
+    lang?:TargetLanguage
 }
 
 export type HookManagerLifecycleCB =  ((vHM:HookManager,vSess:HookSession)=>boolean);
@@ -1195,19 +1217,20 @@ export class HookManager
      * @method
      * @since 1.0.0
      */
-    getProbe(method:ModelMethod|ModelFunction, pOptions:any = {}):AbstractHook{
-        let h:AbstractHook[] = this.jhooks;
+    getProbe(pTarget:ModelMethod|ModelFunction|ModelSyscall|ModelInstruction, pOptions:any = {}):AbstractHook{
+        let h:AbstractHook[] = this.jhooks; // to replace by "oohooks" => oriented object hooks
         let hook:AbstractHook = null;
-        if(method.__ === NodeInternalType.FUNC){
+        if(pTarget.__ === NodeInternalType.FUNC){
             h = this.nhooks;
         }
 
         for(const i in h){
-            if(h[i].getTarget().getUID() == method.getUID()){
+            if(h[i].getTarget().getUID() == pTarget.getUID()){
                 hook = h[i];
                 break;
             }
         }
+
         if(hook != null){
             if(pOptions.loadKP != null && hook.getLoadKeyPoint() !=null){
                 if(hook.getLoadKeyPoint().getUID() !== pOptions.loadKP.getUID()){
@@ -1490,6 +1513,23 @@ export class HookManager
         const hook:NativeFunctionHook = new NativeFunctionHook();
 
         hook.setGUID( CryptoUtils.md5(this.nextHookGUIDFor(pFunc)));
+
+        const lib = pFunc.getDeclaringFile();
+
+        if(pOpts.ptr_mode == null)  pOpts.ptr_mode='addr';
+
+        // if declaring file is known, hook can be relative to file (symbol or relative addr)
+        if (lib != null) {
+            const files = (await (MerlinSearchRequest.getByRef(lib, this.context.getMerlinEngine())).executePDB(this.context));
+            if (files.count() == 0) {
+                throw new Error("File where Target node is defined cannot be found: " + lib._uid);
+            }
+            if (files.get(0) != null) {
+                pOpts.lib = files.get(0);
+                pOpts.file = files.get(0).getName();
+                pOpts.ptr_mode = 'relative';
+            }
+        }
 
         if(pOpts.loadKP == null){
             hook.setLoadKeyPoint(await this.getKeyPointManager().getKeyPointByAttr({name:"core.java.app"}));
@@ -2300,6 +2340,29 @@ export class HookManager
         }
     }
 
+    /**
+     * To verify if there is existing strategy to hook specified node
+     * @param pNode
+     */
+    isSupportDirectHooking(pNode:INode, pThrow = false):boolean {
+
+        let res = false;
+        switch (pNode.__){
+            case NodeInternalType.METHOD:
+                if(this.context.tagManager.getTag("tech.java").match(pNode)){
+                    res = (pNode as ModelMethod).name!=="<clinit>";
+                }else return true;
+            case NodeInternalType.FUNC:
+            case NodeInternalType.SYSCALL:
+            case NodeInternalType.INSTRUCTION:
+               return true;
+        }
+
+        if(!res && pThrow){
+            throw HookManagerException.CANNOT_BE_HOOKED(pNode.__, pNode.getUID());
+        }
+        return res;
+    }
 
     // hook
     onSessionStart( pCallback:((vMgr:HookManager, vSess:HookSession)=>boolean) ){
@@ -2312,5 +2375,62 @@ export class HookManager
 
     onScreenScreenshot( pCallback:((vMgr:HookManager, vSess:HookSession)=>boolean) ){
         this._on.screenScreenshot.push(pCallback);
+    }
+
+    async addOrEditProbe(pUser: UserAccount, pTarget: ModelMethod|ModelSyscall|ModelFunction|ModelInstruction, pOpts: HookOptions) {
+
+        // TODO : check ACL
+        let isNewHook = false;
+
+        if(pTarget.__===NodeInternalType.INSTRUCTION){
+            throw HookManagerException.CANNOT_BE_HOOKED(pTarget.__, pTarget.getUID());
+        }
+
+        // search if the target function is already hooked, with same load/unload key point, and get it
+        let probe = this.getProbe(pTarget, pOpts);
+
+        // if the hook not exists, it is created
+        if (probe == null) {
+            // create hook
+            probe = await this.createHookFromNode(pTarget, pOpts, pOpts.loadKP)
+            isNewHook = true;
+
+            // generate hook code body
+            if([TargetLanguage.JS, TargetLanguage.TS].indexOf(pOpts.lang)>-1){
+                probe.lang = pOpts.lang;
+            }
+        }
+
+        // if a behavior is defined, update hook to add relevant fragments
+        if(probe != null && pOpts.behavior != null){
+            // modify hook to merge existing with new
+            probe.extends( pOpts);
+
+            // add fragment
+            //const fragOpts = req.body['frag'];
+            if(pOpts.location.before){
+                probe.appendBefore(
+                    this.presets.generateFragment(probe, pOpts.behavior, 'before'), false
+                );
+            }
+            if(pOpts.location.after){
+                probe.appendAfter(
+                    this.presets.generateFragment(probe, pOpts.behavior, 'after'), false
+                );
+            }
+            if(pOpts.location.replace){
+                probe.appendAfter(
+                    this.presets.generateFragment(probe, pOpts.behavior, 'replace'), false
+                );
+            }
+        }
+
+
+        // regenerate
+        probe.build(pOpts.lang ?? TargetLanguage.TS, pOpts);
+        // save and create
+        await this.save(probe, isNewHook);
+
+        return probe;
     }
 }

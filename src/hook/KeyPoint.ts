@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import {IPersistent} from "../persist/orm/IPersistent.js";
 import {NodeType, INode, INodeMap, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType}
@@ -50,6 +71,7 @@ export interface KeyPointOptions {
     type?: RuntimeEventType;
     node?:Record<string,INode>;
     enabled?:boolean;
+    label?:string;
     _c?:string;
     tags?:TagUUID[];
     vid?:VirtualID;
@@ -67,6 +89,8 @@ export default class KeyPoint implements INode, IPersistent {
     __:NodeInternalType = NodeInternalType.KEY_POINT;
 
     deps:string[] = [];
+
+    label:string;
 
     /**
      * If the key point is from a state caught by another key point
@@ -90,7 +114,7 @@ export default class KeyPoint implements INode, IPersistent {
     generatorCode: Nullable<CustomCode> = null;
     weight:number;
     type: RuntimeEventType = RuntimeEventType.HOOK;
-    node:INodeMap = {};
+    node:Record<string,INode|any> = {};
     enabled:boolean;
     _c:string;
 
@@ -106,6 +130,22 @@ export default class KeyPoint implements INode, IPersistent {
                 this[i] = pConfig[i];
             }
         }
+    }
+
+    static sanitizeName(pName:string, pInc = 0){
+        let san = "";
+        let i=0, c=0;
+        while(i<pName.length){
+            c=pName[i].charCodeAt(0);
+            if((c>96 && c<123)||(c>65 && c<90)||(c>47 && c<58)||c===95){
+                san += pName[i];
+            }else{
+                san += "-";
+            }
+            i++;
+        }
+
+        return pInc>0 ? san+"|"+pInc : san;
     }
 
     hasNode(pNode:INode):boolean {
@@ -341,6 +381,7 @@ export default class KeyPoint implements INode, IPersistent {
             parent: this.parent,
             token: this.token,
             weight: this.weight,
+            label: this.label,
             description: this.description,
             condition: this.condition,
             name: this.name,

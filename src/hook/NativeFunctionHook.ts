@@ -1,13 +1,36 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
 
 import {ModelFunction} from "../ModelFunction.js";
 import {AbstractHook} from "./AbstractHook.js";
-import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeType, NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
-import ModelFile from "../ModelFile.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {TargetLanguage} from "./common.js";
+import {HookOptions} from "./HookManager.js";
+import {INodeRef} from "../INode.js";
+import {MemoryAddress} from "../memory/MemoryAddress.js";
+
+;
 
 export enum HookTargetType {
     STATIC_OFFSET,
@@ -33,7 +56,7 @@ export default class NativeFunctionHook extends AbstractHook {
      * @field
      * @
      */
-    private _target:any  = null;
+    private _target:ModelFunction|INodeRef|number|MemoryAddress  = null;
 
     private _targetType: HookTargetType = HookTargetType.STATIC_OFFSET;
 
@@ -88,7 +111,15 @@ export default class NativeFunctionHook extends AbstractHook {
      * @since 1.0.0
      */
     isTarget(pNode: ModelFunction): boolean {
-        return ( this._target.getUID() === pNode.getUID());
+        if(this._t===NodeInternalType.FUNC){
+            if(NodeUtils.isNodeRef(this._target)){
+                return ( (this._target as INodeRef)._uid === pNode.getUID());
+            }else{
+                return ((this._target as ModelFunction).getUID() === pNode.getUID());
+            }
+        }else{
+            return false;
+        }
     }
 
     setTarget( pNode:ModelFunction) {
@@ -114,12 +145,12 @@ export default class NativeFunctionHook extends AbstractHook {
         return o;
     }
 
-    build(pLang:TargetLanguage):any{
+    build(pLang:Nullable<TargetLanguage> = null, pOpts:Nullable<HookOptions> = null):any{
         if(this._target == null){
             throw HookScriptBuilderException.UNTARGETABLE_NATIVE_HOOK();
         }
 
-        this.setGeneratedCode( this._mgr.hk_builder.native.build(this));
+        this.setGeneratedCode( this._mgr.hk_builder.native.build(this,pOpts));
         this.enable();
 
         return true;

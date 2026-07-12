@@ -1,9 +1,30 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import KeyPoint, { KeyPointOptions } from "./KeyPoint.js";
 import KeyPointManager, {KeyPointCondition} from "./KeyPointManager.js";
 import ModelFile from "../ModelFile.js";
 import {NodeInternalType, Nullable}
     from "@dexcalibur/dxc-core-api";;
-import {INode} from "../INode.js";
+import {INode, INodeRef} from "../INode.js";
 import {Device} from "../Device.js";
 import ModelClass from "../ModelClass.js";
 import {CodeLocation, LocationType, ModelLocation} from "../ModelLocation.js";
@@ -19,7 +40,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {AbstractHook, HOOK_FRAGMENT_POS} from "./AbstractHook.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import {RuntimeEventType} from "./RuntimeEvent.js";
-import {Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils, Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import NativeFunctionHook from "./NativeFunctionHook.js";
 import {MetadataTopic, MetadataType} from "../audit/common/Metadata.js";
 
@@ -355,7 +376,13 @@ ${classFactory}.use("${pClass.getName()}").onAnyNew((vArgs)=>{
                 //if(this.isStalkerReady()){
 
                 pKeyPoint.description = "This point is trigged when the lib '"+libName+"' is opened using dlopen for the first time. ";
-                pKeyPoint.code = `DXC.kp.DlOpen("${libName}",0);\n`;
+                pKeyPoint.code = `
+                DXC.kp.DlOpen("${libName}",null);
+                DXC.kp.register("dlopen","${libName}",()=>{
+                      /*@@__CONTENT__@@*/
+                });
+                `;
+
 
                 /*
                     pKeyPoint.code = `
@@ -502,12 +529,15 @@ DXC.onMemoryMapping(  {file:/${libName}$/}, (vMod)=>{
     async generate( pKeyPoint:KeyPoint, pOptions:Nullable<KeyPointOptions> = null):Promise<KeyPoint>{
 
         // get node associated to the key point
-        const target:INode = this.getTargetNode(pKeyPoint);
+        let target:INode = this.getTargetNode(pKeyPoint);
         const hmopts:any = this.mgr.getProject().getHookManager().options;
-        const targetUID = target.getUID(); // (target.hasOwnProperty('uid')? target.uid : target.getUID());
+        const targetUID = NodeUtils.isNodeRef(target) ? (target as INodeRef)._uid : target.getUID();
         let analDB:any =  this.mgr.getProject().getAnalyzer();
         //const obj =  analDB.searchNode(target.__,  targetUID  );
 
+        if(NodeUtils.isNodeRef(target)){
+            target = await this.mgr.getProject().getNodeByRef(target);
+        }
 
         if(target==null){
             Logger.error("[KEY POINT GENERATOR] Node associated to the target cannot be found (type="+target.__+", uid="+targetUID+")");

@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import * as _path_ from "path";
 
 
@@ -105,6 +126,7 @@ import KeyPoint from "./hook/KeyPoint.js";
 import {InspectorEditor} from "./inspector/InspectorEditor.js";
 import {NativeBackend} from "./types/common.js";
 import {INodeRef} from "./INode.js";
+import {FinderResult} from "./search/FinderResult.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2562,11 +2584,17 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
                             // discover
                             await this.discoverExecutableFile(execFiles[i], true);
 
+                            let kpid:string, dup = 0;
+                            do{
+                                kpid = `lib.loading.${KeyPoint.sanitizeName(execFiles[i].getName(), dup)}`;
+                            }while((await this.getKeyPointManager().getKeyPoint(kpid))!=null);
+
                             // create empty key point
                             kp = await this.getKeyPointManager().createKeyPoint(
                                 execFiles[i],
                                 {
-                                    name: `Loading of "${execFiles[i].getName()}"`,
+                                    name: kpid,
+                                    label: `Loading of "${execFiles[i].getName()}"`,
                                     condition: KeyPointCondition.DLOPEN
                                 }
                             );
@@ -3308,7 +3336,28 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         return this._iedit;
     }
 
+    async getNodeByRef(pRef:INodeRef):Promise<Nullable<INode>> {
 
+        let node = this.getAnalyzer().searchNode(pRef.__, pRef._uid);
+        if(node!=null) return node;
+
+        console.log(`[SCANNER][MATCH NOT FOUND IN MEMORY. TRY MERLIN IN MEM] ${pRef.__} ${pRef._uid}`);
+        let res:FinderResult = await (MerlinSearchRequest.getByRef(pRef,this.getMerlinEngine() )).execute(this, true);
+
+
+
+        if(res.count()===0){
+            console.log(`[SCANNER][MATCH NOT FOUND IN MEMORY. TRY MERLIN IN PDB] ${pRef.__} ${pRef._uid}`);
+            res = await (MerlinSearchRequest.getByRef(pRef,this.getMerlinEngine() )).executePDB(this);
+            if(res.count() === 0){
+                console.log(`[SCANNER][MATCH NOT FOUND IN DB] ${pRef.__} ${pRef._uid}`);
+                return null;
+            }
+        }
+
+
+        return (res.count()>0 ? res.get(0) : null);
+    }
 
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

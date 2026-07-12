@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import ModelMethod from "./ModelMethod.js";
 import ModelField from "./ModelField.js";
 import ModelPackage from "./ModelPackage.js";
@@ -16,7 +37,7 @@ import {UserAccount, UserAccountType} from "./user/UserAccount.js";
 import AccessControl from "./user/acl/AccessControl.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import DexcaliburProject from "./DexcaliburProject.js";
-import HookStrategySelector from "./hook/HookStrategySelector.js";
+import HookStrategySelector, {HookStrategySelectorSchema} from "./hook/HookStrategySelector.js";
 import {ModelFunction} from "./ModelFunction.js";
 
 
@@ -30,7 +51,7 @@ import {
     NodeProperty,
     DbDataType,
     DbKeyType,
-    DbSerialize, DataSource, NodeType, TagCategory, Tag, AppContextType
+    DbSerialize, DataSource, NodeType, TagCategory, Tag, AppContextType, NodeUtils
 } from "@dexcalibur/dexcalibur-orm";
 import InMemoryConnector from "../connectors/inmemory/adapter.js";
 import {MongodbAdapter, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
@@ -45,7 +66,7 @@ import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelInstruction from "./ModelInstruction.js";
 import HookPrologue from "./HookPrologue.js";
 import {HookVariableArray, HookVariableObject} from "./HookVariable.js";
-import {HookVariableMap} from "./hook/common.js";
+import {HookVariableMap, TargetLanguage} from "./hook/common.js";
 import {Person} from "./user/Person.js";
 import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
 import {Cookie} from "./user/session/Cookie.js";
@@ -58,6 +79,7 @@ import DataScope from "./DataScope.js";
 import {ApiKey} from "./user/auth/ApiKey.js";
 import {ApplicationUnit} from "./organization/ApplicationUnit.js";
 import {MetadataJsonSchema} from "./audit/common/Metadata.js";
+import {MemoryAddress} from "./memory/MemoryAddress.js";
 
 
 
@@ -533,6 +555,7 @@ ModelClass.TYPE.updateProperties([
 
 KeyPoint.TYPE.updateProperties([
         (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("label")).type(DbDataType.STRING),
         (new NodeProperty("token")).type(DbDataType.STRING).def(null),
         (new NodeProperty("description")).type(DbDataType.STRING).def(null),
         (new NodeProperty("code")).type(DbDataType.STRING).def(null),
@@ -572,10 +595,7 @@ KeyPoint.TYPE.updateProperties([
             .sleep( (x:NodePropertyState) => {
                 const o = [];
                 for(const uid in x.p){
-                    o.push({
-                        __:x.p[uid].__,
-                        uid: (x.p[uid].getUID != null ? x.p[uid].getUID() : x.p[uid].uid)
-                    });
+                    o.push(NodeUtils.asNodeRef(x.p[uid]));
                 }
                 return o; //JSON.stringify(o);
             })
@@ -654,49 +674,88 @@ HookSet.TYPE.updateProperties([
 ]).dataSource("PROJECT_DB").builder(HookSet);
 
 HookStrategy.TYPE.updateProperties([
-    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("on")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("enabled")).type(DbDataType.BOOLEAN).def(true),
-    (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
-    (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("_uid"))
+        .descr("The unique identifier of the hook strategy. The current ID format is formated like '<ParentInspector_UID>:<HookStrategy_Name>' A hook strategy  ")
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name"))
+        .descr("A human readable name of the hook strategy. Must be short and close of the purpose of hooks and targeted nodes.")
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("descr"))
+        .descr("A clear documentation ann description of the hook strategy. Markdown is allowed.")
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("enabled"))
+        .descr("A switch to enable or disable the hook strategy.")
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(true),
+    (new NodeProperty("deprecated"))
+        .descr("A boolean used to mark the stategy has deprecated. It mainly happens because the a newest version of the parent inspector exists, but the strategy cannot ba replaced nor updated")
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("removed"))
+        .descr("A boolean used to mark the stategy has removed. It mainly happens because the a newest version of the parent inspector has been released and the strategy has been update or recreated. ")
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(false),
     //(new NodeProperty("onMatch"))
     //    .type(DbDataType.STRING)
     //    .def(null)
     //    .sleep( (x:NodePropertyState) => { return null; })
     //    .wakeUp( (x:NodePropertyState) => { return (x.self.preprocessor != null ? HookStrategy.newPreprocessorFn(x.self.preprocessor) : null )}),
 
-    (new NodeProperty("loadOn")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("unloadOn")).type(DbDataType.STRING).def(null),
-
-    (new NodeProperty("load_kp")).volatile().single(KeyPoint.TYPE).def(null),
-    (new NodeProperty("unload_kp")).volatile().single(KeyPoint.TYPE).def(null),
-
-    (new NodeProperty("hookset")).single(HookSet.TYPE).def(null),
+    (new NodeProperty("loadOn"))
+        .descr("The canonical UID of the key point that will be used to load the hook or hook fragment from this strategy.")
+        .schema({ type:"string" })
+        .type(DbDataType.STRING)
+        .def(null),
+    (new NodeProperty("unloadOn"))
+        .descr("The canonical UID of the key point that will be used to unload the hook or hook fragment from this strategy.")
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("load_kp"))
+        .descr("The instance of the key point that will be used to load the hook or hook fragment from this strategy. This property is volatile and may be missing.")
+        .volatile()
+        .single(KeyPoint.TYPE).def(null),
+    (new NodeProperty("unload_kp"))
+        .descr("The instance of the key point that will be used to load the hook or hook fragment from this strategy. This property is volatile and may be missing.")
+        .volatile()
+        .single(KeyPoint.TYPE).def(null),
+    (new NodeProperty("hookset"))
+        .descr("The parent hookset hosting the hook strategy. ")
+        .single(HookSet.TYPE)
+        .def(null),
     //(HookSet.TYPE.asForeignKey(DbKeyType.FOREIGN, 0, "hookset_id")),
     (new NodeProperty("before"))//.single(HookTemplateFragment.TYPE)
+        .descr("The template of the hook fragment to put before the execution enter in or affect the target nodes.")
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
         .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(x.p) : null )}),
     (new NodeProperty("replace"))//.single(HookTemplateFragment.TYPE)
+        .descr("The template of the hook fragment to put in place of the target node.")
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
         .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(x.p) : null )}),
     (new NodeProperty("after"))//.single(HookTemplateFragment.TYPE)
+        .descr("The template of the hook fragment to put in after of the target node in the execution flow.")
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
         .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(x.p) : null )}),
-    (new NodeProperty("hooks")).volatile(),
+    (new NodeProperty("hooks"))
+        .descr("The list of hooks generated by the strategy and containing the final hooks containing hook fragments.")
+        .volatile(),
     (new NodeProperty("search"))
+        .descr("the hook strategy search configuration. It is a JSON object containing the search configuration.")
         .type(DbDataType.STRING)
+        .schema(HookStrategySelectorSchema as any)
         .sleep( (x:NodePropertyState) => {
             return (x.p != null ? x.p.toJsonObject() : null )
         })
         .wakeUp( (x:NodePropertyState) => {
             return (x.p != null ? HookStrategySelector.fromJsonObject(x.p) : null )
         }),
-    (new NodeProperty("passed")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("passed"))
+        .type(DbDataType.NUMERIC).def(null),
 ]).dataSource("PROJECT_DB").builder(HookStrategy);
 
 HookSet.TYPE.updateProperties([
@@ -710,15 +769,32 @@ HookSet.TYPE.updateProperties([
     .builder(HookSet);
 
 HookTemplateFragment.TYPE.updateProperties([
-    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_descr")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_tpl")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_w")).type(DbDataType.NUMERIC).def(-1),
-    (new NodeProperty("_cache")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_preproc")).type(DbDataType.BOOLEAN).def(null),
-    (new NodeProperty("_strategy")).single(HookStrategy.TYPE).def(null),
-    (new NodeProperty("_keypoint")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_uid"))
+        .descr("A canonical UID to uniquely identify the template of a fragment from a hook.")
+        .type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name"))
+        .descr("The name of the template")
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("_descr"))
+        .descr("A human readable description of the template to explain what is the purpose of the code fragment of the final hook. A fragment must atomically has a single purpose. ")
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("_tpl"))
+        .descr("The code fragment of the template. It is a string containing the code of the template. The template is a JavaScript or TypeScript function that will be executed in the context of the target node. In the future more language will be supported")
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("_w"))
+        .descr("The weight of the template. It is a number used to sort the templates in the execution flow. The higher the number, the earlier the template will be executed.")
+        .type(DbDataType.NUMERIC).def(-1),
+    (new NodeProperty("_cache"))
+        .descr("")
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("_preproc"))
+        .type(DbDataType.BOOLEAN).def(null),
+    (new NodeProperty("_strategy"))
+        .descr("Optional. The parent strategy. It may be empty when a user has created a fragment manually ")
+        .single(HookStrategy.TYPE).def(null),
+    (new NodeProperty("_keypoint"))
+        .descr("Optional. The parent key point. It may be empty.")
+        .type(DbDataType.STRING).def(null),
     (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty("metadata")).type(DbDataType.BLOB).def([]),
@@ -851,6 +927,7 @@ JavaMethodHook.TYPE.updateProperties([
             return o;
         })
         .def({}),
+    (new NodeProperty("lang")).type(DbDataType.STRING).def(TargetLanguage.TS),
 ]).dataSource("PROJECT_DB").builder(JavaMethodHook);
 
 
@@ -935,21 +1012,42 @@ SystemCallHook.TYPE.updateProperties([
             }else{
                 return [];
             }
-        })
+        }),
+    (new NodeProperty("lang")).type(DbDataType.STRING).def(TargetLanguage.TS),
 ]).dataSource("PROJECT_DB").builder(SystemCallHook);
 
 NativeFunctionHook.TYPE.updateProperties([
-    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_t")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_target")).single(ModelFunction.TYPE),
-    (new NodeProperty("_code")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_time")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_uid"))
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).key(DbKeyType.PRIMARY)
+        .schema({ type:"string" })
+        .descr("The unique identifier of the hook targeting native function"),
+    (new NodeProperty("name"))
+        .schema({ type:"string" })
+        .descr("An optional name displayed where the hook appears instead of the symbol or address")
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("_t"))
+        .schema({ type:"string" })
+        .descr("If the target is the node, the type of node.")
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("_target"))
+        .descr("The target value, it can  reference to a node or a MemoryAddress")
+        .schema({ anyOf: [{ type:"string" },MemoryAddress.schema] })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("_code"))
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("_time"))
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
    // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
-    (new NodeProperty("_enabled")).type(DbDataType.BOOLEAN).def(true),
+    (new NodeProperty("_enabled"))
+        .schema({ type:"string" })
+        .type(DbDataType.BOOLEAN).def(true),
     (new NodeProperty("_after"))
+        .schema({ type:"object" })
         // .multiple(HookTemplateFragment.TYPE)
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => {
@@ -975,6 +1073,7 @@ NativeFunctionHook.TYPE.updateProperties([
         }),
     (new NodeProperty("_before"))
         // .multiple(HookTemplateFragment.TYPE)
+        .schema({ type:"object" })
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => {
             if(x.self!=null){
@@ -999,6 +1098,7 @@ NativeFunctionHook.TYPE.updateProperties([
         }),
     (new NodeProperty("_replace"))
         // .multiple(HookTemplateFragment.TYPE)
+        .schema({ type:"object" })
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => {
             if(x.self!=null){
@@ -1020,26 +1120,55 @@ NativeFunctionHook.TYPE.updateProperties([
             }else{
                 return [];
             }
-        })
+        }),
+    (new NodeProperty("lang")).type(DbDataType.STRING).def(TargetLanguage.TS),
 ]).dataSource("PROJECT_DB").builder(NativeFunctionHook);
 
 Inspector.TYPE.updateProperties([
-    (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("description")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("context")).volatile().def(null),
-    (new NodeProperty("hookSet")).single(HookSet.TYPE).def(null),
-    (new NodeProperty("staticTasks")).type(DbDataType.BLOB).def([]),
-    (new NodeProperty("running")).type(DbDataType.BOOLEAN).def(false),
-    (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
-    (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
-    (new NodeProperty("listeners")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("gui_available")).type(DbDataType.BOOLEAN).def(false),
-    (new NodeProperty("preRegisteredTags")).multiple(TagCategory.TYPE).def([]),
-    (new NodeProperty("color")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("installed")).type(DbDataType.BOOLEAN).def(null),
-    (new NodeProperty("step")).type(DbDataType.STRING).def(INSPECTOR_TYPE.BOOT),
-    (new NodeProperty("enabled")).type(DbDataType.BOOLEAN).def(true),
+    (new NodeProperty("id"))
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name"))
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("description"))
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("context"))
+        .volatile().def(null),
+    (new NodeProperty("hookSet"))
+        .single(HookSet.TYPE).def(null),
+    (new NodeProperty("staticTasks"))
+        .type(DbDataType.BLOB).def([]),
+    (new NodeProperty("running"))
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("deprecated"))
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("removed"))
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("listeners"))
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("gui_available"))
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("preRegisteredTags"))
+        .multiple(TagCategory.TYPE).def([]),
+    (new NodeProperty("color"))
+        .schema({ type:"string" })
+        .type(DbDataType.STRING).def(null),
+    (new NodeProperty("installed"))
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(null),
+    (new NodeProperty("step"))
+        .schema({ type:"string", enum: Object.values(INSPECTOR_TYPE) })
+        .type(DbDataType.STRING).def(INSPECTOR_TYPE.BOOT),
+    (new NodeProperty("enabled"))
+        .schema({ type:"boolean" })
+        .type(DbDataType.BOOLEAN).def(true),
 ]).dataSource("PROJECT_DB");
 
 TagCategory.TYPE.dataSource("PROJECT_DB");
@@ -1060,9 +1189,7 @@ Brand.TYPE.updateProperties([
 
 
 AssuranceReport.TYPE.updateProperties([
-    (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY)
-        .schema({ type: "string", format: "uuid" })
-        .descr("Unique identifier of the assurance report"), // path relative to scope root
+     // path relative to scope root
 
     // Removed  properties :
     // (new NodeProperty("line")).type(DbDataType.NUMERIC).def(null),

@@ -1,3 +1,24 @@
+/*
+ *
+ *     Reversense platform / dexcalibur-ts :  Reversense is an automated reverse engineering and analysis platform
+ *     focused on security, privacy, quality, accessibility and safety assessment of software, including mobile app and firmware.
+ *     Copyright (C) 2026  Reversense SAS
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
 import {DelegateRequest, DelegateResponse, DelegateWebApi, HTTP_VERB} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
@@ -1605,7 +1626,19 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
         }
     },{
         lazyProject: true,
-        nodeAffinity: DexcaliburEngineMode.MASTER
+        nodeAffinity: DexcaliburEngineMode.MASTER,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-list-bom-purpose',
+                uri: '/bom/purpose',
+                summary: `To list all BOM purpose available in the audit manager. This list is useful to provide choices or suggested purpose in a report. BOM can be aggrgated by BOM purpose, or thsi purposes can be used to etablish allowed list of value in a policy.`,
+                parameters: [],
+                responses: [{
+                    description: "The data of the  Assurance Report (an assurance_report object) for the specified application unit following the AssuranceReport structure. It is a scan report",
+                    schema: { type:"array", entries: { type: "object"} }
+                }]
+            }
+        }
     }
 );
 
@@ -1640,7 +1673,34 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
         }
     },{
         lazyProject: true,
-        nodeAffinity: DexcaliburEngineMode.MASTER
+        nodeAffinity: DexcaliburEngineMode.MASTER,
+        mcp: {
+            [HTTP_VERB.GET]: {
+                name:'audit-get-report',
+                uri: '/report/{reportUUID}/{applicationUUID}',
+                summary: `Retrieve a report by its reportUUID and applicationUUID. The report is serialized as json. `,
+                parameters: [{
+                    name: 'reportUUID',
+                    required: true,
+                    description: AssuranceReport.TYPE.getPrimaryKey()._dscr,
+                    schema: AssuranceReport.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'applicationUUID',
+                    required: true,
+                    description: ApplicationUnit.TYPE.getPrimaryKey()._dscr+". That is the UUID of the application unit containing the project associated to the report. For each input binaries of an application a new project is created, so a project represent only one version of the application. A report is about a project.",
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'preview',
+                    required: true,
+                    description: "A numeric, 0 or 1, flag to ask a preview or not.",
+                    schema: { type:'number', default:0 }
+                }],
+                responses: [{
+                    description: "The data of the  Assurance Report (an assurance_report object) for the specified application unit following the AssuranceReport structure. It is a scan report",
+                    schemaDoc: AssuranceReport.TYPE.toJSONSchemaDoc()
+                }]
+            }
+        }
     }
 );
 
@@ -1694,7 +1754,51 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
         }
     },{
         lazyProject: true,
-        nodeAffinity: DexcaliburEngineMode.MASTER
+        nodeAffinity: DexcaliburEngineMode.MASTER,
+        mcp: {
+            [HTTP_VERB.POST]: {
+                name:'audit-export-report',
+                uri: '/report/{reportUUID}/{applicationUUID}/export/{outputFormat}',
+                summary: `Export a report by its reportUUID and applicationUUID. The output format is mandatory and support only "json" `,
+                parameters: [{
+                    name: 'reportUUID',
+                    required: true,
+                    description: AssuranceReport.TYPE.getPrimaryKey()._dscr,
+                    schema: AssuranceReport.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'applicationUUID',
+                    required: true,
+                    description: ApplicationUnit.TYPE.getPrimaryKey()._dscr+". That is the UUID of the application unit containing the project associated to the report. For each input binaries of an application a new project is created, so a project represent only one version of the application. A report is about a project.",
+                    schema: ApplicationUnit.TYPE.getPrimaryKey().toJSONSchemaPart()
+                },{
+                    name: 'outputFormat',
+                    required: true,
+                    description: "The output format of the export. Only JSON is supported",
+                    schema: { type: 'string', enum: ["json "] },
+                },{
+                    name: 'opts',
+                    required: true,
+                    description: "The export options, passe in HTTP request body as JSON",
+                    schema: {
+                        type: 'object',
+                        properties: {
+                            appendApp: { type: 'boolean' },
+                            appendDevice: { type: 'boolean' },
+                            appendPlatform: { type: 'boolean' },
+                            clean: { type: 'boolean' },
+                            embedKpis: { type: 'boolean' },
+                            groupSampleByNode: { type: 'boolean' },
+                            sampling: { type: 'boolean' },
+                            samplingSize: { type: 'number', minimum: 0, maximum: 100 }
+                        }
+                    }
+                }],
+                responses: [{
+                    description: "The data of the  Assurance Report (an assurance_report object) for the specified application unit. It is a scan report",
+                    schemaDoc: AssuranceReport.TYPE.toJSONSchemaDoc()
+                }]
+            }
+        }
     }
 );
 
