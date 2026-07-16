@@ -32,7 +32,7 @@ import DDVM_ClassLoader from "./DDVM_ClassLoader.js";
 import ModelClass from "../ModelClass.js";
 import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
 import * as Log from "../Logger.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

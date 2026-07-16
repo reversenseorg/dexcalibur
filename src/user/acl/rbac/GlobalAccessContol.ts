@@ -24,7 +24,7 @@ import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import {UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
 import {AccessZone} from "../Zones.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {OrganizationUnitUUID} from "../../../organization/OrganizationUnit.js";
 import {ApplicationUnitUUID} from "../../../organization/ApplicationUnit.js";
 

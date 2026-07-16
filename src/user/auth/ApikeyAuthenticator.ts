@@ -23,7 +23,7 @@ import {UserAccount} from "../UserAccount.js";
 import {AuthCode, AuthenticationException, Authenticator} from "./AuthTypes.js";
 import {AuthenticationService} from "./AuthenticationService.js";
 import * as Log from "../../Logger.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {OrganizationUnit, OrganizationUnitUUID} from "../../organization/OrganizationUnit.js";
 import AccessControl from "../acl/AccessControl.js";
 import {OrganizationAccessControl} from "../acl/rbac/OrganizationAccessContol.js";

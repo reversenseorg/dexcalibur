@@ -41,12 +41,12 @@ import {
     StrategyTrigger
 } from "./PrivilegedExecutionStrategy.js";
 import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import AndroidDeviceProfile from "./android/profiles/AndroidDeviceProfile.js";
 import {NosyProfile} from "./device/profile/NosyProfile.js";
 import {IProfile} from "./device/profile/IProfile.js";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {SerializeOptions} from "@reversense/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {ProjectInput, ProjectInputPurpose, ProjectInputType} from "./analyzer/ProjectInput.js";
 import {Architecture} from "./Architecture.js";

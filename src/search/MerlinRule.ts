@@ -22,10 +22,10 @@
 import {MerlinSearchAPI} from "./MerlinSearchAPI.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {MerlinError, MerlinSearchRequest, Operation, OperationType, TaintOperationArgs} from "./MerlinSearchRequest.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {FinderResult} from "./FinderResult.js";
 import {BusSubscriber} from "../Bus.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType} from "@reversense/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";

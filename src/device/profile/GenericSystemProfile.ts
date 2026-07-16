@@ -20,13 +20,13 @@
  */
 
 import {Architecture} from "../../Architecture.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {ABI, InstructionSet} from "../../binary/ABI.js";
 import {Profile} from "./Profile.js";
 import {Nullable} from "../../core/IStringIndex.js";
 import {KernelInfo} from "../../platform/kernels/common/Kernel.js";
 import {KernelInfoFactory} from "../../platform/kernels/common/KernelFactory.js";
-import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {SerializeOptions} from "@reversense/dexcalibur-orm";
 
 /**
  *

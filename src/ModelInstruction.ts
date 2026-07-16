@@ -23,9 +23,9 @@ import {CONST} from "./CoreConst.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelMethod from "./ModelMethod.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
-import {NodeType, NodeUtils, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, NodeUtils, SerializeOptions} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {CodeLabel, ModelRegisterReference} from "./ModelReference.js";

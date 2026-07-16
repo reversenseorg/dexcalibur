@@ -7,7 +7,7 @@ import DexcaliburProject from "../src/DexcaliburProject.js";
 import DexcaliburEngine from "../src/DexcaliburEngine.js";
 import {TestHelper} from "../src/TestHelper.js";
 import * as Log from '../dist/src/Logger.js';
-import {TestLogger} from "@dexcalibur/dexcalibur-orm";
+import {TestLogger} from "@reversense/dexcalibur-orm";
 
 
 let Logger:any;

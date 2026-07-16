@@ -21,11 +21,11 @@
 
 import {AuditManager} from "./AuditManager.js";
 import {UserAccount} from "../user/UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {TokenPurpose} from "../core/secrets/Token.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import AssuranceReport from "./common/AssuranceReport.js";
 import {EmailSender} from "../core/email/EmailSender.js";

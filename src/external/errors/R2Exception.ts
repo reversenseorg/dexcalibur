@@ -19,7 +19,7 @@
  *
  */
 
-import {MonitoredError} from "@dexcalibur/dexcalibur-orm";
+import {MonitoredError} from "@reversense/dexcalibur-orm";
 import {ErrorCode} from "../../errors/MonitoredError.js";
 
 

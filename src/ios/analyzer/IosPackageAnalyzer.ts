@@ -49,9 +49,9 @@ import {PlistHelper} from "../../formats/helpers/PlistHelper.js";
 import ModelResource from "../../ModelResource.js";
 import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js";
 import {ImageFormatHelper} from "../../platform/ImageFormat.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {Cgbi} from "../../parser/CgbiParser.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {EFileFormat} from "../../formats/common/EFileFormat.js";
 import {PlistDocument} from "../PlistDocument.js";
 

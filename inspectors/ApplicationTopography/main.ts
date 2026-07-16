@@ -36,7 +36,7 @@ import AndroidActivity from "../../src/android/AndroidActivity.js";
 import {Finder} from "../../src/search/Finder.js";
 import {FinderResult} from "../../src/search/FinderResult.js";
 import ModelFile from "../../src/ModelFile.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 
 const ANDROID_INTENT_TAG_MAPPING: Record<string, string[]> =  Object.fromEntries([

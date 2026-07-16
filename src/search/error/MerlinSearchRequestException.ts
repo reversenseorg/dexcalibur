@@ -21,8 +21,8 @@
 
 import {ErrorCode, MonitoredError} from "../../errors/MonitoredError.js";
 import {AnalyzerErrCode} from "../../errors/AnalyzerException.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeType} from "@reversense/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 
 export class MerlinSearchRequestException extends MonitoredError {

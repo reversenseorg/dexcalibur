@@ -19,7 +19,7 @@
  *
  */
 
-import {INode, JSONSchemaValidator, NodeProperty, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {INode, JSONSchemaValidator, NodeProperty, SerializeOptions} from "@reversense/dexcalibur-orm";
 import {Nullable} from "./IStringIndex.js";
 
 const validator = new JSONSchemaValidator();

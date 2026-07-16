@@ -188,7 +188,7 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
         "dxc.fullscan.post": {
             lang: "ts",
             source: `
-                //import "@dexcalibur/"
+                //import "@reversense/"
                 //<js>
                 (async ()=>{
                     const ctx = pEvent.getContext();

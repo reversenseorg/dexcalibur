@@ -35,7 +35,7 @@ import {NativeAnalyzerCommands} from "../analyzer/NativeAnalyzerCommands.js";
 import Util from "../Utils.js";
 import {AbiManager} from "../binary/ABI.js";
 import {NativeHelperCmd} from "../analyzer/INativeHelper.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

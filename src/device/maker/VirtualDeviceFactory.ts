@@ -25,7 +25,7 @@ import {DeviceTemplate} from "../template/DeviceTemplate.js";
 import {Device, DeviceUUID} from "../../Device.js";
 import {AndroidVirtualDeviceFactory} from "./AndroidVirtualDeviceFactory.js";
 import AccessControl from "../../user/acl/AccessControl.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {VirtualDeviceFactoryException} from "../error/VirtualDeviceFactoryException.js";
 import {Observable, Subject} from "rxjs";
 import {VdevEvent} from "./VdevEvent.js";

@@ -28,7 +28,7 @@ import Role, {RoleUUID} from "../user/acl/common/Role.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 export class AccessControlException extends MonitoredError {
 

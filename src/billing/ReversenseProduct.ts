@@ -28,9 +28,9 @@ import {
     NodePropertyState,
     NodeType,
     ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {ProductRelease} from "./ProductRelease.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import AiHelper from "../core/ai/AiHelper.js";

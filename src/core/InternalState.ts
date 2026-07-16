@@ -26,9 +26,9 @@ import {
     DbDataType,
     DbKeyType,
     INode, SerializeOptions
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {EngineDatabase} from "../database/EngineDatabase.js";
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 

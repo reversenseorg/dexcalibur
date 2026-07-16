@@ -30,9 +30,9 @@ import {HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.js";
 import ModelMethod from "../ModelMethod.js";
 import {ModelFunction} from "../ModelFunction.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
-import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, TagUUID} from "@reversense/dexcalibur-orm";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 import {HookManager} from "./HookManager.js";
 import * as Log from "../Logger.js";
 import {CryptoUtils} from "../CryptoUtils.js";

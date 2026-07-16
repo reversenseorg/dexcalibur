@@ -22,13 +22,13 @@
 import {IStringIndex, Nullable} from "../core/IStringIndex.js";
 import {TreeNode} from "../common/TreeNode.js";
 import {DataLocation, DataLocationType} from "../DataLocation.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import ModelResource from "../ModelResource.js";
 import ModelField from "../ModelField.js";
 import ModelStringValue from "../ModelStringValue.js";
 import ModelFile from "../ModelFile.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {Tag, TagUUID} from "@reversense/dexcalibur-orm";
 
 /**
  * Map resource name to offset in entries list

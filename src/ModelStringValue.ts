@@ -21,7 +21,7 @@
 
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {
     NodeType,
     DataSourceHelper,
@@ -30,7 +30,7 @@ import {
     DbKeyType,
     INode,
     NodeUtils, NodePropertyState
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {createHash} from "crypto";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";

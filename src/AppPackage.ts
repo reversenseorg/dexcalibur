@@ -21,7 +21,7 @@
 
 import {CoreDebug} from "./core/CoreDebug.js";
 import AiHelper from "./core/ai/AiHelper.js";
-import {IJSONSchema} from "@dexcalibur/dexcalibur-orm";
+import {IJSONSchema} from "@reversense/dexcalibur-orm";
 
 
 export interface IJsonSchemaReady {

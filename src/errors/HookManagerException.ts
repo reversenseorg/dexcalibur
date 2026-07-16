@@ -21,7 +21,7 @@
 
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {ScriptCompilerOutput} from "../hook/HookWorkspace.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 export enum HookErrCode {
     GENERIC=100,

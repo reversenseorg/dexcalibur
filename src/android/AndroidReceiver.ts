@@ -23,7 +23,7 @@ import {IntentFilter} from "./IntentFilter.js";
 import * as Log from '../Logger.js';
 import AndroidComponent from "./AndroidComponent.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {
     NodeType,
     DataSourceHelper,
@@ -31,7 +31,7 @@ import {
     DbDataType,
     DbKeyType,
     NodePropertyState
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import ModelClass from "../ModelClass.js";
 import AndroidProvider from "./AndroidProvider.js";
 

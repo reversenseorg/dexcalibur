@@ -26,12 +26,12 @@ import {UserAccount} from "../user/UserAccount.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {MarketplaceException} from "./MarketplaceException.js";
 import Util from "../Utils.js";
 import {BusinessPlanType} from "../billing/BusinessPlan.js";
 import {SemVerComparison, SemVerHelper} from "../util/semver/SemverHelper.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 
 
 /**

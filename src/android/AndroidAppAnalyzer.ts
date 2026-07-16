@@ -40,7 +40,7 @@ import * as _path_ from "path";
 import ModelMethod from "../ModelMethod.js";
 import ModelClass from "../ModelClass.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "./analyzer/AndroidCodeAnalyzer.js";
 import BusEvent, {BusEventOptions} from "../BusEvent.js";
 import {BusSubscriber} from "../Bus.js";
@@ -52,7 +52,7 @@ import ModelResource from "../ModelResource.js";
 import {AnalyzerException} from "../errors/AnalyzerException.js";
 import {AppIcon} from "../AppIcon.js";
 import ModelFile from "../ModelFile.js";
-import {INode, NodeUtils, Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeUtils, Tag, TagUUID} from "@reversense/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
 import DataScope from "../DataScope.js";
 import {INodeRef} from "../INode.js";

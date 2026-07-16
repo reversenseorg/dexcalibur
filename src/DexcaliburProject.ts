@@ -71,7 +71,7 @@ import {IAppAnalyzer} from "./analyzer/IAppAnalyzer.js";
 import {TagManager} from "./tags/TagManager.js";
 import {DexcaliburProjectException} from "./errors/DexcaliburProjectException.js";
 import {Architecture} from "./Architecture.js";
-import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, OperatingSystem} from "@reversense/dxc-core-api";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {ProjectState} from "./ProjectState.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
@@ -95,7 +95,7 @@ import {
     Tag,
     TagUUID,
     ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";

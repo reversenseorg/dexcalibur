@@ -21,7 +21,7 @@
 
 import ModelFile from "./ModelFile.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 export enum LocationType {
     FILE,

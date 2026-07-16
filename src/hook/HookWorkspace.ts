@@ -28,9 +28,9 @@ import ProjectWorkspace from "../ProjectWorkspace.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {spawnSync} from "child_process";
 import * as VM from "vm";
-import * as FridaCompile from "@dexcalibur/dexcalibur-frida-compile";
-import * as TS_OriginalFridaCompile from "@dexcalibur/dxc-frida-compile";
-import ts from "@dexcalibur/dxc-frida-compile/ext/typescript.js";
+import * as FridaCompile from "@reversense/dexcalibur-frida-compile";
+import * as TS_OriginalFridaCompile from "@reversense/dxc-frida-compile";
+import ts from "@reversense/dxc-frida-compile/ext/typescript.js";
 import {performance} from "perf_hooks";
 import * as Frida from "frida";
 
@@ -39,7 +39,7 @@ import {Nullable} from "../core/IStringIndex.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import {getNodeSystem} from "./ext/System.js";
 import chalk from "chalk";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

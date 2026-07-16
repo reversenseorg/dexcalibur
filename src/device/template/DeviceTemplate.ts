@@ -19,7 +19,7 @@
  *
  */
 
-import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable, OperatingSystem} from "@reversense/dxc-core-api";
 import {Architecture} from "../../Architecture.js";
 import {
     DbDataType,
@@ -29,12 +29,12 @@ import {
     NodeProperty,
     NodePropertyState,
     NodeType, TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {RuntimeEvent} from "../../hook/RuntimeEvent.js";
 import {AccessAttribute, AccessAttributeMap} from "../../user/acl/AccessAttribute.js";
 import {Auditable} from "../../Auditable.js";
 import {DeviceAccessControl} from "../../user/acl/rbac/DeviceAccessControl.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {CryptoUtils} from "../../CryptoUtils.js";
 
 

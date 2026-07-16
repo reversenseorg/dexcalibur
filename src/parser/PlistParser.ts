@@ -21,14 +21,14 @@
 
 import {XMLParser} from "fast-xml-parser";
 import {PlistDocument} from "../ios/PlistDocument.js";
-import {Struct} from "@dexcalibur/dxc-struct";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Struct} from "@reversense/dxc-struct";
+import {Nullable} from "@reversense/dxc-core-api";
 import {BufferEncoding} from "typescript";
 import {IMagicParser, IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {Buffer} from "buffer";
 import ModelResource from "../ModelResource.js";
-import {Tag, NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {Tag, NodeUtils} from "@reversense/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
 import {INodeRef} from "../INode.js";
 import {MagicSignature} from "../formats/common.js";

@@ -27,7 +27,7 @@ import {CoreDebug} from "../../core/CoreDebug.js";
 import {Nullable} from "../../core/IStringIndex.js";
 import {Match} from "./AssuranceReport.js";
 import {MatchOccurence} from "./Match.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 export interface ControlMap {
     [key:string] :Control|ControlAssessment;

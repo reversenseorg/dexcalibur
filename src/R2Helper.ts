@@ -33,7 +33,7 @@ import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
 import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager.js";
 import {DataType} from "./types/DataType.js";
 import {TagManager} from "./tags/TagManager.js";
-import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {Nullable, OperatingSystem} from "@reversense/dxc-core-api";
 import {INativeHelper, NativeHelperCmd} from "./analyzer/INativeHelper.js";
 import {Architecture} from "./Architecture.js";
 import {ModelRegister} from "./elixir/ModelRegister.js";

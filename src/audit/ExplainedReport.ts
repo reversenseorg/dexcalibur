@@ -27,7 +27,7 @@ import {Device} from "../Device.js";
 import Asset from "./common/Asset.js";
 import Threat from "./common/Threat.js";
 import {Metadata} from "./common/Metadata.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import ControlAssessment from "./common/ControlAssessment.js";
 import Control from "./common/Control.js";
 import {IControl} from "./common/IControl.js";

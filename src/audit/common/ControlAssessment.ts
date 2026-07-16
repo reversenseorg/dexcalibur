@@ -29,10 +29,10 @@ import {CoreDebug} from "../../core/CoreDebug.js";
 import {Metadata} from "./Metadata.js";
 import {MerlinPrimitive, MerlinType} from "../../search/MerlinPrimitive.js";
 import {MerlinUnserializer} from "../../search/MerlinUnserializer.js";
-import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils} from "@reversense/dexcalibur-orm";
 import AssuranceReport from "./AssuranceReport.js";
 import {MatchOccurence} from "./Match.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 /**
  * TODO : move into separate package shared with signature-server

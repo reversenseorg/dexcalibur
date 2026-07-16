@@ -29,11 +29,11 @@ import AccessControl from "../acl/AccessControl.js";
 import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol.js";
 import {IDexcaliburEngine} from "../../IDexcaliburEngine.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";
+from "@reversense/dxc-core-api";
 import {IPersistent} from "../../persist/orm/IPersistent.js";
 import {SessionData} from "./SessionData.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
-import {INode, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, SerializeOptions} from "@reversense/dexcalibur-orm";
 import {Nullable} from "../../core/IStringIndex.js";
 import * as Log from "../../Logger.js";
 import {Cookie, CookieOptions} from "./Cookie.js";

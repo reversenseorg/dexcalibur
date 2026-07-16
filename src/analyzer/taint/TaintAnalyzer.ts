@@ -22,11 +22,11 @@
 import DexcaliburProject from "../../DexcaliburProject.js";
 import ModelInstruction from "../../ModelInstruction.js";
 import {TaintCase} from "./TaintCase.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
+import {INode} from "@reversense/dexcalibur-orm";
 import ModelField from "../../ModelField.js";
 import {CONST} from "../../CoreConst.js";
 import {FinderResult} from "../../search/FinderResult.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import ModelCall from "../../ModelCall.js";
 
 

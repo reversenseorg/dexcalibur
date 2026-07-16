@@ -20,9 +20,9 @@
  */
 
 import {DeviceTemplate, DeviceTemplateUUID} from "./DeviceTemplate.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {Architecture} from "../../Architecture.js";
-import {TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {TagUUID} from "@reversense/dexcalibur-orm";
 import Util from "../../Utils.js";
 import {SemVerHelper} from "../../util/semver/SemverHelper.js";
 

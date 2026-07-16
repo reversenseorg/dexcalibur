@@ -21,10 +21,10 @@
  */
 
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 import {UserSession} from "./UserSession.js";
 import {IPersistent} from "../../persist/orm/IPersistent.js";
-import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "@reversense/dexcalibur-orm";
 import {SessionStore} from "./SessionStore.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 

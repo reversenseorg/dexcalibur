@@ -33,14 +33,14 @@ import {Nullable} from "../core/IStringIndex.js";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
 import {Policy, PolicyZone} from "../audit/Policy.js";
 import {PolicyRuleFactory} from "../audit/PolicyRuleFactory.js";
 import {PolicyActionFactory} from "../audit/PolicyActionFactory.js";
 import Util from "../Utils.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {IControl} from "../audit/common/IControl.js";
 import {NodePurpose} from "../core/EngineNode.js";
 

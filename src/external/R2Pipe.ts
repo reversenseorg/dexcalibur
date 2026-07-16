@@ -26,7 +26,7 @@ import * as _proc_ from "child_process";
 
 import {ChildProcess} from "child_process";
 
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {R2Exception} from "./errors/R2Exception.js";
 import {Subject, Subscription} from "rxjs";
 import * as Log from "../Logger.js";

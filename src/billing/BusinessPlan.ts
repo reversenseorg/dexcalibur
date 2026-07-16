@@ -23,7 +23,7 @@ import {OrganizationUnit, OrganizationUnitUUID} from "../organization/Organizati
 import { Purchase} from "./Purchase.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import { ReversenseProductUUID} from "./ReversenseProduct.js";
 import {INodeRef} from "../INode.js";

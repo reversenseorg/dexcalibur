@@ -28,7 +28,7 @@ import {GlobalAccessControl} from "./rbac/GlobalAccessContol.js";
 import {OrganizationAccessControl} from "./rbac/OrganizationAccessContol.js";
 import Role, {RoleUUID} from "./common/Role.js";
 import {UserAccount, UserAccountUUID} from "../UserAccount.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {AccesErrCode, Access, AccessException, AccessProperty, AccessUID} from "./Access.js";
 import {AccessFactory} from "./AccessFactory.js";
 import {AccessControlException} from "../../errors/AccessControlException.js";

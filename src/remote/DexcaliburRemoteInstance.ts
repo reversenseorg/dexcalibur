@@ -37,7 +37,7 @@ import {IpcMode} from "../DexcaliburServerChildProcess.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {EngineDatabase} from "../database/EngineDatabase.js";
 import {ProjectInput} from "../analyzer/ProjectInput.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {EngineNodeUUID} from "../core/EngineNode.js";
 
 export class DexcaliburRemoteInstance implements IDexcaliburEngine {

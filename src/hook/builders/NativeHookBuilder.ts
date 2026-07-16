@@ -30,7 +30,7 @@ import {NativeHookBuilderException} from "../../errors/NativeHookBuilderExceptio
 import ModelFile from "../../ModelFile.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {TargetLanguage} from "../common.js";
 import {HookOptions} from "../HookManager.js";
 

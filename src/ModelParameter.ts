@@ -19,8 +19,8 @@
  *
  */
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
-import {INode, SerializeOptions, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
+import {INode, SerializeOptions, TagUUID} from "@reversense/dexcalibur-orm";
 import ModelClass from "./ModelClass.js";
 import {ModelBasicType} from "./ModelType.js";
 import {UserAccountUUID} from "./user/UserAccount.js";

@@ -21,8 +21,8 @@
  *
  */
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
-import {NodeType, NodeProperty, DbDataType, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
+import {NodeType, NodeProperty, DbDataType, ValidationRule} from "@reversense/dexcalibur-orm";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {Metadata, MetadataType} from "./audit/common/Metadata.js";
 import ModelMetadata from "./ModelMetadata.js";

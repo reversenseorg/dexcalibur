@@ -25,8 +25,8 @@
  */
 
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {INode, SerializeOptions, Tag} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
+import {INode, SerializeOptions, Tag} from "@reversense/dexcalibur-orm";
 
 export enum STUB_TYPE {
     METHOD= 0x1,

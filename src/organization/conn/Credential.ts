@@ -27,8 +27,8 @@ import {
     NodeType,
     SerializeOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 
 
 export enum CredentialFormat {

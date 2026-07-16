@@ -52,12 +52,12 @@ import {
     DbDataType,
     DbKeyType,
     DbSerialize, DataSource, NodeType, TagCategory, Tag, AppContextType, NodeUtils
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import InMemoryConnector from "../connectors/inmemory/adapter.js";
-import {MongodbAdapter, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbAdapter, MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {CustomCode} from "./actionnable/CustomCode.js";
 
-import {Metadata, NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {Metadata, NodeInternalType, OperatingSystem} from "@reversense/dxc-core-api";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
 import AssuranceReport, {Match} from "./audit/common/AssuranceReport.js";
 import AssuranceModel, { ControlNode } from "./audit/common/AssuranceModel.js";

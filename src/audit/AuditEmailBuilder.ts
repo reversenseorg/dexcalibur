@@ -23,7 +23,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {OrganizationEmailBuilder} from "../organization/OrganizationEmailBuilder.js";
 import {UserAccount} from "../user/UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {Email} from "../core/email/Email.js";
 import * as _fs_ from "fs";

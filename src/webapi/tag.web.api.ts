@@ -24,7 +24,7 @@ import WebServer from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {Tag, TagCategory} from "@reversense/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
 import UT from "../Utils.js";
 

@@ -19,7 +19,7 @@
  *
  */
 
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {GenericSystemProfile} from "./profile/GenericSystemProfile.js";
 import GenericTrustProfile from "./profile/GenericTrustProfile.js";
 import GenericBuildProfile from "./profile/GenericBuildProfile.js";
@@ -29,7 +29,7 @@ import {DeviceProfilingOptions, IBridge} from "../Bridge.js";
 import GenericMountsProfile from "./profile/GenericMountsProfile.js";
 import * as Log from "../Logger.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {SerializeOptions} from "@reversense/dexcalibur-orm";
 import {GenericMemoryProfile} from "./profile/GenericMemoryProfile.js";
 import GenericInputProfile from "./profile/GenericInputProfile.js";
 

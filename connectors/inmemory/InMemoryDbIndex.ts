@@ -9,7 +9,7 @@ import {
     SearchOperationArgs, TimeOperationArgs, WindowingOperationArgs
 } from "../../src/search/MerlinSearchRequest.js";
 import {InMemoryMerlinBackend} from "./InMemoryMerlinBackend.js";
-import {IDatabase, IDbIndex} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDbIndex} from "@reversense/dexcalibur-orm";
 import {InMemoryException} from "./error/InMemoryException.js";
 
 /**

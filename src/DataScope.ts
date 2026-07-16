@@ -20,9 +20,9 @@
  *
  */
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
-import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, SerializeOptions} from "@reversense/dexcalibur-orm";
 import * as _path_ from 'path';
 import {IZoned, SecurityZone} from "./security/SecurityZone.js";
 

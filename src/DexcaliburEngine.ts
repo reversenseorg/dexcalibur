@@ -68,7 +68,7 @@ import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {EngineNodeManager, MasterNodeOptions, NodeState} from "./core/EngineNodeManager.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
-import {AppContextType, IAppContext, ValidationCapable, ValidationRule} from "@dexcalibur/dexcalibur-orm"
+import {AppContextType, IAppContext, ValidationCapable, ValidationRule} from "@reversense/dexcalibur-orm"
 import {EngineDatabase} from "./database/EngineDatabase.js";
 import {EngineNodeException} from "./errors/EngineNodeException.js";
 import TargetApp from "./common/TargetApp.js";

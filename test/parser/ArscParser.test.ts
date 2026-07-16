@@ -11,7 +11,7 @@ describe('ArscParser', function() {
 
         // @ts-ignore
         let path = _path_.join(Util.__dirname(import.meta.url),"../files/res1.arsc");
-        //let path = "/Users/georges.michel/dxcws/52369832-d593-41a9-af7c-49616222719d/app/Payload/BP.app/AccountsSummary_AccountsSummary.bundle/ChooseAccountCell.nib";
+        //let path = process.env.HOME+"/dxcws/52369832-d593-41a9-af7c-49616222719d/app/Payload/BP.app/AccountsSummary_AccountsSummary.bundle/ChooseAccountCell.nib";
         binBuf = _fs_.readFileSync(path);
 
 

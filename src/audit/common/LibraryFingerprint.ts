@@ -20,7 +20,7 @@
  */
 
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 
 
 export enum FingerprintSource {

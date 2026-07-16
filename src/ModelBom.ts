@@ -20,8 +20,8 @@
  *
  */
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
+import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, SerializeOptions} from "@reversense/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {CycloneDX} from "./bom/CycloneDX.js";
 import {CryptoUtils} from "./CryptoUtils.js";

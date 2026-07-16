@@ -1,4 +1,4 @@
-import {MonitoredError} from "@dexcalibur/dexcalibur-orm";
+import {MonitoredError} from "@reversense/dexcalibur-orm";
 
 export class InMemoryException extends MonitoredError {
 

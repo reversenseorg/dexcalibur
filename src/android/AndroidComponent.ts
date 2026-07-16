@@ -27,10 +27,10 @@ import {AndroidIntentable} from "./Intent.js";
 import ModelClass from "../ModelClass.js";
 import {AndroidAttributeSet} from "./AndroidAttribute.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {INode, SerializeOptions, Tag} from "@dexcalibur/dexcalibur-orm";
+import {INode, SerializeOptions, Tag} from "@reversense/dexcalibur-orm";
 import {AndroidApplicationException} from "../errors/android/AndroidApplicationException.js";
 import {AndroidComponentException} from "../errors/android/AndroidComponentException.js";
 

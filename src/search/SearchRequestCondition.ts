@@ -23,7 +23,7 @@
 import {IStringIndex} from "../core/IStringIndex.js";
 import Util from "../Utils.js";
 import {SearchOptions} from "./MerlinSearchAPI.js";
-import {INode, Tag} from "@dexcalibur/dexcalibur-orm";
+import {INode, Tag} from "@reversense/dexcalibur-orm";
 
 export const REGEXP_DELIMITER_TOKEN = '/';
 

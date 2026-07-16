@@ -19,7 +19,7 @@
  *
  */
 
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {MemoryBlock} from "../memory/MemoryBlock.js";
 import {ModelRegister} from "../elixir/ModelRegister.js";
 import {MemoryAddress} from "../memory/MemoryAddress.js";

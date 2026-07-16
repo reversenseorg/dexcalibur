@@ -24,7 +24,7 @@ import {IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import ModelResource from "../ModelResource.js";
 import ModelStringValue from "../ModelStringValue.js";
-import {TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {TagUUID} from "@reversense/dexcalibur-orm";
 
 export namespace Properties {
     export interface Entry {

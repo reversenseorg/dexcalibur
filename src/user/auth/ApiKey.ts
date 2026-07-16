@@ -24,7 +24,7 @@ import {SecurityZone} from "../../security/SecurityZone.js";
 import {randomUUID} from "crypto";
 import {UserAccount} from "../UserAccount.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 
 export type ApiKeyUUID = string;
 

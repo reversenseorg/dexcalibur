@@ -22,9 +22,9 @@
 import ModelMethod from "./ModelMethod.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {NodeType, NodeProperty, DbDataType, DbKeyType, DbSerialize} from "@dexcalibur/dexcalibur-orm";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
+import {NodeType, NodeProperty, DbDataType, DbKeyType, DbSerialize} from "@reversense/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import DataScope from "./DataScope.js";
 import ModelFileSection from "./ModelFileSection.js";
 import {CoreDebug} from "./core/CoreDebug.js";

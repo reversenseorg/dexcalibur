@@ -22,7 +22,7 @@
 import {AssuranceScanner, AssuranceScannerUID} from "../common/AssuranceScanner.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../../DexcaliburProject.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {PrivacyScanner} from "./PrivacyScanner.js";
 import {SecurityScanner} from "./SecurityScanner.js";
 

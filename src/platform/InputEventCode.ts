@@ -22,7 +22,7 @@
 import InputEventCodeProperties from "./InputEventCodeProperties.js";
 import EncodedToken, {EncodedTokenOptions} from "./EncodedToken.js";
 import {Endianness} from "../core/Endianness.js";
-import {TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {TagUUID} from "@reversense/dexcalibur-orm";
 
 // Source: https://cs.android.com/android/platform/superproject/main/+/main:bionic/libc/kernel/uapi/linux/input-event-codes.h
 // Source: https://lxr.linux.no/#linux+v3.9.5/include/uapi/linux/input.h

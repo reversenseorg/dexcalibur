@@ -21,7 +21,7 @@
  */
 
 import * as _NodeForge_ from "node-forge";
-import {IStringIndex, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {IStringIndex, SerializeOptions} from "@reversense/dexcalibur-orm";
 import {Nullable} from "../../core/IStringIndex.js";
 
 

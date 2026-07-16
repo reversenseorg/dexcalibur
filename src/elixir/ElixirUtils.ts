@@ -19,7 +19,7 @@
  *
  */
 
-import {NodeProperty, NodeTransform, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeProperty, NodeTransform, NodeType} from "@reversense/dexcalibur-orm";
 import {SecurityZone} from "../security/SecurityZone.js";
 
 

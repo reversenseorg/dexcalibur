@@ -24,9 +24,9 @@ import ModelCatchStatement from "./ModelCatchStatement.js";
 import { ModelSwitchCase, ModelPackedSwitchStatement, ModelSparseSwitchStatement } from "./ModelSwitch.js";
 import ModelInstruction from "./ModelInstruction.js";
 import ModelMethod from "./ModelMethod.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {Savable} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 

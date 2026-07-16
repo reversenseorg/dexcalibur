@@ -19,13 +19,13 @@
  *
  */
 
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {SessionException} from "./SessionException.js";
 import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
 import {CycloneDX} from "../../bom/CycloneDX.js";
 import HashAlg = CycloneDX.HashAlg;
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 
 
 

@@ -8,7 +8,7 @@ import DexcaliburProject from "../../src/DexcaliburProject.js";
 import InMemoryDbCollection from "./InMemoryDbCollection.js";
 import InMemoryDbIndex from "./InMemoryDbIndex.js";
 import InMemoryConnector from "./adapter.js";
-import {IDatabase, IDbCollection, IDbIndex, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDbCollection, IDbIndex, NodeType} from "@reversense/dexcalibur-orm";
 
 /**
  * Represent a "in memory" database

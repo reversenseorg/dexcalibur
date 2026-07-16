@@ -21,7 +21,7 @@
 
 import {SearchToken} from "./SearchToken.js";
 import {IStringIndex, Nullable} from "../core/IStringIndex.js";
-import {Tag} from "@dexcalibur/dexcalibur-orm";
+import {Tag} from "@reversense/dexcalibur-orm";
 
 export class SearchPattern
 {

@@ -27,11 +27,11 @@ import * as _busboy_ from 'busboy';
 import Util from './Utils.js';
 import * as Express from 'express';
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import {UploadedResource, UploadedResourceUUID} from "./common/UploadedResource.js";
 import {UserAccount} from "./user/UserAccount.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {GridFSBucketReadStream} from "mongodb";
 import {CryptoUtils} from "./CryptoUtils.js";
 

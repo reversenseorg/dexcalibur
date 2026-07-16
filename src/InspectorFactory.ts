@@ -45,13 +45,13 @@ import {
     TagCategoryOptions,
     TagOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {IStringIndex, Nullable} from "./core/IStringIndex.js";
 import BusEvent from "./BusEvent.js";
 import {CustomCode, CustomCodeOptions} from "./actionnable/CustomCode.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {SemVerHelper} from "./util/semver/SemverHelper.js";
 import {BusEventHandler} from "./Bus.js";
 import {HookRevision} from "./HookRevision.js";

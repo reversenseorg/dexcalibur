@@ -3,7 +3,7 @@
 
 import DexcaliburProject from "../../src/DexcaliburProject.js";
 import { InMemoryDb, Index, Collection } from "./InMemoryDb.js";
-import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "@reversense/dexcalibur-orm";
 
 const TYPE  = 'inmemory';
 const NAME = 'InMemory';

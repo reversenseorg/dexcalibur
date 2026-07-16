@@ -20,7 +20,7 @@
  *
  */
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 
 export interface INodeRef {

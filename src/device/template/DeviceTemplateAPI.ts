@@ -22,13 +22,13 @@
 import {DeviceTemplate, DeviceTemplateUUID} from "./DeviceTemplate.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {UserAccount} from "../../user/UserAccount.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {DeviceManagerException} from "../../errors/DeviceManagerException.js";
 import AccessControl from "../../user/acl/AccessControl.js";
 import {DeviceAccessControl} from "../../user/acl/rbac/DeviceAccessControl.js";
 import {randomUUID} from "crypto";
-import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection} from "@reversense/dexcalibur-orm";
 import {OrganizationManagerException} from "../../errors/OrganizationManagerException.js";
 import {ProjectAccessControl} from "../../user/acl/rbac/ProjectAccessContol.js";
 import {OrganizationUnit} from "../../organization/OrganizationUnit.js";

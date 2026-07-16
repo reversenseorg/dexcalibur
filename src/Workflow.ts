@@ -26,7 +26,7 @@ import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
 import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
 import {Auditable} from "./Auditable.js";
 import {SecurityZone} from "./security/SecurityZone.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {
     DbDataType,
     DbKeyType,
@@ -35,7 +35,7 @@ import {
     NodeType,
     SerializeOptions, TagUUID,
     ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {Subject, Subscription} from "rxjs";
 import DexcaliburProject, {DexcaliburProjectUUID} from "./DexcaliburProject.js";
 import {EngineNodeUUID} from "./core/EngineNode.js";

@@ -22,9 +22,9 @@
 import ModelClass from "./ModelClass.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils} from "@reversense/dexcalibur-orm";
 
 export enum EBoundary {
     ExceptionClass = 0,

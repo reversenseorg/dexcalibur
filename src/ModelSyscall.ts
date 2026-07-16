@@ -21,8 +21,8 @@
  *
  */
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {Architecture} from "./Architecture.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {
@@ -33,7 +33,7 @@ import {
     DbKeyType,
     INode,
     DbSerialize
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
 
 /**

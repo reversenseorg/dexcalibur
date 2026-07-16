@@ -44,7 +44,7 @@ import * as _fs from "fs";
 import * as _os from "os";
 import * as _path from "path";
 //import * as ts from "typescript";
-import ts  from "@dexcalibur/dxc-frida-compile/ext/typescript.js";
+import ts  from "@reversense/dxc-frida-compile/ext/typescript.js";
 
 enum FileWatcherEventKind {
     Created,

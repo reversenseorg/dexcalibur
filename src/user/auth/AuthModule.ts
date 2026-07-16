@@ -19,10 +19,10 @@
  *
  */
 
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {SecurityZone} from "../../security/SecurityZone.js";
 import {AuthenticationSettings} from "./AuthenticationSettings.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 
 export enum AuthModuleType {
     LOCAL_PASSWD='local_pwd',

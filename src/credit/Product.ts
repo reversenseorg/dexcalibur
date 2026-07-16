@@ -20,7 +20,7 @@
  */
 
 import {CoreDebug} from "../core/CoreDebug.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 export interface ProductOptions {
     __pCode:string;

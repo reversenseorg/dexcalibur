@@ -21,9 +21,9 @@
 
 import ModelMetadata from "./ModelMetadata.js";
 import ModelClass from './ModelClass.js';
-import {NodeType, DataSourceHelper, SerializeOptions, INode, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, DataSourceHelper, SerializeOptions, INode, TagUUID} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";

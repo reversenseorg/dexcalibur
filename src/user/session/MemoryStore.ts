@@ -19,8 +19,8 @@
  *
  */
 
-import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
-import {MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {IDbCollection} from "@reversense/dexcalibur-orm";
+import {MongodbDb, MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {User} from "../../User.js";
 import {UserSession} from "./UserSession.js";
 import * as Log from "../../Logger.js";
@@ -30,7 +30,7 @@ import expressSession from "express-session";
 import {Cookie, CookieOptions} from "./Cookie.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
 import {SessionEnvelope} from "./SessionEnvelope.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {SessionMiddleware} from "./SessionMiddleware.js";
 
 

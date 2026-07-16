@@ -24,7 +24,7 @@ import AndroidBuildProfile from "./AndroidBuildProfile.js";
 import AndroidNetworkProfile from "./AndroidNetworkProfile.js";
 import AndroidSystemProfile from "./AndroidSystemProfile.js";
 import {AndroidTrustProfile} from "./AndroidTrustProfile.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import DeviceProfile from "../../device/DeviceProfile.js";
 import AndroidUsbProfile from "./AndroidUsbProfile.js";
 import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";

@@ -19,9 +19,9 @@
  *
  */
 
-import {MonitoredError} from "@dexcalibur/dexcalibur-orm";
-import {Nullable} from "@dexcalibur/dxc-core-api";
-import {Struct} from "@dexcalibur/dxc-struct";
+import {MonitoredError} from "@reversense/dexcalibur-orm";
+import {Nullable} from "@reversense/dxc-core-api";
+import {Struct} from "@reversense/dxc-struct";
 import * as _zlib_ from 'zlib';
 import {CrcUtils} from "../util/CrcUtils.js";
 import {IMagicParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";

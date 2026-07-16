@@ -28,9 +28,9 @@ import NativeFunctionHook from "./NativeFunctionHook.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import HookSession from "../HookSession.js";
 import {RuntimeEvent} from "./RuntimeEvent.js";
-import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDbCollection} from "@reversense/dexcalibur-orm";
 import {ProjectDatabase} from "../database/ProjectDatabase.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 
 /**
  * Represents every datat set related to hook management

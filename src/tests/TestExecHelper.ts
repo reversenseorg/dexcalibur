@@ -25,7 +25,7 @@ import * as _path_ from "path";
 import * as _child_process_ from "child_process";
 import * as _util_ from "util";
 import {IStringIndex} from "../core/IStringIndex.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 
 
 let _exec_ = _util_.promisify(_child_process_.exec);

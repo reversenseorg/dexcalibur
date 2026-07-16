@@ -24,7 +24,7 @@ import HookMessageV2 from "./HookMessageV2.js";
 
 import BusEvent, {BusEventOptions} from "../BusEvent.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";
+from "@reversense/dxc-core-api";
 import {
     NodeType,
     NodeProperty,
@@ -33,7 +33,7 @@ import {
     NodePropertyState,
     Tag,
     NodeUtils
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 
 export enum RuntimeEventType {

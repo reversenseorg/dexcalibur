@@ -45,9 +45,9 @@ import DataScope, {DataScopeMap} from "./DataScope.js";
 import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit.js";
 import {SearchEngineException} from "./errors/SearchEngineException.js";
 import {DataAnalyzer} from "./DataAnalyzer.js";
-import {IDbCollection, IDbIndex, INode} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection, IDbIndex, INode} from "@reversense/dexcalibur-orm";
 import {INodeRef} from "./INode.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 
 
 

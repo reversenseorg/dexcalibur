@@ -32,7 +32,7 @@ import AndroidService from "../android/AndroidService.js";
 import {ModelPermission} from "../android/ModelPermission.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelFile from "../ModelFile.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 
 
 export interface ISearchAPISelector<T>

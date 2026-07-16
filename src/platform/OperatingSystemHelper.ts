@@ -19,7 +19,7 @@
  *
  */
 
-import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {Nullable, OperatingSystem} from "@reversense/dxc-core-api";
 
 let gInstance:Nullable<OperatingSystemHelper> = null;
 

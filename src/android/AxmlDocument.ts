@@ -19,8 +19,8 @@
  *
  */
 
-import {Nullable} from "@dexcalibur/dxc-core-api";
-import {Struct} from "@dexcalibur/dxc-struct";
+import {Nullable} from "@reversense/dxc-core-api";
+import {Struct} from "@reversense/dxc-struct";
 import {AndroidBinary} from "./AndroidBinaryResourceUtils.js";
 import {AxmlStructures} from "./AxmlStructures.js";
 import XmlNode = AxmlStructures.XmlNode;

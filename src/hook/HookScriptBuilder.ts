@@ -31,9 +31,9 @@ import {AbstractHook} from "./AbstractHook.js";
 import * as Log from "../Logger.js";
 import Util from "../Utils.js";
 import {ScriptBuilderOptions, ScriptWriterOptions, TargetLanguage} from "./common.js";
-import {IStringIndex} from "@dexcalibur/dexcalibur-orm";
+import {IStringIndex} from "@reversense/dexcalibur-orm";
 import HookPrologue from "../HookPrologue.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

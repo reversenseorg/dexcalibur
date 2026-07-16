@@ -20,7 +20,7 @@
  *
  */
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {DataType} from "./types/DataType.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {ModelRegister} from "./elixir/ModelRegister.js";

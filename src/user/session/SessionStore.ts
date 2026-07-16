@@ -19,8 +19,8 @@
  *
  */
 
-import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
-import {MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {IDbCollection} from "@reversense/dexcalibur-orm";
+import {MongodbDb, MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {User} from "../../User.js";
 import {UserSession} from "./UserSession.js";
 import * as Log from "../../Logger.js";

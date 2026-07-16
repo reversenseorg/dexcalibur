@@ -19,7 +19,7 @@
  *
  */
 
-import {DbDataType, IJSONSchema} from "@dexcalibur/dexcalibur-orm";
+import {DbDataType, IJSONSchema} from "@reversense/dexcalibur-orm";
 
 /**
  * Represent a memory address

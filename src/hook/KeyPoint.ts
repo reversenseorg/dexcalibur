@@ -20,9 +20,9 @@
  */
 
 import {IPersistent} from "../persist/orm/IPersistent.js";
-import {NodeType, INode, INodeMap, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, INode, INodeMap, TagUUID} from "@reversense/dexcalibur-orm";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 import Util from "../Utils.js";
 import {KeyPointException} from "../errors/KeyPointException.js";
 import * as Log from "../Logger.js";

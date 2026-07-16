@@ -19,7 +19,7 @@
  *
  */
 
-import {NodeInternalTypeName} from "@dexcalibur/dxc-core-api";;
+import {NodeInternalTypeName} from "@reversense/dxc-core-api";;
 
 /**
  * Helper to debug core feature

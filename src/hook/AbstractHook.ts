@@ -23,7 +23,7 @@ import KeyPoint from "./KeyPoint.js";
 import {HookManager, HookOptions} from "./HookManager.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import Util from "../Utils.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import HookStrategy from "./HookStrategy.js";
 import DexcaliburProject from "../DexcaliburProject.js";

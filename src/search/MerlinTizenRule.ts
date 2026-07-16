@@ -19,7 +19,7 @@
  *
  */
 
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {MerlinRule, MerlinRuleOptions } from "./MerlinRule.js";
 
 export class MerlinTizenRule extends MerlinRule {

@@ -20,7 +20,7 @@
  */
 
 import {Device, DeviceOptions} from "../Device.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 
 export interface AndroidDeviceOptions extends DeviceOptions{
 

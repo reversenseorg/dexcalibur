@@ -20,9 +20,9 @@
  *
  */
 
-import {NodeType, DbDataType, DbKeyType, DbSerialize} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, DbDataType, DbKeyType, DbSerialize} from "@reversense/dexcalibur-orm";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue.js";
 
 

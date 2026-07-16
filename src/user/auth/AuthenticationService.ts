@@ -29,7 +29,7 @@ import {UA_UUID_SEP, UserAccount, UserAccountType, UserAccountUUID} from "../Use
 import {AuthenticationSettings} from "./AuthenticationSettings.js";
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDatabaseAdapter, IDbCollection} from "@reversense/dexcalibur-orm";
 
 import passport from "passport";
 import * as _openidconnect_ from 'passport-openidconnect';
@@ -54,7 +54,7 @@ import {AuthStrategyUUID, LoadedAuthModule} from "./modules/LoadedAuthModule.js"
 import {SessionMiddleware, UnsetMode} from "../session/SessionMiddleware.js";
 import {SameSite} from "../session/Cookie.js";
 import {UserSession} from "../session/UserSession.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {UserServiceException} from "../../errors/UserServiceException.js";
 import {Token, TokenPurpose} from "../../core/secrets/Token.js";
 import {PasswordlessAuthenticator} from "./PasswordlessAuthenticator.js";

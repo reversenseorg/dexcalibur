@@ -36,9 +36,9 @@ import * as Log from '../Logger.js';
 import {PlatformManagerException} from "../errors/PlatformManagerException.js";
 import {Device} from "../Device.js";
 import AndroidApplication from "../android/AndroidApplication.js";
-import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {Nullable, OperatingSystem} from "@reversense/dxc-core-api";
 import {Architecture} from "../Architecture.js";
-import {ValidationCapable, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationCapable, ValidationRule} from "@reversense/dexcalibur-orm";
 
 const got = Got.default;
 

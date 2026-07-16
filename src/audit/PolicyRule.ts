@@ -19,7 +19,7 @@
  *
  */
 
-import {DbDataType, NodeProperty} from "@dexcalibur/dexcalibur-orm";
+import {DbDataType, NodeProperty} from "@reversense/dexcalibur-orm";
 
 
 export enum ActionType {

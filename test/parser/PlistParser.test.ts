@@ -3,7 +3,7 @@ import * as _path_ from "path";
 import {assert, expect} from 'chai';
 import {Plist} from "../../src/parser/PlistParser.js";
 import Util from "../../src/Utils.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import ModelResource from "../../src/ModelResource";
 import {PlistDocument} from "../../src/ios/PlistDocument";
 import * as console from "node:console";

@@ -19,8 +19,8 @@
  *
  */
 
-import {Struct} from "@dexcalibur/dxc-struct";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Struct} from "@reversense/dxc-struct";
+import {Nullable} from "@reversense/dxc-core-api";
 import {OPCODE} from "../Opcode.js";
 import { FormatOpcode } from "./DalvikOpcode.js";
 

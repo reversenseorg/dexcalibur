@@ -20,8 +20,8 @@
  */
 
 import * as _fs_ from "fs";
-import {INode} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {INode} from "@reversense/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {CryptoUtils} from "../CryptoUtils.js";
 import Util from "../Utils.js";
 import {MarketplaceException} from "../marketplace/MarketplaceException.js";

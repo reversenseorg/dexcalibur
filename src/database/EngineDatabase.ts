@@ -21,7 +21,7 @@
 
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {DatabaseSettingType, Settings} from "../Settings.js";
-import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
 import {AuthMechanism, GridFSBucket, MongoCredentialsOptions} from "mongodb";
 import * as Log from "../Logger.js";
@@ -30,8 +30,8 @@ import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {Device} from "../Device.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
-import {IDbCollection, INode, NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, NodeInternalTypeName} from "@dexcalibur/dxc-core-api";
+import {IDbCollection, INode, NodeType} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, NodeInternalTypeName} from "@reversense/dxc-core-api";
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {BusSubscriber} from "../Bus.js";
 import BusEvent from "../BusEvent.js";

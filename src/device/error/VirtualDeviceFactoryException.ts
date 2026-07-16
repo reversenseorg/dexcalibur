@@ -25,7 +25,7 @@ import {UserAccountUUID} from "../../user/UserAccount.js";
 import {DeviceUUID} from "../../Device.js";
 import {Architecture} from "../../Architecture.js";
 import {EmulatorOptionID} from "../maker/EmulatorOption.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {DeviceTemplateUUID} from "../template/DeviceTemplate.js";
 
 /**

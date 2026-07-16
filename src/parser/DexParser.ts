@@ -24,8 +24,8 @@
 import {IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import ModelResource from "../ModelResource.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
-import {TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {Nullable} from "@reversense/dxc-core-api";
+import {TagUUID} from "@reversense/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
 import {DexStructures} from "../android/DexStructures.js";
 import ModelField from "../ModelField.js";

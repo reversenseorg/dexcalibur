@@ -35,7 +35,7 @@ import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import BusEvent from "../../src/BusEvent.js";
 import AndroidAppAnalyzer from "../../src/android/AndroidAppAnalyzer.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {AndroidManifest, AndroidSharedUser} from "../../src/android/AndroidManifest.js";
 import {AndroidPermissionGroup, AndroidProtectionLevel, ModelPermission} from "../../src/android/ModelPermission.js";
 

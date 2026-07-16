@@ -26,7 +26,7 @@
  */
 import {IProfile} from "./IProfile.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
-import {IStringIndex, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {IStringIndex, SerializeOptions} from "@reversense/dexcalibur-orm";
 import {Nullable} from "../../core/IStringIndex.js";
 import DeviceProfile from "../DeviceProfile.js";
 

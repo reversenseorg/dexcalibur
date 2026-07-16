@@ -21,7 +21,7 @@
  */
 
 import DexcaliburProject from "../../DexcaliburProject.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType} from "@reversense/dexcalibur-orm";
 
 export enum DbDataType {
     // strings

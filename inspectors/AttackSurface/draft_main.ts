@@ -31,7 +31,7 @@ import ModelStringValue from "../../src/ModelStringValue.js";
 import HookMessageV2 from "../../src/hook/HookMessageV2.js";
 import {ContextLocation, ModelInstance} from "../../src/ModelInstance.js";
 import {Nullable} from "../../src/core/IStringIndex.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
+import {INode} from "@reversense/dexcalibur-orm";
 import {RuntimeEvent} from "../../src/hook/RuntimeEvent.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

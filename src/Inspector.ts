@@ -38,10 +38,10 @@ import BusEvent from "./BusEvent.js";
 import * as Log from './Logger.js';
 import {BusEventHandler, BusSubscriber} from "./Bus.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {IDatabase, IDatabaseAdapter, NodeType, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDatabaseAdapter, NodeType, TagCategory} from "@reversense/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import InspectorFactory, {HookSetOptions} from "./InspectorFactory.js";
 import {InspectorFactoryException} from "./errors/InspectorFactoryException.js";

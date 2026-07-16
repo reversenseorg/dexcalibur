@@ -20,7 +20,7 @@
  */
 
 import {SearchRequestCondition, ValidateOptions} from "./SearchRequestCondition.js";
-import {IJSONSchema, NodeProperty} from "@dexcalibur/dexcalibur-orm";
+import {IJSONSchema, NodeProperty} from "@reversense/dexcalibur-orm";
 import {MerlinSearchRequest} from "./MerlinSearchRequest.js";
 
 

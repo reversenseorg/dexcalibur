@@ -28,12 +28,12 @@ import {
     NodeType,
     SerializeOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {Auditable} from "../Auditable.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {GlobalAccessControl} from "../user/acl/rbac/GlobalAccessContol.js";
 import {AccessAttribute, AccessAttributeMap} from "../user/acl/AccessAttribute.js";
 import {CryptoUtils, HashAlgo} from "../CryptoUtils.js";

@@ -25,10 +25,10 @@
  *
  */
 import * as Log from '../Logger.js';
-import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, TagUUID} from "@reversense/dexcalibur-orm";
 import FuzzManager from "./FuzzManager.js";
 import {UserAccountUUID} from "../user/UserAccount.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 import {
     FuzzingResolverResult,

@@ -23,12 +23,12 @@ import KeyPoint, {KeyPointOptions, VirtualID} from "./KeyPoint.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
 import {KeyPointGenerator, KeyPointOptionsOptions} from "./KeyPointGenerator.js";
-import {IDatabase, IDbCollection, INode} from "@dexcalibur/dexcalibur-orm";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {IDatabase, IDbCollection, INode} from "@reversense/dexcalibur-orm";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {Nullable} from "../core/IStringIndex.js";
 import {NodeInternalType, NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 
 export enum KeyPointCondition {
     ONLOAD="load",

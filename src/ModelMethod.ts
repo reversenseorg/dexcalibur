@@ -29,9 +29,9 @@ import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelCall from "./ModelCall.js";
 import {ModelLocation} from "./ModelLocation.js";
-import {INode, NodeType, SerializeOptions, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, SerializeOptions, TagUUID} from "@reversense/dexcalibur-orm";
 
-import {Metadata, NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {Metadata, NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import JavaMethodHook from "./hook/JavaMethodHook.js";
 

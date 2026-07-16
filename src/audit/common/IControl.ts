@@ -21,7 +21,7 @@
 
 import {Metadata} from "./Metadata.js";
 import {MatchOccurence} from "./Match.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 export interface IControl {
     __:NodeInternalType;

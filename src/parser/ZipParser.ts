@@ -19,10 +19,10 @@
  *
  */
 
-import {Struct} from "@dexcalibur/dxc-struct";
-import {MonitoredError, Tag} from "@dexcalibur/dexcalibur-orm";
+import {Struct} from "@reversense/dxc-struct";
+import {MonitoredError, Tag} from "@reversense/dexcalibur-orm";
 import {BinProcessState, BinTpl, BinTplHelper} from "./BinTplHelper.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {NibArchive, NibArchiveOptions} from "../ios/NibArchive.js";
 import { IMagicParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import DexcaliburProject from "../DexcaliburProject.js";

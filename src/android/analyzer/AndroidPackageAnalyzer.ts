@@ -50,7 +50,7 @@ import DexcaliburEngine from "../../DexcaliburEngine.js";
 import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
 import {ApplicationIcon} from "../../organization/ApplicationUnit.js";
 import {ImageFormatHelper} from "../../platform/ImageFormat.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {EFileFormat} from "../../formats/common/EFileFormat.js";
 import {FileFormatDetector} from "../../formats/identifier/FileFormatDetector.js";
 import {Zip} from "../../parser/ZipParser.js";
@@ -336,11 +336,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         // if enabled, merge package from splittedInput, this._base_apk  and  this._extra
         // into a single folder.
-<<<<<<< HEAD
         if(this._cfg.msa_auto===true){
-=======
-        if (this._cfg.mustMergeSplittedAPK()) {
->>>>>>> 310894a5 (Update ProjectInput, add predecessor, and save it in DB.)
             // override options with options corresponding to freshly crafted package
             await this.mergeSplitApks(
                 baseInput,

@@ -3,7 +3,7 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 import AndroidAppAnalyzer from "../src/android/AndroidAppAnalyzer.js";
 import {AndroidResource, AndroidResourceType} from "../src/android/AndroidResource.js";
-import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils} from "@reversense/dexcalibur-orm";
 
 
 

@@ -22,7 +22,7 @@
 import {Email} from "../core/email/Email.js";
 import {OrganizationManager} from "./OrganizationManager.js";
 import {UserAccount} from "../user/UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {OrganizationUnit} from "./OrganizationUnit.js";
 import * as _fs_ from "fs";
 import * as _path_ from "path";

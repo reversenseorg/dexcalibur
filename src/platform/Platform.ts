@@ -25,7 +25,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import DexcaliburDVM from "../android/DexcaliburDVM.js";
 import {DexcaliburVM} from "../DexcaliburVM.js";
 import * as Log from "../Logger.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {Architecture} from "../Architecture.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";
@@ -41,8 +41,8 @@ import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer
 import {PackageAnalyzerOptions} from "../AnalyzerConfiguration.js";
 import {KernelInfo} from "./kernels/common/Kernel.js";
 import {KernelInfoFactory} from "./kernels/common/KernelFactory.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
+import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "@reversense/dexcalibur-orm";
 import {Resource} from "../common/Resource.js";
 import {IosPackageAnalyzer} from "../ios/analyzer/IosPackageAnalyzer.js";
 

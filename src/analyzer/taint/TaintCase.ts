@@ -26,7 +26,7 @@ import ModelMethod from "../../ModelMethod.js";
 import ModelField from "../../ModelField.js";
 import ModelStringValue from "../../ModelStringValue.js";
 import ModelClass from "../../ModelClass.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {UserAccountUUID} from "../../user/UserAccount.js";
 
 export interface TaintStep {

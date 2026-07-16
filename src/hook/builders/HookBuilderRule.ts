@@ -21,8 +21,8 @@
 
 import {IPersistent} from "../../persist/orm/IPersistent.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+from "@reversense/dxc-core-api";;
+import {NodeType} from "@reversense/dexcalibur-orm";
 
 
 

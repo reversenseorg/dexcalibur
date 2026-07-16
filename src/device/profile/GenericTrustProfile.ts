@@ -22,7 +22,7 @@
 import {Profile} from "./Profile.js";
 import Certificate from "../../formats/common/Certificate.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
-import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {SerializeOptions} from "@reversense/dexcalibur-orm";
 
 export default abstract class GenericTrustProfile extends Profile {
 

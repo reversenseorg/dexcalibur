@@ -22,7 +22,7 @@
 import {DelegateAccessControl} from "../DelegateAccessControl.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import {UserAccountUUID} from "../../UserAccount.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 export class DeviceAccessControl extends DelegateAccessControl {
 

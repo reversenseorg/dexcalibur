@@ -4,7 +4,7 @@
 
 import {Merlin} from "../src/search/Merlin.js";
 import {MongoDbMerlinBackend} from "../src/database/MongoDbMerlinBackend.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import ModelStringValue from "../src/ModelStringValue.js";
 import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
 import {TagManager} from "../src/tags/TagManager.js";

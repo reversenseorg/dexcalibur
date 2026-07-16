@@ -64,11 +64,11 @@ export class GenericPackageAnalyzer implements IPackageAnalyzer {
         throw new Error("Method not implemented.");
     }
 
-    getMinPlatform() {
-        throw new Error("Method not implemented.");
+    getMinPlatform():Promise<string> {
+        return Promise.reject("Method not implemented.");
     }
-    getTargetPlatform() {
-        throw new Error("Method not implemented.");
+    getTargetPlatform():Promise<string> {
+        return Promise.reject("Method not implemented.");
     }
 
     async attachInput(pInput:ProjectInput):Promise<any> {

@@ -30,7 +30,7 @@ import {DeviceManagerException} from "../errors/DeviceManagerException.js";
 import {BridgeInstallOptions, DeviceProfilingOptions, IBridge} from "../Bridge.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {MonitoredError} from "../errors/MonitoredError.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {DeviceFactory} from "../device/DeviceFactory.js";
 import PlatformManager from "../platform/PlatformManager.js";
 import AdbWrapperFactory from "../AdbWrapperFactory.js";

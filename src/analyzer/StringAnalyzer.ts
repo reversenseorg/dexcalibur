@@ -21,7 +21,7 @@
 
 import DexcaliburProject from "../DexcaliburProject.js";
 import ModelStringValue from "../ModelStringValue.js";
-import {Tag} from "@dexcalibur/dexcalibur-orm";
+import {Tag} from "@reversense/dexcalibur-orm";
 import * as console from "node:console";
 
 

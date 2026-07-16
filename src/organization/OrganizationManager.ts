@@ -25,11 +25,11 @@ import * as _fs_ from "fs";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {UserAccount, UserAccountOptions, UserAccountType, UserAccountUUID} from "../user/UserAccount.js";
 import AccessControl from "../user/acl/AccessControl.js";
-import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable, OperatingSystem} from "@reversense/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
-import {IDbCollection, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection, ValidationRule} from "@reversense/dexcalibur-orm";
 import {randomUUID} from "crypto";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {SsoOptions} from "../user/auth/AuthenticationService.js";
 
 import * as Log from '../Logger.js';

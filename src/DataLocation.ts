@@ -23,10 +23,10 @@
 import {AbstractHook} from "./hook/AbstractHook.js";
 import HookTemplateFragment from "./hook/HookTemplateFragment.js";
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {INode, INodeRef} from "./INode.js";
 import ModelFile from "./ModelFile.js";
-import {IJsonSerializable, NodeUtils, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {IJsonSerializable, NodeUtils, SerializeOptions} from "@reversense/dexcalibur-orm";
 
 export enum DataLocationType {
     FILE,

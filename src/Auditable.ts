@@ -20,7 +20,7 @@
  */
 
 import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
-import {ValidationCapable, ValidationRulesMap} from "@dexcalibur/dexcalibur-orm";
+import {ValidationCapable, ValidationRulesMap} from "@reversense/dexcalibur-orm";
 
 
 /**

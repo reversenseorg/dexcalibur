@@ -25,7 +25,7 @@ import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import {UserAccount, UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
 import {AccessZone} from "../Zones.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 /**
  * Represent access control configuration for audits

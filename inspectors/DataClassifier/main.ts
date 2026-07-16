@@ -26,7 +26,7 @@ import DexcaliburProject from "../../src/DexcaliburProject.js";
 import BusEvent from "../../src/BusEvent.js";
 import ModelStringValue from "../../src/ModelStringValue.js";
 import ModelDataBlock from "../../src/ModelDataBlock.js";
-import {Tag} from "@dexcalibur/dexcalibur-orm";
+import {Tag} from "@reversense/dexcalibur-orm";
 import {StringAnalyzer} from "../../src/analyzer/StringAnalyzer.js";
 
 const URI_REGEXP = new RegExp("([^:/]*)://([^/]*)");

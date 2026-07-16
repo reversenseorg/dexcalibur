@@ -7,7 +7,7 @@ import {
 } from "../../src/search/MerlinSearchRequest.js";
 import InMemoryDbCollection from "./InMemoryDbCollection.js";
 import InMemoryDbIndex from "./InMemoryDbIndex.js";
-import {IDatabase, IDbIndex, NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDbIndex, NodeUtils} from "@reversense/dexcalibur-orm";
 import Util from "../../src/Utils.js";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
 import {SearchRequestCondition} from "../../src/search/SearchRequestCondition.js";

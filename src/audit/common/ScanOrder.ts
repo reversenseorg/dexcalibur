@@ -30,9 +30,9 @@ import {
     NodeType,
     SerializeOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 import {randomUUID} from "crypto";
 import {ModelVariable} from "../../ModelVariable.js";
 import {ModelNativeRef} from "../../ModelNativeRef.js";

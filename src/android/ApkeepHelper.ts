@@ -29,7 +29,7 @@ import {UserAccount} from "../user/UserAccount.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import Util from "../Utils.js";
 import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import * as Log from "../Logger.js";
 import {DownloadedProjectInput, ProjectInputPurpose} from "../analyzer/ProjectInput.js";
 

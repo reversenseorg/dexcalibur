@@ -1,7 +1,6 @@
-import EncodedToken from "./EncodedToken.js";
 import {Endianness} from "../core/Endianness.js";
 import InputEventCode from "./InputEventCode.js";
-import InputEvent from "./InputEvent.js";
+import EncodedToken from "../platform/EncodedToken.js";
 
 //Source: https://docs.kernel.org/input/event-codes.html
 

@@ -27,7 +27,7 @@ import KeyPoint from "../hook/KeyPoint.js";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
-import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils} from "@reversense/dexcalibur-orm";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";;

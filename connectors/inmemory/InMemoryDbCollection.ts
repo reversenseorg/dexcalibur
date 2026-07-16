@@ -14,7 +14,7 @@ import {
 } from "../../src/search/MerlinSearchRequest.js";
 import {SearchRequestCondition} from "../../src/search/SearchRequestCondition.js";
 import {InMemoryMerlinBackend} from "./InMemoryMerlinBackend.js";
-import {IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection, IDbIndex} from "@reversense/dexcalibur-orm";
 import {InMemoryException} from "./error/InMemoryException.js";
 
 

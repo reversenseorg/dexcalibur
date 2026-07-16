@@ -19,7 +19,7 @@
  *
  */
 
-import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection} from "@reversense/dexcalibur-orm";
 
 
 export interface IAnalyzerUnit {

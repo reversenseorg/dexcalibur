@@ -31,12 +31,12 @@ import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./
 import {ModelLocation} from "./ModelLocation.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {
     NodeType,
     DataSourceHelper,
     INode, SerializeOptions
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {CoreDebug} from "./core/CoreDebug.js";
 import type = Mocha.utils.type;
 

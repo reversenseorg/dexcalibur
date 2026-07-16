@@ -19,7 +19,7 @@
  *
  */
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {UserAccountUUID} from "../../UserAccount.js";
 import {RoleUUID} from "./Role.js";
 import {
@@ -30,12 +30,12 @@ import {
     NodeType,
     SerializeOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {Auditable} from "../../../Auditable.js";
 import {GlobalAccessControl} from "../rbac/GlobalAccessContol.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import {SecurityZone} from "../../../security/SecurityZone.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {CryptoUtils} from "../../../CryptoUtils.js";
 
 export type UserGroupUUID = string;

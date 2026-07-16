@@ -22,7 +22,7 @@
 
 import {ABI, AbiManager, InstructionSet} from "../../binary/ABI.js";
 import {AbiException} from "../../errors/AbiException.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {Architecture} from "../../Architecture.js";
 import { GenericSystemProfile } from "../../device/profile/GenericSystemProfile.js";
 import {NosyProfile} from "../../device/profile/NosyProfile.js";
@@ -33,7 +33,7 @@ import {IomemLayoutParser} from "../../linux/parser/IomemLayoutParser.js";
 import {MemoryLayout} from "../../memory/MemoryLayout.js";
 import {Nullable} from "../../core/IStringIndex.js";
 import {GenericMemoryProfile} from "../../device/profile/GenericMemoryProfile.js";
-import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {SerializeOptions} from "@reversense/dexcalibur-orm";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

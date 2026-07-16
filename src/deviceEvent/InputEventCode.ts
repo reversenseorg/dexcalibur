@@ -1,6 +1,6 @@
-import InputEventCodeProperties from "./InputEventCodeProperties.js";
-import EncodedToken from "./EncodedToken.js";
 import {Endianness} from "../core/Endianness.js";
+import EncodedToken from "../platform/EncodedToken.js";
+import InputEventCodeProperties from "../platform/InputEventCodeProperties.js";
 
 // Source: https://cs.android.com/android/platform/superproject/main/+/main:bionic/libc/kernel/uapi/linux/input-event-codes.h
 // Source: https://lxr.linux.no/#linux+v3.9.5/include/uapi/linux/input.h

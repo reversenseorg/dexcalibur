@@ -51,7 +51,7 @@ import DataScope from "./DataScope.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {Workflow} from "./Workflow.js";
 
-import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, OperatingSystem} from "@reversense/dxc-core-api";
 import {AnalyzerState} from "./AnalyzerState.js";
 
 import {
@@ -64,7 +64,7 @@ import {
     TagCategory,
     TagUUID,
     ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {Smali} from "./parser/SmaliParser.js";
 import {IMagicParser, IParser, IParserFeature, IResults} from "./parser/IParser.js";

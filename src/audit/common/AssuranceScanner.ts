@@ -25,7 +25,7 @@ import {DashBoard} from "./DashBoard.js";
 import AssuranceReport from "./AssuranceReport.js";
 import CodeThreat, {CodeConstraintMap} from "./CodeThreat.js";
 import {NodeInternalType, NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 import DexcaliburProject from "../../DexcaliburProject.js";
 import ModelMethod from "../../ModelMethod.js";
 import CodeConstraint from "./CodeConstraint.js";

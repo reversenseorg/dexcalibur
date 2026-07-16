@@ -21,7 +21,7 @@
 
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {InternalStateUUID} from "../core/InternalState.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {SecurityZone} from "../security/SecurityZone.js";
 
 export class EngineDatabaseException extends MonitoredError {

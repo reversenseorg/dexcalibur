@@ -20,7 +20,7 @@
  */
 
 import {Nullable} from "../core/IStringIndex.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {JsonObject} from "../Utils.js";
 import {UploadedResourceUUID} from "../common/UploadedResource.js";

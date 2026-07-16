@@ -41,11 +41,11 @@ import {ModelClassReference, ModelFieldReference, ModelRegisterReference} from "
 import ModelInstruction from "../ModelInstruction.js";
 import {RX} from "../CoreParser.js";
 import {ElixirOpcodeDefinition, OPCODE} from "../Opcode.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import DalvikInstructionFormat from "../DalvikInstructionFormat.js";
 import {IParser, IParserFeature, IParserOptions, IResults} from "./IParser.js";
 import {Buffer} from "buffer";
-import {Tag} from "@dexcalibur/dexcalibur-orm";
+import {Tag} from "@reversense/dexcalibur-orm";
 import {ModelRegister} from "../elixir/ModelRegister.js";
 import {AndroidTypes} from "../android/AndroidTypes.js";
 import {DataType} from "../types/DataType.js";

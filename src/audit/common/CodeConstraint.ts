@@ -25,7 +25,7 @@
 
 
 import Constraint, {ConstraintOptions, ConstraintType} from "./Constraint.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType} from "@reversense/dxc-core-api";;
 import {CoreDebug} from "../../core/CoreDebug.js";
 
 

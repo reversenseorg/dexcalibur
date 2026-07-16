@@ -37,9 +37,9 @@ import AssuranceModel, {AssuranceModelUUID, CANONICALIZED_ROOT, ControlNode, Con
 import ControlAssessment from "../common/ControlAssessment.js";
 import {TestPlan, TestStep, TestType} from "../common/TestPlan.js";
 import Control from "../common/Control.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import ModelStringValue from "../../ModelStringValue.js";
-import {INode, NodeType, NodeUtils, Tag} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, NodeUtils, Tag} from "@reversense/dexcalibur-orm";
 import {Metadata, MetadataTopic, MetadataType} from "../common/Metadata.js";
 import {PolicyRule} from "../PolicyRule.js";
 import {ApplicationUnit} from "../../organization/ApplicationUnit.js";

@@ -20,7 +20,7 @@
  */
 
 import {ImageFormat} from "./ImageFormat.js";
-import {IJsonSerializable} from "@dexcalibur/dexcalibur-orm";
+import {IJsonSerializable} from "@reversense/dexcalibur-orm";
 
 export default class Screenshot implements IJsonSerializable{
 

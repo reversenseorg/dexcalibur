@@ -19,7 +19,7 @@
  *
  */
 
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {DataTypeVisitor} from "./exports.js";
 import {NativeBackend} from "./common.js";
 

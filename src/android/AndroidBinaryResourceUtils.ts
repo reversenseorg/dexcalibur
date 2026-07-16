@@ -19,7 +19,7 @@
  *
  */
 
-import {Struct} from "@dexcalibur/dxc-struct";
+import {Struct} from "@reversense/dxc-struct";
 
 export namespace AndroidBinary {
 

@@ -19,7 +19,7 @@
  *
  */
 
-import {MongodbDb} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDb} from "@reversense/dexcalibur-orm-mongodb";
 import {FileManager} from "./FileManager.js";
 
 

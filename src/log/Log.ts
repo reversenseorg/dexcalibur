@@ -27,10 +27,10 @@ import {
     NodeType,
     SerializeOptions, Tag,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 import {UserAccount} from "../user/UserAccount.js";
 import {randomUUID} from "crypto";
 

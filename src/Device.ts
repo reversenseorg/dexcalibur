@@ -33,7 +33,7 @@ import {BridgeInstallOptions, BridgeSuperFactory, DeviceProfilingOptions, IBridg
 import ModelSyscall from "./ModelSyscall.js";
 import AppPackage from "./AppPackage.js";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {Architecture} from "./Architecture.js";
 import DeviceProfileFactory from './device/DeviceProfileFactory.js';
@@ -47,16 +47,16 @@ import {
     NodeType,
     SerializeOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import DeviceManager from "./DeviceManager.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {DeviceTemplate, DeviceTemplateUUID} from "./device/template/DeviceTemplate.js";
 import {DeviceTemplateFactory} from "./device/template/DeviceTemplateFactory.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import ScreenshotSession from "./platform/ScreenshotSession.js";
 import ScreenshotAgent from "./platform/ScreenshotAgent.js";
 import {UserAccount} from "./user/UserAccount.js";

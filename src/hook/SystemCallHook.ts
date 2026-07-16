@@ -22,8 +22,8 @@
 
 import {AbstractHook} from "./AbstractHook.js";
 import {NodeInternalType, Nullable}
-    from "@dexcalibur/dxc-core-api";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+    from "@reversense/dxc-core-api";
+import {NodeType} from "@reversense/dexcalibur-orm";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {CoreDebug} from "../core/CoreDebug.js";

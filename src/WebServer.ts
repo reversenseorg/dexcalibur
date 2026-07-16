@@ -80,7 +80,7 @@ import {WEBHOOK_WEB_API} from "./webapi/webhook.web.api.js";
 import {DexcaliburEngineMode} from "./DexcaliburEngineMode.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {MARKETPLACE_WEB_API} from "./webapi/mkplace.web.api.js";
-import {ValidationCapable} from "@dexcalibur/dexcalibur-orm";
+import {ValidationCapable} from "@reversense/dexcalibur-orm";
 import {
     DEFAULT_HEADER_API_KEY,
     DEFAULT_HEADER_API_OID, DEFAULT_HEADER_API_SID,

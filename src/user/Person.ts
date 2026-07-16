@@ -20,7 +20,7 @@
  */
 
 import {UserAccount, UserAccountType} from "./UserAccount.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 
 export interface PersonOptions {
     _firstname?: string;

@@ -31,10 +31,10 @@ import {IStringIndex} from "../core/IStringIndex.js";
 import {EngineNode, NodePurpose} from "../core/EngineNode.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {EngineNodeManager, NodeState} from "../core/EngineNodeManager.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {ProjectManagerException} from "../errors/ProjectManagerException.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngineMode.js";
-import {IJSONSchema, IJSONSchemaDocument} from "@dexcalibur/dexcalibur-orm";
+import {IJSONSchema, IJSONSchemaDocument} from "@reversense/dexcalibur-orm";
 import {AiException} from "../errors/AiException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

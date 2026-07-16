@@ -27,9 +27,9 @@ import NodeCompare from "./NodeCompare.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import * as Log from "./Logger.js";
 import {ModelLocation} from "./ModelLocation.js";
-import {NodeType, DataSourceHelper, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, DataSourceHelper, SerializeOptions} from "@reversense/dexcalibur-orm";
 
-import {Metadata, NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {Metadata, NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 

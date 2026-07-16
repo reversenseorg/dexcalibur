@@ -27,8 +27,8 @@ import {
     NodeType,
     SerializeOptions,
     TagUUID, ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, Nullable, OperatingSystem} from "@reversense/dxc-core-api";
 import {Auditable} from "../Auditable.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import {OrganizationUnit, OrganizationUnitUUID} from "./OrganizationUnit.js";

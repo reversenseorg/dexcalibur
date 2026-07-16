@@ -34,7 +34,7 @@ import {ModelFunction} from "../ModelFunction.js";
 import ModelFile from "../ModelFile.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 import KeyPoint from "../hook/KeyPoint.js";
 import HookStrategy from "../hook/HookStrategy.js";
 import {RuntimeEvent, RuntimeEventType} from "../hook/RuntimeEvent.js";

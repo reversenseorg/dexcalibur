@@ -31,7 +31,7 @@ import {UserAccount} from "../../user/UserAccount.js";
 import {ApplicationUnit} from "../../organization/ApplicationUnit.js";
 import {Workflow} from "../../Workflow.js";
 import {ProjectManagerException} from "../../errors/ProjectManagerException.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import * as Log from "../../Logger.js";

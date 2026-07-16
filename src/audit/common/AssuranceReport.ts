@@ -33,7 +33,7 @@ import AssuranceModel, {
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 
-import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, OperatingSystem} from "@reversense/dxc-core-api";
 import {FinderResult} from "../../search/FinderResult.js";
 import {
     DbDataType, DbKeyType,
@@ -44,7 +44,7 @@ import {
     SerializeOptions,
     TagUUID,
     ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {Nullable} from "../../core/IStringIndex.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";

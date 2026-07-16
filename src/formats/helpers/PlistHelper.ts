@@ -23,7 +23,7 @@ import {DataFormatManagerException} from "../error/DataFormatManagerException.js
 import * as _fs_ from "fs";
 import {Plist} from "../../parser/PlistParser.js";
 import {PlistDocument} from "../../ios/PlistDocument.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import ModelResource from "../../ModelResource.js";
 import {DataLocation, DataLocationType} from "../../DataLocation.js";
 import ModelStringValue from "../../ModelStringValue.js";

@@ -16,7 +16,7 @@ describe('DexParser', function() {
 
 
         for(let i=1;i<max;i++){
-            path = _path_.join(`/Users/georges.michel/dxcws/24ef628e-8485-4307-9def-c45ffe6a84b0/tmp/apk/classes${i==1?'':i}.dex`);
+            path = _path_.join(`/Users/${USERNAME}/dxcws/24ef628e-8485-4307-9def-c45ffe6a84b0/tmp/apk/classes${i==1?'':i}.dex`);
             binBuf = _fs_.readFileSync(path);
 
 

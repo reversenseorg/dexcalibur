@@ -26,9 +26,9 @@ import AssuranceModel, {AssuranceModelPreview} from "./common/AssuranceModel.js"
 import {DeviceModel} from "../DeviceModel.js";
 import {Brand} from "../Brand.js";
 import * as Log from "../Logger.js";
-import {INode, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {INode, TagCategory} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {BomPurpose} from "../bom/BomPurpose.js";
 import {ReversenseProduct, ReversenseProductUUID} from "../billing/ReversenseProduct.js";
 const GOT = got.default;

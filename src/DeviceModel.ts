@@ -21,9 +21,9 @@
  *
  */
 
-import {NodeType, INode, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, INode, NodeProperty, DbDataType, DbKeyType} from "@reversense/dexcalibur-orm";
 import {IStringIndex} from "./core/IStringIndex.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 
 export class DeviceModel implements INode {

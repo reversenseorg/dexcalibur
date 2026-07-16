@@ -21,14 +21,14 @@
 
 import {ABI, AbiManager, InstructionSet} from "../../binary/ABI.js";
 import {AbiException} from "../../errors/AbiException.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {Architecture} from "../../Architecture.js";
 import {GenericSystemProfile} from "../../device/profile/GenericSystemProfile.js";
 import {NosyProfile} from "../../device/profile/NosyProfile.js";
 import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
 import * as Log from "../../Logger.js";
 import {IProfile} from "../../device/profile/IProfile.js";
-import {UnsafeValue} from "@dexcalibur/dexcalibur-orm";
+import {UnsafeValue} from "@reversense/dexcalibur-orm";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

@@ -26,8 +26,8 @@ import * as _path_ from "path";
 import {EOL} from "os";
 import ModelFileSection from "../ModelFileSection.js";
 import {ProjectDatabase} from "./ProjectDatabase.js";
-import {MongodbAdapter} from "@dexcalibur/dexcalibur-orm-mongodb";
-import {AppContextType} from "@dexcalibur/dexcalibur-orm";
+import {MongodbAdapter} from "@reversense/dexcalibur-orm-mongodb";
+import {AppContextType} from "@reversense/dexcalibur-orm";
 
 export interface SaveResult {
     success:boolean;

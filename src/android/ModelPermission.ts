@@ -28,9 +28,9 @@ import {
     Tag,
     DbSerialize,
     TagUUID, SerializeOptions
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, OperatingSystem} from "@reversense/dxc-core-api";
 import {Metadata, MetadataType} from "../audit/common/Metadata.js";
 import {Savable, STUB_TYPE} from "../ModelSavable.js";
 import {ModelLocation} from "../ModelLocation.js";

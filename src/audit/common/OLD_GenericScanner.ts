@@ -46,7 +46,7 @@ import {LicenceManager} from "../../credit/LicenceManager.js";
 import {ReversenseProduct} from "../../billing/ReversenseProduct.js";
 import {ProductRelease} from "../../billing/ProductRelease.js";
 import {PrivacyScanner} from "../scanner/PrivacyScanner.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

@@ -19,8 +19,8 @@
  *
  */
 
-import {NodeType, INode} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeType, INode} from "@reversense/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {DeviceModel} from "./DeviceModel.js";
 import {IStringIndex} from "./core/IStringIndex.js";
 

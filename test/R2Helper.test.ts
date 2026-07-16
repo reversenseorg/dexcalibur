@@ -140,7 +140,7 @@ describe('Radare2 Helper', function() {
             BIN_SCOPE = (new DataScope("bin")).setPpts(DataScopePpts.PATH, _path_.join(TEST_WS,TEST_APP,'apk'));
             BIN_FILE = new ModelFile({
                 //path: _path_.join(Util.__dirname(import.meta.url),'bin','lib_arm64_obf.so'),
-                path: "/Users/georges.michel/dxcws/4c2e9f22-582b-4cfe-8d1a-eb831c4aaa08/apk/lib/arm64-v8a/libisar.so",
+                path: process.env.HOME+"/dxcws/4c2e9f22-582b-4cfe-8d1a-eb831c4aaa08/apk/lib/arm64-v8a/libisar.so",
                 type: 'ELF',
                 name: 'lib_arm64_obf.so',
                 scope: BIN_SCOPE

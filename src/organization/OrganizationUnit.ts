@@ -28,8 +28,8 @@ import {
     NodeType,
     SerializeOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {Auditable} from "../Auditable.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import {AccessAttribute, AccessAttributeMap} from "../user/acl/AccessAttribute.js";
@@ -45,7 +45,7 @@ import {DeviceTemplate, DeviceTemplateUUID} from "../device/template/DeviceTempl
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {Secret, SecretProtectionType, SecretType, SecretUUID} from "../core/secrets/Secret.js";
 import {AesKeyLength, CryptoUtils} from "../CryptoUtils.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {BusinessPlan, BusinessPlanOptions} from "../billing/BusinessPlan.js";
 import {AccessControlException} from "../errors/AccessControlException.js";
 import Role from "../user/acl/common/Role.js";

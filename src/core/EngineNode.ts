@@ -41,7 +41,7 @@ import {ProjectOrder, ProjectOrderUUID} from "../project/ProjectOrder.js";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {InternalState} from "./InternalState.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {
     DbDataType,
     DbKeyType,
@@ -50,12 +50,12 @@ import {
     NodePropertyState,
     NodeType,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {EngineNodeClient} from "./EngineNodeClient.js";
 import {WebsocketClient} from "../WebsocketClient.js";
 import {K8ResourceType, K8sHelper} from "./k8s/K8sHelper.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 

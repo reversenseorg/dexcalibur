@@ -22,7 +22,7 @@
 import {BookmarkType} from "./BookmarkType.js";
 import {Bookmark} from "./Bookmark.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {IDatabase} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase} from "@reversense/dexcalibur-orm";
 import {ProjectDatabase} from "../database/ProjectDatabase.js";
 
 

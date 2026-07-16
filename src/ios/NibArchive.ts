@@ -21,7 +21,7 @@
 
 import {Nib} from "../parser/NibParser.js";
 import UINibArchiveHeader = Nib.UINibArchiveHeader;
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import UINibArchiveClassName = Nib.UINibArchiveClassName;
 import {DataLocation} from "../DataLocation.js";
 import ModelResource from "../ModelResource.js";

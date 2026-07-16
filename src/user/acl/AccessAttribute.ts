@@ -20,7 +20,7 @@
  *
  */
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {UserGroupUUID} from "./common/UserGroup.js";
 
 

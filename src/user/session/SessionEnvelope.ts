@@ -21,7 +21,7 @@
 
 import {Cookie, CookieOptions} from "./Cookie.js";
 import {UserSession} from "./UserSession.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 
 
 export interface SessionEnvelopeOptions {

@@ -23,7 +23,7 @@
  * @class
  */
 import DDVM_Symbol from "./DDVM_Symbol.js";
-import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {SerializeOptions} from "@reversense/dexcalibur-orm";
 
 
 /**

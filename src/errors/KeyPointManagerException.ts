@@ -21,7 +21,7 @@
 
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 import {INode} from "../INode.js";
 
 

@@ -24,9 +24,9 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import * as Log from '../Logger.js';
 import HookStrategy from "../hook/HookStrategy.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType} from "@reversense/dexcalibur-orm";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

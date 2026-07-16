@@ -27,8 +27,8 @@ import {
     NodeType,
     SerializeOptions, Tag,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import HookSession, {HookSessionUUID} from "../HookSession.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";

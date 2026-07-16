@@ -41,13 +41,13 @@ import ModelCall from "../ModelCall.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {IAnalyzerUnit} from "../analyzer/IAnalyzerUnit.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {NodeInternalType, Nullable}
-  from "@dexcalibur/dxc-core-api";
+  from "@reversense/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {ISearchAPISelector} from "./ISearchApiSelector.js";
 import {INodeRef} from "../INode.js";
-import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType} from "@reversense/dexcalibur-orm";
 import ModelStringValue from "../ModelStringValue.js";
 
 

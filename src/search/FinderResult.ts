@@ -24,7 +24,7 @@ import {Finder} from "./Finder.js";
 
 import * as Log from "../Logger.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {IDbIndex, NodeUtils, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {IDbIndex, NodeUtils, SerializeOptions} from "@reversense/dexcalibur-orm";
 import passport from "passport";
 
 

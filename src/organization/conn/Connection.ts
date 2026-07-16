@@ -19,11 +19,11 @@
  *
  */
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {Auditable} from "../../Auditable.js";
 import {Secret, SecretUUID} from "../../core/secrets/Secret.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
-import {DbDataType, DbKeyType, NodeProperty, NodeType, TagUUID, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {DbDataType, DbKeyType, NodeProperty, NodeType, TagUUID, ValidationRule} from "@reversense/dexcalibur-orm";
 import {Credential} from "./Credential.js";
 
 

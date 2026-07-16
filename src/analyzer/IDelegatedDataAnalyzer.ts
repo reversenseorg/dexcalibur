@@ -23,7 +23,7 @@ import DataScope from "../DataScope.js";
 import {mergeMap, Observable} from "rxjs";
 import ModelFile from "../ModelFile.js";
 import {DataAnalyzer} from "../DataAnalyzer.js";
-import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection} from "@reversense/dexcalibur-orm";
 
 
 export interface IDelegatedDataAnalyzer {

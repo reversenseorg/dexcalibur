@@ -37,9 +37,9 @@ import {
     SerializeOptions,
     Tag,
     ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {CryptoUtils} from "./CryptoUtils.js";
 
 import {CoreDebug} from "./core/CoreDebug.js";

@@ -25,7 +25,7 @@ import {UserAccount, UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
 import {AccessZone} from "../Zones.js";
 import {UserServiceException} from "../../../errors/UserServiceException.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 
 export class ProjectAccessControl extends DelegateAccessControl {

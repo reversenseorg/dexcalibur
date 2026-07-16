@@ -47,7 +47,7 @@ import {
     ModelRegisterReference
 } from "./ModelReference.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 /**
  * This API is a helper to create nodes  from event listener.

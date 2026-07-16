@@ -26,8 +26,8 @@ import AccessControl from "../AccessControl.js";
 import {AccessZone} from "../Zones.js";
 import {UserServiceException} from "../../../errors/UserServiceException.js";
 import {UserGroupUUID} from "../common/UserGroup.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {AccessControlException} from "../../../errors/AccessControlException.js";
 
 

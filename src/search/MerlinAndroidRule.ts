@@ -23,7 +23,7 @@ import { MerlinSearchRequest} from "./MerlinSearchRequest.js";
 import {MerlinRule, MerlinRuleOptions, SearchOptions } from "./MerlinRule.js";
 import {SerializedSearchRequest} from "../audit/common/SerializedMerlinPrimitive.js";
 import {Nullable} from "../core/IStringIndex.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 
 export class MerlinAndroidRule extends MerlinRule {
 

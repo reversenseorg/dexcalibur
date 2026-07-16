@@ -22,13 +22,13 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Settings} from "../Settings.js";
 import DatabaseSettings = Settings.DatabaseSettings;
-import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import InspectorFactory from "../InspectorFactory.js";
-import {IDbCollection, IDbIndex, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, NodeInternalTypeName} from "@dexcalibur/dxc-core-api";
+import {IDbCollection, IDbIndex, INode, NodeType, Tag, TagCategory} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, NodeInternalTypeName} from "@reversense/dxc-core-api";
 
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {AnalyzerState} from "../AnalyzerState.js";

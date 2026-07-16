@@ -20,8 +20,8 @@
  */
 
 import {Savable, STUB_TYPE} from "../../ModelSavable.js";
-import {DbDataType, DbKeyType, DbSerialize, NodeProperty, NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {DbDataType, DbKeyType, DbSerialize, NodeProperty, NodeType} from "@reversense/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import ModelUiComponentType from "./ModelUiComponentType.js";
 
 

@@ -24,7 +24,7 @@ import {Nullable} from "../../../core/IStringIndex.js";
 import InputSubsystem from "../../InputSubsystem.js";
 import {PlatformManagerException} from "../../../errors/PlatformManagerException.js";
 import {Architecture} from "../../../Architecture.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 
 export interface KernelOptions {
     name?:OperatingSystem[];

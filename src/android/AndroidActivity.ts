@@ -24,7 +24,7 @@ import {IntentFilter} from "./IntentFilter.js";
 import AndroidComponent from "./AndroidComponent.js";
 import {ModelPermission} from "./ModelPermission.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {
     NodeType,
     DataSourceHelper,
@@ -32,7 +32,7 @@ import {
     DbDataType,
     DbKeyType,
     NodePropertyState, SerializeOptions, INode
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import ModelClass from "../ModelClass.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

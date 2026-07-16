@@ -20,7 +20,7 @@
  */
 
 import {Architecture} from "../../Architecture.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {ABI, InstructionSet} from "../../binary/ABI.js";
 import {Profile} from "./Profile.js";
 import {Nullable} from "../../core/IStringIndex.js";

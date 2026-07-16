@@ -35,7 +35,7 @@ import InspectorFactory, {
 import UT from "./Utils.js";
 import DexcaliburRegistry from "./DexcaliburRegistry.js";
 import * as Log from './Logger.js';
-import {Tag, TagOptions} from "@dexcalibur/dexcalibur-orm";
+import {Tag, TagOptions} from "@reversense/dexcalibur-orm";
 import {InspectorManagerException} from "./errors/InspectorManagerException.js";
 import {Nullable} from "./core/IStringIndex.js";
 import HookStrategy, {HookStrategyOptions} from "./hook/HookStrategy.js";

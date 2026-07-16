@@ -21,7 +21,7 @@
 
 import {DataSource} from "./DataSource.js";
 import DexcaliburProject from "./DexcaliburProject.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType} from "@reversense/dexcalibur-orm";
 import * as Log from "./Logger.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

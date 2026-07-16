@@ -14,7 +14,7 @@ import {Modifier} from "../src/AccessFlags.js";
 import Util from "../src/Utils.js";
 import {randomUUID} from "crypto";
 import {INodeRef} from "../src/INode.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 
 describe('Analyzer', function() {

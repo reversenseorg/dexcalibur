@@ -21,7 +21,7 @@
 
 import {MemoryAddress} from "./MemoryAddress.js";
 import {Nullable} from "../core/IStringIndex.js";
-import {TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {TagUUID} from "@reversense/dexcalibur-orm";
 
 
 export enum MemoryBlockPermission {

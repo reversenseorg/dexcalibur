@@ -31,7 +31,7 @@ import DalvikInstructionFormat from "./DalvikInstructionFormat.js";
 import {ElixirOpcodeDefinition, OPCODE} from "./Opcode.js";
 import ModelInstruction from "./ModelInstruction.js";
 import DexcaliburProject from "./DexcaliburProject.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface MethodInfo {

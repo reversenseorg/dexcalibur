@@ -19,8 +19,8 @@
  *
  */
 
-import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
-import { NodeInternalType } from "@dexcalibur/dxc-core-api";
+import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, TagUUID} from "@reversense/dexcalibur-orm";
+import { NodeInternalType } from "@reversense/dxc-core-api";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Metadata, MetadataJsonSchema} from "./Metadata.js";
 import {Nullable} from "../../core/IStringIndex.js";

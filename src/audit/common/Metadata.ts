@@ -20,7 +20,7 @@
  */
 
 import {DataOperation} from "./ControlAssessment.js";
-import {IJSONSchema} from "@dexcalibur/dexcalibur-orm";
+import {IJSONSchema} from "@reversense/dexcalibur-orm";
 
 export enum MetadataType {
     TEXT,

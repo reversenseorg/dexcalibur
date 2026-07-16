@@ -28,8 +28,8 @@ import {
     NodeProperty,
     NodePropertyState,
     NodeType, TagUUID
-} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {NodeUtils} from "../core/NodeUtils.js";
 import {UserServiceException} from "../errors/UserServiceException.js";

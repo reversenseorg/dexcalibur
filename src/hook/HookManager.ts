@@ -39,7 +39,7 @@ import KeyPointManager from "./KeyPointManager.js";
 import KeyPoint, {KeyPointRole} from "./KeyPoint.js";
 import JavaMethodHook from "./JavaMethodHook.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {AbstractHook} from "./AbstractHook.js";
 import {HookBuilder} from "./builders/HookBuider.js";
 import {HookDbApi} from "./HookDbApi.js";
@@ -60,7 +60,7 @@ import ModelFile from "../ModelFile.js";
 import Inspector from "../Inspector.js";
 import {MerlinSearchRequest, OperationType} from "../search/MerlinSearchRequest.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
-import {INode, NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeUtils} from "@reversense/dexcalibur-orm";
 import ModelInstruction from "../ModelInstruction.js";
 import {INodeRef} from "../INode.js";
 

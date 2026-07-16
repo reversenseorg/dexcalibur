@@ -19,8 +19,8 @@
  *
  */
 
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
+import {Nullable} from "@reversense/dxc-core-api";
 import {VirtualDeviceFactoryException} from "../error/VirtualDeviceFactoryException.js";
 
 

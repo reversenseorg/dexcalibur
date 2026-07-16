@@ -28,7 +28,7 @@ import * as _path_ from "path";
 import ModelFile from "../ModelFile.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import * as path from "path";
-import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection} from "@reversense/dexcalibur-orm";
 import Util from "../Utils.js";
 import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
 import {ConnectionProtocol} from "../organization/conn/Connection.js";

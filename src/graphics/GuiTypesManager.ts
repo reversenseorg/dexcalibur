@@ -24,8 +24,8 @@ import ModelUiRole from "./models/ModelUiRole.js";
 import {GuiAnalyzerException} from "./errors/GuiAnalyzerException.js";
 import ModelUiComponentType from "./models/ModelUiComponentType.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {IDbCollection} from "@reversense/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {ProjectDatabase} from "../database/ProjectDatabase.js";
 
 export class GuiTypesManager {

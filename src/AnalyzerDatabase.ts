@@ -28,8 +28,8 @@
 import DexcaliburProject from "./DexcaliburProject.js";
 import {ConnectorFactory} from "./ConnectorFactory.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {NodeType, IDatabaseAdapter, IDbCollection, IDbIndex, NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "@reversense/dxc-core-api";
+import {NodeType, IDatabaseAdapter, IDbCollection, IDbIndex, NodeUtils} from "@reversense/dexcalibur-orm";
 import {IStringIndex} from "./core/IStringIndex.js";
 import {AnalyzerException} from "./errors/AnalyzerException.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";

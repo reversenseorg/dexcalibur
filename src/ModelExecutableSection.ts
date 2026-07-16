@@ -20,7 +20,7 @@
  *
  */
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {MemoryBlock} from "./memory/MemoryBlock.js";

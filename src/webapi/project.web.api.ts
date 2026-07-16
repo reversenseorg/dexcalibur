@@ -34,7 +34,7 @@ import * as _fs_ from "fs";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import {TagManager} from "../tags/TagManager.js";
 import {UserAccount} from "../user/UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";

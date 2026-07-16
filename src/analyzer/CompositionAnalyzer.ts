@@ -20,10 +20,10 @@
  */
 
 import DexcaliburProject from "../DexcaliburProject.js";
-import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {Nullable, OperatingSystem} from "@reversense/dxc-core-api";
 import {INodeRef} from "../INode.js";
 import AndroidActivity from "../android/AndroidActivity.js";
-import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils} from "@reversense/dexcalibur-orm";
 import AndroidService from "../android/AndroidService.js";
 import AndroidReceiver from "../android/AndroidReceiver.js";
 import AndroidProvider from "../android/AndroidProvider.js";

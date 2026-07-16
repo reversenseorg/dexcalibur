@@ -21,7 +21,7 @@
 
 import ModelResource from "../ModelResource.js";
 import {DataLocation, DataLocationType} from "../DataLocation.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import ModelStringValue from "../ModelStringValue.js";
 
 

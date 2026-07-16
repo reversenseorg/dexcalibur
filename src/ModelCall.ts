@@ -26,7 +26,7 @@ import ModelMethod from "./ModelMethod.js";
 import {EOL} from "os";
 import ModelClass from "./ModelClass.js";
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {
     DbDataType,
     DbKeyType,
@@ -35,7 +35,7 @@ import {
     NodeType, NodeUtils,
     Tag,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
 import {CoreDebug} from "./core/CoreDebug.js";
 import {INode, INodeRef} from "./INode.js";

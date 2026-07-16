@@ -39,10 +39,10 @@ import {
     NodePropertyState,
     NodeType, SerializeOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {IntentFilter} from "./IntentFilter.js";
 import ModelClass from "../ModelClass.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import { Nullable } from "../core/IStringIndex.js";
 import {ResourceReference} from "./AndroidResource.js";
 import ModelResource from "../ModelResource.js";

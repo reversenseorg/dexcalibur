@@ -19,7 +19,7 @@
  *
  */
 
-import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {SerializeOptions} from "@reversense/dexcalibur-orm";
 import DeviceProfile from "../DeviceProfile.js";
 import {Nullable} from "../../core/IStringIndex.js";
 

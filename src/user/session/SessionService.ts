@@ -26,7 +26,7 @@ import Util from "../../Utils.js";
 import {SessionCode, SessionException} from "./SessionException.js";
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {SessionStore} from "./SessionStore.js";
 import {Nullable} from "../../core/IStringIndex.js";
 

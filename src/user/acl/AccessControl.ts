@@ -28,7 +28,7 @@ import {DelegateAccessControl} from "./DelegateAccessControl.js";
 import {AccessAttribute} from "./AccessAttribute.js";
 import {UserAccount, UserAccountUUID} from "../UserAccount.js";
 import {AccessControlManager} from "./AccessControlManager.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {AccessControlException} from "../../errors/AccessControlException.js";
 import {RoleUUID} from "./common/Role.js";
 import {UserGroup, UserGroupUUID} from "./common/UserGroup.js";

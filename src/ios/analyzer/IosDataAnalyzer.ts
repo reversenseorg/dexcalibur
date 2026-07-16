@@ -24,7 +24,7 @@ import {from, mergeMap, Observable, ReplaySubject, Subject} from "rxjs";
 import ModelFile from "../../ModelFile.js";
 import * as _fs_ from "fs";
 import * as _path_ from "path";
-import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection} from "@reversense/dexcalibur-orm";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {IDelegatedDataAnalyzer} from "../../analyzer/IDelegatedDataAnalyzer.js";
 import * as Log from "../../Logger.js";

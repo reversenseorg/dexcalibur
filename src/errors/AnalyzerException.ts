@@ -21,7 +21,7 @@
 
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@reversense/dxc-core-api";;
 
 export enum AnalyzerErrCode {
     GENERIC=1000,

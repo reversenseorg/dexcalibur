@@ -22,7 +22,7 @@
 
 import {newTagPresets, } from "./common/TagPresets.js";
 
-import { IDbCollection, INode, IStringIndex, Tag, TagCategory, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import { IDbCollection, INode, IStringIndex, Tag, TagCategory, TagUUID} from "@reversense/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
 import {newLogger} from "../Logger.js";
 import {ProjectDatabase} from "../database/ProjectDatabase.js";

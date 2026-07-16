@@ -23,7 +23,7 @@ import KeyPoint, { KeyPointOptions } from "./KeyPoint.js";
 import KeyPointManager, {KeyPointCondition} from "./KeyPointManager.js";
 import ModelFile from "../ModelFile.js";
 import {NodeInternalType, Nullable}
-    from "@dexcalibur/dxc-core-api";;
+    from "@reversense/dxc-core-api";;
 import {INode, INodeRef} from "../INode.js";
 import {Device} from "../Device.js";
 import ModelClass from "../ModelClass.js";
@@ -40,7 +40,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {AbstractHook, HOOK_FRAGMENT_POS} from "./AbstractHook.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import {RuntimeEventType} from "./RuntimeEvent.js";
-import {NodeUtils, Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils, Tag, TagUUID} from "@reversense/dexcalibur-orm";
 import NativeFunctionHook from "./NativeFunctionHook.js";
 import {MetadataTopic, MetadataType} from "../audit/common/Metadata.js";
 

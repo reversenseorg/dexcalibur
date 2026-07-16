@@ -37,7 +37,7 @@ import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyz
 import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile.js";
 import {NativeAnalyzerException} from "./errors/NativeAnalyzerException.js";
 import {AnalyzerState} from "./AnalyzerState.js";
-import {IDbCollection, Tag} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection, Tag} from "@reversense/dexcalibur-orm";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MetadataTopic, MetadataType} from "./audit/common/Metadata.js";
 import {STATE_PPTS} from "./Analyzer.js";
@@ -49,7 +49,7 @@ import ModelCpuInstruction from "./ModelCpuInstruction.js";
 import {Architecture} from "./Architecture.js";
 import {RegisterType} from "./elixir/common.js";
 import {R2CmdResult} from "./external/R2Pipe.js";
-import {Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {Nullable, OperatingSystem} from "@reversense/dxc-core-api";
 import {AbiException} from "./errors/AbiException.js";
 import * as _path_ from "path";
 import {INativeHelper} from "./analyzer/INativeHelper.js";

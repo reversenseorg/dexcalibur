@@ -23,8 +23,8 @@ import {BufferEncoding} from "typescript";
 import DexcaliburProject from "../DexcaliburProject.js";
 import ModelStringValue from "../ModelStringValue.js";
 import ModelClass from "../ModelClass.js";
-import {Tag} from "@dexcalibur/dexcalibur-orm";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Tag} from "@reversense/dexcalibur-orm";
+import {Nullable} from "@reversense/dxc-core-api";
 
 export interface IResults<T> {
     ok: T;

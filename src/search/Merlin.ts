@@ -20,7 +20,7 @@
  */
 
 import {MerlinRule, MerlinRuleOptions} from "./MerlinRule.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import { MerlinAndroidRule } from "./MerlinAndroidRule.js";
 import {MerlinIosRule} from "./MerlinIosRule.js";
 import {MerlinFlutterRule} from "./MerlinFlutterRule.js";

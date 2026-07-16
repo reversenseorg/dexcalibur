@@ -20,7 +20,7 @@
  */
 
 import {NewProjectWorkflowOptions} from "./ProjectManager.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {ACTION_DATE, ActionDates} from "../common/ActionDates.js";
 import {Workflow, WorkflowUUID} from "../Workflow.js";
 import {ProjectState} from "../ProjectState.js";
@@ -32,7 +32,7 @@ import {
     NodeType,
     SerializeOptions,
     TagUUID
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {ApplicationUnit, ApplicationUnitUUID} from "../organization/ApplicationUnit.js";

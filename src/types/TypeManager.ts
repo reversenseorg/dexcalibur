@@ -24,7 +24,7 @@ import * as Log from "../Logger.js";
 import {ModelFileUID} from "../ModelFile.js";
 import {ClassRefType, NativeBackend} from "./common.js";
 import {INodeRef} from "../INode.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

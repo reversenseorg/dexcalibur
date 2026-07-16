@@ -23,12 +23,12 @@ import {IMagicParser, IParserFeature, IParserOptions, IResults} from "./IParser.
 import DexcaliburProject from "../DexcaliburProject.js";
 import ModelFile from "../ModelFile.js";
 import {BinTpl, BinTplHelper} from "./BinTplHelper.js";
-import {MonitoredError, Tag, TagUUID} from "@dexcalibur/dexcalibur-orm";
-import {Struct} from "@dexcalibur/dxc-struct";
+import {MonitoredError, Tag, TagUUID} from "@reversense/dexcalibur-orm";
+import {Struct} from "@reversense/dxc-struct";
 import {Endianness} from "../core/Endianness.js";
 import ModelFileSection from "../ModelFileSection.js";
 import {MetadataTopic, MetadataType} from "../audit/common/Metadata.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {Buffer} from "buffer";
 import ModelResource from "../ModelResource.js";
 import {MagicSignature} from "../formats/common.js";

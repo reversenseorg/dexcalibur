@@ -32,7 +32,7 @@ import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Nullable} from "../../core/IStringIndex.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {
     DbDataType,
     DbKeyType,
@@ -41,7 +41,7 @@ import {
     NodePropertyState,
     NodeType,
     ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {AccessAttribute, AccessAttributeMap} from "../../user/acl/AccessAttribute.js";
 import {Indicator, IndicatorUUID} from "./Indicator.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";

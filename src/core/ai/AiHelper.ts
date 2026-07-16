@@ -19,8 +19,8 @@
  *
  */
 
-import {IJSONSchema} from "@dexcalibur/dexcalibur-orm";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {IJSONSchema} from "@reversense/dexcalibur-orm";
+import {Nullable} from "@reversense/dxc-core-api";
 import {AiException} from "../../errors/AiException.js";
 
 export interface AiBasicInfo {

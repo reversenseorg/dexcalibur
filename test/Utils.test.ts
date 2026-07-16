@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {ProjectInputPurpose} from "../src/analyzer/ProjectInput.js";
 import Util from '../src/Utils.js';
 import * as console from "node:console";

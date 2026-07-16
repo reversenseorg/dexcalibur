@@ -29,7 +29,7 @@ import {KernelInfo} from "../../platform/kernels/common/Kernel.js";
 import {InputDevice, InputDeviceOptions} from "../../platform/kernels/common/InputDevice.js";
 import InputEventType from "../../platform/InputEventType.js";
 import DeviceProfile from "../../device/DeviceProfile.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {InputDeviceType} from "../../platform/kernels/common/InputDeviceType.js";
 import InputEventCode from "../../platform/InputEventCode.js";
 import InputEventCodeProperties from "../../platform/InputEventCodeProperties.js";

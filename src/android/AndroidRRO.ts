@@ -19,9 +19,9 @@
  *
  */
 
-import {NodeType, NodeProperty, DbDataType, DbSerialize} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, NodeProperty, DbDataType, DbSerialize} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
 
 export class AndroidRRO {

@@ -58,11 +58,8 @@ import DexHelper from "./src/DexHelper.js";
 import RadareHelper from "./src/R2Helper.js";
 import ShellHelper from "./src/ShellHelper.js";
 import AdbWrapper from "./src/AdbWrapper.js";
-<<<<<<< HEAD
 import {DatabaseSettingType} from "./src/Settings.js";
-=======
 import {UserServiceException} from "./src/errors/UserServiceException.js";
->>>>>>> 31470559 (Fix case where SSO / authentication DB is not configured or DB is not reachable when "dexcalibur-adm tools" ... is called)
 
 
 ConnectorFactory.getInstance(true);

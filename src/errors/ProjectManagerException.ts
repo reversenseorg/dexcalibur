@@ -20,7 +20,7 @@
  */
 
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {AuthModuleType} from "../user/auth/AuthModule.js";
 import {UserGroupUUID} from "../user/acl/common/UserGroup.js";
 import {UserAccountUUID} from "../user/UserAccount.js";

@@ -26,9 +26,9 @@ import * as Log from './Logger.js';
 import HookPrimitive from "./HookPrimitive.js";
 import HookStrategy, {HookStrategyOptions} from "./hook/HookStrategy.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
-import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType} from "@reversense/dexcalibur-orm";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {HookSetOptions} from "./InspectorFactory.js";
 import {HookRevision, HookRevisionSubject, RevisionOperation} from "./HookRevision.js";

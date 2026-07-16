@@ -27,7 +27,7 @@ import {Nib} from "../parser/NibParser.js";
 import {Cgbi} from "../parser/CgbiParser.js";
 import {Smali} from "../parser/SmaliParser.js";
 import {IMagicParser, IParser, IParserFeature, IParserOptions} from "../parser/IParser.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {MachO} from "../parser/MachOParser.js";
 import {Elf} from "../parser/ElfParser.js";

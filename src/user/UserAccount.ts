@@ -33,8 +33,8 @@ import {
     NodePropertyState,
     NodeType,
     SerializeOptions
-} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+} from "@reversense/dexcalibur-orm";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import Util from "../Utils.js";
 import {IStringIndex} from "../core/IStringIndex.js";
 import {AclAttributeTree} from "./acl/Access.js";
@@ -42,7 +42,7 @@ import Role, {RoleUUID} from "./acl/common/Role.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {CryptoUtils} from "../CryptoUtils.js";
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {UserAccountAction, UserAccountEvent, UserAccountHelper} from "./UserAccountEvent.js";
 import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
 import {User} from "../User.js";

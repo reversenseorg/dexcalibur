@@ -21,7 +21,7 @@
 
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {
     DbDataType,
     DbKeyType,
@@ -31,7 +31,7 @@ import {
     NodeType,
     NodeUtils,
     SerializeOptions
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {DataLocation, DataLocationFileSource, DataLocationType} from "./DataLocation.js";
 import ModelFile from "./ModelFile.js";
 import {Nullable} from "./core/IStringIndex.js";

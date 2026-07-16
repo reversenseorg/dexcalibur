@@ -19,7 +19,7 @@
  *
  */
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType} from "@reversense/dxc-core-api";;
 import {INode, Node} from "../../INode.js";
 import {Indicator} from "./Indicator.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
@@ -30,7 +30,7 @@ import {
     NodePropertyState,
     NodeType, TagUUID,
     ValidationRule
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
 
 export interface IndicatorsMap {

@@ -23,8 +23,8 @@ import ModelMethod from "../ModelMethod.js";
 import {AbstractHook} from "./AbstractHook.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import {NodeInternalType, Nullable}
-    from "@dexcalibur/dxc-core-api";;
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+    from "@reversense/dxc-core-api";;
+import {NodeType} from "@reversense/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {TargetLanguage} from "./common.js";
 

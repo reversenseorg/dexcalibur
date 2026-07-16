@@ -27,11 +27,11 @@ import {
     TimeOperationArgs, WindowingOperationArgs
 } from "../search/MerlinSearchRequest.js";
 import Util from "../Utils.js";
-import {IDbIndex, INode, NodeProperty, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
-import {MongodbDbCollection, MongodbDbIndex} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {IDbIndex, INode, NodeProperty, NodeType, TagUUID} from "@reversense/dexcalibur-orm";
+import {MongodbDbCollection, MongodbDbIndex} from "@reversense/dexcalibur-orm-mongodb";
 import {SearchRequestCondition} from "../search/SearchRequestCondition.js";
 import {TagManager} from "../tags/TagManager.js";
-import {NodeInternalTypeName, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalTypeName, Nullable} from "@reversense/dxc-core-api";
 import {MerlinSearchRequestException} from "../search/error/MerlinSearchRequestException.js";
 import {EngineDatabase} from "./EngineDatabase.js";
 import {ProjectDatabase} from "./ProjectDatabase.js";

@@ -28,10 +28,10 @@ import * as  _fs_ from "fs";
 import * as _path_ from "path";
 import ModelResource from "../ModelResource.js";
 import {IosPackageAnalyzer} from "./analyzer/IosPackageAnalyzer.js";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import {PlistHelper} from "../formats/helpers/PlistHelper.js";
 import ModelPackage from "../ModelPackage.js";
-import {INode, Tag} from "@dexcalibur/dexcalibur-orm";
+import {INode, Tag} from "@reversense/dexcalibur-orm";
 
 import * as _glob_ from "glob";
 import {Nib} from "../parser/NibParser.js";

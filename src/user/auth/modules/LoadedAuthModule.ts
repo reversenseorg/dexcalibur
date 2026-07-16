@@ -21,7 +21,7 @@
 
 import {AuthModule} from "../AuthModule.js";
 import {OrganizationUnit} from "../../../organization/OrganizationUnit.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {AuthenticationModuleException} from "../error/AuthenticationModuleException.js";
 
 export type AuthStrategyUUID = string;

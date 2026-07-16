@@ -27,7 +27,7 @@ import {GlobalSettingsException} from "../errors/GlobalSettingsException.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 import {Settings} from "../Settings.js";
 import ExternalSettings = Settings.ExternalSettings;
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType} from "@reversense/dexcalibur-orm";
 import {ElixirUtils} from "../elixir/ElixirUtils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

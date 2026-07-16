@@ -36,7 +36,7 @@ import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.j
 import {Settings} from "../Settings.js";
 import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
 import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "../analyzer/ProjectInput.js";
-import {NodeUtils, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {NodeUtils, ValidationRule} from "@reversense/dexcalibur-orm";
 import {InputTemplate, NewProjectFlowType} from "../project/ProjectManager.js";
 import {UploadedResource} from "../common/UploadedResource.js";
 import {EngineNode, NodePurpose} from "../core/EngineNode.js";

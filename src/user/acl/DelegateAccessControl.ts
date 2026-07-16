@@ -22,7 +22,7 @@
 import {AccesErrCode, Access, AccessException, AccessMap, AccessProperty, AccessType} from "./Access.js";
 import {AccessAttribute, AccessAttributeMap} from "./AccessAttribute.js";
 import {UserAccount} from "../UserAccount.js";
-import {Nullable} from "@dexcalibur/dxc-core-api";
+import {Nullable} from "@reversense/dxc-core-api";
 import {Auditable} from "../../Auditable.js";
 
 /**

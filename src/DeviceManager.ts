@@ -35,9 +35,9 @@ import FridaHelper from "./FridaHelper.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import {External} from "./external/External.js";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {Nullable} from "./core/IStringIndex.js";
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
 import {randomUUID} from "crypto";
 import {VirtualDeviceFactory} from "./device/maker/VirtualDeviceFactory.js";
@@ -45,14 +45,14 @@ import {UserAccount} from "./user/UserAccount.js";
 import {OrganizationUnit, OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
 import {DeviceTemplateOptions, DeviceTemplateUUID} from "./device/template/DeviceTemplate.js";
 import AccessControl from "./user/acl/AccessControl.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbDbCollection} from "@reversense/dexcalibur-orm-mongodb";
 import {DeviceTemplateAPI} from "./device/template/DeviceTemplateAPI.js";
 import {ApplicationUnit} from "./organization/ApplicationUnit.js";
 import {Observable} from "rxjs";
 import {VdevEvent} from "./device/maker/VdevEvent.js";
 import {DeviceInstance} from "./device/maker/DeviceInstance.js";
 import {DeviceManagerClient} from "./device/DeviceManagerClient.js";
-import {ValidationCapable, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationCapable, ValidationRule} from "@reversense/dexcalibur-orm";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 

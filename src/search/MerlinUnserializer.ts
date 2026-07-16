@@ -28,12 +28,12 @@ import {
 } from "../audit/common/SerializedMerlinPrimitive.js";
 import {InnerjoinOperationArgs, MerlinSearchRequest, Operation, OperationType} from "./MerlinSearchRequest.js";
 import {IStringIndex, Nullable} from "../core/IStringIndex.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType} from "@reversense/dexcalibur-orm";
 import {MerlinAndroidRule} from "./MerlinAndroidRule.js";
 import {MerlinFlutterRule} from "./MerlinFlutterRule.js";
 import {MerlinIosRule} from "./MerlinIosRule.js";
 import {MerlinRule, MerlinRuleOptions, SearchOptions} from "./MerlinRule.js";
-import {OperatingSystem} from "@dexcalibur/dxc-core-api";
+import {OperatingSystem} from "@reversense/dxc-core-api";
 import {MerlinUnserializerException} from "./error/MerlinUnserializerException.js";
 import {MerlinSearchRequestException} from "./error/MerlinSearchRequestException.js";
 import ModelStringValue from "../ModelStringValue.js";

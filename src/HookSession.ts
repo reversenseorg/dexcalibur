@@ -38,7 +38,7 @@ import HookMessageV2 from "./hook/HookMessageV2.js";
 import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent.js";
 import {HookMessageException} from "./errors/HookMessageException.js";
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType} from "@reversense/dxc-core-api";
 
 import {
     DbDataType,
@@ -49,7 +49,7 @@ import {
     NodeType,
     SerializeOptions,
     Tag
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {HookWorkspaceState} from "./hook/HookWorkspace.js";

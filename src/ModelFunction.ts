@@ -19,7 +19,7 @@
  *
  */
 
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@reversense/dxc-core-api";
 import ModelFile from "./ModelFile.js";
 import ModelCpuInstruction from "./ModelCpuInstruction.js";
 import * as Log from './Logger.js';
@@ -34,7 +34,7 @@ import {
     NodeType,
     SerializeOptions,
     Tag
-} from "@dexcalibur/dexcalibur-orm";
+} from "@reversense/dexcalibur-orm";
 
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";

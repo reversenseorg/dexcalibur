@@ -55,4 +55,8 @@ export interface IPackageAnalyzer {
     getInputsFor(pPurpose:InputSetPurpose): ProjectInput[];
 
     pullInput(pProjectInput:ProjectInput):Promise<string>;
+
+    getMinPlatform():Promise<string>;
+
+    getTargetPlatform():Promise<string>
 }

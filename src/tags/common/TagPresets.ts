@@ -19,7 +19,7 @@
  *
  */
 
-import {Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {Tag, TagCategory} from "@reversense/dexcalibur-orm";
 import {StringAnalyzer} from "../../analyzer/StringAnalyzer.js";
 
 export function newTagPresets(){

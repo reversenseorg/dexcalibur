@@ -19,7 +19,7 @@
  *
  */
 
-import {ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {ValidationRule} from "@reversense/dexcalibur-orm";
 import {Cookie, CookieOptions} from "./Cookie.js";
 
 
