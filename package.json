@@ -19,7 +19,7 @@
     "@reversense/dxc-parser-properties": "^1.1.3",
     "@reversense/dxc-struct": "^1.0.1",
     "@reversense/interruptor": "^1.0.12",
-    "adm-zip": "^0.4.14",
+    "adm-zip": "^0.6.0",
     "body-parser": "^1.20.3",
     "busboy": "^0.3.1",
     "chalk": "^5.6.2",
