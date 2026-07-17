@@ -41,11 +41,7 @@ import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
 
 import {CoreDebug} from "./core/CoreDebug.js";
-import ts from "typescript";
 import {INodeRef} from "./INode.js";
-import ModelExecutableSection from "./ModelExecutableSection.js";
-import ModelFileSection from "./ModelFileSection.js";
-import {ModelRegister} from "./elixir/ModelRegister.js";
 import NativeFunctionHook from "./hook/NativeFunctionHook.js";
 import {MemoryAddress} from "./memory/MemoryAddress.js";
 
