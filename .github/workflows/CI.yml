@@ -1,23 +1,115 @@
-name: Build server
+name: Build Reversense platform
 
+# triggers { vcs { triggerRules = "+:**"; branchFilter = "" } }
 on:
   push:
-    branches: [master]
-  pull_request:
+    branches: ['main']
   workflow_dispatch:
+    inputs:
+      uiplugins:
+        description: 'UIs to setup using the format "dexcalibur-home@latest,dxc-ui-reverse@latest"'
+        required: false
+        type: string
+      skip_upload:
+        description: 'Skip upload'
+        required: false
+        type: boolean
+
+concurrency:
+  group: build-dxc-pro-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # requis pour l'upload d'asset sur une release
+
+env:
+  # id (ou tag) de release ciblée par l'étape "Github Release upload"
+  DXC_RELEASE_ID: "1.8.0"
+  NPM_SCOPE_REGISTRY: "https://npm.pkg.jetbrains.space/reversense/p/dxc/dxc-npm/"
 
 jobs:
-  build:
+  # ---------------------------------------------------------------------------
+  # script { name = "Detect node version" }
+  # Job séparé : la valeur alimente `container.image` du job suivant, or les
+  # expressions dans `container:` ne peuvent référencer que des outputs de jobs
+  # (`needs.*`), jamais des outputs de steps du même job.
+  # ---------------------------------------------------------------------------
+  detect-node-version:
+    name: Detect node version
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18, 20, 22]
+    outputs:
+      node_version: ${{ steps.nvmrc.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - id: nvmrc
+        run: echo "version=$(cat .nvmrc | cut -b2-)" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # steps { Install dependencies / Build code }  -> dockerImage node:<ver>-slim
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build core
+    needs: detect-node-version
+    runs-on: ubuntu-latest
+    container:
+      image: node:${{ needs.detect-node-version.outputs.node_version }}-slim
+    steps:
+      - name: Install git (checkout prerequisite)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python-is-python3 git ca-certificates
+          python -v
+          rm -rf /var/lib/apt/lists/*
+
+      - uses: actions/checkout@v4
+
+      - name: Install NVM and NPM
+        if: false
+        shell: bash
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+          nvm install
+          nvm use
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build code
+        env:
+          DXC_USE_ARTIFACTS: 0
+          DXC_CICD_FRIDA_VERSION: "latest"
+        run: |
+          ./build.sh
+          npm prune --omit=dev
+          echo "latest" > frida_version
+          tar -czvf dxc-server-linux.tar.gz dist
+
+      - name: Publish artifact
+        uses: actions/upload-artifact@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
-      - run: npm run build --if-present
-      - run: npm test --if-present
+          name: dxc-server-linux
+          path: dxc-server-linux.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  static-analysis:
+    name: Static Analysis
+    needs: build
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: JetBrains/qodana-action@v2025.1
+        with:
+          args: "--linter,jetbrains/qodana-js:latest,--profile-name,qodana.recommended"
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+
