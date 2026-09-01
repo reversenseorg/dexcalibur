@@ -54,17 +54,19 @@ jobs:
           apt-get install -y --no-install-recommends python-is-python3  curl git ca-certificates
           python -v
           rm -rf /var/lib/apt/lists/*
-          mkdir base
+          mkdir code
 
       - uses: actions/checkout@v4
         with:
-          path: ./base
+          path: ./code
 
       - name: Install dependencies
         run: |
           ls -la .
-          cd ./base
+          cp -r ./code./base
+          ls -la .
           ls -la ./base
+          cd ./base
           npm install
 
       - name: Build code
