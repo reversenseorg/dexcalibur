@@ -39,7 +39,6 @@ jobs:
 
       - id: nvmrc
         run: |
-          cd ./base 
           echo "version=$(cat .nvmrc | cut -b2-)" >> "$GITHUB_OUTPUT"
 
   build:
