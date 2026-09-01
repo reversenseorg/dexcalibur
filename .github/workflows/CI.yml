@@ -10,10 +10,6 @@ on:
         description: 'UIs to setup using the format "dexcalibur-home@latest,dxc-ui-reverse@latest"'
         required: false
         type: string
-      skip_upload:
-        description: 'Skip upload'
-        required: false
-        type: boolean
 
 concurrency:
   group: build-dxc-pro-${{ github.ref }}
@@ -44,11 +40,8 @@ jobs:
       - id: nvmrc
         run: echo "version=$(cat .nvmrc | cut -b2-)" >> "$GITHUB_OUTPUT"
 
-  # ---------------------------------------------------------------------------
-  # steps { Install dependencies / Build code }  -> dockerImage node:<ver>-slim
-  # ---------------------------------------------------------------------------
   build:
-    name: Build core
+    name: Build core for various runner
     needs: detect-node-version
     runs-on: ubuntu-latest
     container:
@@ -57,7 +50,7 @@ jobs:
       - name: Install git (checkout prerequisite)
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends python-is-python3 git ca-certificates
+          apt-get install -y --no-install-recommends python-is-python3  curl git ca-certificates
           python -v
           rm -rf /var/lib/apt/lists/*
 
@@ -79,20 +72,44 @@ jobs:
         run: npm install
 
       - name: Build code
-        env:
-          DXC_USE_ARTIFACTS: 0
-          DXC_CICD_FRIDA_VERSION: "latest"
         run: |
-          ./build.sh
+          npx tsc
+          mkdir ./dist/agent
+          mkdir ../out
+          cp -r ./scripts/ ./dist/scripts
+          cp -r ./node_modules/ ./dist/node_modules
+          cp -r ./package.json ./dist/package.json
+          cp -r ./info.json ./dist/info.json
+          cp -r ./rsmeta.json ./dist/rsmeta.json
+          cp -r ./3TH_LICENSES.json ./dist/3TH_LICENSES.json
+          cp -r ./LICENSE ./dist/LICENSE
+          cp -r ./dexcalibur ./dist/dexcalibur
+          cp -r ./README.md ./dist/scripts
+          cp -r ./src/requires ./dist/src/requires
+          cp -r ./assets ./dist/assets
           npm prune --omit=dev
           echo "latest" > frida_version
-          tar -czvf dxc-server-linux.tar.gz dist
+          tar -czvf ../out/dxc-server-linux.node.tar.gz dist
+          rm -r ./dist
+          tar -czvf ../out/dxc-server-linux.deno.tar.gz .
 
-      - name: Publish artifact
+      - name: Test
+        if: false
+        run: npm test
+
+      - name: Publish Deno artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dxc-server-linux
-          path: dxc-server-linux.tar.gz
+          name: dxc-server-linux-deno
+          path: dxc-server-linux.deno.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish Node artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxc-server-linux-node
+          path: dxc-server-linux.node.tar.gz
           if-no-files-found: error
           retention-days: 30
 
