@@ -25,7 +25,6 @@ permissions:
 env:
   # id (ou tag) de release ciblée par l'étape "Github Release upload"
   DXC_RELEASE_ID: "1.8.0"
-  NPM_SCOPE_REGISTRY: "https://npm.pkg.jetbrains.space/reversense/p/dxc/dxc-npm/"
 
 jobs:
   # ---------------------------------------------------------------------------

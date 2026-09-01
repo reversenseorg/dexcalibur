@@ -86,7 +86,7 @@ do
   cp -r $i ./dist/$i
 done
 
-if [[ "$DXC_TEST" = "1" ]]; then
+if [[ "$DXC_TEST_BUILD" = "1" ]]; then
   echo "[+] Test mode detected. Copying ./test folder ..."
   cp -r ./test ./dist/test
 fi
