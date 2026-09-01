@@ -60,23 +60,12 @@ jobs:
         with:
           path: ./base
 
-      - name: Install NVM and NPM
-        if: false
-        shell: bash
+      - name: Install dependencies
         run: |
           ls -la .
           cd ./base
           ls -la ./base
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-          nvm install
-          nvm use
-
-      - name: Install dependencies
-        run: npm install
+          npm install
 
       - name: Build code
         run: |
