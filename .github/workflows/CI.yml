@@ -64,7 +64,9 @@ jobs:
         if: false
         shell: bash
         run: |
+          ls -la .
           cd ./base
+          ls -la ./base
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
           export NVM_DIR="$HOME/.nvm"
