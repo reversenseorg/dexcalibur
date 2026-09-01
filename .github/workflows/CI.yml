@@ -91,6 +91,7 @@ jobs:
           tar -czvf ../out/dxc-server-linux.node.tar.gz dist
           rm -r ./dist
           tar -czvf ../out/dxc-server-linux.deno.tar.gz .
+          
 
       - name: Test
         if: false
@@ -100,7 +101,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dxc-server-linux-deno
-          path: dxc-server-linux.deno.tar.gz
+          path: ../out/dxc-server-linux.deno.tar.gz
           if-no-files-found: error
           retention-days: 30
 
@@ -108,7 +109,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dxc-server-linux-node
-          path: dxc-server-linux.node.tar.gz
+          path: ../out/dxc-server-linux.node.tar.gz
           if-no-files-found: error
           retention-days: 30
 
