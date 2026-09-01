@@ -1,11 +1,16 @@
 .npmrc
 .nyc_output/
+.github/
+.idea/
+.gitignore
 .space.kts
 lock-old.json
 TOPORT/*
 node_modules/*
+docker/*
 src/*
 dist/webserver/*
 test/*
 bin/*
 inspectors/*
+out/*

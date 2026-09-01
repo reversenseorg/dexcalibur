@@ -38,7 +38,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - id: nvmrc
-        run: echo "version=$(cat .nvmrc | cut -b2-)" >> "$GITHUB_OUTPUT"
+        run: |
+          cd ./base 
+          echo "version=$(cat .nvmrc | cut -b2-)" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build core for various runner
@@ -53,13 +55,17 @@ jobs:
           apt-get install -y --no-install-recommends python-is-python3  curl git ca-certificates
           python -v
           rm -rf /var/lib/apt/lists/*
+          mkdir base
 
       - uses: actions/checkout@v4
+        with:
+          path: ./base
 
       - name: Install NVM and NPM
         if: false
         shell: bash
         run: |
+          cd ./base
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
           export NVM_DIR="$HOME/.nvm"
@@ -88,10 +94,13 @@ jobs:
           cp -r ./assets ./dist/assets
           npm prune --omit=dev
           echo "latest" > frida_version
-          tar -czvf ../out/dxc-server-linux.node.tar.gz dist
+          tar -czvf ./out/dxc-server-linux.node.tar.gz dist
           rm -r ./dist
-          tar -czvf ../out/dxc-server-linux.deno.tar.gz .
-          
+          tar -czvf ./out/dxc-server-linux.deno.tar.gz .
+
+      - run: |
+          ls -la .
+          ls -la ./out
 
       - name: Test
         if: false
@@ -101,7 +110,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dxc-server-linux-deno
-          path: ../out/dxc-server-linux.deno.tar.gz
+          path: ./out/dxc-server-linux.deno.tar.gz
           if-no-files-found: error
           retention-days: 30
 
@@ -109,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dxc-server-linux-node
-          path: ../out/dxc-server-linux.node.tar.gz
+          path: ./out/dxc-server-linux.node.tar.gz
           if-no-files-found: error
           retention-days: 30
 
