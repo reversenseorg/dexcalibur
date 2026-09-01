@@ -63,7 +63,7 @@ jobs:
       - name: Install dependencies
         run: |
           ls -la .
-          cp -r ./code./base
+          cp -r ./code ./base
           ls -la .
           ls -la ./base
           cd ./base
