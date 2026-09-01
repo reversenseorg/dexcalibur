@@ -80,7 +80,6 @@ jobs:
           cp -r ./node_modules/ ./dist/node_modules
           cp -r ./package.json ./dist/package.json
           cp -r ./info.json ./dist/info.json
-          cp -r ./rsmeta.json ./dist/rsmeta.json
           cp -r ./3TH_LICENSES.json ./dist/3TH_LICENSES.json
           cp -r ./LICENSE ./dist/LICENSE
           cp -r ./dexcalibur ./dist/dexcalibur
