@@ -68,7 +68,6 @@ jobs:
 
       - name: Build code
         run: |
-          tsc
           mkdir ./dist/agent
           mkdir ../out
           cp -r ./scripts/ ./dist/scripts
@@ -83,13 +82,13 @@ jobs:
           cp -r ./assets ./dist/assets
           npm prune --omit=dev
           echo "latest" > frida_version
-          tar -czvf ./out/dxc-server-linux.node.tar.gz dist
+          tar -czvf ../out/dxc-server-linux.node.tar.gz dist
           rm -r ./dist
-          tar -czvf ./out/dxc-server-linux.deno.tar.gz .
+          tar -czvf ../out/dxc-server-linux.deno.tar.gz .
 
       - run: |
           ls -la .
-          ls -la ./out
+          ls -la ../out
 
       - name: Test
         if: false

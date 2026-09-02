@@ -1,16 +1,16 @@
 #!/bin/sh
 
-if[ $GH_WORKFLOW = 1 ]; then
-  echo "[+] Build script skipped: the script has been triggered by GitHub."
-  exit
-fi
-
 echo "[+] Removing ./dist folder"
 rm -rf ./dist
 
 echo "[+] Transpiling sources to JS"
 mkdir ./dist
 tsc
+
+if [ $GH_WORKFLOW = 1 ]; then
+  echo "[+] Build script skipped: the script has been triggered by GitHub."
+  exit
+fi
 
 #echo "[+] Copying package.json"
 #cp ./package.json ./dist/dexcalibur-ts/package.json
