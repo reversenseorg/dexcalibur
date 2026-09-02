@@ -68,6 +68,7 @@ jobs:
 
       - name: Build code
         run: |
+          cd ./base
           mkdir -p ./dist/agent
           mkdir ../out
           ls -la .
