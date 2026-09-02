@@ -89,8 +89,7 @@ jobs:
           tar -czvf ../out/dxc-server-linux.deno.tar.gz .
 
       - run: |
-          ls -la .
-          ls -la ../out
+          ls -la ./out
 
       - name: Test
         if: false
