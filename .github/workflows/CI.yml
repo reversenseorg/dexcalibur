@@ -19,8 +19,8 @@ permissions:
   contents: write   # requis pour l'upload d'asset sur une release
 
 env:
-  # id (ou tag) de release ciblée par l'étape "Github Release upload"
   DXC_RELEASE_ID: "1.8.0"
+  GH_WORKFLOW: 1
 
 jobs:
   # ---------------------------------------------------------------------------
