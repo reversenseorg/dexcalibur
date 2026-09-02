@@ -68,7 +68,7 @@ jobs:
 
       - name: Build code
         run: |
-          mkdir ./dist/agent
+          mkdir -p ./dist/agent
           mkdir ../out
           cp -r ./scripts/ ./dist/scripts
           cp -r ./node_modules/ ./dist/node_modules
