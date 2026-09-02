@@ -62,16 +62,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          ls -la .
           cp -r ./code ./base
-          ls -la .
-          ls -la ./base
           cd ./base
           npm install
 
       - name: Build code
         run: |
-          npx tsc
+          tsc
           mkdir ./dist/agent
           mkdir ../out
           cp -r ./scripts/ ./dist/scripts
