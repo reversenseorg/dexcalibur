@@ -70,6 +70,7 @@ jobs:
         run: |
           mkdir -p ./dist/agent
           mkdir ../out
+          ls -la .
           cp -r ./scripts/ ./dist/scripts
           cp -r ./node_modules/ ./dist/node_modules
           cp -r ./package.json ./dist/package.json
