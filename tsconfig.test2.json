@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "es2022"
+    ],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "declaration": true,
+    "outDir": "./dist",
+    "removeComments": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": false,
+    "moduleResolution": "nodenext",
+    "allowJs": true,
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "types": [
+      "node",
+      "mocha",
+      "chai"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "dexcalibur.ts",
+    "dexcalibur-adm.mts",
+    "connectors/**/*.ts",
+    "inspectors/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "node_modules/r2pipe/*.d.ts"
+  ]
+}

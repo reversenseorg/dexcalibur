@@ -9,7 +9,7 @@ describe('TraceRouteHelper', function() {
 
     before(function(){
 
-        process.env.DEXCALIBUR_TEST = "1";
+        process.env.DXC_TEST = "1";
         if(!TestExecHelper.hasInterceptor( InterceptorType.EXEC, "trace_crashlyticsreports")){
             TestExecHelper.intercept(
                 InterceptorType.EXEC, {

@@ -22,7 +22,7 @@ describe('K8sHelper', function() {
 
         it('statefulset', async function () {
 
-            process.env.DEXCALIBUR_TEST = "1";
+            process.env.DXC_TEST = "1";
             //console.log(await Util.execAsync("ls"));
             K8sHelper.scale(K8ResourceType.STATEFULSET, 'testset', 2, "default")
             //expect(db.encoding).to.be.equals('ascii');

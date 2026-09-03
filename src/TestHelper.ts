@@ -68,7 +68,7 @@ class TestHelperClass
     project_ready:DexcaliburProject = null;
 
     constructor(){
-        if(process.env.DEXCALIBUR_TEST){
+        if(process.env.DXC_TEST){
             const path = (new URL(import.meta.url).pathname);
             this.testCfg = JSON.parse(_fs_.readFileSync(_path_.join(path.substring(0, path.lastIndexOf(_path_.sep)),"..","test", "config", "config.json")).toString());
         }
