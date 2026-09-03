@@ -684,7 +684,7 @@ export default class AdbWrapper implements IBridge
                 device.setDefaultBridge(bridge.shortname);
 
 
-                id = data[1];
+                //id = data[1];
                 data = data[2].split(" ");
 
 //            device.setUID( 'adb:'+device.bridge.deviceID);
@@ -756,13 +756,16 @@ export default class AdbWrapper implements IBridge
                 }
 
 
-                device.setFingerprint({
-                    serialno: await bridge.readProp('ro.serialno'),
-                    builddate: await bridge.readProp('ro.build.date.utc'),
-                    prodfp: await bridge.readProp('ro.build.fingerprint'),
-                    vbmeta: await bridge.readProp('ro.boot.vbmeta.digest'),
-                    vdev: await bridge.readProp('vendor.dxc.uuid')
-                });
+                if(!process.env.DXC_TEST_MODE){
+                    device.setFingerprint({
+                        serialno: await bridge.readProp('ro.serialno'),
+                        builddate: await bridge.readProp('ro.build.date.utc'),
+                        prodfp: await bridge.readProp('ro.build.fingerprint'),
+                        vbmeta: await bridge.readProp('ro.boot.vbmeta.digest'),
+                        vdev: await bridge.readProp('vendor.dxc.uuid')
+                    });
+                }
+
 
                 // by default OS is retrieved from bridge results
                 device.os = OperatingSystem.ANDROID;

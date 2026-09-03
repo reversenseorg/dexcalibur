@@ -9,6 +9,8 @@ import * as _os_ from "os";
 import {expect} from 'chai';
 const EOL = _os_.EOL;
 
+process.env.DXC_TEST_MODE = "1";
+
 let VALID_ADB_PATH:string = _path_.join(Util.__dirname(import.meta.url), 'ws', '.dxc', 'bin', 'platform-tools', 'adb');
 let INVALID_ADB_PATH:string = _path_.join(Util.__dirname(import.meta.url), 'ws', '.dxc', 'bin', 'platform-tools', 'invalid_adb');
 
@@ -29,7 +31,6 @@ describe('ADB Wrapper', function() {
 
     beforeEach(function() {
         TestHelper.clearInterceptors();
-
 
         TestHelper.interceptExec( function(x){
             return (x.indexOf("shell pm path com.unit_single_file")>-1);
@@ -160,7 +161,7 @@ describe('ADB Wrapper', function() {
 
             let output:string = `${EOL}List of devices attached${EOL}02581073e1c3398f       device usb:338755584X product:bullhead model:Nexus_5X device:bullhead transport_id:69`;
 
-            let result:Device[] = await adbw.parseDeviceList(output);
+            let result:Device[] = await (adbw as any)._parseDeviceList(output);
 
 
             expect(result).to.be.an('array');
@@ -176,7 +177,7 @@ describe('ADB Wrapper', function() {
 
             let output:string = `${EOL}List of devices attached${EOL}0a1b2c3d4e5f6e7d device product:bullhead model:Nexus_5X device:bullhead transport_id:22`;
 
-            let result:Device[] = await adbw.parseDeviceList(output);
+            let result:Device[] = await (adbw as any)._parseDeviceList(output);
 
 
             expect(result).to.be.an('array');
@@ -193,7 +194,7 @@ describe('ADB Wrapper', function() {
 
             let output:string = `${EOL}List of devices attached${EOL}0a1b2c3d4e5f6e7d device product:bullhead model:Nexus_5X device:bullhead transport_id:22${EOL}aabbccddeeff unauthorized product:bullhead model:Nexus_10X device:bullhead transport_id:18`;
 
-            let result:Device[] = await adbw.parseDeviceList(output);
+            let result:Device[] = await (adbw as any)._parseDeviceList(output);
 
 
             expect(result).to.be.an('array');
@@ -213,7 +214,7 @@ describe('ADB Wrapper', function() {
 
             let output:string = `${EOL}List of devices attached${EOL}`;
 
-            let result:Device[] = await adbw.parseDeviceList(output);
+            let result:Device[] = await (adbw as any)._parseDeviceList(output);
 
 
             expect(result).to.be.an('array');
@@ -256,6 +257,9 @@ describe('ADB Wrapper', function() {
             it('single file', function(){
                 let flag:number = 0, ret:any=null;
                 let adbw:AdbWrapper = new AdbWrapper(VALID_ADB_PATH);
+
+
+                // this.setup() + " shell pm path " +  packageIdentifier
 
                 try{
                     ret = adbw.getPackagePath(`com.unit_single_file`);
