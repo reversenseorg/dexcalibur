@@ -2,33 +2,54 @@ name: Build Reversense platform
 
 # triggers { vcs { triggerRules = "+:**"; branchFilter = "" } }
 on:
+  release:
+    types: ['released']
   push:
     branches: ['main']
   workflow_dispatch:
     inputs:
-      uiplugins:
-        description: 'UIs to setup using the format "dexcalibur-home@latest,dxc-ui-reverse@latest"'
+      tag_name:
+        description: 'Release tag to build'
         required: false
         type: string
+      static_analysis:
+        description: 'Perform static analysis'
+        required: false
+        type: boolean
+        default: false
+      skip_upload:
+        description: 'Skip upload'
+        required: false
+        type: boolean
+        default: true
+      skip_registry_publish:
+        description: 'Skip publishing to registries'
+        required: false
+        type: boolean
+        default: true
+      proui_version:
+        description: 'Pro UI version to use. Default: latest'
+        required: false
+        type: string
+        default: '1.8.0'
+      homeui_version:
+        description: 'Home UI version to use. Default: latest'
+        required: false
+        type: string
+        default: '15.13.7'
 
 concurrency:
   group: build-dxc-pro-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
-  contents: write   # requis pour l'upload d'asset sur une release
+  contents: write
 
 env:
   DXC_RELEASE_ID: "1.8.0"
   GH_WORKFLOW: 1
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # script { name = "Detect node version" }
-  # Job séparé : la valeur alimente `container.image` du job suivant, or les
-  # expressions dans `container:` ne peuvent référencer que des outputs de jobs
-  # (`needs.*`), jamais des outputs de steps du même job.
-  # ---------------------------------------------------------------------------
   detect-node-version:
     name: Detect node version
     runs-on: ubuntu-latest
@@ -36,94 +57,316 @@ jobs:
       node_version: ${{ steps.nvmrc.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-
       - id: nvmrc
         run: |
           echo "version=$(cat .nvmrc | cut -b2-)" >> "$GITHUB_OUTPUT"
 
-  build:
-    name: Build core for various runner
-    needs: detect-node-version
+  test:
     runs-on: ubuntu-latest
-    container:
-      image: node:${{ needs.detect-node-version.outputs.node_version }}-slim
+    strategy:
+      matrix:
+        node: [20, 22, 24]
     steps:
-      - name: Install git (checkout prerequisite)
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends python-is-python3  curl git ca-certificates
-          python -v
-          rm -rf /var/lib/apt/lists/*
-          mkdir code
-
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          path: ./code
-
-      - name: Install dependencies
-        run: |
-          cp -r ./code ./base
-          cd ./base
-          npm install
-
-      - name: Build code
-        run: |
-          cd ./base
-          mkdir -p ./dist/agent
-          mkdir ../out
-          ls -la .
-          cp -r ./scripts/ ./dist/scripts
-          cp -r ./node_modules/ ./dist/node_modules
-          cp -r ./package.json ./dist/package.json
-          cp -r ./info.json ./dist/info.json
-          cp -r ./3TH_LICENSES.md ./dist/3TH_LICENSES.md
-          cp -r ./LICENSE ./dist/LICENSE
-          cp -r ./dexcalibur ./dist/dexcalibur
-          cp -r ./README.md ./dist/README.md
-          cp -r ./src/requires ./dist/src/requires
-          cp -r ./assets ./dist/assets
-          npm prune --omit=dev
-          echo "latest" > frida_version
-          tar -czvf ../out/dxc-server-linux.node.tar.gz dist
-          rm -r ./dist
-          tar -czvf ../out/dxc-server-linux.deno.tar.gz .
-
-      - run: |
-          ls -la ./out
-
-      - name: Test
-        if: false
-        run: npm test
-
-      - name: Publish Deno artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dxc-server-linux-deno
-          path: ./out/dxc-server-linux.deno.tar.gz
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Publish Node artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dxc-server-linux-node
-          path: ./out/dxc-server-linux.node.tar.gz
-          if-no-files-found: error
-          retention-days: 30
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
 
   static-analysis:
     name: Static Analysis
-    needs: build
-    if: false
+    needs: test
+    if: ${{ inputs.static_analysis }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - uses: JetBrains/qodana-action@v2025.1
         with:
           args: "--linter,jetbrains/qodana-js:latest,--profile-name,qodana.recommended"
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+
+  build:
+    name: Build core for various runner
+    needs: [detect-node-version,test]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        node: [ 24 ]
+    container:
+      image: node:${{ needs.detect-node-version.outputs.node_version }}-slim
+    steps:
+     - name: Install git (checkout prerequisite)
+       run: mkdir code
+     - uses: actions/checkout@v4
+       with:
+          path: ./code
+     - name: Install de dependencies
+       run: |
+        cp -r ./code ./base
+        cd ./base
+        npm install
+     - name: Build code
+       run: |
+        cd ./base
+        mkdir -p ./dist/agent
+        mkdir ../out
+        ls -la .
+        cp -r ./scripts/ ./dist/scripts
+        cp -r ./node_modules/ ./dist/node_modules
+        cp -r ./package.json ./dist/package.json
+        cp -r ./info.json ./dist/info.json
+        cp -r ./3TH_LICENSES.md ./dist/3TH_LICENSES.md
+        cp -r ./LICENSE ./dist/LICENSE
+        cp -r ./dexcalibur ./dist/dexcalibur
+        cp -r ./README.md ./dist/README.md
+        cp -r ./src/requires ./dist/src/requires
+        cp -r ./assets ./dist/assets
+        npm prune --omit=dev
+        echo "latest" > frida_version
+        tar -czvf ../out/dxc-server-${{ matrix.os }}.node.tar.gz dist
+        tar -czvf ../out/dxc-server-${{ matrix.os }}.deno.tar.gz --exclude='dist' .
+
+     - name: Publish Deno artifact
+       uses: actions/upload-artifact@v4
+       with:
+        name: dxc-server-${{ matrix.os }}-deno.tar.gz
+        path: ./out/dxc-server-${{ matrix.os }}.deno.tar.gz
+        if-no-files-found: error
+        retention-days: 30
+
+     - name: Publish Node artifact
+       uses: actions/upload-artifact@v4
+       with:
+         name: dxc-server-${{ matrix.os }}-node.tar.gz
+         path: ./out/dxc-server-${{ matrix.os }}.node.tar.gz
+         if-no-files-found: error
+         retention-days: 30
+
+     - name: Install reversense agent
+       if: success() && (github.event_name == 'release' || github.event_name == 'workflow_dispatch')
+       run: |
+         cd ./base
+         mkdir -p ./_agent
+         gh release download ${{ inputs.agent_version || '' }} \
+           --repo reversenseorg/dexcalibur-agent \
+           --pattern 'dxc-agent-dist-*.tar.gz' \
+           --dir ./_agent
+         tar -xzvf ./_agent/dxc-agent-dist-*.tar.gz -C ./_agent/agent
+         ls -la ./_agent/
+         ls -la ./_agent/agent
+         ln -S $PWD/_agent/agent/ $PWD/agent
+         ln -S $PWD/_agent/agent/ $PWD/dist/agent
+       env:
+         GH_TOKEN: ${{ github.token }}
+
+     - name: Install dxc-ui-reverse UI
+       if: success() && (github.event_name == 'release' || github.event_name == 'workflow_dispatch')
+       run: |
+         cd ./base
+         mkdir -p ./_uis
+         gh release download $RS_AGENT_VERSION \
+           --repo reversenseorg/dxc-ui-reverse \
+           --pattern 'dxc-pro-dist-*.tar.gz' \
+           --dir ./_uis
+         tar -xzvf ./_uis/dxc-pro-dist-*.tar.gz -C ./_uis/pro
+         ls -la ./_uis/pro/
+         ln -S $PWD/_uis/pro/dxc-pro-dist/ $PWD/src/webserver/www/pro
+         ln -S $PWD/_uis/pro/dxc-pro-dist/ $PWD/dist/src/webserver/www/pro
+         ls -la ./src/webserver/www/pro
+       env:
+         GH_TOKEN: ${{ github.token }}
+         RS_UI_VERSION: ${{ inputs.proui_version || '' }}
+
+     - name: Install dexcalibur-home UI
+       if: success() && (github.event_name == 'release' || github.event_name == 'workflow_dispatch')
+       run: |
+         cd ./base
+         gh release download $RS_AGENT_VERSION \
+           --repo reversenseorg/dexcalibur-home \
+           --pattern 'dxc-home-dist-*.tar.gz' \
+           --dir ./_uis
+         tar -xzvf ./_uis/dxc-home-dist-*.tar.gz -C ./_uis/home
+         ls -la ./_uis/home/
+         ln -S $PWD/_uis/home/dxc-home-dist/ $PWD/src/webserver/www/home
+         ln -S $PWD/_uis/home/dxc-home-dist/ $PWD/dist/src/webserver/www/home
+         ls -la ./_uis/home/dxc-home-dist/
+       env:
+         GH_TOKEN: ${{ github.token }}
+         RS_UI_VERSION: ${{ inputs.homeui_version || '' }}
+
+     - name: Prepare packaging
+       run: |
+         cd ./base
+         tar -czvf ../out/dxc-platform-${{ matrix.os }}.node.tar.gz --dereference dist
+         tar -czvf ../out/dxc-platform-${{ matrix.os }}.deno.tar.gz --dereference --exclude='dist' .
+
+     - name: Publish Platform artifact
+       uses: actions/upload-artifact@v4
+       with:
+         name: dxc-platform-${{ matrix.os }}.node.tar.gz
+         path: ./out/dxc-platform-${{ matrix.os }}.node.tar.gz
+         if-no-files-found: error
+         retention-days: 10
+     - name: Publish Platform artifact
+       uses: actions/upload-artifact@v4
+       with:
+         name: dxc-platform-${{ matrix.os }}.deno.tar.gz
+         path: ./out/dxc-platform-${{ matrix.os }}.deno.tar.gz
+         if-no-files-found: error
+         retention-days: 10
+
+  package:
+    name: Package
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.build.outputs.node_version }}
+      - run: npm ci
+      - run: npm run build
+
+  release_upload:
+    name: Publish release assets
+    needs: build
+    if: github.event_name == 'release' && inputs.skip_upload != true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: tarballs, path: out/ }
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO:  ${{ github.repository }}
+          RELEASE_ID: ${{ github.event.release.id }}
+        run: |
+          gh release upload "$TAG" ./out/dxc-server-linux-*.tar.gz --clobber
+
+  publish_gh:
+    name: Publish to GitHub NPM registry
+    if: false && github.event_name == 'release' && inputs.skip_registry_publish != true
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: tarballs, path: out/ }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.build.outputs.node_version }}
+      - id: github-publish
+        name: Publish to GitHub
+        env:
+          TAG: ${{ inputs.tag_name || github.event.release.tag_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          rm -f ~/.npmrc
+          echo '//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}' > ~/.npmrc
+          npm publish ./out/reversenseorg-dexcalibur-agent-${TAG#v}.tgz --registry=https://npm.pkg.github.com/
+
+  publish_npmjs:
+    name: Publish to NPMjs registry
+    if: false && github.event_name == 'release' && inputs.skip_registry_publish != true
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: tarballs, path: out/ }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.build.outputs.node_version }}
+      - name: npm >= 11.5.1
+        run: |
+          npm install -g npm@latest
+          npm --version
+      - id: npmjs-publish
+        name: Publish to npmjs.org
+        env:
+          TAG: ${{ inputs.tag_name || github.event.release.tag_name }}
+        run: |
+          npm publish ./out/reversense-dexcalibur-agent-${TAG#v}.tgz --registry=https://registry.npmjs.org/ \
+            --access public \
+            --loglevel=verbose 2>&1
+
+  notify-discord:
+    name: Discord notification
+    needs: [build,publish_gh,publish_npmjs,release_upload]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          NPMJS_RESULT: ${{ needs.publish_gh.result }}
+          GH_RESULT: ${{ needs.publish_gh.result }}
+          REL_UPLOAD: ${{ needs.release_upload.result }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          
+          echo "Build result: $BUILD_RESULT"
+          echo "NPMJS result: $NPMJS_RESULT"
+          echo "GH result: $GH_RESULT"
+          echo "Release upload result: $REL_UPLOAD"
+          
+          if [[ "$GH_RESULT" == "success" || "$NPMJS_RESULT" == "success" || "$REL_UPLOAD" == "success" ]]; then
+            STATUS="SUCCESS"; COLOR=$(( 16#2EA043 ))
+          elif [[ "$BUILD_RESULT" == "cancelled" || "$NPMJS_RESULT" == "cancelled" || "$GH_RESULT" == "cancelled" ]]; then
+            STATUS="CANCELLED"; COLOR=$(( 16#6E7681 ))
+          else
+            STATUS="FAILED"; COLOR=$(( 16#D73A49 ))
+          fi
+          
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          
+          jq -n \
+            --arg title   "Agent:build - ${GITHUB_WORKFLOW} — ${STATUS}" \
+            --arg url     "$RUN_URL" \
+            --arg branch  "$GITHUB_REF_NAME" \
+            --arg sha     "${GITHUB_SHA:0:8}" \
+            --arg actor   "$GITHUB_ACTOR" \
+            --arg msg     "$(printf '%.200s' "$COMMIT_MSG")" \
+            --argjson color "$COLOR" \
+            '{
+              username: "GitHub Actions",
+              embeds: [{
+                title: $title,
+                url: $url,
+                color: $color,
+                description: $msg,
+                fields: [
+                  {name: "Branch", value: $branch, inline: true},
+                  {name: "Commit",  value: $sha,    inline: true},
+                  {name: "Author",  value: $actor,  inline: true}
+                ],
+                timestamp: (now | todate)
+              }],
+              allowed_mentions: {parse: []}
+            }' > payload.json
+          
+          curl -sS --fail-with-body \
+               --retry 5 --retry-delay 2 --retry-all-errors \
+               -X POST \
+               -H "Content-Type: application/json" \
+               -d @payload.json \
+               "$DISCORD_WEBHOOK_URL"
+
 
