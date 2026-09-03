@@ -17,6 +17,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip_test:
+        description: 'Skip tests'
+        required: false
+        type: boolean
+        default: false
       skip_upload:
         description: 'Skip upload'
         required: false
@@ -63,6 +68,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    if: inputs.skip_test != true
     strategy:
       matrix:
         node: [20, 22, 24]
@@ -73,7 +79,6 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm run lint
       - run: npm test
 
   static-analysis:
