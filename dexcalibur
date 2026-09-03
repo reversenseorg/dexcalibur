@@ -1,12 +1,13 @@
 #!/bin/sh 
 
-NODE_OPTIONS="--max-old-space-size=4096" 
+MAX_HEAP=4096
 
 if [ $# = 2 ] && [ $1 = "--max-heap" ] && [ $2 -ge 1024 ]
 then
-    NODE_OPTIONS="--max-old-space-size="$2 
+    MAX_HEAP=$2
 fi
 
 # echo $(npm root -g dexcalibur)/dexcalibur/dexcalibur.js $@
-node $(npm root -g dexcalibur)/dexcalibur/dexcalibur.js $@
+# node $(npm root -g dexcalibur)/dexcalibur/dexcalibur.js $@
+DXC_NODE_HEAP_SZ=$MAX_HEAP node ./dist/dexcalibur.js --gui=home,pro --master-node --self-registration --self-registration-secret=$HOME/dxc_slave.key $@
 
