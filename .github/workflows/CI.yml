@@ -98,7 +98,7 @@ jobs:
 
   build:
     name: Build core for various runner
-    needs: [detect-node-version,test]
+    needs: [detect-node-version]
     runs-on: ubuntu-latest
     strategy:
       matrix:
