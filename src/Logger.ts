@@ -316,7 +316,7 @@ export function newLogger(config:any =null, override:boolean =false):TestLogger|
             };
         }
 
-        if((config!==null && config.testMode) || Process.env.DEXCALIBUR_TEST)
+        if((config!==null && config.testMode) || Process.env.DXC_TEST)
             loggerInstance = new TestLogger(config.debugMode);
         else
             loggerInstance = new ProdLogger(config.debugMode);

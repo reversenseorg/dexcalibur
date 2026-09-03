@@ -395,7 +395,7 @@ export default class Util {
     static execSync(command:string, charset:any="utf8", opts:any=null, pThreadPrefix=""):string{
         let ret:string;
         
-        if(process.env.DEXCALIBUR_TEST){
+        if(process.env.DXC_TEST){
             ret = TestExecHelper.execSync(command);
         }else{
             Logger.debug(pThreadPrefix+"[UTIL] execSync : "+command);
@@ -419,7 +419,7 @@ export default class Util {
     static async  execAsync(command:string):Promise<any>{
         let ret:Promise<any>;
 
-        if(process.env.DEXCALIBUR_TEST){
+        if(process.env.DXC_TEST){
             Logger.info("[UTIL] execAsync <TEST>in : "+command);
             ret = await TestExecHelperClass.getInstance().execAsync(command);
             Logger.info("[UTIL] execAsync <TEST>out : "+ret);
@@ -434,7 +434,7 @@ export default class Util {
     static spawn(pCmd:string, pArgs:any=[], pOptions:any={}):_child_process_.ChildProcess{
         let ret:any;
 
-        if(process.env.DEXCALIBUR_TEST){
+        if(process.env.DXC_TEST){
             ret = TestExecHelper.spawn(pCmd);
         }else{
             Logger.info("[UTIL] spawn : "+pCmd);
