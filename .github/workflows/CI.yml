@@ -198,7 +198,7 @@ jobs:
          mkdir ./src/webserver/www ./dist/src/webserver/www
          ln -s ./_uis/pro/dist/dxc-ui-reverse ./src/webserver/www/pro
          ln -s ./_uis/pro/dist/dxc-ui-reverse ./dist/src/webserver/www/pro
-         ls -la ./src/webserver/www/pro
+         rm -r ./_uis/pro/dist/dxc-ui-reverse
        env:
          GH_TOKEN: ${{ github.token }}
          RS_UI_VERSION: ${{ inputs.proui_version || '' }}
@@ -214,9 +214,9 @@ jobs:
          mkdir -p ./_uis/home
          tar -xzvf ./_uis/dxc-home-dist-${{ inputs.homeui_version || '' }}.tar.gz -C ./_uis/home
          echo "./_uis/home/ content:"
-         ln -s ./_uis/home/dist/dexcalibur-home ./src/webserver/www/home
-         ln -s ./_uis/home/dist/dexcalibur-home ./dist/src/webserver/www/home
-         ls -la ./_uis/home/dist/dexcalibur-home
+         cp -r ./_uis/home/dist/dexcalibur-home ./src/webserver/www/home
+         cp -r ./_uis/home/dist/dexcalibur-home ./dist/src/webserver/www/home
+         rm -r ./_uis/home/dist/dexcalibur-home
        env:
          GH_TOKEN: ${{ github.token }}
          RS_UI_VERSION: ${{ inputs.homeui_version || '' }}
