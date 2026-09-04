@@ -176,9 +176,10 @@ jobs:
            --pattern 'dxc-agent-dist-${{ inputs.agent_version || 'latest' }}.tar.gz' \
            --dir ./_agent
          tar -xzvf ./_agent/dxc-agent-dist-${{ inputs.agent_version || 'latest' }}.tar.gz -C ./_agent
-         ls -la ./_agent/generic
-         ln -s $PWD/_agent/generic/ $PWD/agent
-         ln -s $PWD/_agent/generic/ $PWD/dist/agent
+         echo "./_agent/"
+         ls -la ./_agent/
+         ln -s $PWD/_agent/ $PWD/agent
+         ln -s $PWD/_agent/ $PWD/dist/agent
        env:
          GH_TOKEN: ${{ github.token }}
 
@@ -224,8 +225,8 @@ jobs:
      - name: Prepare packaging
        run: |
          cd ./base
-         tar -czvf ../out/dxc-platform-${{ matrix.os }}.node.tar.gz --dereference dist
-         tar -czvf ../out/dxc-platform-${{ matrix.os }}.deno.tar.gz --dereference --exclude='dist' .
+         tar -czvf ../out/dxc-platform-${{ matrix.os }}.node.tar.gz --anchored --exclude='_*' --dereference dist
+         tar -czvf ../out/dxc-platform-${{ matrix.os }}.deno.tar.gz --dereference --anchored --exclude='dist' --exclude='_*' .
 
      - name: Publish Platform artifact
        uses: actions/upload-artifact@v4
