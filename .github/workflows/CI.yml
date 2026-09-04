@@ -178,8 +178,8 @@ jobs:
          tar -xzvf ./_agent/dxc-agent-dist-${{ inputs.agent_version || 'latest' }}.tar.gz -C ./_agent
          echo "./_agent/"
          ls -la ./_agent/
-         ln -s $PWD/_agent/ $PWD/agent
-         ln -s $PWD/_agent/ $PWD/dist/agent
+         cp -r ./_agent/ ./agent
+         cp -r ./_agent/ ./dist/agent
        env:
          GH_TOKEN: ${{ github.token }}
 
@@ -196,8 +196,8 @@ jobs:
          tar -xzvf ./_uis/dxc-pro-dist-${{ inputs.proui_version || '' }}.tar.gz -C ./_uis/pro
          echo "create links:"
          mkdir ./src/webserver/www ./dist/src/webserver/www
-         ln -s ./_uis/pro/dist/dxc-ui-reverse ./src/webserver/www/pro
-         ln -s ./_uis/pro/dist/dxc-ui-reverse ./dist/src/webserver/www/pro
+         cp -r ./_uis/pro/dist/dxc-ui-reverse ./src/webserver/www/pro
+         cp -r ./_uis/pro/dist/dxc-ui-reverse ./dist/src/webserver/www/pro
          rm -r ./_uis/pro/dist/dxc-ui-reverse
        env:
          GH_TOKEN: ${{ github.token }}
@@ -224,9 +224,9 @@ jobs:
      - name: Prepare packaging
        run: |
          cd ./base
-         tar -czf ../out/dxc-platform-${{ matrix.os }}.deno.tar.gz --dereference --anchored --exclude='dist' --exclude='_*' .
+         tar -czf ../out/dxc-platform-linux.deno.tar.gz --dereference --anchored --exclude='dist' --exclude='_*' .
          cd ./dist
-         tar -czf ../../out/dxc-platform-${{ matrix.os }}.node.tar.gz --anchored --exclude='_*' --dereference .
+         tar -czf ../../out/dxc-platform-linux.node.tar.gz --anchored --exclude='_*' --dereference .
 
      - name: Publish Platform artifact
        uses: actions/upload-artifact@v4
