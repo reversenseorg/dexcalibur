@@ -214,10 +214,9 @@ jobs:
          mkdir -p ./_uis/home
          tar -xzvf ./_uis/dxc-home-dist-${{ inputs.homeui_version || '' }}.tar.gz -C ./_uis/home
          echo "./_uis/home/ content:"
-         ls -la ./_uis/home/
-         ln -s ./_uis/home/dxc-home-dist/ ./src/webserver/www/home
-         ln -s ./_uis/home/dxc-home-dist/ ./dist/src/webserver/www/home
-         ls -la ./_uis/home/dxc-home-dist/
+         ln -s ./_uis/home/dist/dexcalibur-home ./src/webserver/www/home
+         ln -s ./_uis/home/dist/dexcalibur-home ./dist/src/webserver/www/home
+         ls -la ./_uis/home/dist/dexcalibur-home
        env:
          GH_TOKEN: ${{ github.token }}
          RS_UI_VERSION: ${{ inputs.homeui_version || '' }}
