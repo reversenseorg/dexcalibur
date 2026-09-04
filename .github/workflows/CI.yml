@@ -60,11 +60,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       node_version: ${{ steps.nvmrc.outputs.version }}
+      node_version_major: ${{ steps.nvmrc.outputs.version_major }}
     steps:
       - uses: actions/checkout@v4
       - id: nvmrc
         run: |
-          echo "version=$(cat .nvmrc | cut -b2-)" >> "$GITHUB_OUTPUT"
+          echo "version=$(cat .nvmrc | cut -b2-)\nversion_major=$(cat .nvmrc | cut -b2-4)" >> "$GITHUB_OUTPUT"
 
   test:
     runs-on: ubuntu-latest
@@ -103,7 +104,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        node: ${{ needs.detect-node-version.outputs.node_version }}
+        node: [ ${{ needs.detect-node-version.outputs.node_version_major }} ]
     steps:
      - name: Install git (checkout prerequisite)
        run: mkdir code
