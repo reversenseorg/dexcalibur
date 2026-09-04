@@ -170,16 +170,16 @@ jobs:
        if: success() && (github.event_name == 'release' || github.event_name == 'workflow_dispatch')
        run: |
          cd ./base
-         mkdir -p ./_agent
+         mkdir -p ./_agent/agent
          gh release download ${{ inputs.agent_version || '' }} \
            --repo reversenseorg/dexcalibur-agent \
            --pattern 'dxc-agent-dist-${{ inputs.agent_version || 'latest' }}.tar.gz' \
            --dir ./_agent
-         ls -la ./_agent/
+         ls -l ./_agent/
          tar -xzvf ./_agent/dxc-agent-dist-${{ inputs.agent_version || 'latest' }}.tar.gz -C ./_agent/agent
          ls -la ./_agent/agent
-         ln -S $PWD/_agent/agent/ $PWD/agent
-         ln -S $PWD/_agent/agent/ $PWD/dist/agent
+         ln -s $PWD/_agent/agent/ $PWD/agent
+         ln -s $PWD/_agent/agent/ $PWD/dist/agent
        env:
          GH_TOKEN: ${{ github.token }}
 
@@ -195,8 +195,8 @@ jobs:
          ls -la ./_uis/
          tar -xzvf ./_uis/dxc-pro-dist-*.tar.gz -C ./_uis/pro
          ls -la ./_uis/pro/
-         ln -S $PWD/_uis/pro/dxc-pro-dist/ $PWD/src/webserver/www/pro
-         ln -S $PWD/_uis/pro/dxc-pro-dist/ $PWD/dist/src/webserver/www/pro
+         ln -s $PWD/_uis/pro/dxc-pro-dist/ $PWD/src/webserver/www/pro
+         ln -s $PWD/_uis/pro/dxc-pro-dist/ $PWD/dist/src/webserver/www/pro
          ls -la ./src/webserver/www/pro
        env:
          GH_TOKEN: ${{ github.token }}
@@ -213,8 +213,8 @@ jobs:
          ls -la ./_uis/
          tar -xzvf ./_uis/dxc-home-dist-*.tar.gz -C ./_uis/home
          ls -la ./_uis/home/
-         ln -S $PWD/_uis/home/dxc-home-dist/ $PWD/src/webserver/www/home
-         ln -S $PWD/_uis/home/dxc-home-dist/ $PWD/dist/src/webserver/www/home
+         ln -s $PWD/_uis/home/dxc-home-dist/ $PWD/src/webserver/www/home
+         ln -s $PWD/_uis/home/dxc-home-dist/ $PWD/dist/src/webserver/www/home
          ls -la ./_uis/home/dxc-home-dist/
        env:
          GH_TOKEN: ${{ github.token }}
