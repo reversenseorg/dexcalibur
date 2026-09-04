@@ -48,7 +48,6 @@ on:
         type: string
         default: '1.3.4'
 
-
 concurrency:
   group: build-dxc-pro-${{ github.ref }}
   cancel-in-progress: false
@@ -57,6 +56,7 @@ permissions:
   contents: write
 
 env:
+  TAG: ${{ inputs.tag_name || github.event.release.tag_name }}
   DXC_RELEASE_ID: "1.8.0"
   GH_WORKFLOW: 1
 
@@ -254,7 +254,7 @@ jobs:
   release_upload:
     name: Publish release assets
     needs: build
-    if: github.event_name == 'release' && inputs.skip_upload != true
+    if: success() && (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && inputs.skip_upload != true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -268,7 +268,7 @@ jobs:
           GH_REPO:  ${{ github.repository }}
           RELEASE_ID: ${{ github.event.release.id }}
         run: |
-          gh release upload "$TAG" ./out/dxc-server-linux-*.tar.gz --clobber
+          gh release upload "$TAG" ./out/dxc-*-ubuntu-latest.tar.gz --clobber
 
   publish_gh:
     name: Publish to GitHub NPM registry
@@ -287,7 +287,6 @@ jobs:
       - id: github-publish
         name: Publish to GitHub
         env:
-          TAG: ${{ inputs.tag_name || github.event.release.tag_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           rm -f ~/.npmrc
@@ -315,8 +314,6 @@ jobs:
           npm --version
       - id: npmjs-publish
         name: Publish to npmjs.org
-        env:
-          TAG: ${{ inputs.tag_name || github.event.release.tag_name }}
         run: |
           npm publish ./out/reversense-dexcalibur-agent-${TAG#v}.tgz --registry=https://registry.npmjs.org/ \
             --access public \
