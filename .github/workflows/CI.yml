@@ -33,15 +33,21 @@ on:
         type: boolean
         default: true
       proui_version:
-        description: 'Pro UI version to use. Default: latest'
+        description: 'Pro UI version to use. Lets empty to use the latest. Default: 1.8.0'
         required: false
         type: string
         default: '1.8.0'
       homeui_version:
-        description: 'Home UI version to use. Default: latest'
+        description: 'Home UI version to use. Lets empty to use the latest. Default: 15.13.7'
         required: false
         type: string
         default: '15.13.7'
+      agent_version:
+        description: 'Dexcalibur SDK (agent) version to use. Lets empty to use the latest. Default: 1.3.4'
+        required: false
+        type: string
+        default: '1.3.4'
+
 
 concurrency:
   group: build-dxc-pro-${{ github.ref }}
@@ -167,10 +173,10 @@ jobs:
          mkdir -p ./_agent
          gh release download ${{ inputs.agent_version || '' }} \
            --repo reversenseorg/dexcalibur-agent \
-           --pattern 'dxc-agent-dist-*.tar.gz' \
+           --pattern 'dxc-agent-dist-${{ inputs.agent_version || 'latest' }}.tar.gz' \
            --dir ./_agent
-         tar -xzvf ./_agent/dxc-agent-dist-*.tar.gz -C ./_agent/agent
          ls -la ./_agent/
+         tar -xzvf ./_agent/dxc-agent-dist-${{ inputs.agent_version || 'latest' }}.tar.gz -C ./_agent/agent
          ls -la ./_agent/agent
          ln -S $PWD/_agent/agent/ $PWD/agent
          ln -S $PWD/_agent/agent/ $PWD/dist/agent
@@ -186,6 +192,7 @@ jobs:
            --repo reversenseorg/dxc-ui-reverse \
            --pattern 'dxc-pro-dist-*.tar.gz' \
            --dir ./_uis
+         ls -la ./_uis/
          tar -xzvf ./_uis/dxc-pro-dist-*.tar.gz -C ./_uis/pro
          ls -la ./_uis/pro/
          ln -S $PWD/_uis/pro/dxc-pro-dist/ $PWD/src/webserver/www/pro
@@ -203,6 +210,7 @@ jobs:
            --repo reversenseorg/dexcalibur-home \
            --pattern 'dxc-home-dist-*.tar.gz' \
            --dir ./_uis
+         ls -la ./_uis/
          tar -xzvf ./_uis/dxc-home-dist-*.tar.gz -C ./_uis/home
          ls -la ./_uis/home/
          ln -S $PWD/_uis/home/dxc-home-dist/ $PWD/src/webserver/www/home
