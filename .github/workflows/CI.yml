@@ -105,13 +105,13 @@ jobs:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
 
   build:
-    name: Build core for various runner
+    name: Build core for various runners
     needs: [detect-node-version]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
-        node: [ ${{ needs.detect-node-version.outputs.node_version_major }} ]
+        node:
+          - ${{ needs.detect-node-version.outputs.node_version_major }}
     steps:
      - name: Install git (checkout prerequisite)
        run: mkdir code
