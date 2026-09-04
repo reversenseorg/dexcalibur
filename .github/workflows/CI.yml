@@ -113,11 +113,12 @@ jobs:
   build:
     name: Build core for various runners
     needs: [detect-node-version]
-    runs-on: ubuntu-latest
     strategy:
       matrix:
+        os: [ubuntu-latest]
         node:
           - ${{ needs.detect-node-version.outputs.node_version_major }}
+    runs-on: ${{ matrix.os }}
     steps:
      - name: Install git (checkout prerequisite)
        run: mkdir code
@@ -224,9 +225,9 @@ jobs:
      - name: Prepare packaging
        run: |
          cd ./base
-         tar -czf ../out/dxc-platform-linux.deno.tar.gz --dereference --anchored --exclude='dist' --exclude='_*' .
+         tar -czf ../out/dxc-platform-${{ matrix.os }}.deno.tar.gz --dereference --anchored --exclude='dist' --exclude='_*' .
          cd ./dist
-         tar -czf ../../out/dxc-platform-linux.node.tar.gz --anchored --exclude='_*' --dereference .
+         tar -czf ../../out/dxc-platform-${{ matrix.os }}.node.tar.gz --anchored --exclude='_*' --dereference .
 
      - name: Publish Platform artifact
        uses: actions/upload-artifact@v4
@@ -243,17 +244,7 @@ jobs:
          if-no-files-found: error
          retention-days: 10
 
-  package:
-    name: Package
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ needs.build.outputs.node_version }}
-      - run: npm ci
-      - run: npm run build
+
 
   release_upload:
     name: Publish release assets
