@@ -103,9 +103,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        node: [ 24 ]
-    container:
-      image: node:${{ needs.detect-node-version.outputs.node_version }}-slim
+        node: ${{ needs.detect-node-version.outputs.node_version }}
     steps:
      - name: Install git (checkout prerequisite)
        run: mkdir code
