@@ -192,21 +192,10 @@ jobs:
            --repo reversenseorg/dxc-ui-reverse \
            --pattern 'dxc-pro-dist-${{ inputs.proui_version || '' }}.tar.gz' \
            --dir ./_uis
-         ls -la ./_uis/
          mkdir -p ./_uis/pro
          tar -xzvf ./_uis/dxc-pro-dist-${{ inputs.proui_version || '' }}.tar.gz -C ./_uis/pro
-         echo "extracted:"
-         ls -la ./_uis/pro/dist/dxc-ui-reverse/
-         echo "webserver ."
-         ls -la .
-         echo "webserver ./src:"
-         ls -la ./src
-         echo "webserver ./src/webserver/:"
-         ls -la ./src/webserver/
-         echo "webserver root dest:"
-         ls -la ./dist/src/webserver/www
-         ls -la ./dist/src/webserver/www/pro
          echo "create links:"
+         mkdir ./src/webserver/www ./dist/src/webserver/www
          ln -s ./_uis/pro/dist/dxc-ui-reverse ./src/webserver/www/pro
          ln -s ./_uis/pro/dist/dxc-ui-reverse ./dist/src/webserver/www/pro
          ls -la ./src/webserver/www/pro
@@ -222,7 +211,6 @@ jobs:
            --repo reversenseorg/dexcalibur-home \
            --pattern 'dxc-home-dist-${{ inputs.homeui_version || '' }}.tar.gz' \
            --dir ./_uis
-         ls -la ./_uis/
          mkdir -p ./_uis/home
          tar -xzvf ./_uis/dxc-home-dist-${{ inputs.homeui_version || '' }}.tar.gz -C ./_uis/home
          echo "./_uis/home/ content:"
