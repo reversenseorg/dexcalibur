@@ -156,16 +156,18 @@ jobs:
        with:
         name: dxc-server-${{ matrix.os }}-deno.tar.gz
         path: ./out/dxc-server-${{ matrix.os }}.deno.tar.gz
+        compression-level: 0
         if-no-files-found: error
-        retention-days: 30
+        retention-days: 10
 
      - name: Publish Node artifact
        uses: actions/upload-artifact@v4
        with:
          name: dxc-server-${{ matrix.os }}-node.tar.gz
          path: ./out/dxc-server-${{ matrix.os }}.node.tar.gz
+         compression-level: 0
          if-no-files-found: error
-         retention-days: 30
+         retention-days: 10
 
      - name: Install reversense agent
        if: success() && (github.event_name == 'release' || github.event_name == 'workflow_dispatch')
@@ -229,18 +231,21 @@ jobs:
          cd ./dist
          tar -czf ../../out/dxc-platform-${{ matrix.os }}.node.tar.gz --anchored --exclude='_*' --dereference .
 
-     - name: Publish Platform artifact
+     - name: Publish Platform Node artifact
        uses: actions/upload-artifact@v4
        with:
          name: dxc-platform-${{ matrix.os }}.node.tar.gz
          path: ./out/dxc-platform-${{ matrix.os }}.node.tar.gz
+         compression-level: 0
          if-no-files-found: error
          retention-days: 10
-     - name: Publish Platform artifact
+
+     - name: Publish Platform Deno artifact
        uses: actions/upload-artifact@v4
        with:
          name: dxc-platform-${{ matrix.os }}.deno.tar.gz
          path: ./out/dxc-platform-${{ matrix.os }}.deno.tar.gz
+         compression-level: 0
          if-no-files-found: error
          retention-days: 10
 
