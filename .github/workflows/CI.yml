@@ -188,16 +188,25 @@ jobs:
        run: |
          cd ./base
          mkdir -p ./_uis
-         gh release download $RS_AGENT_VERSION \
+         gh release download ${{ inputs.proui_version || '' }}  \
            --repo reversenseorg/dxc-ui-reverse \
-           --pattern 'dxc-pro-dist-*.tar.gz' \
+           --pattern 'dxc-pro-dist-${{ inputs.proui_version || '' }}.tar.gz' \
            --dir ./_uis
          ls -la ./_uis/
          mkdir -p ./_uis/pro
-         tar -xzvf ./_uis/dxc-pro-dist-*.tar.gz -C ./_uis/pro
-         ls -la ./_uis/pro/
-         ln -s $PWD/_uis/pro/dxc-pro-dist/ $PWD/src/webserver/www/pro
-         ln -s $PWD/_uis/pro/dxc-pro-dist/ $PWD/dist/src/webserver/www/pro
+         tar -xzvf ./_uis/dxc-pro-dist-${{ inputs.proui_version || '' }}.tar.gz -C ./_uis/pro
+         echo "extracted:"
+         ls -la ./_uis/pro/*
+         echo "webserver root:"
+         ls -la ./_uis/pro/dist/dxc-ui-reverse/
+         echo "webserver src:"
+         ls -la $PWD/src/webserver/www/pro
+         echo "webserver root dest:"
+         ls -la $PWD/dist/src/webserver/www
+         ls -la $PWD/dist/src/webserver/www/pro
+         echo "create links:"
+         ln -s $PWD/_uis/pro/dist/dxc-ui-reverse/ $PWD/src/webserver/www/pro
+         ln -s $PWD/_uis/pro/dist/dxc-ui-reverse/ $PWD/dist/src/webserver/www/pro
          ls -la ./src/webserver/www/pro
        env:
          GH_TOKEN: ${{ github.token }}
@@ -207,13 +216,14 @@ jobs:
        if: success() && (github.event_name == 'release' || github.event_name == 'workflow_dispatch')
        run: |
          cd ./base
-         gh release download $RS_AGENT_VERSION \
+         gh release download ${{ inputs.homeui_version || '' }} \
            --repo reversenseorg/dexcalibur-home \
-           --pattern 'dxc-home-dist-*.tar.gz' \
+           --pattern 'dxc-home-dist-${{ inputs.homeui_version || '' }}.tar.gz' \
            --dir ./_uis
          ls -la ./_uis/
          mkdir -p ./_uis/home
-         tar -xzvf ./_uis/dxc-home-dist-*.tar.gz -C ./_uis/home
+         tar -xzvf ./_uis/dxc-home-dist-${{ inputs.homeui_version || '' }}.tar.gz -C ./_uis/home
+         echo "./_uis/home/ content:"
          ls -la ./_uis/home/
          ln -s $PWD/_uis/home/dxc-home-dist/ $PWD/src/webserver/www/home
          ln -s $PWD/_uis/home/dxc-home-dist/ $PWD/dist/src/webserver/www/home
