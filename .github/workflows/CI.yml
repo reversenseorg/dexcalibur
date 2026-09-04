@@ -196,17 +196,15 @@ jobs:
          mkdir -p ./_uis/pro
          tar -xzvf ./_uis/dxc-pro-dist-${{ inputs.proui_version || '' }}.tar.gz -C ./_uis/pro
          echo "extracted:"
-         ls -la ./_uis/pro/*
-         echo "webserver root:"
          ls -la ./_uis/pro/dist/dxc-ui-reverse/
          echo "webserver src:"
-         ls -la $PWD/src/webserver/www/pro
+         ls -la ./src/webserver/www/pro
          echo "webserver root dest:"
-         ls -la $PWD/dist/src/webserver/www
-         ls -la $PWD/dist/src/webserver/www/pro
+         ls -la ./dist/src/webserver/www
+         ls -la ./dist/src/webserver/www/pro
          echo "create links:"
-         ln -s $PWD/_uis/pro/dist/dxc-ui-reverse/ $PWD/src/webserver/www/pro
-         ln -s $PWD/_uis/pro/dist/dxc-ui-reverse/ $PWD/dist/src/webserver/www/pro
+         ln -s ./_uis/pro/dist/dxc-ui-reverse ./src/webserver/www/pro
+         ln -s ./_uis/pro/dist/dxc-ui-reverse ./dist/src/webserver/www/pro
          ls -la ./src/webserver/www/pro
        env:
          GH_TOKEN: ${{ github.token }}
