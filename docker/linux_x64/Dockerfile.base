@@ -3,7 +3,7 @@
 # Version: 1.0.0
 # ================================================================
 
-FROM openjdk:18-jdk-slim
+FROM eclipse-temurin:21-jdk-jammy
 
 LABEL maintainer="georges.michel@reversense.com"
 LABEL description="dexcalibur base image with all third-party dependencies for Reversense project"
@@ -14,7 +14,7 @@ LABEL version="1.0.0"
 # ===============================
 ARG user_server="dexcalibur-bin"
 ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
-ARG NODE_MAJOR="18"
+ARG NODE_MAJOR="24"
 
 # ===============================
 # Environment Variables - Versions
