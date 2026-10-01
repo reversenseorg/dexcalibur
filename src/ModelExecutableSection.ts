@@ -91,7 +91,7 @@ export default class ModelExecutableSection {
         return this.vaddr;
     }
     getPhysAddr():number {
-        return this.vaddr;
+        return this.paddr;
     }
     getPermissions():string {
         return this.perm;
