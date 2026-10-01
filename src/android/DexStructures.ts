@@ -1089,13 +1089,22 @@ export namespace DexStructures {
                     }
                     break;
 
+                case '22b': { // vAA, vBB, #+CC
+                    insn.operands.push({ type: 'register', value: (codeUnit >> 8) & 0xFF });
+                    if (offset + 1 < bytecode.length) {
+                        const next = bytecode[offset + 1];
+                        insn.operands.push({ type: 'register', value: next & 0xFF });
+                        insn.operands.push(((next >> 8) & 0xFF) << 24 >> 24);
+                    }
+                    break;
+                }
+
                 case '22c': // vA, vB, field@CCCC | type@CCCC
                 case '22s': // vA, vB, #+CCCC
                 case '22t': // vA, vB, +CCCC
-                case '22b': // vAA, vBB, #+CC
                     insn.operands.push({ type: 'register', value: (codeUnit >> 8) & 0x0F });
                     insn.operands.push({ type: 'register', value: (codeUnit >> 12) & 0x0F });
-                    if (offset + 1 < bytecode.length && format !== '22b') {
+                    if (offset + 1 < bytecode.length) {
                         const value = bytecode[offset + 1];
                         if (format === '22c') {
                             insn.operands.push({ type: 'field', value });
@@ -1104,8 +1113,6 @@ export namespace DexStructures {
                         } else {
                             insn.operands.push(value);
                         }
-                    } else if (format === '22b') {
-                        insn.operands.push((codeUnit >> 8) & 0xFF);
                     }
                     break;
 
