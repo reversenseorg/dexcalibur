@@ -167,11 +167,18 @@ export class TypeManager {
             return existing;
         }
 
+        const nodeRef = nodeManager.findByDescriptor(pDescriptor) ?? nodeManager.createStub(pDescriptor);
+        if (existing instanceof ClassRefType) {
+            const resolved = existing.withNodeRef(nodeRef);
+            this._types.get(id)!.canonical = resolved;
+            return resolved;
+        }
+
         const resolved = new ClassRefType(
             pDescriptor,
             pOrigin,
             32,
-            nodeManager.findByDescriptor(pDescriptor) ?? nodeManager.createStub(pDescriptor)
+            nodeRef
         );
         return this.register(resolved) as ClassRefType;
     }
