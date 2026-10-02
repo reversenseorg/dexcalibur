@@ -94,7 +94,7 @@ export class UrlParser {
 
     static fastparse (str) {
         if (typeof str !== 'string' || str.charCodeAt(0) !== 0x2f /* / */) {
-            return url.parse(str)
+            return parse(str)
         }
 
         var pathname = str
@@ -121,13 +121,11 @@ export class UrlParser {
                 case 0x23: /* #  */
                 case 0xa0:
                 case 0xfeff:
-                    return url.parse(str)
+                    return parse(str)
             }
         }
 
-        var url = url.Url !== undefined
-            ? new url.Url()
-            : {}
+        var url = parse('')
 
         url.path = str
         url.href = str
