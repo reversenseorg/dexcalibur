@@ -380,9 +380,13 @@ export class EngineNodeManager {
             start+=2;
         }else{
             start = this.portRange[0];
-            while(portSlices.indexOf(start)>-1 && portSlices.indexOf(start+1)>-1){
+            while(portSlices.indexOf(start)>-1 || portSlices.indexOf(start+1)>-1){
                 start+=2;
             }
+        }
+
+        if(start+1>this.portRange[1]){
+            throw EngineNodeException.MAX_PORT_REACHED();
         }
 
         return {
