@@ -435,6 +435,13 @@ export namespace Smali {
         ): {kind:"constant"|"null"|"undefined", value?:any } {
             const trimmed = valueStr.trim();
 
+            if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                return {
+                    kind: 'constant',
+                    value: trimmed.slice(1, -1)
+                };
+            }
+
             if (trimmed === 'null') {
                 return { kind: 'null' };
             }
@@ -465,13 +472,6 @@ export namespace Smali {
                 return {
                     kind: 'constant',
                     value: parseInt(numStr, 10)
-                };
-            }
-
-            if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-                return {
-                    kind: 'constant',
-                    value: trimmed.slice(1, -1)
                 };
             }
 
