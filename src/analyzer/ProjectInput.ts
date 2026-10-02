@@ -81,7 +81,7 @@ export class ProjectInputViewer {
 
     static printList(pProjectInput:IProjectInput[]){
         let s = "";
-        pProjectInput.map(x => s+"\n"+ProjectInputViewer.print(x));
+        pProjectInput.forEach(x => s += "\n"+ProjectInputViewer.print(x));
         return s;
     }
 }
