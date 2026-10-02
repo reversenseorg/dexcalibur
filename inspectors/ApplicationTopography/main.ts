@@ -504,7 +504,7 @@ export default new InspectorFactory({
             try{
                 cls = getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
             
-                if ((cls != null) && (cls.__===${NodeInternalType.CLASS}) {
+                if ((cls != null) && (cls.__===${NodeInternalType.CLASS})) {
                     pEvent.data.obj.setImplementedBy(cls);
                     switch (pEvent.data.obj.type){
                         case "activity":
@@ -570,7 +570,7 @@ export default new InspectorFactory({
             pEvent.getContext().trigger({
                 type: "app.component.save",
                 data: {
-                    fresh: true
+                    fresh: true,
                     obj: cmp,
                     cls: cls
                 }
