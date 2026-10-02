@@ -48,7 +48,7 @@ var ViewGroupInspector:InspectorFactory = new InspectorFactory({
                 //<psh>={
                 let DUMPVIEW_MINIMUM_TIME_DIFF = 500;
                 if (DXC.mods.last_dumpView == null) {
-                  DXC.mods = {last_dumpView:0}
+                  DXC.mods.last_dumpView = 0;
                 }
                 let start_time = new Date().getTime();
                 if (start_time - DXC.mods.last_dumpView > DUMPVIEW_MINIMUM_TIME_DIFF) {
@@ -61,7 +61,7 @@ var ViewGroupInspector:InspectorFactory = new InspectorFactory({
                       "@@__FRAG_ID__@@",
                       eventData
                   );
-                  DXC.mods.last._dumpView = end_time;
+                  DXC.mods.last_dumpView = end_time;
                 } 
             `
         },
