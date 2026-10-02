@@ -42,7 +42,7 @@ export class KeyPointManagerException extends MonitoredError {
 
     static INVALID_DB = ()=>{ return new KeyPointManagerException(" The database cannot be null",KeyPointManagerException.ERR.INVALID_DB) };
     static UNKNOW_KEYPOINT = (uid)=>{ return new KeyPointManagerException(" There is not key point with UID : "+uid,KeyPointManagerException.ERR.UNKNOW_KEYPOINT) };
-    static INVALID_KEYPOINT_PPT = (ppt)=>{ return new KeyPointManagerException(" The key point has not property : "+ppt,KeyPointManagerException.ERR.UNKNOW_KEYPOINT) };
+    static INVALID_KEYPOINT_PPT = (ppt)=>{ return new KeyPointManagerException(" The key point has not property : "+ppt,KeyPointManagerException.ERR.INVALID_KEYPOINT_PPT) };
     static INVALID_TARGET_NODE = (node:INode)=>{ return new KeyPointManagerException(" The target of the key point is not found : type="+NodeInternalTypeName[node.__]+", uid="+node.getUID(),KeyPointManagerException.ERR.INVALID_TARGET_NODE) };
     static UNKNOW_TOKEN = (token)=>{ return new KeyPointManagerException(" No key points found by token : token="+token,KeyPointManagerException.ERR.UNKNOW_TOKEN) };
     static GENERATOR_ERROR_NO_NODE = (name)=>{ return new KeyPointManagerException(" [KEY POINT GENERATOR]  Code of Key Point cannot be generated, no node specified : keypoint="+name,KeyPointManagerException.ERR.GENERATOR_ERROR_NO_NODE) };
