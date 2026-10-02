@@ -34,7 +34,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export default class ScreenshotSession {
     uid:string = null;
     deviceID: string;
-    screenshots: Screenshot[];
+    screenshots: Screenshot[] = [];
 
     private _deviceBridge: IBridge;
 

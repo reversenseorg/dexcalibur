@@ -24,7 +24,7 @@ import InputSubsystem from "./InputSubsystem.js";
 
 export default class PhysicalEventChannel {
 
-    records: EventRecordSession[];
+    records: EventRecordSession[] = [];
     subsystemType: InputSubsystem;
 
     constructor( pConfig:any = null) {
