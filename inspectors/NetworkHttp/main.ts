@@ -266,8 +266,8 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 console.log(eventData['possibleStringLabel'] + ':', eventData['stringTested']);
                 var networkPathTag = ctx.getTagManager().getTag('network.data.pathName');
                 
-                finderResult = ctx.find.strings("value:" + eventData['stringTested']);
-                if (finderResult.count() > 1) {
+                const finderResult = ctx.find.strings("value:" + eventData['stringTested']);
+                if (finderResult.count() > 0) {
                     finderResult.foreach(
                     (pOffset:number,pData:ModelStringValue) => {
                         if(!pData.hasTag(networkPathTag)){
@@ -300,18 +300,13 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 });
             }
                 
-                pEvent.getContext().trigger( {
-                    type: "hypothesis.retrofit.requestFactory.validatePathName",
-                    data: eventData
-                });
-            }
             `
         },
         "hook.javaRegexMatcher.find": {
             lang: "ts",
             source: `
             //<ts>={
-            const PARAM_URL_REGEX = "\\{([a-zA-Z][a-zA-Z0-9_-]*)\\}";
+            const PARAM_URL_REGEX = "\\\\{([a-zA-Z][a-zA-Z0-9_-]*)\\\\}";
             let ctx: Record<string,any> = pEvent.getContext();
             if (pEvent.getData().data?.regex === PARAM_URL_REGEX) {
                 console.log("[INSPECTOR][NETWORKHTTP] Regex match the one use in Retrofit." +
@@ -323,8 +318,8 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 console.log(eventData['possibleStringLabel'] + ':', eventData['stringTested']);
                 var networkPathTag = ctx.getTagManager().getTag('network.data.pathName');
                 
-                finderResult = ctx.find.strings("value:" + eventData['stringTested']);
-                if (finderResult.count() > 1) {
+                const finderResult = ctx.find.strings("value:" + eventData['stringTested']);
+                if (finderResult.count() > 0) {
                     finderResult.foreach(
                     (pOffset:number,pData:ModelStringValue) => {
                         if(!pData.hasTag(networkPathTag)){
