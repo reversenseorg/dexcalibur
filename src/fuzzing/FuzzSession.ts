@@ -143,7 +143,7 @@ export default class FuzzSession implements INode
 
     generators: Record<string, IFuzzGenerator> = {};
 
-    inputValuesQueue: FuzzInputValueDict[];
+    inputValuesQueue: FuzzInputValueDict[] = [];
 
     resolvers: Record<string, IFuzzResolver> = {};
 
@@ -331,10 +331,11 @@ export default class FuzzSession implements INode
      * @param pEvent FuzzingEvent.STEP_END, FuzzingEvent.STEP_START, FuzzingEvent.STEP_CRASH,
      */
     resolveEvent(pEvent:BusEvent<IFuzzingEvent>){
-        let testCase = this.testCases[-1];
+        let testCase = this.testCases[this.testCases.length - 1];
         if (pEvent.getData().tcid) {
             testCase = this.testCases.find(tc=>tc.getUID() == pEvent.getData().tcid);
         }
+        if(testCase==null) return null;
         let resolver = this.findResolverForEvent(pEvent);
         if(resolver==null) {return null;}
         let res = resolver.process(testCase, pEvent);

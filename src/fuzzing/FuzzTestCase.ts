@@ -67,6 +67,7 @@ export default class FuzzTestCase {
             for (let i in pOptions) {
                 this[i] = pOptions[i];
             }
+            this.uid = pOptions.id;
         }
     }
 
