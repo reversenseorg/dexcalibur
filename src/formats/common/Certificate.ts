@@ -55,7 +55,10 @@ export default class Certificate {
     static fromJsonObject( pObj:any) :Certificate {
         let cert:Certificate;
         if(pObj._raw != null){
-            cert = Certificate.fromX509(pObj._raw);
+            const format = typeof pObj._raw === 'string' && pObj._raw.startsWith('-----BEGIN CERTIFICATE-----')
+                ? CertificateFormat.PEM : CertificateFormat.DER;
+            cert = Certificate.fromX509(pObj._raw, format);
+            if(pObj.remote!=null) cert.setRemotePath(pObj.remote);
         } else{
             cert = null;
         }
@@ -75,13 +78,13 @@ export default class Certificate {
         if(typeof pCertBuffer==="string"){
             raw = pCertBuffer;
         }else{
-            raw = pCertBuffer.toString();
+            raw = pCertBuffer.toString(pInputFormat===CertificateFormat.DER ? 'binary' : 'utf8');
         }
 
 
         if(pInputFormat==CertificateFormat.DER){
             // @ts-ignore
-            cert = _NodeForge_.default.pki.certificateFromAsn1(_NodeForge_.asn1.fromDer( raw))
+            cert = CRYPTO.pki.certificateFromAsn1(CRYPTO.asn1.fromDer(raw));
         }else{
             // @ts-ignore
             cert = _NodeForge_.default.pki.certificateFromPem(raw)
@@ -171,10 +174,10 @@ export default class Certificate {
                     o._remote = this._remote;
                     break;*/
                 case '_raw':
-                    if(typeof (o._raw)==='string'){
+                    if(typeof this._raw==='string'){
                         o._raw = this._raw;
-                    }else if(o._raw != null){
-                        o._raw = this._raw.toString;
+                    }else if(this._raw != null){
+                        o._raw = this._raw.toString('binary');
                     }
                     break;
                 default:
