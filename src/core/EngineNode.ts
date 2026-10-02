@@ -973,7 +973,7 @@ export class EngineNode implements INode {
             await this.refreshWaitingQueue();
 
             // check if the order is already in the queue
-            if(this.waitingQueue.find( o => (o.order == pOrder.getUUID())!=null)){
+            if(this.waitingQueue.find( o => o.order == pOrder.getUUID())){
                 return;
             }
             if(this.activeOpe!=null && this.activeOpe.order == pOrder.getUUID()){
@@ -985,7 +985,7 @@ export class EngineNode implements INode {
             switch (this.state){
                 case NodeState.STARTING:
                     pOrder.dates.start = (new Date()).getTime();
-                    this.activeScanSession.setState(ScanState.WAITING);
+                    pOrder.setState(ScanState.WAITING);
                     this.waitingQueue.push({
                         type: OperationType.SCAN_ORDER,
                         order: pOrder.getUID(),
