@@ -59,10 +59,9 @@ export default class AndroidPhysicalEventWrapper {
         let eventCode = pRaw.readUInt16LE(offset);
         offset += 2;
         let eventValue = pRaw.readUInt32LE(offset).toString(16).padStart(8, '0')
-        let timestamp: string  = Number(timestamp_sec) + '.' + Number(timestamp_usec);
+        let timestamp: string = timestamp_sec.toString() + '.' + timestamp_usec.toString().padStart(6, '0');
         // Timestamp remark:
-        // - Conversion bigInt to number not precise if timestamp_sec or timestamp_usec is over Number.MAX_SAFE_INTEGER 9007199254740991.
-        // - Stored in a string to avoid imprecision on decimals from number.
+        // Keep integer precision and six fractional digits for microseconds.
         let parsedRaw = {
             "timestamp": timestamp,
             "type": null, //InputEventType.parse(eventType),
