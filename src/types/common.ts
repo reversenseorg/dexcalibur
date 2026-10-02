@@ -110,6 +110,7 @@ export class IntType extends DataType {
             bitSize    : pBitSize,
             qualifiers : { isSigned: signed },
         });
+        this.name = pName ?? prefix+pBitSize;
     }
     accept<T>(v: DataTypeVisitor<T>): T { return v.visitInt(this); }
 }
@@ -154,6 +155,7 @@ export class PointerType extends DataType {
             origin: pOrigin,
             bitSize : pPtrBits,
         });
+        this.pointee = pPointee;
         this.ptrBits = pPtrBits;
     }
     accept<T>(v: DataTypeVisitor<T>): T { return v.visitPointer(this); }
@@ -179,6 +181,8 @@ export class ArrayType extends DataType {
             origin  : pOrigin,
             bitSize,
         });
+        this.element = pElement;
+        this.length = pLength;
     }
     accept<T>(v: DataTypeVisitor<T>): T { return v.visitArray(this); }
 }
