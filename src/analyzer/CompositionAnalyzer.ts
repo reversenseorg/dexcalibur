@@ -46,7 +46,7 @@ export class CompositionAnalyzer {
     ctx:Nullable<DexcaliburProject> = null;
 
     constructor(pOptions:CompositionAnalyzerOpts) {
-        for(let i in pOptions) this[pOptions[i]] = pOptions[i];
+        for(let i in pOptions) this[i] = pOptions[i];
     }
 
     setContext(pContext:DexcaliburProject) {
@@ -112,7 +112,7 @@ export class CompositionAnalyzer {
         };
     }
 
-    private async _isPartOfAppNamespace(pStr:string, pExpectedOffset= -1):Promise<boolean> {
+    private _isPartOfAppNamespace(pStr:string, pExpectedOffset= -1):boolean {
         let isPart = false;
         let ns:string;
         switch (this.ctx.os) {
@@ -176,24 +176,27 @@ export class CompositionAnalyzer {
         return chunks;
     }
 
-    async extractChunks():Promise<void> {
+    async extractChunks():Promise<BomCandidateChunk[]> {
         if(this.ctx==null){
             throw new Error("Cannot perform binary composition analysis: context is middimg.");
         }
 
         switch (this.ctx.os){
             case OperatingSystem.ANDROID:
-                await this._extractAndroidComponentUids();
-                await this._extractLibraryParts();
-                await this._extractAndroidPackages();
-                break;
+                return [
+                    ...await this._extractAndroidComponentUids(),
+                    ...await this._extractLibraryParts(),
+                    ...await this._extractAndroidPackages(),
+                ];
             case OperatingSystem.IOS:
-                await this._extractIosComponentUids();
-                await this._extractLibraryParts();
-                break;
+                return [
+                    ...await this._extractIosComponentUids(),
+                    ...await this._extractLibraryParts(),
+                ];
             case OperatingSystem.LINUX:
                 break;
         }
+        return [];
     }
 
     private async _extractLibraryParts() {
