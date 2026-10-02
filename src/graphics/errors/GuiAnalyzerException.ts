@@ -37,8 +37,8 @@ export class GuiAnalyzerException extends MonitoredError {
     };
 
     static EXISTING_EVT_TYPE = (pUID:string)=>{ return new GuiAnalyzerException(` The event type [uid=${pUID}] already exists.`,GuiAnalyzerException.ERR.EXISTING_EVT_TYPE) };
-    static EXISTING_CMP_TYPE = (pUID:string)=>{ return new GuiAnalyzerException(` The component type [uid=${pUID}] already exists.`,GuiAnalyzerException.ERR.EXISTING_EVT_TYPE) };
-    static EXISTING_ROLE = (pUID:string)=>{ return new GuiAnalyzerException(` The role [uid=${pUID}] already exists.`,GuiAnalyzerException.ERR.EXISTING_EVT_TYPE) };
+    static EXISTING_CMP_TYPE = (pUID:string)=>{ return new GuiAnalyzerException(` The component type [uid=${pUID}] already exists.`,GuiAnalyzerException.ERR.EXISTING_CMP_TYPE) };
+    static EXISTING_ROLE = (pUID:string)=>{ return new GuiAnalyzerException(` The role [uid=${pUID}] already exists.`,GuiAnalyzerException.ERR.EXISTING_ROLE) };
     static UNKNOWN_EVT_TYPE = (pUID:string)=>{ return new GuiAnalyzerException(` The event type [uid=${pUID}] not exists.`,GuiAnalyzerException.ERR.UNKNOWN_EVT_TYPE) };
     static UNKNOWN_CMP_TYPE = (pUID:string)=>{ return new GuiAnalyzerException(` The component type [uid=${pUID}] not exists.`,GuiAnalyzerException.ERR.UNKNOWN_CMP_TYPE) };
     static UNKNOWN_ROLE = (pUID:string)=>{ return new GuiAnalyzerException(` The role [uid=${pUID}] not exists.`,GuiAnalyzerException.ERR.UNKNOWN_ROLE) };
