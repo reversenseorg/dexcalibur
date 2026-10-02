@@ -182,7 +182,7 @@ export class AxmlDocument {
         const indentStr = ' '.repeat(level * indent);
 
         if (node.type === 'text') {
-            return `${indentStr}${node.text}\n`;
+            return `${indentStr}${this.escapeXml(node.text)}\n`;
         }
 
         if (node.type !== 'element' || !node.name) {
