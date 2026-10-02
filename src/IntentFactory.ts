@@ -122,7 +122,7 @@ export class Intent
         
         // several category is supported by android
         if(this.category !== null){
-            if(Array.isArray(this.category == "array")){
+            if(Array.isArray(this.category)){
                 (this.category as string[]).map((x)=>{ str+= ` -c ${x} `;  });
             }else if(this.category.length >0){
                 str+= ` -c ${this.category} `; 
