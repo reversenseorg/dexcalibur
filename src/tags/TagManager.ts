@@ -335,8 +335,6 @@ export class TagManager {
         let criterias = Object.keys(pFilter);
         let i=0;
         let re:RegExp;
-        let ctags:Tag[] = [];
-        let cats:TagCategory[] = [];
 
         while(i<criterias.length){
             switch (criterias[i]){
@@ -358,23 +356,14 @@ export class TagManager {
                     if(filtered.length==0) return [];
                     break;
                 default:
-                    for(let k in this.cache){
-                        ctags = (i==0 ? this.cache[k].getTags() : filtered);
-                        if(pOptions.regexp){
-                            re = new RegExp(pFilter[criterias[i]]);
-                            ctags.map(x => {
-                                if(x[criterias[i]]!=null && x[criterias[i]].match(re)){
-                                    filtered.push(x);
-                                }
-                            });
-                        }else{
-                            ctags.map(x => {
-                                if(x[criterias[i]]===pFilter[criterias[i]]){
-                                    filtered.push(x);
-                                }
-                            });
-                        }
-                    }
+                    const candidates:Tag[] = i===0
+                        ? Object.keys(this.cache).flatMap(k => this.cache[k].getTags())
+                        : filtered;
+                    re = pOptions.regexp ? new RegExp(pFilter[criterias[i]]) : null;
+                    filtered = candidates.filter(x => {
+                        const value = x[criterias[i]];
+                        return pOptions.regexp ? value!=null && re.test(value) : value===pFilter[criterias[i]];
+                    });
                     break;
             }
             i++;
@@ -479,11 +468,11 @@ export class TagManager {
         if(pUidPattern[0]==SearchRequestCondition.REGEXP_DELIMITER_TOKEN &&
             pUidPattern[pUidPattern.length-1]==SearchRequestCondition.REGEXP_DELIMITER_TOKEN){
 
-            return await this.searchTagsByRegexp(pUidPattern.substring(1,pUidPattern.length-2));
+            return await this.searchTagsByRegexp(pUidPattern.substring(1,pUidPattern.length-1));
         }
         else if(pUidPattern.indexOf(SearchRequestCondition.WILDCARD)>-1){
             return await this.searchTagsByRegexp(
-                pUidPattern.replaceAll(".","\\.").replaceAll(".*","..*")
+                pUidPattern.split("*").map(part => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*")
             )
         }
         else {
