@@ -67,8 +67,11 @@ export class TaintCase {
 
     constructor(pOptions:TaintCaseOpts) {
         this.ctx = pOptions.ctx;
+        this.name = pOptions.name;
+        this.description = pOptions.description;
+        this.author = pOptions.author;
         this.source = pOptions.source;
-        this.sinks = pOptions.sinks;
+        if(pOptions.sinks!=null) this.sinks = pOptions.sinks;
         if(pOptions.propagators!=null)  this.propagators = pOptions.propagators;
         if(pOptions.conds!=null)  this.conds = pOptions.conds;
     }
