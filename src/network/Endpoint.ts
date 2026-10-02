@@ -54,8 +54,7 @@ export class Endpoint {
 
     constructor(pOptions?:EndpointOptions) {
         if(pOptions!=null){
-            // @ts-ignore
-            for(let p of pOptions){
+            for(const p of Object.keys(pOptions)){
                 this[p] = pOptions[p];
             }
         }
