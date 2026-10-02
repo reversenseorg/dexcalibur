@@ -116,7 +116,7 @@ export class BusSubscriber {
      */
     exec(pEvent:BusEvent<any>):void {
         if(!this._p){
-            this._f.apply(null, [null, pEvent]);
+            this._f.apply(null, [pEvent]);
         }
     }
 
@@ -126,7 +126,7 @@ export class BusSubscriber {
 
     toRxSubscriber(pCtx:DexcaliburProject):((vEvent:BusEvent<any>)=>void) {
         return ((pEvent:any)=>{
-            this._f.apply(null, [pCtx, pEvent]);
+            this._f.apply(null, [pEvent]);
         });
     }
 }
@@ -290,6 +290,7 @@ export default class Bus
                 this.singleSubscribe<T>(x, subscriber);
             });
         }
+        return this;
     }
 
     /**
@@ -333,6 +334,11 @@ export default class Bus
      * @method
      */
     unscribeAll(pEventName:string):boolean{
+        const state = this._buses[pEventName];
+        if(state!=null){
+            state.subscriptions.forEach(entry => entry.subscription?.unsubscribe());
+            delete this._buses[pEventName];
+        }
         this.subs[pEventName] = [];
         return true;
     }
