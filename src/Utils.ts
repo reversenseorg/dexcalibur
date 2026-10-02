@@ -27,6 +27,7 @@ import * as _fs_ from "fs";
 import * as  _util_ from 'util';
 import * as _stream_  from 'stream';
 import * as _os_ from "os";
+import {fileURLToPath} from "url";
 
 import * as Got from "got";
 
@@ -644,13 +645,11 @@ export default class Util {
 
 
     static readPackageJson(){
-        const path = (new URL(import.meta.url).pathname);
-        return JSON.parse(_fs_.readFileSync(_path_.join(path.substring(0, path.lastIndexOf(_path_.sep)),"..",'package.json')).toString());;
+        return JSON.parse(_fs_.readFileSync(new URL('../package.json', import.meta.url)).toString());
     }
 
     static __dirname(pImportMetaUrl:string){
-        const path = (new URL(pImportMetaUrl).pathname);
-        return path.substring(0, path.lastIndexOf(_path_.sep));
+        return _path_.dirname(fileURLToPath(pImportMetaUrl));
     }
 
 
