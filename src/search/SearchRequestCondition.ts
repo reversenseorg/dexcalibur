@@ -113,7 +113,7 @@ export class SearchRequestCondition implements IStringIndex<any>{
     }
 
     if(this.regexp===true && this.pattern!=null){
-      this._re = new RegExp(this.pattern);
+      this.turnAsRegexp();
     }
   }
 
@@ -141,9 +141,8 @@ export class SearchRequestCondition implements IStringIndex<any>{
         this._re = new RegExp(p.substring(1,lastDeliminiter), reFlags);
         return;
       }
-    }else{
-      this._re = new RegExp(p);
     }
+    this._re = new RegExp(p);
   }
 
   isQueryString():boolean {
