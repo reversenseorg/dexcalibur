@@ -49,20 +49,17 @@ export class InMemoryMerlinBackend {
                     case OperationType.SEARCH:
                         searchArgs = op.args as SearchOperationArgs;
 
-                        cs = searchArgs.pattern[0];
-
-                        if(cs.tag!=null){
-                            match = match && cs.tag.match(vData);
-
-                        }else if (cs.opts?.strict) {
-                            match = match
-                                && (Util.readValue(vData, cs.field)
-                                    === cs.pattern);
-                        } else {
-                            match = match && cs.test(vData);
+                        for (cs of searchArgs.pattern) {
+                            if(cs.tag!=null){
+                                match = match && cs.tag.match(vData);
+                            }else if (cs.opts?.strict) {
+                                match = match
+                                    && (Util.readValue(vData, cs.field)
+                                        === cs.pattern);
+                            } else {
+                                match = match && cs.test(vData);
+                            }
                         }
-
-
                         i++
                         break;
                     case OperationType.TIME:
@@ -118,11 +115,15 @@ export class InMemoryMerlinBackend {
         let phaseRes: any[] = [this.dataset.getAsList()];
         let tmpRes:any[];
         for (let i = 0; i < phases.length; i++) {
-
+            const input = i===0 ? this.dataset.getAsList() : phaseRes[i-1];
+            if(phases[i].length===0){
+                phaseRes[i] = input;
+                continue;
+            }
             switch (phases[i][0].type) {
                 case OperationType.UNION:
-                    phaseRes[i] = this._search((phases[i][0].args as NestedRequestOperationArgs).request as MerlinSearchRequest, pResult);
-                    phaseRes[i] = phaseRes[i - 1].concat(phaseRes[i]);
+                    phaseRes[i] = this._search((phases[i][0].args as NestedRequestOperationArgs).request as MerlinSearchRequest, pResult).results;
+                    phaseRes[i] = input.concat(phaseRes[i]);
                     break;
                 case OperationType.INTERSECT:
                     phaseRes[i] = this._search((phases[i][0].args as NestedRequestOperationArgs).request as MerlinSearchRequest, pResult);
@@ -134,7 +135,7 @@ export class InMemoryMerlinBackend {
                     break;
                 case OperationType.INNERJOIN:
                     phaseRes[i] = [];
-                    phaseRes[i-1].map(x => {
+                    input.map(x => {
                         let ppt:string;
 
                         if(typeof (phases[i][0].args as any).on=="string" ){
@@ -160,19 +161,20 @@ export class InMemoryMerlinBackend {
                     break;
                 case OperationType.SIZE:
                     if((phases[i][0].args as WindowingOperationArgs ).offset>0){
-                        phaseRes[i] = phaseRes[i-1].slice((phases[i][0].args as WindowingOperationArgs ).offset);
+                        phaseRes[i] = input.slice((phases[i][0].args as WindowingOperationArgs ).offset);
                     }else{
-                        phaseRes[i] = phaseRes[i-1];
+                        phaseRes[i] = input;
                     }
 
-                    phaseRes[i] = phaseRes[i].slice(0, (phases[i][0].args as WindowingOperationArgs ).limit);
+                    const limit = (phases[i][0].args as WindowingOperationArgs).limit;
+                    if(limit!=null && limit>=0) phaseRes[i] = phaseRes[i].slice(0, limit);
                     break;
                 default:
                     matchFn = this._createComparisonFunction(phases[i]);
                     tmpRes = [];
 
-                    if(phaseRes[i]!=null){
-                        phaseRes[i].map((vEntry: any) => {
+                    if(input!=null){
+                        input.map((vEntry: any) => {
                             if(matchFn.call(null,vEntry)){
                                 tmpRes.push(vEntry);
                             }
