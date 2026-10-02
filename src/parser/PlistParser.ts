@@ -472,12 +472,14 @@ export namespace Plist {
 
 
         static isXmlPlist(pBuffer:Uint8Array, pOffset = 0):boolean {
-            return (pBuffer.slice(pOffset,5).toString()==="<?xml")
-                && (pBuffer.slice(pOffset, (pOffset+200>pBuffer.length? pBuffer.length : 200)).toString().indexOf('<plist')>-1);
+            pOffset = Math.max(0, pOffset);
+            return (pBuffer.slice(pOffset,pOffset+5).toString()==="<?xml")
+                && (pBuffer.slice(pOffset, Math.min(pOffset+200, pBuffer.length)).toString().indexOf('<plist')>-1);
         }
 
         static isBPlist(pBuffer:Uint8Array, pOffset = 0):boolean {
-            return (pBuffer.slice(pOffset,6).toString()==="bplist");
+            pOffset = Math.max(0, pOffset);
+            return (pBuffer.slice(pOffset,pOffset+6).toString()==="bplist");
         }
 
 
@@ -505,14 +507,14 @@ export namespace Plist {
             if(pOptions.tags==null) pOptions.tags = [];
 
             let res:Results;
-            if(Parser.isXmlPlist(pBuffer)){
+            if(Parser.isXmlPlist(pBuffer,pOffset)){
                 res = await Parser.parseXml(pBuffer, pOffset, pOptions.eol, pOptions.raw, pOptions.tags);
                 if(res.ok!=null){
                     if(this.plistTag!=null) res.ok.tags.push(this.plistTag.getUUID());
                     if(this.rawTag!=null) res.ok.tags.push(this.xmlTag.getUUID());
                 }
                 return res;
-            }else if(Parser.isBPlist(pBuffer)){
+            }else if(Parser.isBPlist(pBuffer,pOffset)){
                 res = Parser.parseBPlist(pBuffer, pOffset, pOptions.eol, pOptions.raw, pOptions.tags);
                 if(res.ok!=null){
                     if(this.plistTag!=null) res.ok.tags.push(this.plistTag.getUUID());
@@ -543,7 +545,7 @@ export namespace Plist {
             const parser = new XMLParser({
                 preserveOrder: true
             });
-            xml = parser.parse(pBuffer as Buffer)
+            xml = parser.parse(pBuffer.slice(Math.max(0, pOffset)) as Buffer)
 
             const data = Parser.parseXmlDict( xml[1].plist[0].dict, pRaw, res.strings);
 
@@ -578,7 +580,7 @@ export namespace Plist {
                 strings: (pRaw  ? null : [])
             };
 
-            const bp = new BinaryParser(pBuffer);
+            const bp = new BinaryParser(pBuffer.slice(Math.max(0, pOffset)));
 
             const header = bp.parseHeader();
             const trailer = bp.parseTrailer();
