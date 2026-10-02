@@ -209,7 +209,7 @@ export namespace Nib {
                         result |= (byte & 0x7F) << (bytesRead*7)
 
                         //console.log(buf.toString('hex'),  buf.readInt32LE(0).toString(16))
-                        return { value: result, bytesRead };
+                        return { value: result, bytesRead: bytesRead + 1 };
                     }
                 }
 
