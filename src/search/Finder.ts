@@ -409,6 +409,7 @@ export class Finder {
   }
 
   _searchInNode(pNode:any, search:any, i:number){
+    if(pNode==null) return false;
     if (pNode.hasOwnProperty("__")) {
       // explore linked node
       return this.__checkDeepField(this.__DB.searchNode(pNode.__, pNode.getUID()), search, i + 1);
@@ -461,18 +462,18 @@ export class Finder {
     if (i < search.field.length - 1) {
       if (search.field[i].isIterable()) {
         if (Array.isArray(node)) {
-          node.map((v: any, i: number) => {
-            this._searchInNode(v, search, i);
-          });
+          return node.some((v: any) => this._searchInNode(v, search, i));
         } else if (typeof node == 'object') {
           for (let key in node) {
-            this._searchInNode(node[key], search, i);
+            if(this._searchInNode(node[key], search, i)) return true;
           }
         }
+        return false;
       } else if (Array.isArray(node)) { //instanceof Array){
         for (let k = 0; k < node.length; k++) {
-          this._searchInNode(node[k], search, i);
+          if(this._searchInNode(node[k], search, i)) return true;
         }
+        return false;
       } else {
         return this._searchInNode(node, search, i);
       }

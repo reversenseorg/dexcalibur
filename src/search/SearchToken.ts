@@ -49,7 +49,7 @@ export class SearchToken {
       const p = v.indexOf('[]');
       toks.push(new SearchToken(
         (p>-1? v.substr(0,p) : v ),
-        (p==v.length-2)
+        (p>-1 && p==v.length-2)
       ));
     });
 
