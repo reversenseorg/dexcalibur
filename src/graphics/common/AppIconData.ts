@@ -27,6 +27,7 @@ export class AppIconData extends AppIcon {
 
     constructor(pFormat:AppIconFormat) {
         super();
+        this.fmt = pFormat;
     }
 
     setData(pData:Buffer):void {
@@ -37,7 +38,7 @@ export class AppIconData extends AppIcon {
      *
      */
     toJsonObject(): any {
-        const o = this.toJsonObject();
+        const o = {...super.toJsonObject()};
         o.fmt = this.fmt;
         if(this.data!=null){
             o.data = this.data.toString('base64');

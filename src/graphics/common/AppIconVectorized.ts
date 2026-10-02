@@ -43,7 +43,7 @@ export class AppIconVectorized extends AppIcon {
      *
      */
     toJsonObject(): any {
-        const o = this.toJsonObject();
+        const o = {...super.toJsonObject()};
         o.fmt = this.fmt;
         if(this.data!=null){
             o.data = this.data;
