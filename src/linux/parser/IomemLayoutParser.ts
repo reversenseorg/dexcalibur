@@ -70,8 +70,8 @@ export class IomemLayoutParser {
             }
 
             const block = MemoryBlock.fromAddressRange(
-               new MemoryAddress(BigInt(parseInt(match[1],16))),
-               new MemoryAddress(BigInt(parseInt(match[2],16)))
+               new MemoryAddress(BigInt('0x'+match[1])),
+               new MemoryAddress(BigInt('0x'+match[2]))
             );
             block.name = match[3];
             layout.addBlock(block);
