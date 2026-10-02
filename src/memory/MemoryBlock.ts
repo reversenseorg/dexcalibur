@@ -88,9 +88,7 @@ export class MemoryBlock {
                 this.perm = this.perm | pMask;
             }
         }else{
-            if((this.perm & pMask)==0){
-                this.perm = this.perm ^ pMask;
-            }
+            this.perm = this.perm & ~pMask;
         }
 
     }
@@ -133,8 +131,8 @@ export class MemoryBlock {
         o.description = pObject.description;
         o.perm = pObject.perm;
         o.mappedData = pObject.mappedData;
-        o.start = (pObject.start!=null ? new MemoryAddress(pObject.start) : null);
-        o.end = (pObject.end!=null ? new MemoryAddress(pObject.end) : null);
+        o.start = (pObject.start!=null ? new MemoryAddress(BigInt(pObject.start)) : null);
+        o.end = (pObject.end!=null ? new MemoryAddress(BigInt(pObject.end)) : null);
         o.children = [];
         pObject.children.map(x => {
             o.children.push(MemoryBlock.fromJsonObject(x));

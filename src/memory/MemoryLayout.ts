@@ -100,6 +100,6 @@ export class MemoryLayout {
             }
         }
 
-        return undefined;
+        return o;
     }
 }
