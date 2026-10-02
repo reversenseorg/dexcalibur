@@ -79,7 +79,7 @@ export class KernelInfoFactory {
      * @static
      */
     static getInstance():KernelInfoFactory{
-        if(gInstance!=null){
+        if(gInstance==null){
             gInstance = new KernelInfoFactory()
         }
 

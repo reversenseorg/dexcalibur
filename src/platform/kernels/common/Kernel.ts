@@ -75,7 +75,12 @@ export class KernelInfo {
     }
 
     addSystemCall(pSyscall:ModelSyscall):void{
-        this._syscalls[pSyscall.getUID()] = pSyscall;
+        const index = this._syscalls.findIndex(s => s.getUID() === pSyscall.getUID());
+        if(index === -1){
+            this._syscalls.push(pSyscall);
+        }else{
+            this._syscalls[index] = pSyscall;
+        }
     }
 
     addInputSubsystem(pSub:InputSubsystem):void{
