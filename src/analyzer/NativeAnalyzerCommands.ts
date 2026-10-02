@@ -38,7 +38,7 @@ export class NativeAnalyzerCommands {
         pCommands.split(':').map( vCmd => {
             c. push(pList[vCmd]);
         });
-        return
+        return c;
     }
 
     static getFuncCmd(pCommands:string):string[] {
