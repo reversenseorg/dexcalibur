@@ -19,7 +19,7 @@
  *
  */
 
-import {DataOperation} from "./ControlAssessment.js";
+import {DataOperation} from "./DataOperation.js";
 import {IJSONSchema} from "@reversense/dexcalibur-orm";
 
 export enum MetadataType {

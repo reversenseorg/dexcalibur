@@ -71,13 +71,14 @@ export default class SerializedObject
     }
 
     static isSerializable(obj:any):boolean{
-        return (obj.serialize !=null) && (typeof obj.serialize==='function');
+        return obj != null && typeof obj.serialize==='function';
     }
 
     static isUnserializable(obj:any):boolean{
-        return (obj.__type!=null)
+        return obj != null && (obj.__type!=null)
             && (obj.__raw!=null)
-            && (SerializedObject.refs[obj.__type]!==null);
+            && Object.prototype.hasOwnProperty.call(SerializedObject.refs, obj.__type)
+            && typeof SerializedObject.refs[obj.__type].unserialize === 'function';
     }
 
     static from(obj:any,type:string){

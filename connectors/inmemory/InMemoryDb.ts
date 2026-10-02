@@ -148,9 +148,9 @@ class InMemoryDb implements IDatabase
         for(let i in this.indexes){
             o.indexes[i] = this.indexes[i].toJsonObject();
             if(this.indexes[i] instanceof InMemoryDbIndex)
-                this.indexes[i].__type = "Index";
+                o.indexes[i].__type = "Index";
             else
-                this.indexes[i].__type = "Collection";
+                o.indexes[i].__type = "Collection";
         }
 
         return o;

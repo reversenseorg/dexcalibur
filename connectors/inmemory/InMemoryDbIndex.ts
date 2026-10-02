@@ -174,7 +174,7 @@ export default class InMemoryDbIndex implements IDbIndex
         o.name = this.name;
         o.refs = [];
         for(let i:number=0; i<this.refs.length; i++){
-            if(typeof this.refs[i].toJsonObject  === 'function'){
+            if(this.refs[i] != null && typeof this.refs[i].toJsonObject  === 'function'){
                 o.refs[i] = this.refs[i].toJsonObject()
             }else{
                 o.refs[i] = this.refs[i];
@@ -188,11 +188,8 @@ export default class InMemoryDbIndex implements IDbIndex
 
 
     isSerializable():boolean{
-        let ret:boolean = false;
-        for(let i:number=0; i<this.refs.length ; i++)
-            ret = ret && this.refs[i].isSerializable();
-
-        return ret;
+        return this.refs.every(ref => ref == null
+            || (typeof ref.isSerializable === 'function' && ref.isSerializable()));
     }
 
     static unserialize(serialized_obj:any){
@@ -219,9 +216,10 @@ export default class InMemoryDbIndex implements IDbIndex
         o.refs = [];
 
         for(let i:number=0; i<this.refs.length; i++){
-            if(this.refs[i].hasOwnProperty('isSerializable') && (this.refs[i].isSerializable() === true)){
+            if(this.refs[i] != null && typeof this.refs[i].isSerializable === 'function'
+                && this.refs[i].isSerializable() === true && typeof this.refs[i].serialize === 'function'){
                 o.refs.push(this.refs[i].serialize());
-            }else if(typeof this.refs[i].toJsonObject === 'function')
+            }else if(this.refs[i] != null && typeof this.refs[i].toJsonObject === 'function')
                 o.refs.push(this.refs[i].toJsonObject());
             else
                 o.refs.push(this.refs[i]);

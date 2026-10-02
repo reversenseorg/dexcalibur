@@ -112,15 +112,7 @@ interface Match {
 
 
 
-export enum DataOperation {
-    SOURCING,
-    PROCESSING,
-    STORING,
-    SHARING,
-    ENCRYPTING,
-    DECRYPTING,
-    HASHING
-}
+export {DataOperation} from "./DataOperation.js";
 export enum DataOperationSource {
     UI,
     API

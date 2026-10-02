@@ -117,7 +117,11 @@ export default class InMemoryDbCollection implements IDbCollection
 
 
     removeEntry(key: any): boolean {
-        return (delete this.values[key]);
+        if(Object.prototype.hasOwnProperty.call(this.values, key)){
+            delete this.values[key];
+            this.ctr--;
+        }
+        return true;
     }
 
     toJsonObject():any{
@@ -127,7 +131,7 @@ export default class InMemoryDbCollection implements IDbCollection
         o.ctr = this.ctr;
         o.values = {};
         for(let i in this.values){
-            if(typeof this.values[i].toJsonObject === 'function')
+            if(this.values[i] != null && typeof this.values[i].toJsonObject === 'function')
                 o.values[i]=this.values[i].toJsonObject();
             else
                 o.values[i]=this.values[i];
@@ -176,9 +180,9 @@ export default class InMemoryDbCollection implements IDbCollection
 
         for(let i in this.values){
 
-            if(typeof this.values[i].serialize === 'function')
+            if(this.values[i] != null && typeof this.values[i].serialize === 'function')
                 o.values[i]=this.values[i].serialize();
-            if(typeof this.values[i].toJsonObject === 'function')
+            else if(this.values[i] != null && typeof this.values[i].toJsonObject === 'function')
                 o.values[i]=this.values[i].toJsonObject();
             else
                 o.values[i]=this.values[i];
