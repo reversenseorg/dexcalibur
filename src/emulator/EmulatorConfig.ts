@@ -61,10 +61,11 @@ export class EmulatorConfig {
             const growingDown = (pBlock.end.address<pBlock.start.address);
             const sz:bigint = growingDown ? pBlock.start.address-pBlock.end.address : pBlock.end.address-pBlock.start.address;
             if( sz % al !=0n){
+                const alignedSize = ((sz + al - 1n) / al) * al;
                 if(growingDown)
-                    pBlock.end = pBlock.start.add(BigInt(Number( sz / al )+1) * al);
+                    pBlock.end = pBlock.start.sub(alignedSize);
                 else
-                    pBlock.end = pBlock.start.sub(BigInt(Number( sz / al )+1) * al);
+                    pBlock.end = pBlock.start.add(alignedSize);
             }
         }
         this.memRegions.push(pBlock);
@@ -82,14 +83,16 @@ export class EmulatorConfig {
     addSession( pStart:MemoryAddress, pEnds:MemoryAddress[] = [], pCtx:ModelRegister[] = []):void {
         this.sessions.push({
             start: pStart,
-            ends: pEnds
+            ends: pEnds,
+            ctx: pCtx,
         });
     }
 
     addRelativeSession( pStart:number, pEnds:number[] = [], pCtx:ModelRegister[] = []):void {
         this.sessions.push({
             start: this.baseAddress.add(pStart),
-            ends: pEnds.map( (x:number)=> this.baseAddress.add(x))
+            ends: pEnds.map( (x:number)=> this.baseAddress.add(x)),
+            ctx: pCtx,
         });
     }
 
