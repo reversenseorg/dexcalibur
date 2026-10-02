@@ -548,6 +548,8 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       cond.tagKey = tag;
     }
 
+    if(tag!=null) return cond;
+
     const lastDeliminiter = pattern.lastIndexOf(REGEXP_DELIMITER_TOKEN);
     if(pattern.length>-1
         && pattern[0]==REGEXP_DELIMITER_TOKEN
@@ -1469,7 +1471,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         return {
           type: pObject.type,
           args:{
-            comparison: pObject.args['comparions'],
+            comparison: pObject.args['comparison'],
             field: pObject.args['field'],
             date: pObject.args['date'],
           }
