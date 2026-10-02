@@ -33,7 +33,7 @@ import BusEvent from "../../BusEvent.js";
 import {FileScanResult} from "../../DataAnalyzer.js";
 
 import * as Log from '../../Logger.js';
-import {Observable, Subject} from "rxjs";
+import {Observable, ReplaySubject, Subject} from "rxjs";
 
 import {FileFormatDetectorWorker} from "./FileFormatDetectorWorker.js";
 import {JobWorkerMessage} from "./Job.js";
@@ -83,7 +83,7 @@ export class FileFormatDetector {
     async analyzeFolder(pPath:string, pContext:DexcaliburProject, pSkipIf:any, pDelay = 600):Promise<Subject<ModelFile[]>> {
 
         const b = Util.time();
-        let observable:Subject<ModelFile[]> = new Subject<ModelFile[]>();
+        let observable:Subject<ModelFile[]> = new ReplaySubject<ModelFile[]>(1);
         let files:ModelFile[] = [];
         let scheduler:Worker;
 
@@ -100,7 +100,7 @@ export class FileFormatDetector {
             let counter:number = 0;
             const m = '/'+vFiles.length+' Files analyzed by data carving';
 
-            scheduler = await FileFormatDetectorWorker.queueScheduler(10, vFiles, (jMsg:JobWorkerMessage)=>{
+            scheduler = await FileFormatDetectorWorker.queueScheduler(this._poolSize, vFiles, (jMsg:JobWorkerMessage)=>{
 
 
                 if(jMsg.cmd=="log"){
@@ -144,18 +144,22 @@ export class FileFormatDetector {
             },pDelay);
 
 
+            scheduler.on("error", error => observable.error(error));
             scheduler.on("exit", (exitCode)=>{
 
                 if(exitCode==0){
                     Logger.success("[FileFormatDetectorWorker][queueScheduler][file="+files.length+"][duration="+(Util.time()-b)+"] Completed ");
                     observable.next(files);
+                    observable.complete();
                 }else{
+                    observable.error(new Error(`Scheduler exited with code : ${exitCode}`));
                     Logger.error("[FileFormatDetectorWorker][queueScheduler][file="+files.length+"][duration="+(Util.time()-b)+"] Exited on code : "+exitCode);
                 }
 
             });
 
         }catch(err){
+            observable.error(err);
             Logger.error("[FileFmtFetector][BINWALK HELPER] Binwalk failed to scan path (1) : "+pPath+"\n"+err.message+"\n"+err.stack);
         }
 
@@ -175,7 +179,7 @@ export class FileFormatDetector {
     async analyzeFiles(pFiles:string[], pContext:DexcaliburProject, pDelay = 600):Promise<Subject<ModelFile[]>> {
 
         const b = Util.time();
-        let observable:Subject<ModelFile[]> = new Subject<ModelFile[]>();
+        let observable:Subject<ModelFile[]> = new ReplaySubject<ModelFile[]>(1);
         let files:ModelFile[] = [];
         let scheduler:Worker;
 
@@ -185,7 +189,7 @@ export class FileFormatDetector {
             let counter:number = 0;
             const m = '/'+pFiles.length+' Files analyzed by data carving';
 
-            scheduler = await FileFormatDetectorWorker.queueScheduler(10, pFiles, (jMsg:JobWorkerMessage)=>{
+            scheduler = await FileFormatDetectorWorker.queueScheduler(this._poolSize, pFiles, (jMsg:JobWorkerMessage)=>{
 
 
                 if(jMsg.cmd=="log"){
@@ -229,18 +233,22 @@ export class FileFormatDetector {
             },pDelay);
 
 
+            scheduler.on("error", error => observable.error(error));
             scheduler.on("exit", (exitCode)=>{
 
                 if(exitCode==0){
                     Logger.success("[FileFormatDetectorWorker][queueScheduler][file="+files.length+"][duration="+(Util.time()-b)+"] Completed ");
                     observable.next(files);
+                    observable.complete();
                 }else{
+                    observable.error(new Error(`Scheduler exited with code : ${exitCode}`));
                     Logger.error("[FileFormatDetectorWorker][queueScheduler][file="+files.length+"][duration="+(Util.time()-b)+"] Exited on code : "+exitCode);
                 }
 
             });
 
         }catch(err){
+            observable.error(err);
             Logger.error("[FileFmtFetector][BINWALK HELPER] Binwalk failed to scan the list of path: \n"+err.message+"\n"+err.stack);
         }
 

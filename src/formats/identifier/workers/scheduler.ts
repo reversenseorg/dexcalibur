@@ -33,6 +33,15 @@ const files = getEnvironmentData('files') as string[];
 */
 const schedulerPpts = JSON.parse(getEnvironmentData('scheduler:data') as string) as SchedulerPpts;
 
+if(schedulerPpts.files.length===0){
+    parentPort.postMessage({cmd: 'complete', threadID: schedulerPpts.threadID, data: null});
+    process.exit(0);
+}
+if(!Number.isInteger(schedulerPpts.pool_size) || schedulerPpts.pool_size<=0){
+    parentPort.postMessage({cmd: 'log', success: false, threadID: schedulerPpts.threadID, data: 'Invalid worker pool size'});
+    process.exit(1);
+}
+
 const pool:Record<string,Worker> = {};
 const freeWorker:string[] = [];
 
@@ -79,7 +88,7 @@ function binwalkMessageListener( pMsg:JobWorkerMessage){
     if((freeWorker.length==schedulerPpts.pool_size) && (fileProcessed==schedulerPpts.files.length) ){
         endDetection = (new Date()).getTime();
         setTimeout(()=>{
-            if( (new Date()).getTime() - endDetection > (schedulerPpts.delay*1.5) ){
+            if( (new Date()).getTime() - endDetection >= (schedulerPpts.delay*1.5) ){
                 LOG("[THREAD]["+fileSuccess+" success / "+fileProcessed+" files] Queue has been fully processed ");
                 parentPort.postMessage({
                     cmd: "complete",
@@ -135,15 +144,18 @@ switch (schedulerPpts.backend_type){
                     ERROR(err.message+"\n"+err.stack);
                 }
 
-                if(i==(schedulerPpts.pool_size-1) && freeWorker.length>0){
-                    schedulerPpts.files.map(x =>  queue.next(x));
-                }
             }
-
+            if(freeWorker.length===0){
+                ERROR('No workers could be started');
+                process.exit(1);
+            }
+            schedulerPpts.pool_size = freeWorker.length;
+            schedulerPpts.files.forEach(x => queue.next(x));
 
         break;
     default:
         ERROR("backendType unknow : "+schedulerPpts.backend_type);
+        process.exit(1);
         break;
 }
 
