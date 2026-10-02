@@ -256,7 +256,7 @@ export namespace AxmlStructures {
         }
 
         getDataString(stringPool: AndroidBinary.ResStringPool): string {
-            return stringPool.getString(this.data) || `data_${this.data}`;
+            return stringPool.getString(this.data) ?? `data_${this.data}`;
         }
     }
 

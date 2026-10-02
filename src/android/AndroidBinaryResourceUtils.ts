@@ -265,7 +265,7 @@ export namespace AndroidBinary {
                 case ValueType.ATTRIBUTE:
                     return { type: 'attribute', value: Utils.formatResourceId(resValue.data) };
                 case ValueType.STRING:
-                    return stringPool?.getString(resValue.data) || `string_${resValue.data}`;
+                    return stringPool?.getString(resValue.data) ?? `string_${resValue.data}`;
                 case ValueType.INT_DEC:
                 case ValueType.INT_HEX:
                     return resValue.data;
