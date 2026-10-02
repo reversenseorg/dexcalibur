@@ -20,7 +20,7 @@
  */
 
 import { CONST } from "../CoreConst.js";
-import {ElixirOpcodeDefinition} from "../Opcode.js";
+import type {ElixirOpcodeDefinition} from "../Opcode.js";
 import * as Core from '../CoreParser.js';
 import DalvikInstructionFormat from "../DalvikInstructionFormat.js";
 
@@ -55,7 +55,9 @@ export const FormatOpcode = {
     [Format.Format51l]: '51l',
     [Format.Format32x]: '32x',
     [Format.Format31i]: '31i',
-    [Format.Format31t]: '31t'
+    [Format.Format31t]: '31t',
+    [Format.Format45cc]: '45cc',
+    [Format.Format4rcc]: '4rcc'
 }
 
 export const OPCODE:Record<string,ElixirOpcodeDefinition> = {
@@ -700,7 +702,10 @@ export const OPCODE:Record<string,ElixirOpcodeDefinition> = {
     SHR_INT_LIT8:{ byte:0xe1, instr:"shr-int/lit8",  ope: CONST.LEX.TOKEN.SHR, parse: DalvikInstructionFormat.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
     USHR_INT_LIT8:{ byte:0xe2, instr:"ushr-int/lit8",  ope: CONST.LEX.TOKEN.USHR, parse: DalvikInstructionFormat.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
 
-    INVOKE_POLYMORPHIC:{ byte:0xfa, instr:"invoke-polymorphic",  ope: CONST.LEX.TOKEN.USHR, parse: DalvikInstructionFormat.invoke, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
-    INVOKE_POLYMORPHIC_RG:{ byte:0xfb, instr:"invoke-polymorphic/range",  ope: CONST.LEX.TOKEN.USHR, parse: DalvikInstructionFormat.invoke, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
-    INVOKE_CUSTOM:{ byte:0xfc, instr:"invoke-custom",  ope: CONST.LEX.TOKEN.USHR, parse: DalvikInstructionFormat.invoke, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
+    INVOKE_POLYMORPHIC:{ byte:0xfa, instr:"invoke-polymorphic", parse: DalvikInstructionFormat.invoke, type: CONST.INSTR_TYPE.INVOKE, reftype:ReferenceType.METHOD, format:Format.Format45cc, flag:OpcodeType.CAN_THROW | OpcodeType.CAN_CONTINUE | OpcodeType.SETS_RESULT },
+    INVOKE_POLYMORPHIC_RG:{ byte:0xfb, instr:"invoke-polymorphic/range", parse: DalvikInstructionFormat.invoke, type: CONST.INSTR_TYPE.INVOKE, reftype:ReferenceType.METHOD, format:Format.Format4rcc, flag:OpcodeType.CAN_THROW | OpcodeType.CAN_CONTINUE | OpcodeType.SETS_RESULT },
+    INVOKE_CUSTOM:{ byte:0xfc, instr:"invoke-custom", parse: DalvikInstructionFormat.invoke, type: CONST.INSTR_TYPE.INVOKE, reftype:ReferenceType.NONE, format:Format.Format35c, flag:OpcodeType.CAN_THROW | OpcodeType.CAN_CONTINUE | OpcodeType.SETS_RESULT },
+    INVOKE_CUSTOM_RANGE:{ byte:0xfd, instr:"invoke-custom/range", parse: DalvikInstructionFormat.invoke, type: CONST.INSTR_TYPE.INVOKE, reftype:ReferenceType.NONE, format:Format.Format3rc, flag:OpcodeType.CAN_THROW | OpcodeType.CAN_CONTINUE | OpcodeType.SETS_RESULT },
+    CONST_METHOD_HANDLE:{ byte:0xfe, instr:"const-method-handle", parse: DalvikInstructionFormat.regField, type: CONST.INSTR_TYPE.VAR_SETTER, reftype:ReferenceType.NONE, format:Format.Format21c, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
+    CONST_METHOD_TYPE:{ byte:0xff, instr:"const-method-type", parse: DalvikInstructionFormat.regField, type: CONST.INSTR_TYPE.VAR_SETTER, reftype:ReferenceType.NONE, format:Format.Format21c, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
 };

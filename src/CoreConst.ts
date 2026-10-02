@@ -198,7 +198,9 @@ export const CONST = {
         Format51l: 0x15,
         Format32x: 0x16,
         Format31i: 0x17,
-        Format31t: 0x18
+        Format31t: 0x18,
+        Format45cc: 0x19,
+        Format4rcc: 0x1a
     },
     OPCODE_TYPE: {
         CAN_CONTINUE: 1, // 0

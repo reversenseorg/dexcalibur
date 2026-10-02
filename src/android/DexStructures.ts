@@ -22,7 +22,7 @@
 import {Struct} from "@reversense/dxc-struct";
 import {Nullable} from "@reversense/dxc-core-api";
 import {OPCODE} from "../Opcode.js";
-import { FormatOpcode } from "./DalvikOpcode.js";
+import {OPCODE as DALVIK_OPCODE, FormatOpcode} from "./DalvikOpcode.js";
 
 
 export namespace DexStructures {
@@ -807,15 +807,15 @@ export namespace DexStructures {
             console.log("Missing Opcodes: "+c);
             c = 0;
             this.opcodeTable.forEach((vOp, key)=> {
-                let op = Object.values(OPCODE).find((vOp2)=> {
+                const op = Object.values(OPCODE).find((vOp2)=> {
                     return (vOp2.byte==key);
                 });
                 if(op==null){
                     c++;
-                    console.log("New Opcode: ", op.instr, "0x"+op.byte.toString(16));
+                    console.log("Android-only opcode: ", vOp.mnemonic, "0x"+key.toString(16));
                 }
             });
-            console.log("New Opcodes: "+c);
+            console.log("Android-only opcodes: "+c);
 
         }
 
@@ -824,7 +824,7 @@ export namespace DexStructures {
          */
         private initOpcodeTable(): void {
             // Format: opcode => { mnemonic, format, size }
-            const opcodes: [number, string, string, number][] = Object.values(OPCODE).map((vOp)=>{
+            const opcodes: [number, string, string, number][] = Object.values(DALVIK_OPCODE).map((vOp)=>{
                 return [ vOp.byte, vOp.instr, FormatOpcode[vOp.format], parseInt(FormatOpcode[vOp.format][0],10) ]
             })
             for (const [opcode, mnemonic, format, size] of opcodes) {
@@ -1008,7 +1008,7 @@ export namespace DexStructures {
 
         static generateOpcodeTable():string{
             let result = "";
-            Object.values(OPCODE).map((vOp)=> {
+            Object.values(DALVIK_OPCODE).map((vOp)=> {
                 result += `[0x${vOp.byte}, '${vOp.instr}', '${FormatOpcode[vOp.format]}', ${FormatOpcode[vOp.format][0]}]`;
             });
             return result;
@@ -1083,6 +1083,10 @@ export namespace DexStructures {
                             insn.operands.push({ type: 'string', value: index });
                         } else if (insn.mnemonic.includes('const-class') || insn.mnemonic.includes('check-cast') || insn.mnemonic.includes('new-instance')) {
                             insn.operands.push({ type: 'type', value: index });
+                        } else if (insn.mnemonic === 'const-method-handle') {
+                            insn.operands.push({ type: 'method_handle', value: index });
+                        } else if (insn.mnemonic === 'const-method-type') {
+                            insn.operands.push({ type: 'proto', value: index });
                         } else {
                             insn.operands.push({ type: 'field', value: index });
                         }
@@ -1135,29 +1139,37 @@ export namespace DexStructures {
                     }
                     break;
 
-                case '35c': // {vC, vD, vE, vF, vG}, method@BBBB | type@BBBB
+                case '35c': // {vC, vD, vE, vF, vG}, method@BBBB | type@BBBB | call_site@BBBB
+                case '45cc': // 35c registers, method@BBBB, proto@HHHH
                     const regCount = (codeUnit >> 12) & 0x0F;
                     const regs = [];
                     if (offset + 2 < bytecode.length) {
                         const regList = bytecode[offset + 2];
-                        if (regCount > 0) regs.push({ type: 'register', value: (codeUnit >> 8) & 0x0F });
-                        if (regCount > 1) regs.push({ type: 'register', value: (regList) & 0x0F });
-                        if (regCount > 2) regs.push({ type: 'register', value: (regList >> 4) & 0x0F });
-                        if (regCount > 3) regs.push({ type: 'register', value: (regList >> 8) & 0x0F });
-                        if (regCount > 4) regs.push({ type: 'register', value: (regList >> 12) & 0x0F });
+                        if (regCount > 0) regs.push({ type: 'register', value: regList & 0x0F });
+                        if (regCount > 1) regs.push({ type: 'register', value: (regList >> 4) & 0x0F });
+                        if (regCount > 2) regs.push({ type: 'register', value: (regList >> 8) & 0x0F });
+                        if (regCount > 3) regs.push({ type: 'register', value: (regList >> 12) & 0x0F });
+                        if (regCount > 4) regs.push({ type: 'register', value: (codeUnit >> 8) & 0x0F });
                     }
                     insn.operands.push(regs);
                     if (offset + 1 < bytecode.length) {
-                        insn.operands.push({ type: 'method', value: bytecode[offset + 1] });
+                        insn.operands.push({ type: insn.mnemonic.includes('invoke-custom') ? 'call_site' : 'method', value: bytecode[offset + 1] });
+                    }
+                    if (format === '45cc' && offset + 3 < bytecode.length) {
+                        insn.operands.push({ type: 'proto', value: bytecode[offset + 3] });
                     }
                     break;
 
                 case '3rc': // {vCCCC .. vNNNN}, method@BBBB | type@BBBB
+                case '4rcc': // 3rc register range, method@BBBB, proto@HHHH
                     if (offset + 2 < bytecode.length) {
                         const count = (codeUnit >> 8) & 0xFF;
                         const firstReg = bytecode[offset + 2];
                         insn.operands.push({ type: 'register_range', start: firstReg, count });
-                        insn.operands.push({ type: 'method', value: bytecode[offset + 1] });
+                        insn.operands.push({ type: insn.mnemonic.includes('invoke-custom') ? 'call_site' : 'method', value: bytecode[offset + 1] });
+                        if (format === '4rcc' && offset + 3 < bytecode.length) {
+                            insn.operands.push({ type: 'proto', value: bytecode[offset + 3] });
+                        }
                     }
                     break;
 
