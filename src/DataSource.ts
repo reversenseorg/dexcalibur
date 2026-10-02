@@ -84,14 +84,7 @@ export class DataSource {
         if(this._fn.multi != null){
             return (this._fn.multi.call( null, pProject, pNodeType)).call( null, pUID);
         }else{
-            const entries:any = [];
-            const find1 = this._fn.single.call( null, pProject, pNodeType, pUID);
-
-            pUID.map( (vUID:any)=>{
-                entries.push( find1.call(null, vUID) );
-            });
-
-            return entries;
+            return pUID.map((vUID:any) => this.find(pNodeType, pProject, vUID));
         }
     }
 
