@@ -157,7 +157,7 @@ export namespace Properties {
             const tags:TagUUID[] = pOptions.tags.map(t=> t.getUUID());
 
             let m:any, multiLine = false;
-            let i =pOffset, ln=0, skip=0,  line:string = "";
+            let i =pOffset, ln=0, line:string = "";
             let entry:Entry = {line:1,lineCount:1};
 
             let end = pBuffer.indexOf(eol,i);
@@ -169,13 +169,10 @@ export namespace Properties {
                     end = pBuffer.length;
                 }
 
-                line = pBuffer.subarray((i>pOffset?i+1:i)+skip,end).toString('utf-8');
+                line = pBuffer.subarray(i>pOffset?i+Buffer.byteLength(eol):i,end).toString(pOptions.encoding);
                 i = end;
 
-                if(skip>=1) skip=0;
-
                 if((/^[\s\t\n\r]*$/.test(line))){
-                    skip = line.length;
                     continue;
                 }
 
