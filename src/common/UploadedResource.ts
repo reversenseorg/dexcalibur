@@ -154,7 +154,7 @@ export class UploadedResource extends Auditable implements INode {
         return {
             _id: this._id,
             path: (pZone===SecurityZone.PRIVATE? this.path : null),
-            name: (pZone===SecurityZone.PUBLIC && _path_.isAbsolute(this.name) ? null : this.name),
+            name: (pZone===SecurityZone.PUBLIC && this.name!=null && _path_.isAbsolute(this.name) ? null : this.name),
             uuid: this.uuid,
             date: this.date,
             sum: this.sum,
