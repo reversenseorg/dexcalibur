@@ -180,7 +180,7 @@ export class NodeProperty {
         if(pKeyType==null){
             return (this._key!=null);
         }else{
-            return (this._key!=pKeyType);
+            return (this._key==pKeyType);
         }
     }
 
