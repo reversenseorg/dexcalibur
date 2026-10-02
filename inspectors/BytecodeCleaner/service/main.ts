@@ -79,7 +79,7 @@ function cleanNopOpcode(pMeth:any):any {
             for(let j=0; j<pMeth.instr[i].stack.length; j++){
 
                 opcode = pMeth.instr[i].stack[j].opcode;
-                if(opcode != null && opcode.type !==CONST.INSTR_TYPE.NOP){
+                if(opcode == null || opcode.type !==CONST.INSTR_TYPE.NOP){
                     newbb.push(pMeth.instr[i].stack[j]);
                 }else{
                     counters.nopCtr++;
