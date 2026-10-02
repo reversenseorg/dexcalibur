@@ -101,9 +101,9 @@ jobs:
         run: |
           set -euo pipefail
           
-          if [[ "PUBLISH" == "success"  ]]; then
+          if [[ "$PUBLISH" == "success"  ]]; then
             STATUS="SUCCESS"; COLOR=$(( 16#2EA043 ))
-          elif [[ "PUBLISH" == "cancelled" ]]; then
+          elif [[ "$PUBLISH" == "cancelled" ]]; then
             STATUS="CANCELLED"; COLOR=$(( 16#6E7681 ))
           else
             STATUS="FAILED"; COLOR=$(( 16#D73A49 ))
