@@ -285,7 +285,7 @@ export class AndroidManifest implements INode
             });
         }
 
-        if(this.usesSdk != null && this.usesSdk.length > 0){
+        if(this.usesSdk != null && Object.values(this.usesSdk).some(v => v != null)){
             o['uses-sdk'] = [];
             o['uses-sdk'].push(this.usesSdk);
         }
