@@ -6,9 +6,10 @@ import Util from "../src/Utils.js";
 
 
 describe('TraceRouteHelper', function() {
+    let originalTestEnv: string | undefined;
 
     before(function(){
-
+        originalTestEnv = process.env.DXC_TEST;
         process.env.DXC_TEST = "1";
         if(!TestExecHelper.hasInterceptor( InterceptorType.EXEC, "trace_crashlyticsreports")){
             TestExecHelper.intercept(
@@ -29,7 +30,9 @@ describe('TraceRouteHelper', function() {
     });
 
     after(function(){
-        TestExecHelper.deleteInterceptor(InterceptorType.EXEC, "trace_crashlyticsreports-pa");
+        TestExecHelper.deleteInterceptor(InterceptorType.EXEC, "trace_crashlyticsreports");
+        if(originalTestEnv === undefined) delete process.env.DXC_TEST;
+        else process.env.DXC_TEST = originalTestEnv;
     })
 
 

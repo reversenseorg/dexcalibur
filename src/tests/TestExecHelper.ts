@@ -116,6 +116,11 @@ export class TestExecHelperClass {
 
 
     deleteInterceptor(pType:InterceptorType, pName:string){
+        if(this.interceptors[pType]!=null){
+            this.interceptors[pType] = this.interceptors[pType].filter(
+                interceptor => interceptor.name !== pName
+            );
+        }
         delete this._map[`${pType}:${pName}`];
     }
 
@@ -149,6 +154,7 @@ export class TestExecHelperClass {
 
     clearInterceptors(){
         this.interceptors = {};
+        this._map = {};
     }
 
     /**
